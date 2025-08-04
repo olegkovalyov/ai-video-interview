@@ -1,0 +1,39 @@
+{
+  "name": "ai-video-interview-platform",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:services": "turbo run start:dev --filter='./apps/api-gateway' --filter='./apps/user-service' --filter='./apps/interview-service' --parallel",
+    "dev:web": "turbo run dev --filter='./apps/web'",
+    "dev:all": "concurrently \"npm run dev:services\" \"npm run dev:web\"",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "infra:up": "docker-compose up -d postgres redis minio",
+    "infra:down": "docker-compose down",
+    "infra:logs": "docker-compose logs -f",
+    "infra:reset": "docker-compose down -v && docker-compose up -d postgres redis minio",
+    "kafka:up": "docker-compose --profile kafka up -d",
+    "kafka:down": "docker-compose --profile kafka down",
+    "kafka:logs": "docker-compose --profile kafka logs -f",
+    "kafka:reset": "docker-compose --profile kafka down -v && docker-compose --profile kafka up -d",
+    "setup": "npm install && npm run infra:up && echo 'Setup complete! Run npm run dev:all to start all services'"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.5",
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
