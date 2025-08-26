@@ -1,6 +1,7 @@
 -- Create databases for different services
 CREATE DATABASE ai_video_interview_main;
 CREATE DATABASE ai_video_interview_test;
+CREATE DATABASE ai_video_interview_user;
 
 -- Create users for services (optional, for production)
 -- CREATE USER api_gateway_user WITH PASSWORD 'api_gateway_pass';
@@ -18,5 +19,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 \c ai_video_interview_test;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Enable extensions for user-service database
+\c ai_video_interview_user;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

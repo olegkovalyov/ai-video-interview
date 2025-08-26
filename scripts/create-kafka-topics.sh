@@ -17,6 +17,11 @@ TOPICS=(
     "notification-events"
     "ai-analysis-events"
     "audit-events"
+    # Command topics for RPC-style communication
+    "user-commands"
+    "auth-commands.login"
+    "auth-commands.refresh"
+    "user-commands.register"
 )
 
 # Create topics
