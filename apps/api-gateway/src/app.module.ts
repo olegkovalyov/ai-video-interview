@@ -1,30 +1,21 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AuthController } from './auth/auth.controller';
+import { AuthentikService } from './auth/authentik.service';
+import { OidcService } from './auth/oidc.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    ClientsModule.register([
-      {
-        name: 'USER_SERVICE_CLIENT',
-        transport: Transport.KAFKA,
-        options: {
-          client: {
-            clientId: 'api-gateway',
-            brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
-          },
-          consumer: {
-            groupId: 'api-gateway-group',
-          },
-        },
-      },
-    ]),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // Support running from apps/api-gateway while reading root .env
+      envFilePath: ['.env', '../../.env'],
+    }),
   ],
   controllers: [AppController, AuthController],
-  providers: [AppService],
+  providers: [AppService, AuthentikService, OidcService, JwtAuthGuard],
 })
 export class AppModule {}

@@ -1,47 +1,128 @@
-import { Body, Controller, HttpCode, HttpStatus, Inject, OnModuleInit, Post, UsePipes, ValidationPipe } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
-import { firstValueFrom, timeout } from 'rxjs';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { AuthentikService } from './authentik.service';
+
+interface RegisterDto {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface LoginDto {
+  email: string;
+  password: string;
+}
 
 @Controller('auth')
-@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-export class AuthController implements OnModuleInit {
-  constructor(
-    @Inject('USER_SERVICE_CLIENT') private readonly userClient: ClientKafka,
-  ) {}
-
-  onModuleInit() {
-    // Subscribe to response topics for RPC
-    this.userClient.subscribeToResponseOf('user-commands.register');
-    this.userClient.subscribeToResponseOf('auth-commands.login');
-    this.userClient.subscribeToResponseOf('auth-commands.refresh');
-    // Ensure client is connected
-    this.userClient.connect();
-  }
+export class AuthController {
+  constructor(private readonly authentikService: AuthentikService) {}
 
   @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    const res$ = this.userClient.send<{ success: boolean; user: any }>('user-commands.register', dto).pipe(timeout(5000));
-    const res = await firstValueFrom(res$);
-    return res;
+  async register(@Body() registerDto: RegisterDto) {
+    try {
+      const user = await this.authentikService.registerUser(registerDto);
+      return {
+        success: true,
+        user: {
+          id: user.pk,
+          email: user.email,
+          name: user.name,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto) {
-    const res$ = this.userClient.send<{ success: boolean; tokens: { accessToken: string; refreshToken: string } }>('auth-commands.login', dto).pipe(timeout(5000));
-    const res = await firstValueFrom(res$);
-    return res;
+  @Get('login')
+  async initiateLogin(@Query('redirect_uri') redirectUri?: string) {
+    try {
+      const defaultRedirectUri = `${this.getBaseUrl()}/auth/callback`;
+      const actualRedirectUri = redirectUri || defaultRedirectUri;
+      
+      const { authUrl, state } = this.authentikService.getAuthorizationUrl(actualRedirectUri);
+      
+      return {
+        success: true,
+        authUrl,
+        state,
+        redirectUri: actualRedirectUri,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Get('callback')
+  async handleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('redirect_uri') redirectUri?: string
+  ) {
+    try {
+      if (!code) {
+        throw new Error('Authorization code not provided');
+      }
+
+      const defaultRedirectUri = `${this.getBaseUrl()}/auth/callback`;
+      const actualRedirectUri = redirectUri || defaultRedirectUri;
+
+      const tokens = await this.authentikService.exchangeCodeForTokens(code, actualRedirectUri);
+      
+      return {
+        success: true,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiresIn: tokens.expires_in,
+        tokenType: tokens.token_type,
+        idToken: tokens.id_token,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  private getBaseUrl(): string {
+    // В продакшене это должно быть из конфигурации
+    return 'http://localhost:8000';
   }
 
   @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  async refresh(@Body() body: { userId: string; refreshToken: string }) {
-    const res$ = this.userClient
-      .send<{ success: boolean; tokens: { accessToken: string; refreshToken: string } }>('auth-commands.refresh', body)
-      .pipe(timeout(5000));
-    const res = await firstValueFrom(res$);
-    return res;
+  async refresh(@Body() body: { refreshToken: string }) {
+    try {
+      const tokens = await this.authentikService.refreshToken(body.refreshToken);
+      return {
+        success: true,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiresIn: tokens.expires_in,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Get('jwks')
+  async getJWKS() {
+    try {
+      return await this.authentikService.getJWKS();
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 }

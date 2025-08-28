@@ -102,6 +102,81 @@ services:
     profiles:
       - kafka
 
+  # Authentik - Authentication & Identity Provider
+  authentik-postgresql:
+    image: postgres:15-alpine
+    container_name: ai-interview-authentik-postgres
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: authentik-password
+    volumes:
+      - authentik_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  authentik-redis:
+    image: redis:7-alpine
+    container_name: ai-interview-authentik-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - authentik_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2024.2.2
+    container_name: ai-interview-authentik-server
+    restart: unless-stopped
+    command: server
+    environment:
+      AUTHENTIK_SECRET_KEY: "super-secret-key-change-in-production"
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik-password
+      AUTHENTIK_REDIS__HOST: authentik-redis
+    volumes:
+      - authentik_media:/media
+      - authentik_custom_templates:/templates
+    ports:
+      - "9443:9000"
+    depends_on:
+      - authentik-postgresql
+      - authentik-redis
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2024.2.2
+    container_name: ai-interview-authentik-worker
+    restart: unless-stopped
+    command: worker
+    environment:
+      AUTHENTIK_SECRET_KEY: "super-secret-key-change-in-production"
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: authentik-password
+      AUTHENTIK_REDIS__HOST: authentik-redis
+    volumes:
+      - authentik_media:/media
+      - authentik_custom_templates:/templates
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - authentik-postgresql
+      - authentik-redis
+
   # ClickHouse - Analytics database (for later phases)
   clickhouse:
     image: clickhouse/clickhouse-server:23.8-alpine
@@ -125,6 +200,10 @@ volumes:
   zookeeper_data:
   kafka_data:
   clickhouse_data:
+  authentik_postgres_data:
+  authentik_redis_data:
+  authentik_media:
+  authentik_custom_templates:
 
 networks:
   default:
