@@ -1,102 +1,176 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
+"use client";
+import Link from "next/link";
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
-
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
-
+export default function LandingPage() {
   return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
-
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      {/* Header */}
+      <header style={{ 
+        padding: '20px 40px', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        background: 'rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <h1 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>
+          🎥 AI Video Interview
+        </h1>
+        <nav style={{ display: 'flex', gap: '16px' }}>
+          <Link 
+            href="/login" 
+            style={{ 
+              padding: '8px 16px', 
+              background: 'rgba(255,255,255,0.2)', 
+              borderRadius: '6px', 
+              textDecoration: 'none', 
+              color: 'white',
+              fontWeight: '500'
+            }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.com/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
+            Login
+          </Link>
+          <Link 
+            href="/register"
+            style={{ 
+              padding: '8px 16px', 
+              background: 'white', 
+              color: '#667eea', 
+              borderRadius: '6px', 
+              textDecoration: 'none',
+              fontWeight: '600'
+            }}
           >
-            Read our docs
-          </a>
+            Sign Up
+          </Link>
+        </nav>
+      </header>
+
+      {/* Hero Section */}
+      <main style={{ 
+        padding: '80px 40px', 
+        textAlign: 'center', 
+        maxWidth: '1200px', 
+        margin: '0 auto' 
+      }}>
+        <div style={{ marginBottom: '40px' }}>
+          <h2 style={{ 
+            fontSize: '48px', 
+            fontWeight: '800', 
+            margin: '0 0 20px 0',
+            lineHeight: '1.2'
+          }}>
+            Revolutionize Your
+            <br />
+            <span style={{ color: '#ffd700' }}>AI-Powered Interviews</span>
+          </h2>
+          <p style={{ 
+            fontSize: '20px', 
+            opacity: '0.9', 
+            maxWidth: '600px', 
+            margin: '0 auto 40px auto',
+            lineHeight: '1.6'
+          }}>
+            Experience next-generation video interviews with AI analysis, 
+            real-time feedback, and comprehensive candidate evaluation.
+          </p>
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
+
+        {/* Features Grid */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: '30px',
+          marginBottom: '60px'
+        }}>
+          <div style={{ 
+            background: 'rgba(255,255,255,0.1)', 
+            padding: '30px', 
+            borderRadius: '12px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
+            <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>Smart Analysis</h3>
+            <p style={{ opacity: '0.8', lineHeight: '1.5' }}>
+              AI-powered evaluation of communication skills, technical knowledge, and personality traits.
+            </p>
+          </div>
+          <div style={{ 
+            background: 'rgba(255,255,255,0.1)', 
+            padding: '30px', 
+            borderRadius: '12px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+            <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>Real-time Insights</h3>
+            <p style={{ opacity: '0.8', lineHeight: '1.5' }}>
+              Get instant feedback and detailed reports on candidate performance and potential.
+            </p>
+          </div>
+          <div style={{ 
+            background: 'rgba(255,255,255,0.1)', 
+            padding: '30px', 
+            borderRadius: '12px',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚀</div>
+            <h3 style={{ fontSize: '20px', marginBottom: '12px' }}>Streamlined Process</h3>
+            <p style={{ opacity: '0.8', lineHeight: '1.5' }}>
+              Reduce hiring time by 70% with automated screening and intelligent matching.
+            </p>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div style={{ 
+          background: 'rgba(255,255,255,0.1)', 
+          padding: '40px', 
+          borderRadius: '16px',
+          backdropFilter: 'blur(10px)'
+        }}>
+          <h3 style={{ fontSize: '28px', marginBottom: '20px', fontWeight: '700' }}>
+            Ready to Transform Your Hiring?
+          </h3>
+          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link 
+              href="/register"
+              style={{ 
+                padding: '16px 32px', 
+                background: '#ffd700', 
+                color: '#333', 
+                borderRadius: '8px', 
+                textDecoration: 'none',
+                fontWeight: '600',
+                fontSize: '18px',
+                display: 'inline-block'
+              }}
+            >
+              Create Account
+            </Link>
+            <Link 
+              href="/login"
+              style={{ 
+                padding: '16px 32px', 
+                background: 'rgba(255,255,255,0.2)', 
+                color: 'white',
+                border: '2px solid rgba(255,255,255,0.3)',
+                borderRadius: '8px', 
+                textDecoration: 'none',
+                fontWeight: '600',
+                fontSize: '18px',
+                display: 'inline-block'
+              }}
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
       </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.com?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.com →
-        </a>
-      </footer>
     </div>
   );
 }

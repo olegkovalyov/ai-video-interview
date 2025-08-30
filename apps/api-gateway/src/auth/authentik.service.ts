@@ -79,7 +79,7 @@ export class AuthentikService {
       response_type: 'code',
       client_id: clientId,
       redirect_uri: redirectUri,
-      scope: 'openid profile email',
+      scope: 'openid profile email offline_access',
       state: state || Math.random().toString(36).substring(2, 15),
     });
 

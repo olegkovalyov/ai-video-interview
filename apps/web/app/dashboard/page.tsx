@@ -1,86 +1,207 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { apiPost } from "../lib/api";
+import { useEffect, useState } from "react";
+import { apiPost, apiGet } from "../lib/api";
 import { useRouter } from "next/navigation";
-
-function decodeJwtPayload(token: string): any | null {
-  try {
-    const [, payload] = token.split(".");
-    if (!payload) return null;
-    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
+import Link from "next/link";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [message, setMessage] = useState<string>("Session ready (cookies)");
   const [error, setError] = useState<string | null>(null);
+  const [protectedData, setProtectedData] = useState<any>(null);
 
   useEffect(() => {
-    const at = localStorage.getItem("accessToken");
-    const st = localStorage.getItem("sessionToken");
-    if (!at || !st) {
-      router.replace("/login");
-      return;
-    }
-    setAccessToken(at);
-    setRefreshToken(st);
-  }, [router]);
-
-  const claims = useMemo(() => (accessToken ? decodeJwtPayload(accessToken) : null), [accessToken]);
+    // Auto-test protected route on page load to verify session
+    onTestProtected();
+  }, []);
 
   const onRefresh = async () => {
     setError(null);
-    if (!refreshToken) return;
     try {
-      // Use session token to get a new JWT
-      const tokenRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'}/auth/token`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${refreshToken}`,
-        },
-      });
-      const tokenData = await tokenRes.json();
-      
-      localStorage.setItem("accessToken", tokenData.token);
-      setAccessToken(tokenData.token);
+      const res = await apiPost<{ success: boolean; expiresIn: number }>("/auth/refresh");
+      setMessage(`Refreshed. New access TTL ~${res.expiresIn}s`);
     } catch (e: any) {
       setError(e.message || "Refresh failed");
     }
   };
 
-  const onLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("sessionToken");
-    router.replace("/login");
+  const onTestProtected = async () => {
+    setError(null);
+    try {
+      const res = await apiGet<{ message: string; timestamp: string; user: any }>("/protected");
+      setProtectedData(res);
+      setMessage("Protected endpoint test successful!");
+    } catch (e: any) {
+      setError(e.message || "Protected endpoint failed - maybe no valid session?");
+      if (e.message?.includes('401') || e.message?.includes('Unauthorized')) {
+        // Redirect to login if unauthorized
+        setTimeout(() => router.replace("/login"), 2000);
+      }
+    }
+  };
+
+  const onLogout = async () => {
+    try {
+      await apiPost("/auth/logout");
+    } catch (e) {
+      // ignore logout API errors
+    }
+    // Always redirect to landing after logout
+    router.replace("/");
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: "40px auto", fontFamily: "sans-serif" }}>
-      <h1>Dashboard</h1>
-      {error && <div style={{ color: "#b00020", marginBottom: 12 }}>{error}</div>}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-        <button onClick={onRefresh}>Refresh tokens</button>
-        <button onClick={onLogout}>Logout</button>
-      </div>
-      <section style={{ marginTop: 16 }}>
-        <h3>Claims</h3>
-        <pre style={{ background: "#f6f8fa", padding: 12, overflow: "auto" }}>
-          {claims ? JSON.stringify(claims, null, 2) : "No token"}
-        </pre>
-      </section>
-      <section style={{ marginTop: 16 }}>
-        <h3>Access Token</h3>
-        <pre style={{ background: "#f6f8fa", padding: 12, overflow: "auto" }}>{accessToken}</pre>
-      </section>
-      <section style={{ marginTop: 16 }}>
-        <h3>Refresh Token</h3>
-        <pre style={{ background: "#f6f8fa", padding: 12, overflow: "auto" }}>{refreshToken}</pre>
-      </section>
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      {/* Header */}
+      <header style={{ 
+        padding: '20px 40px', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        background: 'rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <Link href="/" style={{ 
+          fontSize: '24px', 
+          fontWeight: '700', 
+          margin: 0, 
+          color: 'white', 
+          textDecoration: 'none' 
+        }}>
+          🎥 AI Video Interview
+        </Link>
+        <button 
+          onClick={onLogout} 
+          style={{ 
+            background: 'rgba(244, 67, 54, 0.8)', 
+            color: 'white', 
+            border: 'none', 
+            padding: '8px 16px', 
+            borderRadius: '6px',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+        >
+          Logout
+        </button>
+      </header>
+
+      {/* Main Content */}
+      <main style={{ 
+        padding: '40px', 
+        maxWidth: '1200px', 
+        margin: '0 auto' 
+      }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(10px)',
+          padding: '40px',
+          borderRadius: '16px',
+          marginBottom: '30px'
+        }}>
+          <h1 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '20px', textAlign: 'center' }}>
+            Dashboard
+          </h1>
+          
+          {error && (
+            <div style={{ 
+              color: '#ffcdd2', 
+              backgroundColor: 'rgba(244, 67, 54, 0.1)', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              marginBottom: '20px' 
+            }}>
+              {error}
+            </div>
+          )}
+          
+          <div style={{ 
+            display: "flex", 
+            gap: '16px', 
+            marginBottom: '30px', 
+            flexWrap: "wrap",
+            justifyContent: 'center'
+          }}>
+            <button 
+              onClick={onRefresh}
+              style={{
+                padding: '12px 24px',
+                background: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                border: '2px solid rgba(255,255,255,0.3)',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Refresh Token
+            </button>
+            <button 
+              onClick={onTestProtected}
+              style={{
+                padding: '12px 24px',
+                background: '#ffd700',
+                color: '#333',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Test Protected Route
+            </button>
+          </div>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: '20px'
+          }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.1)',
+              padding: '20px',
+              borderRadius: '12px'
+            }}>
+              <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>Status</h3>
+              <pre style={{ 
+                background: 'rgba(0,0,0,0.2)', 
+                padding: '12px', 
+                borderRadius: '6px',
+                overflow: 'auto',
+                fontSize: '14px',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {message}
+              </pre>
+            </div>
+            
+            {protectedData && (
+              <div style={{
+                background: 'rgba(255,255,255,0.1)',
+                padding: '20px',
+                borderRadius: '12px'
+              }}>
+                <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>Protected Route Response</h3>
+                <pre style={{ 
+                  background: 'rgba(0,0,0,0.2)', 
+                  padding: '12px', 
+                  borderRadius: '6px',
+                  overflow: 'auto',
+                  fontSize: '12px',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {JSON.stringify(protectedData, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
