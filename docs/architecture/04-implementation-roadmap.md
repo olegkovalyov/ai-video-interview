@@ -20,7 +20,7 @@
 - [ ] Настройка монорепозитория (Nx/Turborepo)
 - [ ] Базовая инфраструктура (Docker, Docker Compose)
 - [ ] PostgreSQL + Redis setup
-- [ ] BetterAuth интеграция (NestJS + Next.js)
+- [ ] Authentik Identity Provider интеграция (OAuth2/OIDC)
 - [ ] Базовый RBAC (HR, Admin, Viewer)
 - [ ] API Gateway с маршрутизацией
 - [ ] Базовый UI (Next.js + Tailwind + Shadcn/ui)

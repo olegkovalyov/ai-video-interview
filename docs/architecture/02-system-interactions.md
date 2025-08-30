@@ -42,7 +42,7 @@ graph TB
     end
     
     subgraph "API Layer"
-        Gateway[API Gateway<br/>NestJS + BetterAuth<br/>Port: 8000]
+        Gateway[API Gateway<br/>NestJS + Authentik OAuth2<br/>Port: 8000]
     end
     
     subgraph "Core Services"

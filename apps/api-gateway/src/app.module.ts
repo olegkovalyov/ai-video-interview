@@ -6,6 +6,7 @@ import { AuthController } from './auth/auth.controller';
 import { AuthentikService } from './auth/authentik.service';
 import { OidcService } from './auth/oidc.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { KafkaModule } from './kafka/kafka.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
       // Support running from apps/api-gateway while reading root .env
       envFilePath: ['.env', '../../.env'],
     }),
+    KafkaModule,
   ],
   controllers: [AppController, AuthController],
   providers: [AppService, AuthentikService, OidcService, JwtAuthGuard],

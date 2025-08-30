@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Get, Query, Res, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Res, Req, Inject } from '@nestjs/common';
 import { AuthentikService } from './authentik.service';
 import { Response } from 'express';
 import { Request } from 'express';
 import { OidcService } from './oidc.service';
+import { KafkaService, UserEventFactory, KAFKA_TOPICS } from '@repo/shared';
 
 
 @Controller('auth')
@@ -10,6 +11,7 @@ export class AuthController {
   constructor(
     private readonly authentikService: AuthentikService,
     private readonly oidcService: OidcService,
+    @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
   ) {}
 
 
@@ -114,6 +116,9 @@ export class AuthController {
       console.log('🔧 Callback using redirect_uri:', actualRedirectUri);
 
       const tokens = await this.authentikService.exchangeCodeForTokens(code, actualRedirectUri);
+      
+      // Get user info from access token
+      const { payload: userInfo } = await this.oidcService.verifyAccessToken(tokens.access_token);
 
       // Set httpOnly cookies
       const isSecure = false; // set true behind HTTPS/proxy in prod
@@ -135,6 +140,21 @@ export class AuthController {
           path: '/',
           maxAge: refreshTtlMs,
         });
+      }
+
+      // Emit user authenticated event
+      try {
+        const sessionId = crypto.randomUUID();
+        const userAuthEvent = UserEventFactory.createUserAuthenticated(
+          userInfo.sub as string,
+          userInfo.email as string,
+          sessionId,
+          { authMethod: 'oauth2' }
+        );
+        await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userAuthEvent);
+        console.log('📨 User authentication event published');
+      } catch (error) {
+        console.error('❌ Failed to publish user authentication event:', error);
       }
 
       return res?.json({
@@ -189,22 +209,35 @@ export class AuthController {
 
       res.cookie('access_token', tokens.access_token, {
         httpOnly: true,
-        sameSite: 'lax',
         secure: isSecure,
-        path: '/',
-        maxAge: accessTtlMs,
+        sameSite: 'lax',
+        maxAge: 900000, // 15 minutes
       });
-      if (tokens.refresh_token) {
-        res.cookie('refresh_token', tokens.refresh_token, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: isSecure,
-          path: '/',
-          maxAge: refreshTtlMs,
-        });
+
+      res.cookie('refresh_token', tokens.refresh_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 2592000000, // 30 days
+      });
+
+      // For refresh flow, we emit a less detailed auth event since we don't re-verify user info
+      try {
+        const sessionId = crypto.randomUUID();
+        const userAuthEvent = UserEventFactory.createUserAuthenticated(
+          'unknown', // userId not available in refresh flow
+          'unknown', // email not available in refresh flow  
+          sessionId,
+          { authMethod: 'jwt_refresh' }
+        );
+        await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userAuthEvent);
+        console.log('📨 Token refresh event published');
+      } catch (error) {
+        console.error('❌ Failed to publish token refresh event:', error);
       }
 
-      return res.json({ success: true, expiresIn: tokens.expires_in });
+      console.log('✅ Tokens stored in cookies successfully');
+      return res.json({ success: true, message: 'Authentication completed' });
     } catch (error) {
       return res.status(400).json({ success: false, error: error.message });
     }

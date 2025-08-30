@@ -1,17 +1,16 @@
-// DTOs
-export * from './dto/user.dto';
-export * from './dto/interview.dto';
-export * from './dto/auth.dto';
+// Events and Kafka (main functionality)
+export * from './events';
+export * from './kafka/kafka.service';
 
-// Types
-export * from './types/common.types';
-export * from './types/user.types';
-export * from './types/interview.types';
+// DTOs - commented out due to validation decorator issues
+// export * from './dto/user.dto';
+// export * from './dto/interview.dto';
+// export * from './dto/auth.dto';
 
-// Utils
-export * from './utils/validation.utils';
-export * from './utils/common.utils';
+// Utils - commented out temporarily
+// export * from './utils/validation.utils';
+// export * from './utils/common.utils';
 
-// Constants
-export * from './constants/app.constants';
-export * from './constants/roles.constants';
+// Constants - commented out temporarily  
+// export * from './constants/app.constants';
+// export * from './constants/roles.constants';

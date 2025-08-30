@@ -134,7 +134,7 @@ Reasons:
 ### 1. API Gateway Pattern
 ```yaml
 Decision: Единая точка входа для всех клиентов
-Implementation: NestJS + BetterAuth
+Implementation: NestJS + Authentik OAuth2
 Benefits:
   - Централизованная аутентификация
   - Rate limiting
@@ -283,10 +283,10 @@ ClickHouse:
 
 ### Authentication & Authorization
 ```yaml
-Authentication: JWT + Refresh Tokens
-Implementation: BetterAuth
+Authentication: OAuth2/OIDC + JWT
+Implementation: Authentik Identity Provider
 Token Storage: 
-  - Access Token: Memory (15 min TTL)
+  - Access Token: HttpOnly Cookie (15 min TTL)
   - Refresh Token: HttpOnly Cookie (30 days)
 
 Authorization: RBAC + ABAC

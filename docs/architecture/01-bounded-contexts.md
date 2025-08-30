@@ -25,7 +25,7 @@
 - Password reset, email verification
 
 ### Технологии:
-- **BetterAuth** (NestJS + Next.js)
+- **Authentik** (Identity Provider с OAuth2/OIDC)
 - **PostgreSQL** для пользователей и ролей
 - **Redis** для сессий
 
