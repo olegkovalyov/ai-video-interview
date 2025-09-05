@@ -26,15 +26,54 @@ TOPICS=(
 
 # Create topics
 for topic in "${TOPICS[@]}"; do
-    echo "Creating topic: $topic"
-    docker exec ai-interview-kafka kafka-topics \
-        --bootstrap-server localhost:9092 \
-        --create \
-        --topic "$topic" \
-        --partitions 3 \
-        --replication-factor 1 \
-        --if-not-exists
+    echo "Creating Kafka topics..."
 done
+
+# Create user-events topic
+docker exec ai-interview-kafka kafka-topics --create \
+  --topic user-events \
+  --bootstrap-server localhost:9092 \
+  --partitions 3 \
+  --replication-factor 1 \
+  --if-not-exists
+
+# Create interview-events topic  
+docker exec ai-interview-kafka kafka-topics --create \
+  --topic interview-events \
+  --bootstrap-server localhost:9092 \
+  --partitions 3 \
+  --replication-factor 1 \
+  --if-not-exists
+
+# Create user-analytics topic
+docker exec ai-interview-kafka kafka-topics --create \
+  --topic user-analytics \
+  --bootstrap-server localhost:9092 \
+  --partitions 2 \
+  --replication-factor 1 \
+  --if-not-exists
+
+# Create Dead Letter Queue topics
+docker exec ai-interview-kafka kafka-topics --create \
+  --topic user-events-dlq \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1 \
+  --if-not-exists
+
+docker exec ai-interview-kafka kafka-topics --create \
+  --topic interview-events-dlq \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1 \
+  --if-not-exists
+
+docker exec ai-interview-kafka kafka-topics --create \
+  --topic user-analytics-dlq \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1 \
+  --if-not-exists
 
 echo "✅ All Kafka topics created successfully!"
 echo "🌐 Access Kafka UI at: http://localhost:8080"

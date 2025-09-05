@@ -1,6 +1,7 @@
-// Events and Kafka (main functionality)
+// Export events and Kafka services
 export * from './events';
 export * from './kafka/kafka.service';
+export * from './kafka/kafka-health.service';
 
 // DTOs - commented out due to validation decorator issues
 // export * from './dto/user.dto';

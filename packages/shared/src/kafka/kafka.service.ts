@@ -1,4 +1,4 @@
-import { Kafka, Producer, Consumer, KafkaMessage } from 'kafkajs';
+import { Kafka, Producer, Consumer, KafkaMessage, EachBatchPayload } from 'kafkajs';
 import { KAFKA_CONFIG } from '../events';
 
 export class KafkaService {
@@ -52,25 +52,32 @@ export class KafkaService {
     return this.consumers.get(consumerKey)!;
   }
 
-  async publishEvent(topic: string, event: any): Promise<void> {
+  async publishEvent(topic: string, event: any, options?: { partitionKey?: string }): Promise<void> {
     try {
       const producer = await this.createProducer();
+      
+      // Use userId as partition key for user events to ensure ordering per user
+      const partitionKey = options?.partitionKey || 
+                          event.payload?.userId || 
+                          event.eventId || 
+                          crypto.randomUUID();
       
       await producer.send({
         topic,
         messages: [{
-          key: event.eventId || crypto.randomUUID(),
+          key: partitionKey,
           value: JSON.stringify(event),
-          timestamp: event.timestamp || new Date().toISOString(),
+          timestamp: event.timestamp || Date.now(),
           headers: {
-            eventType: event.eventType,
-            source: event.source || this.serviceName,
-            version: event.version || '1.0',
+            eventType: String(event.eventType || ''),
+            source: String(event.source || this.serviceName),
+            version: String(event.version || '1.0'),
+            partitionKey: String(partitionKey),
           },
         }],
       });
       
-      console.log(`📤 Event published: ${event.eventType} → ${topic}`);
+      console.log(`📤 Event published: ${event.eventType} → ${topic} (partition key: ${partitionKey})`);
     } catch (error) {
       console.error(`❌ Failed to publish event to ${topic}:`, error);
       throw error;
@@ -80,30 +87,84 @@ export class KafkaService {
   async subscribe(
     topic: string,
     groupId: string,
-    handler: (message: KafkaMessage) => Promise<void>
+    handler: (message: KafkaMessage) => Promise<void>,
+    options?: {
+      fromBeginning?: boolean;
+      autoCommit?: boolean;
+      mode?: 'eachMessage' | 'eachBatch';
+    }
   ): Promise<void> {
     try {
       const consumer = await this.createConsumer(groupId);
-      
-      await consumer.subscribe({ topic, fromBeginning: true });
-      
-      await consumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
-          try {
-            console.log(`📥 Received message from ${topic}:${partition}`, {
-              key: message.key?.toString(),
-              headers: message.headers,
-            });
+      const fromBeginning = options?.fromBeginning ?? true;
+      const autoCommit = options?.autoCommit ?? true;
+      const mode = options?.mode ?? 'eachMessage';
+
+      await consumer.subscribe({ topic, fromBeginning });
+
+      if (mode === 'eachBatch' || autoCommit === false) {
+        await consumer.run({
+          autoCommit: false,
+          eachBatchAutoResolve: false,
+          eachBatch: async (payload: EachBatchPayload) => {
+            const { batch, resolveOffset, commitOffsetsIfNecessary, heartbeat, isRunning, isStale } = payload;
             
-            await handler(message);
-          } catch (error) {
-            console.error(`❌ Error processing message from ${topic}:`, error);
-            // In production, you might want to send to dead letter queue
-          }
-        },
-      });
+            for (const message of batch.messages) {
+              if (!isRunning() || isStale()) break;
+
+              try {
+                console.log(`📥 Received message from ${batch.topic}:${batch.partition}`, {
+                  key: message.key?.toString(),
+                  headers: message.headers,
+                  offset: message.offset,
+                });
+
+                await handler(message);
+                resolveOffset(message.offset);
+                await heartbeat();
+              } catch (error) {
+                console.error(`❌ Error processing message from ${batch.topic}:`, error);
+                
+                // Get retry count from headers or default to 0
+                const retryCount = parseInt(message.headers?.['retry-count']?.toString() || '0');
+                const maxRetries = 3;
+                
+                if (retryCount >= maxRetries) {
+                  // Max retries reached, send to DLQ and resolve offset
+                  console.log(`💀 Max retries reached, sending to DLQ: ${batch.topic}`);
+                  await this.sendToDLQ(batch.topic, message, error as Error, retryCount);
+                  resolveOffset(message.offset);
+                } else {
+                  // Don't resolve offset, message will be retried
+                  console.log(`🔄 Retry ${retryCount + 1}/${maxRetries} for message from ${batch.topic}`);
+                  throw error;
+                }
+                
+                await heartbeat();
+              }
+            }
+
+            await commitOffsetsIfNecessary();
+          },
+        });
+      } else {
+        await consumer.run({
+          eachMessage: async ({ topic, partition, message }) => {
+            try {
+              console.log(`📥 Received message from ${topic}:${partition}`, {
+                key: message.key?.toString(),
+                headers: message.headers,
+              });
+              
+              await handler(message);
+            } catch (error) {
+              console.error(`❌ Error processing message from ${topic}:`, error);
+            }
+          },
+        });
+      }
       
-      console.log(`🔄 Subscribed to topic: ${topic} (group: ${groupId})`);
+      console.log(`🔄 Subscribed to topic: ${topic} (group: ${groupId}) [mode=${mode}, autoCommit=${autoCommit}, fromBeginning=${fromBeginning}]`);
     } catch (error) {
       console.error(`❌ Failed to subscribe to ${topic}:`, error);
       throw error;
@@ -130,6 +191,53 @@ export class KafkaService {
   }
 
   // Utility method to parse event from Kafka message
+  async sendToDLQ(
+    originalTopic: string, 
+    message: KafkaMessage, 
+    error: Error, 
+    retryCount: number = 0
+  ): Promise<void> {
+    try {
+      const dlqTopic = `${originalTopic}-dlq`;
+      const producer = await this.createProducer();
+      
+      const dlqMessage = {
+        originalTopic,
+        originalMessage: message.value?.toString(),
+        originalKey: message.key?.toString(),
+        originalHeaders: message.headers,
+        originalOffset: message.offset,
+        error: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+        retryCount,
+        failedAt: Date.now(),
+        serviceName: this.serviceName,
+      };
+
+      await producer.send({
+        topic: dlqTopic,
+        messages: [{
+          key: message.key,
+          value: JSON.stringify(dlqMessage),
+          headers: {
+            ...message.headers,
+            'dlq-original-topic': String(originalTopic),
+            'dlq-failed-at': String(Date.now()),
+            'dlq-retry-count': String(retryCount),
+            'dlq-service': String(this.serviceName),
+          },
+        }],
+      });
+      
+      console.log(`💀 Message sent to DLQ: ${originalTopic} → ${dlqTopic} (retry: ${retryCount})`);
+    } catch (dlqError) {
+      console.error('❌ Failed to send message to DLQ:', dlqError);
+    }
+  }
+
   parseEvent<T = any>(message: KafkaMessage): T | null {
     try {
       if (!message.value) return null;

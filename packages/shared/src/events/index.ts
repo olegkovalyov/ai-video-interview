@@ -10,7 +10,10 @@ export const KAFKA_CONFIG = {
 
 export const KAFKA_TOPICS = {
   USER_EVENTS: 'user-events',
-  INTERVIEW_EVENTS: 'interview-events', 
-  SYSTEM_EVENTS: 'system-events',
+  INTERVIEW_EVENTS: 'interview-events',
   USER_ANALYTICS: 'user-analytics',
+  // Dead Letter Queue topics
+  USER_EVENTS_DLQ: 'user-events-dlq',
+  INTERVIEW_EVENTS_DLQ: 'interview-events-dlq',
+  USER_ANALYTICS_DLQ: 'user-analytics-dlq',
 } as const;

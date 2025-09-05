@@ -12,6 +12,7 @@
     "check-types": "turbo run check-types",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
+    "cleanup:ports": "bash scripts/cleanup-ports.sh",
     "infra:up": "docker-compose up -d postgres redis minio",
     "infra:down": "docker-compose down",
     "infra:logs": "docker-compose logs -f",
