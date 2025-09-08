@@ -17,10 +17,14 @@ export default function DashboardPage() {
 
   const onRefresh = async () => {
     setError(null);
+    console.log('🔧 Dashboard: Starting refresh token request');
+    console.log('🔧 Dashboard: Current cookies:', document.cookie);
     try {
       const res = await apiPost<{ success: boolean; expiresIn: number }>("/auth/refresh");
+      console.log('🔧 Dashboard: Refresh response:', res);
       setMessage(`Refreshed. New access TTL ~${res.expiresIn}s`);
     } catch (e: any) {
+      console.log('❌ Dashboard: Refresh error:', e);
       setError(e.message || "Refresh failed");
     }
   };
@@ -42,11 +46,14 @@ export default function DashboardPage() {
 
   const onLogout = async () => {
     try {
+      // Call logout API to revoke tokens and clear cookies
       await apiPost("/auth/logout");
     } catch (e) {
       // ignore logout API errors
     }
-    // Always redirect to landing after logout
+    
+    // Simple logout - just redirect to landing page
+    // This avoids Authentik logout flow complications
     router.replace("/");
   };
 

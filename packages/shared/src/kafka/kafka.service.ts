@@ -53,6 +53,7 @@ export class KafkaService {
   }
 
   async publishEvent(topic: string, event: any, options?: { partitionKey?: string }): Promise<void> {
+    const startTime = Date.now();
     try {
       const producer = await this.createProducer();
       
@@ -60,27 +61,33 @@ export class KafkaService {
       const partitionKey = options?.partitionKey || 
                           event.payload?.userId || 
                           event.eventId || 
-                          crypto.randomUUID();
+                          'default';
       
       await producer.send({
         topic,
-        messages: [{
-          key: partitionKey,
-          value: JSON.stringify(event),
-          timestamp: event.timestamp || Date.now(),
-          headers: {
-            eventType: String(event.eventType || ''),
-            source: String(event.source || this.serviceName),
-            version: String(event.version || '1.0'),
-            partitionKey: String(partitionKey),
+        messages: [
+          {
+            key: partitionKey,
+            value: JSON.stringify(event),
+            headers: {
+              eventType: event.eventType,
+              version: event.version?.toString() || '1',
+            },
           },
-        }],
+        ],
       });
       
-      console.log(`📤 Event published: ${event.eventType} → ${topic} (partition key: ${partitionKey})`);
+      console.log(`📤 Event published to ${topic}: ${event.eventType}`);
+      
+      // Metrics would be added here if MetricsService was available
+      // this.metricsService?.incrementKafkaProduced(topic, 'success');
     } catch (error) {
       console.error(`❌ Failed to publish event to ${topic}:`, error);
+      // this.metricsService?.incrementKafkaProduced(topic, 'failure');
       throw error;
+    } finally {
+      const duration = (Date.now() - startTime) / 1000;
+      // this.metricsService?.observeKafkaProcessing(topic, duration);
     }
   }
 

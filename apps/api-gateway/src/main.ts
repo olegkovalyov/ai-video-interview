@@ -1,20 +1,44 @@
+// ВАЖНО: tracing должен инициализироваться ПЕРВЫМ
+import './tracing/tracing';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { LoggerService } from './logger/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Enable graceful shutdown
-  app.enableShutdownHooks();
+  // Get logger instance for startup logs
+  const logger = app.get(LoggerService);
   
-  app.enableCors({
+  const corsOptions: CorsOptions = {
     origin: process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000',
     credentials: true,
+  };
+  app.enableCors(corsOptions);
+
+  // Enable graceful shutdown
+  app.enableShutdownHooks();
+
+  logger.info('🚀 API Gateway starting up', {
+    service: 'api-gateway',
+    action: 'startup',
+    port: 3002,
+    corsOrigin: process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000',
+    nodeEnv: process.env.NODE_ENV || 'development'
   });
+
+  await app.listen(3002);
   
-  const port = process.env.API_GATEWAY_PORT || 8000;
-  await app.listen(port);
-  console.log(`🚀 API Gateway running on http://localhost:${port}`);
+  logger.info('✅ API Gateway successfully started', {
+    service: 'api-gateway',
+    action: 'startup_complete',
+    port: 3002,
+    url: 'http://localhost:3002',
+    features: ['authentication', 'tracing', 'metrics', 'kafka_events']
+  });
+
+  console.log('🚀 API Gateway is running on http://localhost:3002');
 
   // Graceful shutdown handlers
   const gracefulShutdown = async (signal: string) => {

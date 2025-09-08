@@ -9,6 +9,9 @@ export const KAFKA_CONFIG = {
 };
 
 export const KAFKA_TOPICS = {
+  AUTH_EVENTS: 'auth_events',
+  AUTH_EVENTS_DLQ: 'auth_events_dlq',
+  // Legacy topics (will be added as needed)
   USER_EVENTS: 'user-events',
   INTERVIEW_EVENTS: 'interview-events',
   USER_ANALYTICS: 'user-analytics',

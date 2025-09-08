@@ -72,24 +72,23 @@ export class AuthentikService {
   /**
    * Генерирует URL для Authorization Code flow
    */
-  getAuthorizationUrl(redirectUri: string, state?: string) {
+  getAuthorizationUrl(redirectUri: string): { authUrl: string; state: string } {
+    const state = crypto.randomUUID();
     const clientId = this.configService.get('AUTHENTIK_CLIENT_ID', '');
-    
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: clientId,
       redirect_uri: redirectUri,
-      scope: 'openid profile email offline_access',
-      state: state || Math.random().toString(36).substring(2, 15),
+      scope: 'openid profile email',
+      state,
+      // Force fresh authentication
+      prompt: 'login'
     });
 
     const authUrl = `${this.authentikUrl}/application/o/authorize/?${params.toString()}`;
     console.log('🔧 Generated authorization URL:', authUrl);
     
-    return {
-      authUrl,
-      state: params.get('state'),
-    };
+    return { authUrl, state };
   }
 
   /**

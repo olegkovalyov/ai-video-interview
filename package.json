@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter='./apps/api-gateway'",
     "dev:services": "turbo run start:dev --filter='./apps/api-gateway' --filter='./apps/user-service' --filter='./apps/interview-service' --parallel",
     "dev:web": "turbo run dev --filter='./apps/web'",
     "dev:all": "concurrently \"npm run dev:services\" \"npm run dev:web\"",
