@@ -80,9 +80,8 @@ export class AuthentikService {
       client_id: clientId,
       redirect_uri: redirectUri,
       scope: 'openid profile email',
-      state,
-      // Force fresh authentication
-      prompt: 'login'
+      state
+      // Убрали prompt: 'login' чтобы избежать двойного ввода логина
     });
 
     const authUrl = `${this.authentikUrl}/application/o/authorize/?${params.toString()}`;
@@ -99,6 +98,18 @@ export class AuthentikService {
     
     const clientId = this.configService.get('AUTHENTIK_CLIENT_ID', '');
     const clientSecret = this.configService.get('AUTHENTIK_CLIENT_SECRET', '');
+
+    // Детальное логирование для отладки
+    console.log('🔍 Token exchange parameters:', {
+      authentikUrl: this.authentikUrl,
+      tokenEndpoint: `${this.authentikUrl}/application/o/token/`,
+      clientId: clientId,
+      clientSecretPresent: !!clientSecret,
+      clientSecretLength: clientSecret?.length || 0,
+      redirectUri: redirectUri,
+      codePresent: !!code,
+      codeLength: code?.length || 0,
+    });
 
     const response = await fetch(`${this.authentikUrl}/application/o/token/`, {
       method: 'POST',

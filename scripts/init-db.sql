@@ -31,20 +31,31 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Kafka Event Idempotency Table
--- Tracks processed events to prevent duplicate processing
+-- Create processed_events table in each service database
+\c ai_video_interview_user;
 CREATE TABLE IF NOT EXISTS processed_events (
     id SERIAL PRIMARY KEY,
     event_id UUID NOT NULL,
     event_type VARCHAR(100) NOT NULL,
     service_name VARCHAR(50) NOT NULL,
     processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    payload_hash VARCHAR(64), -- Optional: for additional validation
-    
-    -- Unique constraint to prevent duplicate processing per service
+    payload_hash VARCHAR(64),
     CONSTRAINT unique_event_per_service UNIQUE (event_id, service_name)
 );
+CREATE INDEX idx_processed_events_event_id ON processed_events (event_id);
+CREATE INDEX idx_processed_events_service_name ON processed_events (service_name);
+CREATE INDEX idx_processed_events_processed_at ON processed_events (processed_at);
 
+\c ai_video_interview_interview;
+CREATE TABLE IF NOT EXISTS processed_events (
+    id SERIAL PRIMARY KEY,
+    event_id UUID NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    service_name VARCHAR(50) NOT NULL,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    payload_hash VARCHAR(64),
+    CONSTRAINT unique_event_per_service UNIQUE (event_id, service_name)
+);
 CREATE INDEX idx_processed_events_event_id ON processed_events (event_id);
 CREATE INDEX idx_processed_events_service_name ON processed_events (service_name);
 CREATE INDEX idx_processed_events_processed_at ON processed_events (processed_at);

@@ -21,7 +21,9 @@ export default function LandingPage() {
         <h1 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>
           🎥 AI Video Interview
         </h1>
-        <nav style={{ display: 'flex', gap: '16px' }}>
+        <nav style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <Link href="/about" style={{ color: 'white', textDecoration: 'none', fontWeight: '500' }}>About</Link>
+          <Link href="/pricing" style={{ color: 'white', textDecoration: 'none', fontWeight: '500' }}>Pricing</Link>
           <Link 
             href="/login" 
             style={{ 
@@ -124,6 +126,56 @@ export default function LandingPage() {
               Reduce hiring time by 70% with automated screening and intelligent matching.
             </p>
           </div>
+        </div>
+
+        {/* Learn More Section */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: '30px',
+          marginBottom: '60px'
+        }}>
+          <Link 
+            href="/about"
+            style={{ 
+              display: 'block',
+              background: 'rgba(255,255,255,0.1)', 
+              padding: '30px', 
+              borderRadius: '12px',
+              backdropFilter: 'blur(10px)',
+              textDecoration: 'none',
+              color: 'white',
+              border: '2px solid transparent',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <div style={{ fontSize: '40px', marginBottom: '16px', textAlign: 'center' }}>ℹ️</div>
+            <h3 style={{ fontSize: '20px', marginBottom: '12px', textAlign: 'center' }}>Learn About Us</h3>
+            <p style={{ opacity: '0.8', textAlign: 'center', margin: 0 }}>
+              Discover our mission, meet our team, and understand how we're revolutionizing the hiring process.
+            </p>
+          </Link>
+
+          <Link 
+            href="/pricing"
+            style={{ 
+              display: 'block',
+              background: 'rgba(255,255,255,0.1)', 
+              padding: '30px', 
+              borderRadius: '12px',
+              backdropFilter: 'blur(10px)',
+              textDecoration: 'none',
+              color: 'white',
+              border: '2px solid transparent',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <div style={{ fontSize: '40px', marginBottom: '16px', textAlign: 'center' }}>💰</div>
+            <h3 style={{ fontSize: '20px', marginBottom: '12px', textAlign: 'center' }}>View Pricing</h3>
+            <p style={{ opacity: '0.8', textAlign: 'center', margin: 0 }}>
+              Explore our transparent pricing plans and find the perfect fit for your organization's needs.
+            </p>
+          </Link>
         </div>
 
         {/* CTA Section */}

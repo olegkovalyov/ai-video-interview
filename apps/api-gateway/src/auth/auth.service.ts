@@ -34,6 +34,7 @@ export interface LogoutResult {
   success: boolean;
   endSessionEndpoint?: string;
   idToken?: string;
+  requiresRedirect?: boolean;
 }
 
 @Injectable()
@@ -250,36 +251,49 @@ export class AuthService {
         idToken: bodyTokens?.idToken || cookieTokens.id_token,
       };
 
-      // Отзывает токены в Authentik (если возможно)
+      // Получает информацию о пользователе перед logout для Kafka события
+      let userInfo: any = null;
+      try {
+        if (tokens.accessToken) {
+          const validation = await this.tokenService.validateAccessToken(tokens.accessToken);
+          if (validation.isValid) {
+            userInfo = validation.payload;
+          }
+        }
+      } catch (error) {
+        this.loggerService.warn('Could not validate access token for logout event', {
+          action: 'logout_token_validation_failed',
+          error: error.message
+        });
+      }
+
+      // 1. Отзывает токены в Authentik (если возможно)
       await this.tokenService.revokeTokens({
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
 
-      // Очищает cookies
+      // 2. Очищает cookies
       this.cookieService.clearAuthCookies(res);
 
-      // Получает end_session_endpoint для logout redirect
-      let endSessionEndpoint: string | undefined;
-      try {
-        const discovery = await this.oidcService.getDiscovery();
-        endSessionEndpoint = discovery.end_session_endpoint;
-      } catch (error) {
-        this.loggerService.warn('Failed to get end_session_endpoint', {
-          action: 'logout_endpoint_failed',
-          error: error.message
-        });
-      }
+      // 3. НОВОЕ: Публикует Kafka событие о logout
+      await this.publishLogoutEvent(userInfo, 'user_action');
+
+      // 4. НОВОЕ: Строит полный End Session URL с параметрами
+      const endSessionUrl = await this.buildEndSessionUrl(tokens.idToken);
 
       this.loggerService.authLog('logout_success', {
-        action: 'logout_completed'
+        action: 'logout_completed',
+        hasEndSessionUrl: !!endSessionUrl,
+        userId: userInfo?.sub || 'unknown'
       });
       this.metricsService.incrementAuthRequests('logout', 'success');
 
       return {
         success: true,
-        endSessionEndpoint,
-        idToken: tokens.idToken, // Для logout hint
+        endSessionEndpoint: endSessionUrl,
+        idToken: tokens.idToken, // Для совместимости
+        requiresRedirect: !!endSessionUrl, // Флаг что нужен redirect
       };
     } catch (error) {
       this.loggerService.error('Logout failed', error, {
@@ -287,9 +301,17 @@ export class AuthService {
       });
       this.metricsService.incrementAuthRequests('logout', 'failure');
       
+      // При ошибках все равно пытаемся выполнить базовый logout
+      try {
+        this.cookieService.clearAuthCookies(res);
+      } catch (clearError) {
+        this.loggerService.error('Failed to clear cookies during error recovery', clearError);
+      }
+      
       return {
         success: true, // Возвращаем success даже при ошибках - главное очистить локальное состояние
         endSessionEndpoint: undefined,
+        requiresRedirect: false,
       };
     }
   }
@@ -321,6 +343,83 @@ export class AuthService {
   }
 
   /**
+   * Публикует Kafka событие logout пользователя
+   */
+  private async publishLogoutEvent(userInfo: any, logoutReason: 'user_action' | 'token_expired' | 'admin_action' = 'user_action'): Promise<void> {
+    await this.traceService.withSpan('auth.kafka.publish_user_logout', async (span) => {
+      try {
+        const sessionId = userInfo?.session_id || crypto.randomUUID();
+        const userLogoutEvent = UserEventFactory.createUserLoggedOut(
+          userInfo?.sub || 'unknown',
+          sessionId,
+          logoutReason
+        );
+        
+        span.setAttributes({
+          'kafka.topic': KAFKA_TOPICS.USER_EVENTS,
+          'event.type': 'user.logged_out',
+          'user.id': userInfo?.sub || 'unknown',
+          'logout.reason': logoutReason
+        });
+
+        await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userLogoutEvent);
+        
+        this.loggerService.authLog('logout_event_published', {
+          action: 'kafka_event_published',
+          userId: userInfo?.sub || 'unknown',
+          eventType: 'user.logged_out'
+        });
+      } catch (error) {
+        span.recordException(error);
+        this.loggerService.error('Failed to publish logout event to Kafka', error, {
+          action: 'kafka_event_failed',
+          userId: userInfo?.sub || 'unknown'
+        });
+        // Не бросаем ошибку, чтобы не прерывать logout процесс
+      }
+    });
+  }
+
+  /**
+   * Строит URL для End Session endpoint с параметрами
+   */
+  private async buildEndSessionUrl(idToken?: string): Promise<string | undefined> {
+    try {
+      const discovery = await this.oidcService.getDiscovery();
+      if (!discovery.end_session_endpoint) {
+        this.loggerService.warn('End session endpoint not available from discovery', {
+          action: 'end_session_unavailable'
+        });
+        return undefined;
+      }
+      
+      const params = new URLSearchParams();
+      if (idToken) {
+        params.set('id_token_hint', idToken);
+      }
+      
+      // Получаем frontend URL из конфигурации или используем дефолтный
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      params.set('post_logout_redirect_uri', `${frontendUrl}/`);
+      
+      const endSessionUrl = `${discovery.end_session_endpoint}?${params.toString()}`;
+      
+      this.loggerService.authLog('end_session_url_built', {
+        action: 'end_session_url_prepared',
+        hasIdToken: !!idToken,
+        postLogoutRedirectUri: `${frontendUrl}/`
+      });
+      
+      return endSessionUrl;
+    } catch (error) {
+      this.loggerService.error('Failed to build end session URL', error, {
+        action: 'end_session_url_failed'
+      });
+      return undefined;
+    }
+  }
+
+  /**
    * Публикует Kafka событие аутентификации пользователя
    */
   private async publishUserAuthenticatedEvent(userInfo: any, authMethod: 'oauth2' | 'jwt_refresh'): Promise<void> {
@@ -335,16 +434,16 @@ export class AuthService {
         );
         
         span.setAttributes({
-          'kafka.topic': KAFKA_TOPICS.AUTH_EVENTS,
+          'kafka.topic': KAFKA_TOPICS.USER_EVENTS,
           'kafka.operation': 'publish',
           'user.id': userInfo.sub,
           'auth.method': authMethod,
           'event.type': 'user_authenticated'
         });
         
-        await this.kafkaService.publishEvent(KAFKA_TOPICS.AUTH_EVENTS, userAuthEvent);
+        await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userAuthEvent);
         
-        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, true, {
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, true, {
           userId: userInfo.sub,
           authMethod,
           traceId: this.traceService.getTraceId()
@@ -354,7 +453,7 @@ export class AuthService {
           'kafka.success': true
         });
       } catch (error) {
-        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, false, {
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, false, {
           error: error.message,
           authMethod,
           traceId: this.traceService.getTraceId()

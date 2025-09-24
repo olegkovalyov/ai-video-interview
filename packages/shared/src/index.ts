@@ -1,5 +1,6 @@
 // Export events and Kafka services
 export * from './events';
+export * from './events/user.events';
 export * from './kafka/kafka.service';
 export * from './kafka/kafka-health.service';
 

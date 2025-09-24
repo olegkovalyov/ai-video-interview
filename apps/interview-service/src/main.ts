@@ -7,7 +7,7 @@ async function bootstrap() {
   // Enable graceful shutdown
   app.enableShutdownHooks();
   
-  const port = process.env.INTERVIEW_SERVICE_PORT || 8002;
+  const port = process.env.INTERVIEW_SERVICE_PORT || 3004;
   await app.listen(port);
   console.log(`🎤 Interview Service running on http://localhost:${port}`);
 

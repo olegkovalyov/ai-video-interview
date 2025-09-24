@@ -7,7 +7,7 @@ async function bootstrap() {
   // Enable graceful shutdown
   app.enableShutdownHooks();
   
-  const port = process.env.USER_SERVICE_PORT || 8001;
+  const port = process.env.USER_SERVICE_PORT || 3003;
   await app.listen(port);
   console.log(`👤 User Service running on http://localhost:${port}`);
 

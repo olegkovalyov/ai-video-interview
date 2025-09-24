@@ -37,9 +37,22 @@ export class OidcService {
   async ensureDiscovery(): Promise<void> {
     if (this.discovery && this.jwks) return;
 
+    console.log('🔍 OIDC Discovery Debug:', {
+      issuerUrl: this.issuerUrl,
+      discoveryUrl: this.discoveryUrl,
+      clientId: this.clientId,
+      clientSecretPresent: !!this.clientSecret
+    });
+
     const res = await fetch(this.discoveryUrl);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
+      console.log('❌ OIDC Discovery failed:', {
+        url: this.discoveryUrl,
+        status: res.status,
+        statusText: res.statusText,
+        response: text
+      });
       throw new Error(`Failed to load OIDC discovery: ${res.status} ${res.statusText} ${text}`);
     }
     const doc = (await res.json()) as OIDCDiscoveryDoc;
