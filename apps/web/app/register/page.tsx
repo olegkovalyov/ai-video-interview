@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function RegisterPage() {
   const handleRegister = () => {
@@ -10,78 +12,50 @@ export default function RegisterPage() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        background: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)',
-        padding: '40px',
-        borderRadius: '16px',
-        maxWidth: '420px',
-        width: '100%',
-        textAlign: 'center'
-      }}>
-        <Link href="/" style={{ 
-          position: 'absolute', 
-          top: '20px', 
-          left: '20px', 
-          color: 'white', 
-          textDecoration: 'none', 
-          fontSize: '24px', 
-          fontWeight: '700' 
-        }}>
-          🎥 AI Video Interview
-        </Link>
-        
-        <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '24px' }}>
-          Create Account
-        </h1>
-        
-        <p style={{ fontSize: '16px', opacity: '0.9', marginBottom: '32px', lineHeight: '1.5' }}>
-          Join AI Video Interview platform to revolutionize your hiring process with intelligent candidate evaluation.
-        </p>
-        
-        <button 
-          onClick={handleRegister}
-          style={{
-            width: '100%',
-            padding: '16px',
-            background: '#ffd700',
-            color: '#333',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            marginBottom: '20px'
-          }}
-        >
-          Continue with Authentik
-        </button>
-        
-        <p style={{ margin: '0', opacity: '0.9' }}>
-          Already have an account?{' '}
-          <Link 
-            href="/login"
-            style={{ color: '#ffd700', textDecoration: 'none', fontWeight: '600' }}
-          >
-            Sign in
-          </Link>
-        </p>
-        
-        <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-          <p style={{ margin: '0', fontSize: '14px', opacity: '0.8' }}>
-            You'll be redirected to our secure registration system. After creating your account, you'll automatically return to the dashboard.
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center p-6">
+      <Link 
+        href="/" 
+        className="absolute top-6 left-6 text-white text-2xl font-bold hover:text-yellow-400 transition-colors"
+      >
+        🎥 AI Video Interview
+      </Link>
+      
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <h1 className="text-3xl font-bold text-white mb-6">
+            Create Account
+          </h1>
+          
+          <p className="text-white/90 mb-8 leading-relaxed">
+            Join AI Video Interview platform to revolutionize your hiring process with intelligent candidate evaluation.
           </p>
-        </div>
-      </div>
+          
+          <Button 
+            onClick={handleRegister}
+            variant="brand"
+            size="lg"
+            className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+          >
+            Continue with Authentik
+          </Button>
+          
+          <p className="text-white/90 mb-6">
+            Already have an account?{" "}
+            <Link 
+              href="/login"
+              className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
+            >
+              Sign in
+            </Link>
+          </p>
+          
+          <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
+            <p className="text-white/80 text-sm">
+              You'll be redirected to our secure registration system. After creating your account, you'll automatically return to the dashboard.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

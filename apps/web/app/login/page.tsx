@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { apiGet } from "../lib/api";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -24,81 +26,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        background: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)',
-        padding: '40px',
-        borderRadius: '16px',
-        maxWidth: '420px',
-        width: '100%',
-        textAlign: 'center'
-      }}>
-        <Link href="/" style={{ 
-          position: 'absolute', 
-          top: '20px', 
-          left: '20px', 
-          color: 'white', 
-          textDecoration: 'none', 
-          fontSize: '24px', 
-          fontWeight: '700' 
-        }}>
-          🎥 AI Video Interview
-        </Link>
-        
-        <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '24px' }}>
-          Welcome Back
-        </h1>
-        
-        {error && (
-          <div style={{ 
-            color: '#ffcdd2', 
-            backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-            padding: '12px', 
-            borderRadius: '8px', 
-            marginBottom: '20px' 
-          }}>
-            {error}
-          </div>
-        )}
-        
-        <button 
-          onClick={beginLogin} 
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '16px',
-            background: loading ? 'rgba(255,255,255,0.1)' : '#ffd700',
-            color: loading ? 'white' : '#333',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            marginBottom: '20px'
-          }}
-        >
-          {loading ? "Redirecting..." : "Continue with Authentik"}
-        </button>
-        
-        <p style={{ margin: '0', opacity: '0.9' }}>
-          No account?{' '}
-          <Link 
-            href="/register"
-            style={{ color: '#ffd700', textDecoration: 'none', fontWeight: '600' }}
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center p-6">
+      <Link 
+        href="/" 
+        className="absolute top-6 left-6 text-white text-2xl font-bold hover:text-yellow-400 transition-colors"
+      >
+        🎥 AI Video Interview
+      </Link>
+      
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <h1 className="text-3xl font-bold text-white mb-6">
+            Welcome Back
+          </h1>
+          
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+          
+          <Button 
+            onClick={beginLogin} 
+            disabled={loading}
+            variant={loading ? "secondary" : "brand"}
+            size="lg"
+            className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200"
           >
-            Create account
-          </Link>
-        </p>
-      </div>
+            {loading ? "Redirecting..." : "Continue with Authentik"}
+          </Button>
+          
+          <p className="text-white/90">
+            No account?{" "}
+            <Link 
+              href="/register"
+              className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
+            >
+              Create account
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
