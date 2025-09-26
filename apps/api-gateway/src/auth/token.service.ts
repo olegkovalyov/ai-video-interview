@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AuthentikService } from './authentik.service';
 import { OidcService } from './oidc.service';
+import { KeycloakService } from './keycloak.service';
 
 export interface TokenPair {
   access_token: string;
@@ -26,8 +26,8 @@ export class TokenService {
   private readonly logger = new Logger(TokenService.name);
 
   constructor(
-    private readonly authentikService: AuthentikService,
     private readonly oidcService: OidcService,
+    private readonly keycloakService: KeycloakService,
   ) {}
 
   /**
@@ -37,23 +37,44 @@ export class TokenService {
     try {
       this.logger.debug(`Exchanging code for tokens with redirect_uri: ${redirectUri}`);
       
-      const tokens = await this.authentikService.exchangeCodeForTokens(code, redirectUri);
+      const tokens = await this.keycloakService.exchangeCodeForTokens(code, redirectUri);
       
-      this.logger.debug('Tokens received from Authentik:', {
+      this.logger.debug('Tokens received from Keycloak:', {
         has_access_token: !!tokens.access_token,
         has_refresh_token: !!tokens.refresh_token,
         has_id_token: !!tokens.id_token,
         expires_in: tokens.expires_in
       });
 
-      // Проверяем и получаем информацию о пользователе
+      // ВРЕМЕННО: Получаем информацию о пользователе напрямую из Keycloak UserInfo endpoint
       let userInfo: any = null;
       try {
-        const { payload } = await this.oidcService.verifyAccessToken(tokens.access_token);
-        userInfo = payload;
+        this.logger.debug('Getting user info from Keycloak UserInfo endpoint...');
+        userInfo = await this.keycloakService.getUserInfo(tokens.access_token);
+        this.logger.debug('UserInfo retrieved successfully:', {
+          sub: userInfo?.sub,
+          email: userInfo?.email,
+          preferred_username: userInfo?.preferred_username
+        });
       } catch (error) {
-        this.logger.warn('Failed to verify access token during exchange:', error.message);
-        throw new Error('Invalid access token received from Authentik');
+        this.logger.error('Failed to get user info from Keycloak:', {
+          error: error.message,
+          tokenPreview: tokens.access_token?.substring(0, 50) + '...'
+        });
+        
+        // Fallback: попробуем OIDC верификацию
+        try {
+          this.logger.debug('Fallback: Attempting OIDC token verification...');
+          const { payload } = await this.oidcService.verifyAccessToken(tokens.access_token);
+          userInfo = payload;
+          this.logger.debug('OIDC verification successful as fallback');
+        } catch (oidcError) {
+          this.logger.error('Both UserInfo and OIDC verification failed:', {
+            userInfoError: error.message,
+            oidcError: oidcError.message
+          });
+          throw new Error('Could not verify token or get user info from Keycloak');
+        }
       }
 
       return {
@@ -73,7 +94,7 @@ export class TokenService {
     try {
       this.logger.debug('Refreshing tokens using refresh_token');
       
-      const tokens = await this.authentikService.refreshToken(refreshToken);
+      const tokens = await this.keycloakService.refreshToken(refreshToken);
       
       this.logger.debug('Refresh completed successfully', {
         has_access_token: !!tokens.access_token,
@@ -118,14 +139,14 @@ export class TokenService {
 
     if (tokens.refreshToken) {
       revokePromises.push(
-        this.oidcService.revokeToken(tokens.refreshToken, 'refresh_token')
+        this.keycloakService.revokeToken(tokens.refreshToken, 'refresh_token')
           .catch(error => this.logger.warn('Failed to revoke refresh_token:', error.message))
       );
     }
 
     if (tokens.accessToken) {
       revokePromises.push(
-        this.oidcService.revokeToken(tokens.accessToken, 'access_token')
+        this.keycloakService.revokeToken(tokens.accessToken, 'access_token')
           .catch(error => this.logger.warn('Failed to revoke access_token:', error.message))
       );
     }

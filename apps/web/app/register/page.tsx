@@ -5,10 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function RegisterPage() {
   const handleRegister = () => {
-    // Direct to Authentik enrollment with proper redirect
-    const callbackUrl = `${process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000'}/auth/callback`;
-    const enrollmentUrl = `http://localhost:9443/flows/enrollment/ai-video-interview/?next=${encodeURIComponent(callbackUrl)}`;
-    window.location.assign(enrollmentUrl);
+    // TODO: Implement Keycloak registration
+    console.log('TODO: Implement Keycloak registration');
+    alert('Registration not implemented for Keycloak yet');
   };
 
   return (
@@ -36,7 +35,7 @@ export default function RegisterPage() {
             size="lg"
             className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200"
           >
-            Continue with Authentik
+            Continue with Keycloak
           </Button>
           
           <p className="text-white/90 mb-6">

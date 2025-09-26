@@ -7,9 +7,10 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { TokenService } from './auth/token.service';
 import { CookieService } from './auth/cookie.service';
-import { AuthentikService } from './auth/authentik.service';
 import { OidcService } from './auth/oidc.service';
+import { KeycloakService } from './auth/keycloak.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { JwtRefreshGuard } from './auth/jwt-refresh.guard';
 import { AuthErrorInterceptor } from './auth/auth-error.interceptor';
 import { MetricsService } from './metrics/metrics.service';
 import { MetricsController } from './metrics/metrics.controller';
@@ -33,9 +34,11 @@ import { TraceService } from './tracing/trace.service';
     AuthService,
     TokenService,
     CookieService,
-    AuthentikService, 
-    OidcService, 
+ 
+    OidcService,
+    KeycloakService,
     JwtAuthGuard,
+    JwtRefreshGuard,
     MetricsService,
     LoggerService,
     TraceService,

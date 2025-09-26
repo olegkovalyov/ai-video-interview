@@ -53,7 +53,7 @@ export default function LoginPage() {
             size="lg"
             className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200"
           >
-            {loading ? "Redirecting..." : "Continue with Authentik"}
+            {loading ? "Redirecting..." : "Continue with Keycloak"}
           </Button>
           
           <p className="text-white/90">

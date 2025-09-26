@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 export interface CookieConfig {
@@ -17,6 +17,7 @@ export interface AuthTokens {
 
 @Injectable()
 export class CookieService {
+  private readonly logger = new Logger(CookieService.name);
   private readonly defaultConfig: CookieConfig = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // true in prod behind HTTPS
@@ -119,7 +120,15 @@ export class CookieService {
       expires_in?: number;
     }
   ): void {
-    const accessExpiresIn = tokens.expires_in || 300;
+    const accessExpiresIn = tokens.expires_in || 1800; // 30 минут вместо 5
+    
+    this.logger.debug('Setting auth cookies:', {
+      has_access_token: !!tokens.access_token,
+      has_refresh_token: !!tokens.refresh_token,
+      has_id_token: !!tokens.id_token,
+      expires_in: accessExpiresIn,
+      config: this.defaultConfig
+    });
     
     this.setAccessTokenCookie(res, tokens.access_token, accessExpiresIn);
     
@@ -130,6 +139,8 @@ export class CookieService {
     if (tokens.id_token) {
       this.setIdTokenCookie(res, tokens.id_token, accessExpiresIn);
     }
+    
+    this.logger.debug('Auth cookies set successfully');
   }
 
   /**

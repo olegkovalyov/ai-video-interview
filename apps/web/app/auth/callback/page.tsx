@@ -3,23 +3,29 @@ import { useEffect, useState } from "react";
 import { apiGet } from "../../lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const [status, setStatus] = useState<string>("Processing callback...");
+  const [status, setStatus] = useState<string>("Connecting to Keycloak...");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const run = async () => {
       try {
         const qs = typeof window !== "undefined" ? window.location.search : "";
+        
+        // Обновляем статус для показа прогресса
+        setStatus("Verifying credentials with backend...");
+        
         // forward the same query to the API; it will set cookies and respond
         const resp = await apiGet<{ success: boolean }>(`/auth/callback${qs}`);
         if (resp && (resp as any).success) {
-          setStatus("Login successful. Redirecting to dashboard...");
+          setStatus("✅ Authentication successful! Redirecting to dashboard...");
           setTimeout(() => router.replace("/dashboard"), 1000);
         } else {
-          setError("Callback failed - invalid response from server");
+          setError("Authentication callback failed - invalid response from server");
         }
       } catch (e: any) {
         setError(e.message || "Callback error");
@@ -29,74 +35,49 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        background: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)',
-        padding: '40px',
-        borderRadius: '16px',
-        maxWidth: '480px',
-        width: '100%',
-        textAlign: 'center'
-      }}>
-        <Link href="/" style={{ 
-          position: 'absolute', 
-          top: '20px', 
-          left: '20px', 
-          color: 'white', 
-          textDecoration: 'none', 
-          fontSize: '24px', 
-          fontWeight: '700' 
-        }}>
-          🎥 AI Video Interview
-        </Link>
-        
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>
-          {!error ? '🔄' : '❌'}
-        </div>
-        
-        <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '20px' }}>
-          {!error ? 'Authenticating...' : 'Authentication Failed'}
-        </h1>
-        
-        {!error ? (
-          <p style={{ fontSize: '16px', opacity: '0.9' }}>{status}</p>
-        ) : (
-          <div>
-            <div style={{ 
-              color: '#ffcdd2', 
-              backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-              padding: '16px', 
-              borderRadius: '8px', 
-              marginBottom: '20px' 
-            }}>
-              {error}
-            </div>
-            <Link 
-              href="/login"
-              style={{
-                display: 'inline-block',
-                padding: '12px 24px',
-                background: '#ffd700',
-                color: '#333',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontWeight: '600'
-              }}
-            >
-              Try Again
-            </Link>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center p-6">
+      <Link 
+        href="/" 
+        className="absolute top-6 left-6 text-white text-2xl font-bold hover:text-yellow-400 transition-colors"
+      >
+        🎥 AI Video Interview
+      </Link>
+      
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 w-full max-w-lg">
+        <CardContent className="p-12 text-center">
+          <div className="text-6xl mb-6">
+            {!error ? (
+              <div className="animate-spin">🔄</div>
+            ) : (
+              <div className="text-red-400">❌</div>
+            )}
           </div>
-        )}
-      </div>
+          
+          <h1 className="text-3xl font-bold text-white mb-6">
+            {!error ? 'Authenticating...' : 'Authentication Failed'}
+          </h1>
+          
+          {!error ? (
+            <div>
+              <p className="text-lg text-white/90 mb-4">{status}</p>
+              <div className="flex justify-center items-center space-x-2 text-white/70">
+                <div className="w-2 h-2 bg-white/70 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-white/70 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-6">
+                {error}
+              </div>
+              <Button asChild variant="brand" size="lg" className="w-full">
+                <Link href="/login">Try Again</Link>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

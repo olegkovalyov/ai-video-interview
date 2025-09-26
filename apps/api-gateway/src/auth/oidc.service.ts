@@ -21,15 +21,17 @@ export class OidcService {
   private jwks?: ReturnType<typeof createRemoteJWKSet>;
 
   constructor(private readonly config: ConfigService) {
-    // Expect full issuer URL with trailing slash, e.g. http://localhost:9443/application/o/<provider-slug>/
-    this.issuerUrl = this.config.get<string>('AUTHENTIK_ISSUER_URL', '').trim();
-    this.clientId = this.config.get<string>('AUTHENTIK_CLIENT_ID', '').trim();
-    this.clientSecret = this.config.get<string>('AUTHENTIK_CLIENT_SECRET', '').trim();
+    // Keycloak OIDC configuration
+    const keycloakUrl = this.config.get<string>('KEYCLOAK_URL', 'http://localhost:8090');
+    const realm = this.config.get<string>('KEYCLOAK_REALM', 'ai-video-interview');
+    this.issuerUrl = `${keycloakUrl}/realms/${realm}`;
+    this.clientId = this.config.get<string>('KEYCLOAK_CLIENT_ID', 'ai-video-interview-app');
+    this.clientSecret = this.config.get<string>('KEYCLOAK_CLIENT_SECRET', '');
   }
 
   private get discoveryUrl(): string {
     let base = this.issuerUrl;
-    if (!base) throw new Error('AUTHENTIK_ISSUER_URL is not configured');
+    if (!base) throw new Error('KEYCLOAK_URL and KEYCLOAK_REALM are not configured');
     if (!base.endsWith('/')) base += '/';
     return base + '.well-known/openid-configuration';
   }
@@ -75,10 +77,13 @@ export class OidcService {
     await this.ensureDiscovery();
     if (!this.discovery || !this.jwks) throw new Error('OIDC discovery not initialized');
 
+    // Проверяем audience - должен быть настроен через mapper в Keycloak
     const { payload } = await jwtVerify(token, this.jwks, {
       issuer: this.discovery.issuer,
-      audience: this.clientId || undefined,
+      audience: this.clientId || undefined, // Включено после настройки audience mapper
     });
+    
+    // Token verified successfully with proper audience validation
 
     return { payload };
   }

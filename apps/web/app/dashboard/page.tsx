@@ -1,15 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiPost, apiGet } from "../lib/api";
+import { apiGet } from "../lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Header } from "@/components/layout/header";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ interviews: 0, candidates: 0, responses: 0 });
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -30,205 +32,109 @@ export default function DashboardPage() {
     loadUserData();
   }, [router]);
 
-  const onLogout = async () => {
-    if (isLoggingOut) return; // Предотвращаем множественные клики
-    
-    setIsLoggingOut(true);
-    try {
-      // Вызов logout API для полного OIDC logout
-      const response = await apiPost("/auth/logout") as { 
-        success: boolean; 
-        requiresRedirect?: boolean; 
-        endSessionEndpoint?: string; 
-      };
-      
-      // Если требуется redirect в Authentik - выполнить
-      if (response.requiresRedirect && response.endSessionEndpoint) {
-        console.log('Redirecting to Authentik End Session:', response.endSessionEndpoint);
-        window.location.href = response.endSessionEndpoint;
-        return; // Authentik сам перенаправит обратно
-      }
-      
-      // Fallback - простой redirect если End Session недоступен
-      router.replace("/");
-    } catch (error) {
-      console.error('Logout error:', error);
-      // При ошибке все равно редиректим - логаут должен быть надежным
-      router.replace("/");
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      {/* Header */}
-      <header style={{ 
-        padding: '20px 40px', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        background: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)'
-      }}>
-        <Link href="/" style={{ 
-          fontSize: '24px', 
-          fontWeight: '700', 
-          margin: 0, 
-          color: 'white', 
-          textDecoration: 'none' 
-        }}>
-          🎥 AI Video Interview
-        </Link>
-        <button 
-          onClick={onLogout} 
-          style={{ 
-            background: 'rgba(244, 67, 54, 0.8)', 
-            color: 'white', 
-            border: 'none', 
-            padding: '8px 16px', 
-            borderRadius: '6px',
-            fontWeight: '500',
-            cursor: 'pointer'
-          }}
-        >
-          Logout
-        </button>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+      <Header currentPage="dashboard" />
 
-      {/* Main Content */}
-      <main style={{ 
-        padding: '40px', 
-        maxWidth: '1200px', 
-        margin: '0 auto' 
-      }}>
+      <main className="container mx-auto px-6 py-12">
         {error && (
-          <div style={{ 
-            color: '#ffcdd2', 
-            backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-            padding: '16px', 
-            borderRadius: '8px', 
-            marginBottom: '20px' 
-          }}>
+          <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-8">
             {error}
           </div>
         )}
 
         {/* Welcome Section */}
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          padding: '40px',
-          borderRadius: '16px',
-          marginBottom: '30px',
-          textAlign: 'center'
-        }}>
-          <h1 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '12px' }}>
-            Welcome back{user?.name ? `, ${user.name}` : ''}! 👋
-          </h1>
-          <p style={{ fontSize: '18px', opacity: '0.8', marginBottom: '30px' }}>
-            Manage your AI-powered video interviews and analyze candidate responses
-          </p>
-          
-          {/* Quick Stats */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: '20px',
-            marginTop: '30px'
-          }}>
-            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '12px' }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', color: '#ffd700' }}>{stats.interviews}</div>
-              <div style={{ fontSize: '14px', opacity: '0.8' }}>Active Interviews</div>
+        <Card className="bg-white/10 backdrop-blur-md border-white/20 mb-8">
+          <CardContent className="p-12 text-center">
+            <h1 className="text-4xl font-bold text-white mb-4">
+              Welcome back{user?.name ? `, ${user.name}` : ''}! 👋
+            </h1>
+            <p className="text-lg text-white/90 mb-8">
+              Manage your AI-powered video interviews and analyze candidate responses
+            </p>
+            
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+              <Card className="bg-white/15 backdrop-blur-sm border-white/30">
+                <CardContent className="p-6 text-center">
+                  <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.interviews}</div>
+                  <div className="text-sm text-white/80">Active Interviews</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/15 backdrop-blur-sm border-white/30">
+                <CardContent className="p-6 text-center">
+                  <div className="text-3xl font-bold text-green-400 mb-2">{stats.candidates}</div>
+                  <div className="text-sm text-white/80">Total Candidates</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/15 backdrop-blur-sm border-white/30">
+                <CardContent className="p-6 text-center">
+                  <div className="text-3xl font-bold text-blue-400 mb-2">{stats.responses}</div>
+                  <div className="text-sm text-white/80">Pending Reviews</div>
+                </CardContent>
+              </Card>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '12px' }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', color: '#4ade80' }}>{stats.candidates}</div>
-              <div style={{ fontSize: '14px', opacity: '0.8' }}>Total Candidates</div>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '20px', borderRadius: '12px' }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', color: '#60a5fa' }}>{stats.responses}</div>
-              <div style={{ fontSize: '14px', opacity: '0.8' }}>Pending Reviews</div>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Main Actions */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-          gap: '30px',
-          marginBottom: '30px'
-        }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Create New Interview */}
-          <Link href="/dashboard/interviews/create" style={{
-            display: 'block',
-            background: 'rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
-            padding: '30px',
-            borderRadius: '16px',
-            textDecoration: 'none',
-            color: 'white',
-            border: '2px solid rgba(255,255,255,0.2)',
-            transition: 'all 0.3s ease'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px', textAlign: 'center' }}>➕</div>
-            <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', textAlign: 'center' }}>Create Interview</h3>
-            <p style={{ opacity: '0.8', textAlign: 'center', margin: 0 }}>Set up a new video interview with custom questions</p>
-          </Link>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+            <CardContent className="p-8 text-center">
+              <div className="text-5xl mb-4">➕</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Create Interview</h3>
+              <p className="text-white/80 mb-6 leading-relaxed">
+                Set up a new video interview with custom questions
+              </p>
+              <Button asChild variant="brand" className="w-full">
+                <Link href="/dashboard/interviews/create">Get Started</Link>
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* My Interviews */}
-          <Link href="/dashboard/interviews" style={{
-            display: 'block',
-            background: 'rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
-            padding: '30px',
-            borderRadius: '16px',
-            textDecoration: 'none',
-            color: 'white',
-            border: '2px solid rgba(255,255,255,0.2)',
-            transition: 'all 0.3s ease'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px', textAlign: 'center' }}>📋</div>
-            <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', textAlign: 'center' }}>My Interviews</h3>
-            <p style={{ opacity: '0.8', textAlign: 'center', margin: 0 }}>View and manage all your interviews</p>
-          </Link>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+            <CardContent className="p-8 text-center">
+              <div className="text-5xl mb-4">📋</div>
+              <h3 className="text-xl font-semibold text-white mb-3">My Interviews</h3>
+              <p className="text-white/80 mb-6 leading-relaxed">
+                View and manage all your interviews
+              </p>
+              <Button asChild variant="glass" className="w-full">
+                <Link href="/dashboard/interviews">View All</Link>
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Analytics */}
-          <Link href="/dashboard/analytics" style={{
-            display: 'block',
-            background: 'rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
-            padding: '30px',
-            borderRadius: '16px',
-            textDecoration: 'none',
-            color: 'white',
-            border: '2px solid rgba(255,255,255,0.2)',
-            transition: 'all 0.3s ease'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px', textAlign: 'center' }}>📊</div>
-            <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', textAlign: 'center' }}>Analytics</h3>
-            <p style={{ opacity: '0.8', textAlign: 'center', margin: 0 }}>View performance insights and reports</p>
-          </Link>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+            <CardContent className="p-8 text-center">
+              <div className="text-5xl mb-4">📊</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Analytics</h3>
+              <p className="text-white/80 mb-6 leading-relaxed">
+                View performance insights and reports
+              </p>
+              <Button asChild variant="glass" className="w-full">
+                <Link href="/dashboard/analytics">View Reports</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent Activity */}
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          padding: '30px',
-          borderRadius: '16px'
-        }}>
-          <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>Recent Activity</h2>
-          <div style={{ textAlign: 'center', padding: '40px', opacity: '0.6' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
-            <p style={{ fontSize: '16px' }}>No recent activity yet. Create your first interview to get started!</p>
-          </div>
-        </div>
+        <Card className="bg-white/10 backdrop-blur-md border-white/20">
+          <CardContent className="p-8">
+            <h2 className="text-2xl font-semibold text-white mb-6">Recent Activity</h2>
+            <div className="text-center py-12">
+              <div className="text-5xl mb-4">🎯</div>
+              <p className="text-white/80 text-lg">
+                No recent activity yet. Create your first interview to get started!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

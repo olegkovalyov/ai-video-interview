@@ -52,7 +52,7 @@ export class AuthErrorInterceptor implements NestInterceptor {
             status = HttpStatus.UNAUTHORIZED;
             message = 'Invalid or expired access token';
             errorCode = 'INVALID_ACCESS_TOKEN';
-          } else if (errorMessage.includes('authentik') || errorMessage.includes('oidc')) {
+          } else if (errorMessage.includes('keycloak') || errorMessage.includes('oidc')) {
             status = HttpStatus.BAD_GATEWAY;
             message = 'Authentication service unavailable';
             errorCode = 'AUTH_SERVICE_ERROR';

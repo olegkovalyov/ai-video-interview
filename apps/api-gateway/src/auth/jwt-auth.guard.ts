@@ -1,28 +1,56 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { Request } from 'express';
 import { OidcService } from './oidc.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+  
   constructor(private readonly oidc: OidcService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request & { user?: any }>();
+
+    this.logger.debug('JWT Guard: Processing request', {
+      url: req.url,
+      method: req.method,
+      hasAuthHeader: !!req.headers['authorization'],
+      hasCookieHeader: !!req.headers['cookie'],
+      cookiePreview: req.headers['cookie']?.substring(0, 100) + '...'
+    });
 
     const auth = req.headers['authorization'] || '';
     let token = this.extractBearer(auth);
     if (!token) {
       token = this.extractFromCookies(req.headers['cookie'] || '');
     }
+    
+    this.logger.debug('JWT Guard: Token extraction result', {
+      tokenFromBearer: !!this.extractBearer(auth),
+      tokenFromCookies: !!this.extractFromCookies(req.headers['cookie'] || ''),
+      hasToken: !!token,
+      tokenPreview: token?.substring(0, 50) + '...'
+    });
+    
     if (!token) {
+      this.logger.warn('JWT Guard: No access token found');
       throw new UnauthorizedException('Missing access token');
     }
 
     try {
+      this.logger.debug('JWT Guard: Attempting token verification...');
       const { payload } = await this.oidc.verifyAccessToken(token);
       req.user = payload;
+      this.logger.debug('JWT Guard: Token verified successfully', {
+        sub: payload?.sub,
+        iss: payload?.iss
+      });
       return true;
     } catch (e: any) {
+      this.logger.error('JWT Guard: Token verification failed', {
+        error: e?.message,
+        stack: e?.stack
+      });
       throw new UnauthorizedException(e?.message || 'Invalid token');
     }
   }

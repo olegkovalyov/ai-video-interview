@@ -1,35 +1,106 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3002';
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
-  console.log('🔧 API: Making POST request to', `${API_BASE}${path}`);
-  console.log('🔧 API: Request headers will include credentials');
+interface RequestOptions {
+  method: string;
+  headers?: Record<string, string>;
+  body?: string;
+  credentials: 'include';
+}
+
+async function makeRequest<T>(path: string, options: RequestOptions): Promise<T> {
+  console.log(`🔧 API: Making ${options.method} request to`, `${API_BASE}${path}`);
   
-  const res = await fetch(`${API_BASE}${path}`, {
+  // Первая попытка
+  let res = await fetch(`${API_BASE}${path}`, options);
+  
+  console.log(`🔧 API: ${options.method} Response status:`, res.status);
+  
+  // Если 401 и это не refresh/logout endpoint, пытаемся обновить токены
+  if (res.status === 401 && !path.includes('/auth/refresh') && !path.includes('/auth/logout')) {
+    console.log(`🔄 API: ${options.method} Got 401, attempting token refresh...`);
+    
+    const refreshSuccess = await attemptTokenRefresh();
+    
+    if (refreshSuccess) {
+      console.log(`🔄 API: Retrying ${options.method} request after successful refresh...`);
+      // Повторяем исходный запрос
+      res = await fetch(`${API_BASE}${path}`, options);
+      
+      console.log(`🔧 API: ${options.method} Retry response status:`, res.status);
+    } else {
+      console.log(`❌ API: ${options.method} Refresh failed, redirect to login needed`);
+      if (typeof window !== 'undefined') {
+        // Очищаем локальное состояние перед редиректом
+        localStorage.removeItem('auth_state');
+        sessionStorage.clear();
+        window.location.href = '/login';
+      }
+    }
+  }
+  
+  if (!res.ok) {
+    const text = await res.text();
+    console.log(`❌ API: ${options.method} Error response body:`, text);
+    throw new Error(text || `Request failed: ${res.status}`);
+  }
+  
+  return res.json();
+}
+
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function attemptTokenRefresh(): Promise<boolean> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+  
+  isRefreshing = true;
+  refreshPromise = performRefresh();
+  
+  const result = await refreshPromise;
+  isRefreshing = false;
+  refreshPromise = null;
+  
+  return result;
+}
+
+async function performRefresh(): Promise<boolean> {
+  try {
+    console.log('🔄 Frontend: Attempting token refresh...');
+    
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      console.log('✅ Frontend: Token refresh successful');
+      return data.success === true;
+    } else {
+      console.log('❌ Frontend: Token refresh failed:', res.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Frontend: Token refresh error:', error);
+    return false;
+  }
+}
+
+export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  return makeRequest<T>(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  
-  console.log('🔧 API: Response status:', res.status);
-  console.log('🔧 API: Response headers:', Object.fromEntries(res.headers.entries()));
-  
-  if (!res.ok) {
-    const text = await res.text();
-    console.log('❌ API: Error response body:', text);
-    throw new Error(text || `Request failed: ${res.status}`);
-  }
-  return res.json();
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  return makeRequest<T>(path, {
     method: 'GET',
     credentials: 'include',
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Request failed: ${res.status}`);
-  }
-  return res.json();
 }

@@ -2,8 +2,8 @@ import { Injectable, UnauthorizedException, BadRequestException, InternalServerE
 import { Request, Response } from 'express';
 import { TokenService } from './token.service';
 import { CookieService } from './cookie.service';
-import { AuthentikService } from './authentik.service';
 import { OidcService } from './oidc.service';
+import { KeycloakService } from './keycloak.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { LoggerService } from '../logger/logger.service';
 import { TraceService } from '../tracing/trace.service';
@@ -42,8 +42,8 @@ export class AuthService {
   constructor(
     private readonly tokenService: TokenService,
     private readonly cookieService: CookieService,
-    private readonly authentikService: AuthentikService,
     private readonly oidcService: OidcService,
+    private readonly keycloakService: KeycloakService,
     private readonly metricsService: MetricsService,
     private readonly loggerService: LoggerService,
     private readonly traceService: TraceService,
@@ -71,7 +71,7 @@ export class AuthService {
           traceId: this.traceService.getTraceId()
         });
         
-        const { authUrl, state } = this.authentikService.getAuthorizationUrl(actualRedirectUri);
+        const { authUrl, state } = this.keycloakService.getAuthorizationUrl(actualRedirectUri);
         
         span.setAttributes({
           'auth.state': state,
@@ -250,6 +250,25 @@ export class AuthService {
         refreshToken: bodyTokens?.refreshToken || cookieTokens.refresh_token,
         idToken: bodyTokens?.idToken || cookieTokens.id_token,
       };
+      
+      this.loggerService.authLog('logout_token_extraction', {
+        action: 'extracting_tokens_for_logout',
+        from_body: {
+          has_access_token: !!bodyTokens?.accessToken,
+          has_refresh_token: !!bodyTokens?.refreshToken,
+          has_id_token: !!bodyTokens?.idToken
+        },
+        from_cookies: {
+          has_access_token: !!cookieTokens.access_token,
+          has_refresh_token: !!cookieTokens.refresh_token,
+          has_id_token: !!cookieTokens.id_token
+        },
+        final_tokens: {
+          has_access_token: !!tokens.accessToken,
+          has_refresh_token: !!tokens.refreshToken,
+          has_id_token: !!tokens.idToken
+        }
+      });
 
       // Получает информацию о пользователе перед logout для Kafka события
       let userInfo: any = null;
@@ -267,7 +286,7 @@ export class AuthService {
         });
       }
 
-      // 1. Отзывает токены в Authentik (если возможно)
+      // 1. Отзывает токены в Keycloak (если возможно)
       await this.tokenService.revokeTokens({
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -279,7 +298,13 @@ export class AuthService {
       // 3. НОВОЕ: Публикует Kafka событие о logout
       await this.publishLogoutEvent(userInfo, 'user_action');
 
-      // 4. НОВОЕ: Строит полный End Session URL с параметрами
+      // 4. НОВОЕ: Строит полный End Session URL с параметрами  
+      this.loggerService.authLog('logout_build_end_session', {
+        action: 'building_end_session_url',
+        hasIdToken: !!tokens.idToken,
+        idTokenPreview: tokens.idToken?.substring(0, 50) + '...'
+      });
+      
       const endSessionUrl = await this.buildEndSessionUrl(tokens.idToken);
 
       this.loggerService.authLog('logout_success', {
@@ -385,29 +410,20 @@ export class AuthService {
    */
   private async buildEndSessionUrl(idToken?: string): Promise<string | undefined> {
     try {
-      const discovery = await this.oidcService.getDiscovery();
-      if (!discovery.end_session_endpoint) {
-        this.loggerService.warn('End session endpoint not available from discovery', {
-          action: 'end_session_unavailable'
-        });
-        return undefined;
-      }
-      
-      const params = new URLSearchParams();
-      if (idToken) {
-        params.set('id_token_hint', idToken);
-      }
-      
       // Получаем frontend URL из конфигурации или используем дефолтный
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      params.set('post_logout_redirect_uri', `${frontendUrl}/`);
       
-      const endSessionUrl = `${discovery.end_session_endpoint}?${params.toString()}`;
+      // Используем Keycloak service напрямую для End Session URL
+      const endSessionUrl = this.keycloakService.getEndSessionUrl(
+        idToken, 
+        `${frontendUrl}/`
+      );
       
       this.loggerService.authLog('end_session_url_built', {
         action: 'end_session_url_prepared',
         hasIdToken: !!idToken,
-        postLogoutRedirectUri: `${frontendUrl}/`
+        postLogoutRedirectUri: `${frontendUrl}/`,
+        endSessionUrl
       });
       
       return endSessionUrl;

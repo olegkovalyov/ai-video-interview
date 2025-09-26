@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { JwtRefreshGuard } from './auth/jwt-refresh.guard';
 import { Request } from 'express';
 
 @Controller()
@@ -9,7 +9,7 @@ export class AppController {
     return 'Hello from API Gateway!';
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtRefreshGuard)
   @Get('protected')
   getProtected(@Req() req: Request & { user?: any }): { message: string; timestamp: string; user: any } {
     return {

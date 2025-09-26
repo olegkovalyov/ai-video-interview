@@ -1,14 +1,14 @@
 import { Controller, Post, Body, Get, Query, Res, Req, HttpStatus } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
-import { AuthentikService } from './authentik.service';
+import { KeycloakService } from './keycloak.service';
 
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly authentikService: AuthentikService,
+    private readonly keycloakService: KeycloakService,
   ) {}
 
 
@@ -62,7 +62,7 @@ export class AuthController {
   @Get('jwks')
   async getJWKS() {
     try {
-      return await this.authentikService.getJWKS();
+      return await this.keycloakService.getJWKS();
     } catch (error) {
       return {
         success: false,
