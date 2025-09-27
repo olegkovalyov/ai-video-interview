@@ -1,0 +1,348 @@
+/* AI Video Interview - Keycloak Custom Theme */
+
+/* Import fonts (matching Next.js app) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Root variables matching Next.js app */
+:root {
+  --gray-rgb: 0, 0, 0;
+  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
+  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
+  --button-primary-hover: #383838;
+  --button-secondary-hover: #f2f2f2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gray-rgb: 255, 255, 255;
+    --gray-alpha-200: rgba(var(--gray-rgb), 0.145);
+    --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
+    --button-primary-hover: #ccc;
+    --button-secondary-hover: #1a1a1a;
+  }
+}
+
+/* Body styling with gradient background */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 50%, #2563eb 100%);
+  background-attachment: fixed;
+  color: white;
+}
+
+/* Remove default Keycloak container styling */
+.login-pf body {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 50%, #2563eb 100%);
+  background-attachment: fixed;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Main container */
+#kc-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Header with back to home link */
+.kc-header {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* Custom back to home button */
+.back-to-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.back-to-home:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+  text-decoration: none;
+  color: white;
+}
+
+/* Logo/Brand section */
+.kc-brand {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.kc-brand h1 {
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Login form container - Glass morphism */
+#kc-form {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+#kc-form-wrapper {
+  padding: 0;
+}
+
+/* Form title */
+#kc-page-title {
+  text-align: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/* Input fields styling */
+.pf-c-form-control,
+input[type="text"],
+input[type="email"], 
+input[type="password"] {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.pf-c-form-control:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.pf-c-form-control::placeholder,
+input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Labels */
+.pf-c-form__label,
+label {
+  color: white;
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Button styling matching Next.js app */
+.pf-c-button,
+input[type="submit"],
+button {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 50px;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+/* Primary button */
+.pf-c-button.pf-m-primary,
+input[type="submit"] {
+  background: white;
+  color: #4f46e5;
+  border: 1px solid white;
+}
+
+.pf-c-button.pf-m-primary:hover,
+input[type="submit"]:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Secondary button */
+.pf-c-button.pf-m-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.pf-c-button.pf-m-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Links styling */
+a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* Form groups spacing */
+.pf-c-form__group,
+.form-group {
+  margin-bottom: 1rem;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+/* Remember me */
+.checkbox {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Social providers (if any) */
+.kc-social-providers {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.kc-social-providers ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.kc-social-providers li {
+  margin: 0.5rem 0;
+}
+
+.kc-social-providers a {
+  display: inline-block;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.kc-social-providers a:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Error messages */
+.alert.alert-error,
+.pf-c-alert.pf-m-danger {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+  color: #fecaca;
+  margin-bottom: 1rem;
+}
+
+/* Success messages */  
+.alert.alert-success,
+.pf-c-alert.pf-m-success {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+  color: #bbf7d0;
+  margin-bottom: 1rem;
+}
+
+/* Info messages */
+.alert.alert-info,
+.pf-c-alert.pf-m-info {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+  color: #dbeafe;
+  margin-bottom: 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  #kc-container {
+    padding: 10px;
+  }
+  
+  #kc-form {
+    padding: 1.5rem;
+    margin: 0 10px;
+  }
+  
+  .kc-brand h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Footer links */
+#kc-footer {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+#kc-footer a {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 1rem;
+}
+
+/* Registration link */
+#kc-registration {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+#kc-registration a {
+  color: white;
+  font-weight: 500;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+#kc-registration a:hover {
+  background: rgba(255, 255, 255, 0.2);
+  text-decoration: none;
+}
