@@ -6,8 +6,11 @@
                 <form id="kc-form-login" onsubmit="login.disabled = true; return true;" action="${url.loginAction}" method="post">
                     <#if !usernameEditDisabled??>
                         <div class="form-group">
-                            <label for="username" class="control-label">${msg("usernameOrEmail")}</label>
-                            <input tabindex="1" id="username" class="form-control" name="username" value="${(login.username!'')}" type="text" autofocus autocomplete="username" />
+                            <label for="username" class="control-label required">${msg("usernameOrEmail")}</label>
+                            <input tabindex="1" id="username" class="form-control" name="username" value="${(login.username!'')}" type="text" autofocus autocomplete="username" required />
+                            <#if messagesPerField.existsError('username')>
+                                <span class="help-block help-block-error">${kcSanitize(messagesPerField.get('username'))?no_esc}</span>
+                            </#if>
                         </div>
                     <#else>
                         <div class="form-group">
@@ -17,8 +20,11 @@
                     </#if>
 
                     <div class="form-group">
-                        <label for="password" class="control-label">${msg("password")}</label>
-                        <input tabindex="2" id="password" class="form-control" name="password" type="password" autocomplete="current-password" />
+                        <label for="password" class="control-label required">${msg("password")}</label>
+                        <input tabindex="2" id="password" class="form-control" name="password" type="password" autocomplete="current-password" required />
+                        <#if messagesPerField.existsError('password')>
+                            <span class="help-block help-block-error">${kcSanitize(messagesPerField.get('password'))?no_esc}</span>
+                        </#if>
                     </div>
 
                     <div class="form-group login-pf-settings">
