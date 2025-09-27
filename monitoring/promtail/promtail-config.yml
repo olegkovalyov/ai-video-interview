@@ -39,29 +39,31 @@ scrape_configs:
       - output:
           source: output
 
-  # Application logs from NestJS services
+  # Application logs from NestJS services (локальные файлы)
   - job_name: nestjs-apps
     static_configs:
       - targets:
           - localhost
         labels:
           job: nestjs-apps
-          __path__: /app/logs/*.log
+          __path__: /app/*/logs/*.log
     pipeline_stages:
+      # Извлекаем service name из пути файла  
+      - regex:
+          source: filename
+          expression: '/app/(?P<service_name>[^/]+)/logs/'
       - json:
           expressions:
             timestamp: timestamp
             level: level
             message: message
             service: service
-            userId: userId
-            traceId: traceId
       - timestamp:
           source: timestamp
           format: RFC3339
+      # Только основные labels чтобы не превысить лимит Loki
       - labels:
-          level:
-          service:
+          service_name:
       - output:
           source: message
 

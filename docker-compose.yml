@@ -180,7 +180,7 @@ services:
       - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./logs:/app/logs:ro
+      - ./apps:/app:ro
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
