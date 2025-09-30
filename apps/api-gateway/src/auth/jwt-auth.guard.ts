@@ -11,13 +11,13 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request & { user?: any }>();
 
-    this.logger.debug('JWT Guard: Processing request', {
+    const requestInfo = {
       url: req.url,
       method: req.method,
       hasAuthHeader: !!req.headers['authorization'],
-      hasCookieHeader: !!req.headers['cookie'],
-      cookiePreview: req.headers['cookie']?.substring(0, 100) + '...'
-    });
+      hasCookieHeader: !!req.headers['cookie']
+    };
+    this.logger.debug(`JWT Guard: Processing request - ${JSON.stringify(requestInfo)}`);
 
     const auth = req.headers['authorization'] || '';
     let token = this.extractBearer(auth);
@@ -25,12 +25,12 @@ export class JwtAuthGuard implements CanActivate {
       token = this.extractFromCookies(req.headers['cookie'] || '');
     }
     
-    this.logger.debug('JWT Guard: Token extraction result', {
+    const extractionResult = {
       tokenFromBearer: !!this.extractBearer(auth),
       tokenFromCookies: !!this.extractFromCookies(req.headers['cookie'] || ''),
-      hasToken: !!token,
-      tokenPreview: token?.substring(0, 50) + '...'
-    });
+      hasToken: !!token
+    };
+    this.logger.debug(`JWT Guard: Token extraction result - ${JSON.stringify(extractionResult)}`);
     
     if (!token) {
       this.logger.warn('JWT Guard: No access token found');
@@ -41,16 +41,10 @@ export class JwtAuthGuard implements CanActivate {
       this.logger.debug('JWT Guard: Attempting token verification...');
       const { payload } = await this.oidc.verifyAccessToken(token);
       req.user = payload;
-      this.logger.debug('JWT Guard: Token verified successfully', {
-        sub: payload?.sub,
-        iss: payload?.iss
-      });
+      this.logger.debug(`JWT Guard: Token verified successfully (user: ${payload?.sub})`);
       return true;
     } catch (e: any) {
-      this.logger.error('JWT Guard: Token verification failed', {
-        error: e?.message,
-        stack: e?.stack
-      });
+      this.logger.error(`JWT Guard: Token verification failed - ${e?.message}`);
       throw new UnauthorizedException(e?.message || 'Invalid token');
     }
   }

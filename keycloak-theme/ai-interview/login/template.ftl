@@ -51,7 +51,18 @@
         <!-- Brand/Logo Section -->
         <div class="kc-brand">
             <h1>🎥 AI Video Interview</h1>
-            <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem;">Sign in to continue</p>
+            <#if pageTitle??>
+                <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem;">${pageTitle}</p>
+            <#elseif realm.registrationAllowed && url.registrationUrl??>
+                <#-- Определяем текст по URL -->
+                <#if url.registrationUrl?contains(url.loginAction)>
+                    <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem;">Create your account</p>
+                <#else>
+                    <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem;">Sign in to continue</p>
+                </#if>
+            <#else>
+                <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem;">Sign in to continue</p>
+            </#if>
         </div>
 
         <!-- Main Content -->

@@ -18,12 +18,13 @@ export class JwtRefreshGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request & { user?: any }>();
     const res = context.switchToHttp().getResponse<Response>();
 
-    this.logger.debug('JWT Refresh Guard: Processing request', {
+    const requestInfo = {
       url: req.url,
       method: req.method,
       hasAuthHeader: !!req.headers['authorization'],
       hasCookieHeader: !!req.headers['cookie']
-    });
+    };
+    this.logger.debug(`JWT Refresh Guard: Processing request - ${JSON.stringify(requestInfo)}`);
 
     // 1. Пытаемся получить access token
     const auth = req.headers['authorization'] || '';
@@ -45,9 +46,7 @@ export class JwtRefreshGuard implements CanActivate {
       this.logger.debug('JWT Refresh Guard: Token verified successfully');
       return true;
     } catch (tokenError: any) {
-      this.logger.debug('JWT Refresh Guard: Access token verification failed', {
-        error: tokenError?.message
-      });
+      this.logger.debug(`JWT Refresh Guard: Access token verification failed - ${tokenError?.message}`);
 
       // 3. Если access token невалиден, пытаемся refresh
       return await this.attemptTokenRefresh(req, res, tokenError);
@@ -65,10 +64,7 @@ export class JwtRefreshGuard implements CanActivate {
         throw new UnauthorizedException('No refresh token available');
       }
 
-      this.logger.debug('JWT Refresh Guard: Found refresh token', {
-        refreshTokenLength: refreshToken.length,
-        refreshTokenPreview: refreshToken.substring(0, 50) + '...'
-      });
+      this.logger.debug(`JWT Refresh Guard: Found refresh token (length: ${refreshToken.length})`);
 
       // Пытаемся обновить токены
       const { tokens } = await this.tokenService.refreshTokens(refreshToken);
@@ -82,17 +78,16 @@ export class JwtRefreshGuard implements CanActivate {
       const { payload } = await this.oidc.verifyAccessToken(tokens.access_token);
       req.user = payload;
 
-      this.logger.debug('JWT Refresh Guard: Auto-refresh completed successfully', {
-        sub: payload?.sub
-      });
+      this.logger.debug(`JWT Refresh Guard: Auto-refresh completed successfully (user: ${payload?.sub})`);
 
       return true;
     } catch (refreshError: any) {
-      this.logger.error('JWT Refresh Guard: Auto-refresh failed', {
+      const errorDetails = JSON.stringify({
         refreshError: refreshError?.message,
         originalError: originalError?.message,
         isTokenInactive: refreshError?.message?.includes('Token is not active') || refreshError?.message?.includes('invalid_grant')
       });
+      this.logger.error(`JWT Refresh Guard: Auto-refresh failed - ${errorDetails}`);
 
       // Если refresh token недействителен, очищаем cookies
       if (refreshError?.message?.includes('Token is not active') || 

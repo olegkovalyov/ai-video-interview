@@ -43,6 +43,34 @@ export class KeycloakService {
   }
 
   /**
+   * Генерирует URL для регистрации через Keycloak
+   * Использует отдельный registration endpoint Keycloak
+   */
+  getRegistrationUrl(redirectUri: string): { authUrl: string; state: string } {
+    const state = crypto.randomUUID();
+    
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      response_type: 'code',
+      scope: 'openid profile email',
+      redirect_uri: redirectUri,
+    });
+
+    // Keycloak registration endpoint - прямой путь к форме регистрации
+    const authUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/registrations?${params.toString()}`;
+    
+    this.logger.debug('Generated Keycloak registration URL:', {
+      authUrl,
+      redirectUri,
+      state,
+      clientId: this.clientId,
+      action: 'register'
+    });
+    
+    return { authUrl, state };
+  }
+
+  /**
    * Обменивает authorization code на токены
    */
   async exchangeCodeForTokens(code: string, redirectUri: string) {

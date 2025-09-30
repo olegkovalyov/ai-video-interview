@@ -27,6 +27,11 @@ export class AuthController {
     return await this.authService.initiateLogin(redirectUri);
   }
 
+  @Get('register')
+  async initiateRegister(@Query('redirect_uri') redirectUri?: string) {
+    return await this.authService.initiateRegister(redirectUri);
+  }
+
   @Get('callback')
   async handleCallback(
     @Query('code') code: string,

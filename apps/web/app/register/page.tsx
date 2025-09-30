@@ -1,13 +1,28 @@
 "use client";
+import { useState } from "react";
+import { apiGet } from "../lib/api";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function RegisterPage() {
-  const handleRegister = () => {
-    // TODO: Implement Keycloak registration
-    console.log('TODO: Implement Keycloak registration');
-    alert('Registration not implemented for Keycloak yet');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleRegister = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN || "http://localhost:3000";
+      const callbackUrl = `${webOrigin}/auth/callback`;
+      const qs = new URLSearchParams({ redirect_uri: callbackUrl }).toString();
+      const { authUrl } = await apiGet<{ authUrl: string; state: string; redirectUri: string }>(`/auth/register?${qs}`);
+      window.location.assign(authUrl);
+    } catch (e: any) {
+      setError(e.message || "Failed to start registration");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,17 +40,31 @@ export default function RegisterPage() {
             Create Account
           </h1>
           
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+          
           <p className="text-white/90 mb-8 leading-relaxed">
             Join AI Video Interview platform to revolutionize your hiring process with intelligent candidate evaluation.
           </p>
           
           <Button 
             onClick={handleRegister}
+            disabled={loading}
             variant="brand"
             size="lg"
-            className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+            className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue with Keycloak
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin">🔄</span>
+                Redirecting...
+              </span>
+            ) : (
+              "Continue with Keycloak"
+            )}
           </Button>
           
           <p className="text-white/90 mb-6">

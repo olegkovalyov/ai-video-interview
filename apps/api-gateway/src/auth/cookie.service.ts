@@ -122,13 +122,13 @@ export class CookieService {
   ): void {
     const accessExpiresIn = tokens.expires_in || 1800; // 30 минут вместо 5
     
-    this.logger.debug('Setting auth cookies:', {
+    const cookieInfo = {
       has_access_token: !!tokens.access_token,
       has_refresh_token: !!tokens.refresh_token,
       has_id_token: !!tokens.id_token,
-      expires_in: accessExpiresIn,
-      config: this.defaultConfig
-    });
+      expires_in: accessExpiresIn
+    };
+    this.logger.debug(`Setting auth cookies: ${JSON.stringify(cookieInfo)}`);
     
     this.setAccessTokenCookie(res, tokens.access_token, accessExpiresIn);
     
@@ -165,17 +165,23 @@ export class CookieService {
   }
 
   /**
-   * Логирует состояние cookies для отладки
+   * Debug helper - логирует все cookies
    */
-  logCookiesDebug(req: Request, prefix = '🔧 Cookies'): void {
+  logCookiesDebug(req: Request, prefix = 'Cookies Debug'): void {
     const cookies = req.headers.cookie || '';
-    console.log(`${prefix}: Raw cookies:`, cookies);
-    
     const tokens = this.extractAuthTokens(req);
-    console.log(`${prefix}: Extracted tokens:`, {
-      has_access_token: !!tokens.access_token,
-      has_refresh_token: !!tokens.refresh_token,
-      has_id_token: !!tokens.id_token,
-    });
+    
+    const debugData = {
+      hasCookies: !!cookies,
+      cookieLength: cookies.length,
+      extractedTokens: {
+        has_access_token: !!tokens.access_token,
+        has_refresh_token: !!tokens.refresh_token,
+        has_id_token: !!tokens.id_token,
+      }
+    };
+    
+    // NestJS Logger: строка первым параметром, данные вторым
+    this.logger.debug(`${prefix}: ${JSON.stringify(debugData)}`);
   }
 }

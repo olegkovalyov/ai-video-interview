@@ -103,6 +103,58 @@ export class AuthService {
   }
 
   /**
+   * Инициирует OAuth2 registration flow через Keycloak
+   */
+  async initiateRegister(redirectUri?: string): Promise<LoginInitiationResult> {
+    return await this.traceService.withSpan('auth.register.initiate', async (span) => {
+      try {
+        const frontendOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000';
+        const defaultRedirectUri = `${frontendOrigin}/auth/callback`;
+        const actualRedirectUri = redirectUri || defaultRedirectUri;
+        
+        span.setAttributes({
+          'auth.flow': 'oauth2_registration',
+          'auth.redirect_uri': actualRedirectUri
+        });
+        
+        this.loggerService.authLog('register_initiation', {
+          action: 'register_start',
+          redirectUri: actualRedirectUri,
+          traceId: this.traceService.getTraceId()
+        });
+        
+        const { authUrl, state } = this.keycloakService.getRegistrationUrl(actualRedirectUri);
+        
+        span.setAttributes({
+          'auth.state': state,
+          'auth.success': true
+        });
+        
+        this.metricsService.incrementAuthRequests('register', 'success');
+        
+        return {
+          success: true,
+          authUrl,
+          state,
+          redirectUri: actualRedirectUri,
+        };
+      } catch (error) {
+        this.loggerService.error('Registration initiation failed', error, {
+          action: 'register_start',
+          redirectUri,
+          traceId: this.traceService.getTraceId()
+        });
+        this.metricsService.incrementAuthRequests('register', 'failure');
+        
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    });
+  }
+
+  /**
    * Обрабатывает OAuth2 callback
    */
   async handleCallback(
@@ -389,16 +441,17 @@ export class AuthService {
 
         await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userLogoutEvent);
         
-        this.loggerService.authLog('logout_event_published', {
-          action: 'kafka_event_published',
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, true, {
           userId: userInfo?.sub || 'unknown',
-          eventType: 'user.logged_out'
+          eventType: 'user.logged_out',
+          logoutReason
         });
       } catch (error) {
         span.recordException(error);
-        this.loggerService.error('Failed to publish logout event to Kafka', error, {
-          action: 'kafka_event_failed',
-          userId: userInfo?.sub || 'unknown'
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, false, {
+          error: error.message,
+          userId: userInfo?.sub || 'unknown',
+          eventType: 'user.logged_out'
         });
         // Не бросаем ошибку, чтобы не прерывать logout процесс
       }

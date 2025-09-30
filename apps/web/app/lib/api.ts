@@ -28,13 +28,10 @@ async function makeRequest<T>(path: string, options: RequestOptions): Promise<T>
       
       console.log(`🔧 API: ${options.method} Retry response status:`, res.status);
     } else {
-      console.log(`❌ API: ${options.method} Refresh failed, redirect to login needed`);
-      if (typeof window !== 'undefined') {
-        // Очищаем локальное состояние перед редиректом
-        localStorage.removeItem('auth_state');
-        sessionStorage.clear();
-        window.location.href = '/login';
-      }
+      console.log(`❌ API: ${options.method} Refresh failed`);
+      // НЕ редиректим автоматически на /login!
+      // Пусть компонент сам решит что делать с 401 ошибкой
+      // Только защищенные страницы должны редиректить
     }
   }
   

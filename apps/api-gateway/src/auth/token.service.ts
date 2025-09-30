@@ -39,23 +39,25 @@ export class TokenService {
       
       const tokens = await this.keycloakService.exchangeCodeForTokens(code, redirectUri);
       
-      this.logger.debug('Tokens received from Keycloak:', {
+      const tokenInfo = {
         has_access_token: !!tokens.access_token,
         has_refresh_token: !!tokens.refresh_token,
         has_id_token: !!tokens.id_token,
         expires_in: tokens.expires_in
-      });
+      };
+      this.logger.debug(`Tokens received from Keycloak: ${JSON.stringify(tokenInfo)}`);
 
       // ВРЕМЕННО: Получаем информацию о пользователе напрямую из Keycloak UserInfo endpoint
       let userInfo: any = null;
       try {
         this.logger.debug('Getting user info from Keycloak UserInfo endpoint...');
         userInfo = await this.keycloakService.getUserInfo(tokens.access_token);
-        this.logger.debug('UserInfo retrieved successfully:', {
+        const userInfoSummary = {
           sub: userInfo?.sub,
           email: userInfo?.email,
           preferred_username: userInfo?.preferred_username
-        });
+        };
+        this.logger.debug(`UserInfo retrieved successfully: ${JSON.stringify(userInfoSummary)}`);
       } catch (error) {
         this.logger.error('Failed to get user info from Keycloak:', {
           error: error.message,
@@ -96,11 +98,12 @@ export class TokenService {
       
       const tokens = await this.keycloakService.refreshToken(refreshToken);
       
-      this.logger.debug('Refresh completed successfully', {
+      const refreshInfo = {
         has_access_token: !!tokens.access_token,
         has_refresh_token: !!tokens.refresh_token,
         expires_in: tokens.expires_in
-      });
+      };
+      this.logger.debug(`Refresh completed successfully: ${JSON.stringify(refreshInfo)}`);
 
       return {
         tokens

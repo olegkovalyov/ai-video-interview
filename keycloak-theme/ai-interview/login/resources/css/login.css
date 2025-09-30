@@ -364,23 +364,56 @@ input[type="checkbox"] {
   margin: 0 1rem;
 }
 
-/* Registration link */
-#kc-registration {
+/* Registration link on Login page */
+#kc-registration-container {
   text-align: center;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-#kc-registration a {
-  color: white;
-  font-weight: 500;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.kc-registration-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+}
+
+.kc-registration-link {
+  color: #fbbf24 !important;
+  font-weight: 600;
+  text-decoration: none;
   transition: all 0.3s ease;
+  border-bottom: 1px solid transparent;
 }
 
-#kc-registration a:hover {
-  background: rgba(255, 255, 255, 0.2);
+.kc-registration-link:hover {
+  color: #f59e0b !important;
+  border-bottom-color: #f59e0b;
+  text-decoration: none;
+}
+
+/* Back to Login link on Registration page */
+#kc-back-to-login-container {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.kc-back-to-login-text {
+  display: block;
+}
+
+.kc-back-to-login-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kc-back-to-login-link:hover {
+  color: white !important;
   text-decoration: none;
 }

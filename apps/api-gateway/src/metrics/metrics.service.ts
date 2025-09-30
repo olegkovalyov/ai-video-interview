@@ -72,7 +72,7 @@ export class MetricsService implements OnModuleInit {
   }
 
   // Auth Metrics Methods
-  incrementAuthRequests(type: 'login' | 'logout' | 'refresh' | 'callback', status: 'success' | 'failure') {
+  incrementAuthRequests(type: 'login' | 'logout' | 'refresh' | 'callback' | 'register', status: 'success' | 'failure') {
     this.authRequestsTotal.inc({ type, status });
   }
 

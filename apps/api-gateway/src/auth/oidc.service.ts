@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
+import { LoggerService } from '../logger/logger.service';
 
 interface OIDCDiscoveryDoc {
   issuer: string;
@@ -20,7 +21,10 @@ export class OidcService {
   private discovery?: OIDCDiscoveryDoc;
   private jwks?: ReturnType<typeof createRemoteJWKSet>;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly logger: LoggerService,
+  ) {
     // Keycloak OIDC configuration
     const keycloakUrl = this.config.get<string>('KEYCLOAK_URL', 'http://localhost:8090');
     const realm = this.config.get<string>('KEYCLOAK_REALM', 'ai-video-interview');
@@ -39,7 +43,7 @@ export class OidcService {
   async ensureDiscovery(): Promise<void> {
     if (this.discovery && this.jwks) return;
 
-    console.log('🔍 OIDC Discovery Debug:', {
+    this.logger.debugObject('OIDC Discovery: Fetching configuration', {
       issuerUrl: this.issuerUrl,
       discoveryUrl: this.discoveryUrl,
       clientId: this.clientId,
@@ -49,7 +53,7 @@ export class OidcService {
     const res = await fetch(this.discoveryUrl);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      console.log('❌ OIDC Discovery failed:', {
+      this.logger.error('OIDC Discovery failed', undefined, {
         url: this.discoveryUrl,
         status: res.status,
         statusText: res.statusText,

@@ -54,8 +54,10 @@
         </div>
 
         <#if realm.password && realm.registrationAllowed && !registrationDisabled??>
-            <div id="kc-registration">
-                <span>${msg("noAccount")} <a tabindex="6" href="${url.registrationUrl}">${msg("doRegister")}</a></span>
+            <div id="kc-registration-container">
+                <span class="kc-registration-text">${msg("noAccount")} 
+                    <a tabindex="6" href="${url.registrationUrl}" class="kc-registration-link">${msg("doRegister")}</a>
+                </span>
             </div>
         </#if>
 
