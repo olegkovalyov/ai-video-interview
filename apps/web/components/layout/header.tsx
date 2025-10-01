@@ -3,9 +3,10 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useAuthStatus } from "@/hooks/useAuth"
-import { apiPost } from "@/app/lib/api"
+import { apiPost, apiGet } from "@/app/lib/api"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { LogOut } from "lucide-react"
 
 interface HeaderProps {
   currentPage?: string
@@ -15,6 +16,22 @@ export function Header({ currentPage }: HeaderProps) {
   const { isAuthenticated, loading } = useAuthStatus();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      if (isAuthenticated) {
+        try {
+          const res = await apiGet("/protected") as { user: any };
+          setUser(res.user);
+        } catch (error) {
+          console.error('Failed to load user:', error);
+        }
+      }
+    };
+
+    loadUser();
+  }, [isAuthenticated]);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -75,19 +92,32 @@ export function Header({ currentPage }: HeaderProps) {
               // Показываем лоадер пока проверяем аутентификацию
               <div className="w-20 h-8 bg-white/20 animate-pulse rounded"></div>
             ) : isAuthenticated ? (
-              // Если пользователь залогинен - показываем Dashboard и Logout
+              // Если пользователь залогинен - показываем профиль и иконку выхода
               <>
                 <Button asChild variant="glass" size="sm">
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
-                <Button 
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  variant="brand" 
-                  size="sm"
-                >
-                  {isLoggingOut ? "Logging out..." : "Logout"}
-                </Button>
+                <div className="flex items-center space-x-3 pl-3 border-l border-white/30">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                    {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
+                  </div>
+                  <div className="hidden md:block">
+                    <p className="text-sm font-medium text-white">
+                      {user?.name || 'User'}
+                    </p>
+                    <p className="text-xs text-white/70">
+                      {user?.role || 'Admin'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="text-white/80 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+                    title="Logout"
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
               </>
             ) : (
               // Если не залогинен - показываем Login/Register
