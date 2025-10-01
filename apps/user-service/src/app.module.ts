@@ -1,25 +1,33 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { KafkaModule } from './kafka/kafka.module';
-import { ProcessedEvent } from './entities/processed-event.entity';
+import { DatabaseModule } from './infrastructure/persistence/database.module';
+import { ApplicationModule } from './application/application.module';
+import { KafkaModule } from './infrastructure/kafka/kafka.module';
+import { StorageModule } from './infrastructure/storage/storage.module';
+import { HttpModule } from './infrastructure/http/http.module';
+import { LoggerModule } from './infrastructure/logger/logger.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.USER_SERVICE_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/ai_video_interview_user',
-      entities: [ProcessedEvent],
-      synchronize: false, // Use migrations instead
-      logging: process.env.NODE_ENV === 'development',
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
     }),
-    TypeOrmModule.forFeature([ProcessedEvent]),
+    
+    // Logging (Global)
+    LoggerModule,
+    
+    // Infrastructure
+    DatabaseModule,
     KafkaModule,
+    StorageModule,
+    
+    // Application (CQRS)
+    ApplicationModule,
+    
+    // HTTP (Controllers)
+    HttpModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

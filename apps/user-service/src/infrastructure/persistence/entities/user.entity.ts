@@ -20,36 +20,36 @@ export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true, name: 'keycloak_id' })
+  @Column({ unique: true, type: 'varchar', length: 255, name: 'keycloak_id' })
   @Index()
   keycloakId: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, type: 'varchar', length: 255 })
   @Index()
   email: string;
 
-  @Column({ nullable: true, unique: true })
+  @Column({ nullable: true, unique: true, type: 'varchar', length: 100 })
   username: string;
 
-  @Column({ name: 'first_name' })
+  @Column({ type: 'varchar', length: 100, name: 'first_name' })
   firstName: string;
 
-  @Column({ name: 'last_name' })
+  @Column({ type: 'varchar', length: 100, name: 'last_name' })
   lastName: string;
 
-  @Column({ nullable: true, name: 'avatar_url' })
+  @Column({ nullable: true, type: 'text', name: 'avatar_url' })
   avatarUrl: string | null;
 
   @Column({ nullable: true, type: 'text' })
   bio: string | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar', length: 50 })
   phone: string | null;
 
-  @Column({ default: 'UTC' })
+  @Column({ type: 'varchar', length: 50, default: 'UTC' })
   timezone: string;
 
-  @Column({ default: 'en', length: 10 })
+  @Column({ type: 'varchar', length: 10, default: 'en' })
   language: string;
 
   @Column({ default: false, name: 'email_verified' })
@@ -59,9 +59,10 @@ export class UserEntity {
     type: 'enum',
     enum: ['active', 'suspended', 'deleted'],
     default: 'active',
+    name: 'status',
   })
   @Index()
-  status: string;
+  status: 'active' | 'suspended' | 'deleted';
 
   @Column({ nullable: true, type: 'timestamp', name: 'last_login_at' })
   lastLoginAt: Date;

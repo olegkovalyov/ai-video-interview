@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as winston from 'winston';
 import * as path from 'path';
+import DailyRotateFile = require('winston-daily-rotate-file');
 
 export interface LogContext {
   userId?: string;
@@ -69,21 +70,35 @@ export class LoggerService {
           level: 'debug', // Показываем все включая debug
           format: consoleFormat
         }),
-        // Файл для всех логов (для Promtail/Loki) - ВСЕ логи
-        new winston.transports.File({
-          filename: path.join(logsDir, 'api-gateway.log'),
-          level: 'debug', // Пишем все включая debug
+        // Daily rotating file для всех логов (для Promtail/Loki)
+        new DailyRotateFile({
+          filename: path.join(logsDir, 'api-gateway-%DATE%.log'),
+          datePattern: 'YYYY-MM-DD',
+          zippedArchive: true,
+          maxSize: '20m',
+          maxFiles: '14d', // Храним 14 дней
+          level: 'debug',
           format: fileFormat,
-          maxsize: 10 * 1024 * 1024, // 10MB
-          maxFiles: 5
         }),
-        // Файл только для ошибок
-        new winston.transports.File({
-          filename: path.join(logsDir, 'api-gateway-error.log'),
-          format: fileFormat,
+        // Daily rotating file только для ошибок
+        new DailyRotateFile({
+          filename: path.join(logsDir, 'api-gateway-error-%DATE%.log'),
+          datePattern: 'YYYY-MM-DD',
+          zippedArchive: true,
+          maxSize: '20m',
+          maxFiles: '30d', // Храним ошибки 30 дней
           level: 'error',
-          maxsize: 10 * 1024 * 1024,
-          maxFiles: 5
+          format: fileFormat,
+        }),
+        // Monthly archive для долгосрочного хранения
+        new DailyRotateFile({
+          filename: path.join(logsDir, 'archive', 'api-gateway-%DATE%.log'),
+          datePattern: 'YYYY-MM',
+          zippedArchive: true,
+          maxSize: '100m',
+          maxFiles: '12m', // Храним 12 месяцев
+          level: 'info', // Только info и выше
+          format: fileFormat,
         })
       ]
     });
