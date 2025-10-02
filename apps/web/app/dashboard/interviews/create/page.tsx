@@ -3,6 +3,13 @@ import { useState } from "react";
 import { apiPost } from "../../../lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Header } from "@/components/layout/header";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Plus, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 
 interface Question {
   id: string;
@@ -106,76 +113,50 @@ export default function CreateInterviewPage() {
   };
 
   const renderBasicInfo = () => (
-    <div style={{ marginBottom: '30px' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-semibold text-white mb-6">
         Basic Information
       </h2>
       
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+      <div className="space-y-2">
+        <Label htmlFor="title" className="text-white font-medium">
           Interview Title *
-        </label>
-        <input
+        </Label>
+        <Input
+          id="title"
           type="text"
           value={form.title}
           onChange={(e) => setForm({...form, title: e.target.value})}
           placeholder="e.g. Frontend Developer Interview"
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: '2px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            fontSize: '16px',
-            backdropFilter: 'blur(10px)'
-          }}
+          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
         />
       </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-white font-medium">
           Description *
-        </label>
-        <textarea
+        </Label>
+        <Textarea
+          id="description"
           value={form.description}
           onChange={(e) => setForm({...form, description: e.target.value})}
           placeholder="Brief description of what this interview evaluates"
           rows={3}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: '2px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            fontSize: '16px',
-            backdropFilter: 'blur(10px)',
-            resize: 'vertical'
-          }}
+          className="bg-white/10 border-white/20 text-white placeholder:text-white/50 resize-none"
         />
       </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+      <div className="space-y-2">
+        <Label htmlFor="instructions" className="text-white font-medium">
           Instructions for Candidates
-        </label>
-        <textarea
+        </Label>
+        <Textarea
+          id="instructions"
           value={form.instructions}
           onChange={(e) => setForm({...form, instructions: e.target.value})}
           placeholder="Instructions that candidates will see before starting"
           rows={4}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: '2px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            fontSize: '16px',
-            backdropFilter: 'blur(10px)',
-            resize: 'vertical'
-          }}
+          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
         />
       </div>
     </div>
@@ -468,97 +449,47 @@ export default function CreateInterviewPage() {
   );
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      {/* Header */}
-      <header style={{ 
-        padding: '20px 40px', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        background: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)'
-      }}>
-        <Link href="/dashboard/interviews" style={{ 
-          fontSize: '24px', 
-          fontWeight: '700', 
-          color: 'white', 
-          textDecoration: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <span>←</span> 🎥 Create Interview
-        </Link>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Link
-            href="/dashboard/interviews"
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              fontWeight: '500'
-            }}
-          >
-            Cancel
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+      <Header currentPage="interviews" />
 
-      <main style={{ 
-        padding: '40px', 
-        maxWidth: '800px', 
-        margin: '0 auto' 
-      }}>
+      <main className="container mx-auto px-6 py-12 max-w-4xl">
         {error && (
-          <div style={{ 
-            color: '#ffcdd2', 
-            backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-            padding: '16px', 
-            borderRadius: '8px', 
-            marginBottom: '20px' 
-          }}>
+          <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-8">
             {error}
           </div>
         )}
 
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Create Interview
+          </h1>
+          <p className="text-lg text-white/80">
+            Set up a new video interview with custom questions
+          </p>
+        </div>
+
         {/* Step Indicator */}
-        <div style={{ marginBottom: '40px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+        <div className="mb-10">
+          <div className="flex justify-center items-center mb-4">
             {[1, 2, 3, 4].map((step) => (
-              <div key={step} style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: step <= currentStep ? '#ffd700' : 'rgba(255,255,255,0.2)',
-                  color: step <= currentStep ? '#333' : 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '600',
-                  fontSize: '14px'
-                }}>
+              <div key={step} className="flex items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${
+                  step <= currentStep
+                    ? 'bg-yellow-400 text-gray-900'
+                    : 'bg-white/20 text-white'
+                }`}>
                   {step}
                 </div>
                 {step < 4 && (
-                  <div style={{
-                    width: '60px',
-                    height: '2px',
-                    background: step < currentStep ? '#ffd700' : 'rgba(255,255,255,0.2)',
-                    margin: '0 8px'
-                  }} />
+                  <div className={`w-16 h-0.5 mx-2 ${
+                    step < currentStep ? 'bg-yellow-400' : 'bg-white/20'
+                  }`} />
                 )}
               </div>
             ))}
           </div>
-          <div style={{ textAlign: 'center', fontSize: '14px', opacity: '0.8' }}>
+          <div className="text-center text-sm text-white/70">
             {currentStep === 1 && 'Basic Information'}
             {currentStep === 2 && 'Add Questions'}
             {currentStep === 3 && 'Configure Settings'}
@@ -567,92 +498,56 @@ export default function CreateInterviewPage() {
         </div>
 
         {/* Form Content */}
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          padding: '40px',
-          borderRadius: '16px'
-        }}>
-          {currentStep === 1 && renderBasicInfo()}
-          {currentStep === 2 && renderQuestions()}
-          {currentStep === 3 && renderSettings()}
-          {currentStep === 4 && renderReview()}
+        <Card className="bg-white/10 backdrop-blur-md border-white/20">
+          <CardContent className="p-8">
+            {currentStep === 1 && renderBasicInfo()}
+            {currentStep === 2 && renderQuestions()}
+            {currentStep === 3 && renderSettings()}
+            {currentStep === 4 && renderReview()}
 
-          {/* Navigation Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '30px' }}>
-            <button
-              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-              disabled={currentStep === 1}
-              style={{
-                background: currentStep === 1 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
-                color: currentStep === 1 ? 'rgba(255,255,255,0.5)' : 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                fontWeight: '500',
-                cursor: currentStep === 1 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              ← Previous
-            </button>
+            {/* Navigation Buttons */}
+            <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/20">
+              <Button
+                onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                disabled={currentStep === 1}
+                variant="glass"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Previous
+              </Button>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {currentStep === 4 ? (
-                <>
-                  <button
-                    onClick={() => handleSubmit(true)}
-                    disabled={!isFormValid() || loading}
-                    style={{
-                      background: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '6px',
-                      fontWeight: '500',
-                      cursor: !isFormValid() || loading ? 'not-allowed' : 'pointer',
-                      opacity: !isFormValid() || loading ? 0.5 : 1
-                    }}
+              <div className="flex gap-3">
+                {currentStep === 4 ? (
+                  <>
+                    <Button
+                      onClick={() => handleSubmit(true)}
+                      disabled={!isFormValid() || loading}
+                      variant="glass"
+                    >
+                      {loading ? 'Creating...' : 'Save as Draft'}
+                    </Button>
+                    <Button
+                      onClick={() => handleSubmit(false)}
+                      disabled={!isFormValid() || loading}
+                      variant="brand"
+                    >
+                      {loading ? 'Creating...' : 'Create & Publish'}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
+                    disabled={currentStep === 2 && form.questions.length === 0}
+                    variant="brand"
                   >
-                    {loading ? 'Creating...' : 'Save as Draft'}
-                  </button>
-                  <button
-                    onClick={() => handleSubmit(false)}
-                    disabled={!isFormValid() || loading}
-                    style={{
-                      background: '#4ade80',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      cursor: !isFormValid() || loading ? 'not-allowed' : 'pointer',
-                      opacity: !isFormValid() || loading ? 0.5 : 1
-                    }}
-                  >
-                    {loading ? 'Creating...' : 'Create & Publish'}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
-                  disabled={currentStep === 2 && form.questions.length === 0}
-                  style={{
-                    background: '#ffd700',
-                    color: '#333',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: currentStep === 2 && form.questions.length === 0 ? 'not-allowed' : 'pointer',
-                    opacity: currentStep === 2 && form.questions.length === 0 ? 0.5 : 1
-                  }}
-                >
-                  Next →
-                </button>
-              )}
+                    Next
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header currentPage="dashboard" />
+      <Header />
 
       <main className="container mx-auto px-6 py-12">
         {error && (
@@ -45,50 +45,48 @@ export default function DashboardPage() {
         )}
 
         {/* Welcome Section */}
-        <Card className="bg-white/10 backdrop-blur-md border-white/20 mb-8">
-          <CardContent className="p-12 text-center">
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Welcome back{user?.name ? `, ${user.name}` : ''}! 👋
-            </h1>
-            <p className="text-lg text-white/90 mb-8">
-              Manage your AI-powered video interviews and analyze candidate responses
-            </p>
-            
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <Card className="bg-white/15 backdrop-blur-sm border-white/30">
-                <CardContent className="p-6 text-center">
-                  <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.interviews}</div>
-                  <div className="text-sm text-white/80">Active Interviews</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white/15 backdrop-blur-sm border-white/30">
-                <CardContent className="p-6 text-center">
-                  <div className="text-3xl font-bold text-green-400 mb-2">{stats.candidates}</div>
-                  <div className="text-sm text-white/80">Total Candidates</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white/15 backdrop-blur-sm border-white/30">
-                <CardContent className="p-6 text-center">
-                  <div className="text-3xl font-bold text-blue-400 mb-2">{stats.responses}</div>
-                  <div className="text-sm text-white/80">Pending Reviews</div>
-                </CardContent>
-              </Card>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Welcome back{user?.name ? `, ${user.name}` : ''}! 👋
+          </h1>
+          <p className="text-lg text-white/80">
+            Manage your AI-powered video interviews and analyze candidate responses
+          </p>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-white/10 backdrop-blur-md border-white/20">
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.interviews}</div>
+              <div className="text-sm text-white/80">Active Interviews</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20">
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-green-400 mb-2">{stats.candidates}</div>
+              <div className="text-sm text-white/80">Total Candidates</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20">
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-blue-400 mb-2">{stats.responses}</div>
+              <div className="text-sm text-white/80">Pending Reviews</div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Create New Interview */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-8 text-center flex flex-col h-full">
               <div className="text-5xl mb-4">➕</div>
               <h3 className="text-xl font-semibold text-white mb-3">Create Interview</h3>
-              <p className="text-white/80 mb-6 leading-relaxed">
+              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Set up a new video interview with custom questions
               </p>
-              <Button asChild variant="brand" className="w-full">
+              <Button asChild variant="brand" className="w-full mt-auto">
                 <Link href="/dashboard/interviews/create">Get Started</Link>
               </Button>
             </CardContent>
@@ -96,13 +94,13 @@ export default function DashboardPage() {
 
           {/* My Interviews */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-8 text-center flex flex-col h-full">
               <div className="text-5xl mb-4">📋</div>
               <h3 className="text-xl font-semibold text-white mb-3">My Interviews</h3>
-              <p className="text-white/80 mb-6 leading-relaxed">
+              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 View and manage all your interviews
               </p>
-              <Button asChild variant="glass" className="w-full">
+              <Button asChild variant="glass" className="w-full mt-auto">
                 <Link href="/dashboard/interviews">View All</Link>
               </Button>
             </CardContent>
@@ -110,13 +108,13 @@ export default function DashboardPage() {
 
           {/* Analytics */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-8 text-center flex flex-col h-full">
               <div className="text-5xl mb-4">📊</div>
               <h3 className="text-xl font-semibold text-white mb-3">Analytics</h3>
-              <p className="text-white/80 mb-6 leading-relaxed">
+              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 View performance insights and reports
               </p>
-              <Button asChild variant="glass" className="w-full">
+              <Button asChild variant="glass" className="w-full mt-auto">
                 <Link href="/dashboard/analytics">View Reports</Link>
               </Button>
             </CardContent>

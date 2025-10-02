@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Search, UserPlus, Filter, MoreVertical } from 'lucide-react';
+import { Header } from '@/components/layout/header';
 
 export default function AdminUsersPage() {
   // Mock data
@@ -43,7 +44,9 @@ export default function AdminUsersPage() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+      <Header />
+      <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -101,7 +104,7 @@ export default function AdminUsersPage() {
             </div>
 
             {/* Status Filter */}
-            <select className="px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white">
+            <select className="px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white cursor-pointer">
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
@@ -109,13 +112,13 @@ export default function AdminUsersPage() {
             </select>
 
             {/* Role Filter */}
-            <select className="px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white">
+            <select className="px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white cursor-pointer">
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
               <option value="user">User</option>
             </select>
 
-            <button className="px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-lg flex items-center space-x-2 transition-colors">
+            <button className="px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/40 text-white rounded-lg flex items-center space-x-2 transition-colors cursor-pointer">
               <Filter className="w-5 h-5" />
               <span>More Filters</span>
             </button>
@@ -200,11 +203,11 @@ export default function AdminUsersPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link
                         href={`/admin/users/${user.id}`}
-                        className="text-yellow-400 hover:text-yellow-300 font-semibold mr-4"
+                        className="text-yellow-400 hover:text-yellow-300 font-semibold mr-4 cursor-pointer"
                       >
                         View
                       </Link>
-                      <button className="text-white/60 hover:text-white">
+                      <button className="text-white/60 hover:text-white cursor-pointer">
                         <MoreVertical className="w-5 h-5" />
                       </button>
                     </td>
@@ -230,5 +233,6 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </div>
+    </div>
   );
 }

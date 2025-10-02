@@ -3,6 +3,11 @@ import { useEffect, useState } from "react";
 import { apiGet } from "../../lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Header } from "@/components/layout/header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Copy, Calendar, Users, FileText, Video } from "lucide-react";
 
 interface Interview {
   id: string;
@@ -78,12 +83,12 @@ export default function InterviewsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'active': return '#4ade80';
-      case 'draft': return '#fbbf24';
-      case 'closed': return '#94a3b8';
-      default: return '#94a3b8';
+      case 'active': return 'default';
+      case 'draft': return 'secondary';
+      case 'closed': return 'outline';
+      default: return 'outline';
     }
   };
 
@@ -104,215 +109,130 @@ export default function InterviewsPage() {
 
   if (loading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-          <p>Loading interviews...</p>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="text-5xl mb-4">⏳</div>
+          <p className="text-lg">Loading interviews...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      {/* Header */}
-      <header style={{ 
-        padding: '20px 40px', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        background: 'rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)'
-      }}>
-        <Link href="/dashboard" style={{ 
-          fontSize: '24px', 
-          fontWeight: '700', 
-          color: 'white', 
-          textDecoration: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <span>←</span> 🎥 AI Video Interview
-        </Link>
-        <Link 
-          href="/dashboard/interviews/create"
-          style={{ 
-            background: '#ffd700', 
-            color: '#333', 
-            padding: '8px 16px', 
-            borderRadius: '6px',
-            textDecoration: 'none',
-            fontWeight: '600'
-          }}
-        >
-          + Create Interview
-        </Link>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+      <Header currentPage="interviews" />
 
-      <main style={{ 
-        padding: '40px', 
-        maxWidth: '1200px', 
-        margin: '0 auto' 
-      }}>
+      <main className="container mx-auto px-6 py-12">
         {error && (
-          <div style={{ 
-            color: '#ffcdd2', 
-            backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-            padding: '16px', 
-            borderRadius: '8px', 
-            marginBottom: '20px' 
-          }}>
+          <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-8">
             {error}
           </div>
         )}
 
-        <div style={{ marginBottom: '30px' }}>
-          <h1 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '8px' }}>
-            My Interviews
-          </h1>
-          <p style={{ fontSize: '18px', opacity: '0.8' }}>
-            Manage your video interviews and review candidate responses
-          </p>
+        {/* Page Header */}
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              My Interviews
+            </h1>
+            <p className="text-lg text-white/80">
+              Manage your video interviews and review candidate responses
+            </p>
+          </div>
+          <Button asChild variant="brand" size="lg">
+            <Link href="/dashboard/interviews/create">
+              <Plus className="w-5 h-5 mr-2" />
+              Create Interview
+            </Link>
+          </Button>
         </div>
 
         {interviews.length === 0 ? (
           /* Empty State */
-          <div style={{
-            background: 'rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
-            padding: '60px 40px',
-            borderRadius: '16px',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '72px', marginBottom: '24px', opacity: '0.6' }}>📋</div>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '16px' }}>
-              No interviews yet
-            </h2>
-            <p style={{ fontSize: '16px', opacity: '0.8', marginBottom: '32px' }}>
-              Create your first interview to start evaluating candidates with AI-powered analysis
-            </p>
-            <Link 
-              href="/dashboard/interviews/create"
-              style={{ 
-                display: 'inline-block',
-                background: '#ffd700', 
-                color: '#333', 
-                padding: '16px 32px', 
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontWeight: '600',
-                fontSize: '16px'
-              }}
-            >
-              Create Your First Interview
-            </Link>
-          </div>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20">
+            <CardContent className="p-16 text-center">
+              <div className="text-7xl mb-6 opacity-60">📋</div>
+              <h2 className="text-2xl font-semibold text-white mb-4">
+                No interviews yet
+              </h2>
+              <p className="text-white/80 mb-8 max-w-md mx-auto">
+                Create your first interview to start evaluating candidates with AI-powered analysis
+              </p>
+              <Button asChild variant="brand" size="lg">
+                <Link href="/dashboard/interviews/create">
+                  Create Your First Interview
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           /* Interviews List */
-          <div style={{ 
-            display: 'grid', 
-            gap: '20px' 
-          }}>
+          <div className="grid gap-6">
             {interviews.map(interview => (
-              <div 
+              <Card 
                 key={interview.id}
-                style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(10px)',
-                  padding: '24px',
-                  borderRadius: '16px',
-                  border: '1px solid rgba(255,255,255,0.2)'
-                }}
+                className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all"
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                      <h3 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>
-                        {interview.title}
-                      </h3>
-                      <span style={{
-                        background: getStatusColor(interview.status),
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}>
-                        {getStatusLabel(interview.status)}
-                      </span>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-semibold text-white">
+                          {interview.title}
+                        </h3>
+                        <Badge variant={getStatusVariant(interview.status)}>
+                          {getStatusLabel(interview.status)}
+                        </Badge>
+                      </div>
+                      <p className="text-white/80 mb-3">
+                        {interview.description}
+                      </p>
+                      <div className="flex gap-6 text-sm text-white/70">
+                        <span className="flex items-center gap-1">
+                          <FileText className="w-4 h-4" />
+                          {interview.questionsCount} questions
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {interview.candidatesCount} candidates
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Video className="w-4 h-4" />
+                          {interview.responsesCount} responses
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(interview.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
-                    <p style={{ color: 'rgba(255,255,255,0.8)', margin: '0 0 12px 0' }}>
-                      {interview.description}
-                    </p>
-                    <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>
-                      <span>📝 {interview.questionsCount} questions</span>
-                      <span>👥 {interview.candidatesCount} candidates</span>
-                      <span>📹 {interview.responsesCount} responses</span>
-                      <span>📅 {new Date(interview.createdAt).toLocaleDateString()}</span>
+                    
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button asChild variant="glass" size="sm">
+                        <Link href={`/dashboard/interviews/${interview.id}`}>
+                          View
+                        </Link>
+                      </Button>
+                      {interview.publicUrl && (
+                        <Button
+                          onClick={() => copyPublicUrl(interview.publicUrl!)}
+                          variant="default"
+                          size="sm"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Link
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0, marginLeft: '20px' }}>
-                    <Link
-                      href={`/dashboard/interviews/${interview.id}`}
-                      style={{
-                        background: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        textDecoration: 'none',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      View
-                    </Link>
-                    {interview.publicUrl && (
-                      <button
-                        onClick={() => copyPublicUrl(interview.publicUrl!)}
-                        style={{
-                          background: '#4ade80',
-                          color: 'white',
-                          border: 'none',
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Copy Link
-                      </button>
-                    )}
-                  </div>
-                </div>
-                
-                {interview.status === 'active' && interview.responsesCount > 0 && (
-                  <div style={{ 
-                    background: 'rgba(255,255,255,0.1)', 
-                    padding: '12px 16px', 
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}>
-                    <span style={{ color: '#4ade80', fontWeight: '500' }}>
+                  {interview.status === 'active' && interview.responsesCount > 0 && (
+                    <div className="mt-4 bg-green-500/20 border border-green-500/30 text-green-200 px-4 py-3 rounded-lg text-sm font-medium">
                       🟢 {interview.responsesCount} new responses to review
-                    </span>
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

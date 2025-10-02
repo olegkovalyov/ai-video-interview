@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { User, Settings, Upload, Shield } from 'lucide-react';
+import { Header } from '@/components/layout/header';
 
 export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+      <Header />
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">

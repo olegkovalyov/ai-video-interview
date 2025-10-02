@@ -5,6 +5,7 @@ import { Hero } from "@/components/sections/hero"
 import { Features } from "@/components/sections/features"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { SignInButton } from "@/components/auth/sign-in-button"
 import Link from "next/link"
 
 export default function LandingPage() {
@@ -58,12 +59,12 @@ export default function LandingPage() {
                 Join thousands of companies already using AI Video Interview to find their perfect candidates.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild variant="brand" size="xl">
-                  <Link href="/register">Create Account</Link>
-                </Button>
-                <Button asChild variant="glass" size="xl">
-                  <Link href="/login">Sign In</Link>
-                </Button>
+                <SignInButton variant="brand" size="xl">
+                  Create Account
+                </SignInButton>
+                <SignInButton variant="glass" size="xl">
+                  Sign In
+                </SignInButton>
               </div>
             </CardContent>
           </Card>

@@ -1,5 +1,6 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+"use client";
+
+import { SignInButton } from "@/components/auth/sign-in-button"
 
 export function Hero() {
   return (
@@ -16,12 +17,12 @@ export function Hero() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild variant="brand" size="xl">
-            <Link href="/register">Create Account</Link>
-          </Button>
-          <Button asChild variant="glass" size="xl">
-            <Link href="/login">Sign In</Link>
-          </Button>
+          <SignInButton variant="brand" size="xl">
+            Create Account
+          </SignInButton>
+          <SignInButton variant="glass" size="xl">
+            Sign In
+          </SignInButton>
         </div>
       </div>
     </section>

@@ -4,6 +4,7 @@ import { apiGet } from "../lib/api";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LogoWithText } from "@/components/ui/logo";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -29,9 +30,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center p-6">
       <Link 
         href="/" 
-        className="absolute top-6 left-6 text-white text-2xl font-bold hover:text-yellow-400 transition-colors"
+        className="absolute top-6 left-6 hover:opacity-80 transition-opacity"
       >
-        🎥 AI Video Interview
+        <LogoWithText />
       </Link>
       
       <Card className="bg-white/10 backdrop-blur-md border-white/20 w-full max-w-md">
