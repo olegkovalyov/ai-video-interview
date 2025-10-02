@@ -1,13 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
-  
+  // NestJS встроенный логгер (для системных логов Nest)
   const app = await NestFactory.create(AppModule, {
-    logger: ['log', 'error', 'warn', 'debug', 'verbose'],
+    logger: ['log', 'error', 'warn'], // Только важные уровни, без debug
   });
 
   // Global prefix
@@ -46,16 +45,11 @@ async function bootstrap() {
   const port = process.env.PORT || 3003;
   await app.listen(port);
   
-  logger.log(`🚀 User Service running on http://localhost:${port}`);
-  logger.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
+  // Startup логи через console (минимум)
+  console.log(`🚀 User Service running on http://localhost:${port}`);
+  console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
 
   // Graceful shutdown handlers (from memory - no port blocking)
-  process.on('SIGTERM', async () => {
-    logger.log('⚠️ SIGTERM signal received: closing HTTP server');
-    await app.close();
-    logger.log('👋 HTTP server closed');
-    process.exit(0);
-  });
   const gracefulShutdown = async (signal: string) => {
     console.log(`\n⚠️ Received ${signal}, shutting down User Service gracefully...`);
     try {

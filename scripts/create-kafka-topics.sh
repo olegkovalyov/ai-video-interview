@@ -78,30 +78,49 @@ else
 fi
 
 echo ""
-echo "🏗️  STEP 2: Creating Auth Topics"
+echo "🏗️  STEP 2: Creating Kafka Topics"
 echo "================================"
 
-# Create auth_events topic with proper configuration for authentication events
-echo "📝 Creating topic: auth_events"
+# Create auth-events topic (from API Gateway)
+echo "📝 Creating topic: auth-events"
 docker exec ai-interview-kafka kafka-topics --create \
-    --topic auth_events \
+    --topic auth-events \
     --bootstrap-server localhost:9092 \
     --partitions 3 \
     --replication-factor 1 \
     --config retention.ms=604800000 \
     --config segment.ms=86400000 \
-    --config compression.type=snappy \
     --if-not-exists
 
-# Create DLQ topic for failed auth events
-echo "📝 Creating DLQ topic: auth_events_dlq"
+# Create auth-events DLQ
+echo "📝 Creating DLQ topic: auth-events-dlq"
 docker exec ai-interview-kafka kafka-topics --create \
-    --topic auth_events_dlq \
+    --topic auth-events-dlq \
     --bootstrap-server localhost:9092 \
     --partitions 1 \
     --replication-factor 1 \
     --config retention.ms=2592000000 \
-    --config compression.type=snappy \
+    --if-not-exists
+
+# Create user-events topic (from User Service)
+echo "📝 Creating topic: user-events"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic user-events \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1 \
+    --config retention.ms=604800000 \
+    --config segment.ms=86400000 \
+    --if-not-exists
+
+# Create user-events DLQ
+echo "📝 Creating DLQ topic: user-events-dlq"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic user-events-dlq \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 \
+    --replication-factor 1 \
+    --config retention.ms=2592000000 \
     --if-not-exists
 
 echo ""
@@ -109,15 +128,17 @@ echo "✅ Kafka Setup Complete!"
 echo "========================"
 echo ""
 echo "📊 Created Topics:"
-echo "  - auth_events (3 partitions)"
-echo "  - auth_events_dlq (1 partition)"
+echo "  - auth-events (3 partitions) - Auth events from API Gateway"
+echo "  - auth-events-dlq (1 partition)"
+echo "  - user-events (3 partitions) - Domain events from User Service"
+echo "  - user-events-dlq (1 partition)"
 echo ""
 echo "🔧 Topic Configuration:"
-echo "  - Retention: 7 days (auth_events), 30 days (DLQ)"
-echo "  - Compression: Snappy"
+echo "  - Retention: 7 days (main topics), 30 days (DLQ)"
+echo "  - Compression: None (producer default)"
 echo "  - Partitioning: By userId for ordering guarantees"
 echo ""
 echo "🌐 Access Kafka UI: http://localhost:8080"
 echo "📋 List topics: docker exec ai-interview-kafka kafka-topics --bootstrap-server localhost:9092 --list"
 echo ""
-echo "🎯 Ready for authentication events!"
+echo "🎯 Ready for events!"

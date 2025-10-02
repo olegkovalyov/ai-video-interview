@@ -1,7 +1,6 @@
 // ВАЖНО: tracing должен инициализироваться ПЕРВЫМ
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { FileLoggerService } from './logger/file-logger.service';
 import './tracing/tracing'; // Must be first import for OpenTelemetry
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { LoggerService } from './logger/logger.service';
@@ -10,10 +9,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   const logger = app.get(LoggerService);
-  const fileLogger = app.get(FileLoggerService);
   
-  // Используем файловый логгер для NestJS
-  app.useLogger(fileLogger);
+  // Отключаем встроенный NestJS Logger - используем только Winston
+  // app.useLogger(false); // Полностью отключить NestJS логи
   
   const corsOptions: CorsOptions = {
     origin: process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000',

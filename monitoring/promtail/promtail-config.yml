@@ -42,16 +42,27 @@ scrape_configs:
   # Application logs from NestJS services (локальные файлы)
   - job_name: nestjs-apps
     static_configs:
+      # Docker (если запускается в контейнерах)
       - targets:
           - localhost
         labels:
           job: nestjs-apps
-          __path__: /app/*/logs/*.log
+          __path__: /app/*/logs/20??-??-??/*.log
+      # Локальная разработка (macOS/Linux) - структура logs/YYYY-MM-DD/service.log
+      - targets:
+          - localhost
+        labels:
+          job: nestjs-apps-local
+          __path__: /Users/oleg/www/ai-video-interview/apps/*/logs/20??-??-??/*.log
     pipeline_stages:
-      # Извлекаем service name из пути файла  
+      # Извлекаем service name из пути файла (для Docker)
       - regex:
           source: filename
           expression: '/app/(?P<service_name>[^/]+)/logs/'
+      # Извлекаем service name из пути файла (для локальной разработки)
+      - regex:
+          source: filename
+          expression: '/apps/(?P<service_name>[^/]+)/logs/'
       # Парсим весь JSON
       - json:
           expressions:

@@ -354,8 +354,19 @@ export class AuthService {
       this.loggerService.authLog('logout_build_end_session', {
         action: 'building_end_session_url',
         hasIdToken: !!tokens.idToken,
-        idTokenPreview: tokens.idToken?.substring(0, 50) + '...'
+        idTokenPreview: tokens.idToken?.substring(0, 50) + '...',
+        warningIfMissing: !tokens.idToken ? 'ID Token missing - Keycloak logout may fail' : undefined
       });
+      
+      // ВАЖНО: Если id_token отсутствует, логируем предупреждение
+      if (!tokens.idToken) {
+        this.loggerService.warn('ID Token is missing for logout. This may cause Keycloak logout to fail.', {
+          action: 'logout_missing_id_token',
+          hasAccessToken: !!tokens.accessToken,
+          hasRefreshToken: !!tokens.refreshToken,
+          suggestion: 'User may need to re-login if Keycloak session persists'
+        });
+      }
       
       const endSessionUrl = await this.buildEndSessionUrl(tokens.idToken);
 
@@ -433,22 +444,22 @@ export class AuthService {
         );
         
         span.setAttributes({
-          'kafka.topic': KAFKA_TOPICS.USER_EVENTS,
+          'kafka.topic': KAFKA_TOPICS.AUTH_EVENTS,
           'event.type': 'user.logged_out',
           'user.id': userInfo?.sub || 'unknown',
           'logout.reason': logoutReason
         });
 
-        await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userLogoutEvent);
+        await this.kafkaService.publishEvent(KAFKA_TOPICS.AUTH_EVENTS, userLogoutEvent);
         
-        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, true, {
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, true, {
           userId: userInfo?.sub || 'unknown',
           eventType: 'user.logged_out',
           logoutReason
         });
       } catch (error) {
         span.recordException(error);
-        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, false, {
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, false, {
           error: error.message,
           userId: userInfo?.sub || 'unknown',
           eventType: 'user.logged_out'
@@ -495,26 +506,37 @@ export class AuthService {
     await this.traceService.withSpan('auth.kafka.publish_user_authenticated', async (span) => {
       try {
         const sessionId = crypto.randomUUID();
+        
+        // Extract firstName/lastName from Keycloak userInfo
+        // Keycloak uses given_name and family_name as standard OIDC claims
+        const firstName = userInfo.given_name || userInfo.firstName || userInfo.name?.split(' ')[0];
+        const lastName = userInfo.family_name || userInfo.lastName || userInfo.name?.split(' ')[1];
+        
         const userAuthEvent = UserEventFactory.createUserAuthenticated(
           userInfo.sub as string,
           userInfo.email as string,
           sessionId,
-          { authMethod }
+          { 
+            authMethod,
+            firstName,
+            lastName
+          }
         );
         
         span.setAttributes({
-          'kafka.topic': KAFKA_TOPICS.USER_EVENTS,
+          'kafka.topic': KAFKA_TOPICS.AUTH_EVENTS,
           'kafka.operation': 'publish',
           'user.id': userInfo.sub,
           'auth.method': authMethod,
-          'event.type': 'user_authenticated'
+          'event.type': 'user.authenticated'
         });
         
-        await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userAuthEvent);
+        await this.kafkaService.publishEvent(KAFKA_TOPICS.AUTH_EVENTS, userAuthEvent);
         
-        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, true, {
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, true, {
           userId: userInfo.sub,
           authMethod,
+          hasUserName: !!(firstName && lastName),
           traceId: this.traceService.getTraceId()
         });
         
@@ -522,7 +544,7 @@ export class AuthService {
           'kafka.success': true
         });
       } catch (error) {
-        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, false, {
+        this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, false, {
           error: error.message,
           authMethod,
           traceId: this.traceService.getTraceId()
@@ -541,25 +563,14 @@ export class AuthService {
    * Публикует Kafka событие обновления токена
    */
   private async publishTokenRefreshEvent(): Promise<void> {
-    try {
-      const sessionId = crypto.randomUUID();
-      const userAuthEvent = UserEventFactory.createUserAuthenticated(
-        'unknown', // userId недоступен в refresh flow
-        'unknown', // email недоступен в refresh flow  
-        sessionId,
-        { authMethod: 'jwt_refresh' }
-      );
-      
-      await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, userAuthEvent);
-      this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, true, {
-        authMethod: 'jwt_refresh'
-      });
-    } catch (error) {
-      this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_EVENTS, false, {
-        error: error.message,
-        authMethod: 'jwt_refresh'
-      });
-    }
+    // НЕ публикуем событие для refresh токенов
+    // Refresh не создаёт нового юзера, это просто продление сессии
+    // userId и email недоступны в refresh flow, поэтому событие бесполезно
+    this.loggerService.debug('Token refresh - no Kafka event published', {
+      category: 'auth',
+      authMethod: 'jwt_refresh',
+      reason: 'Refresh does not create users'
+    });
   }
 
   /**

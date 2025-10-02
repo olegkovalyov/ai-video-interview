@@ -22,7 +22,7 @@ import { TypeOrmRoleRepository } from './repositories/typeorm-role.repository';
         database: configService.get('DATABASE_NAME', 'user_service_db'),
         entities: [UserEntity, RoleEntity, ProcessedEventEntity],
         synchronize: false, // Always use migrations
-        logging: configService.get('NODE_ENV') === 'development',
+        logging: false, // Disable SQL logging (too verbose)
         ssl: configService.get('DATABASE_SSL', 'false') === 'true'
           ? { rejectUnauthorized: false }
           : false,

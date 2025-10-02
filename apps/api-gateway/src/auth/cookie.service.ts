@@ -122,11 +122,16 @@ export class CookieService {
   ): void {
     const accessExpiresIn = tokens.expires_in || 1800; // 30 минут вместо 5
     
+    // ВАЖНО: id_token должен жить дольше для надёжного logout
+    // Увеличиваем время жизни id_token до 8 часов (как refresh_token)
+    const idTokenExpiresIn = 8 * 60 * 60; // 8 часов
+    
     const cookieInfo = {
       has_access_token: !!tokens.access_token,
       has_refresh_token: !!tokens.refresh_token,
       has_id_token: !!tokens.id_token,
-      expires_in: accessExpiresIn
+      access_token_expires_in: accessExpiresIn,
+      id_token_expires_in: idTokenExpiresIn
     };
     this.logger.debug(`Setting auth cookies: ${JSON.stringify(cookieInfo)}`);
     
@@ -137,7 +142,11 @@ export class CookieService {
     }
     
     if (tokens.id_token) {
-      this.setIdTokenCookie(res, tokens.id_token, accessExpiresIn);
+      // Устанавливаем id_token с длительным сроком для надёжного logout
+      this.setIdTokenCookie(res, tokens.id_token, idTokenExpiresIn);
+      this.logger.debug(`id_token cookie set with extended lifetime: ${idTokenExpiresIn}s (${idTokenExpiresIn / 3600}h)`);
+    } else {
+      this.logger.warn('⚠️  id_token not provided - logout may fail without it!');
     }
     
     this.logger.debug('Auth cookies set successfully');

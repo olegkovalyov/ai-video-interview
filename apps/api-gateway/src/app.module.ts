@@ -17,7 +17,6 @@ import { MetricsController } from './metrics/metrics.controller';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
 import { LoggerService } from './logger/logger.service';
-import { FileLoggerService } from './logger/file-logger.service';
 import { TraceService } from './tracing/trace.service';
 
 @Module({
@@ -42,7 +41,6 @@ import { TraceService } from './tracing/trace.service';
     JwtRefreshGuard,
     MetricsService,
     LoggerService,
-    FileLoggerService,
     TraceService,
     {
       provide: APP_INTERCEPTOR,

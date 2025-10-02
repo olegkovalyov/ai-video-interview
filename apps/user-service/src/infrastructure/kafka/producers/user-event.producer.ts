@@ -32,7 +32,11 @@ export class UserEventProducer implements OnModuleInit, OnModuleDestroy {
     private readonly kafkaConfig: any,
     private readonly logger: LoggerService,
   ) {
-    this.kafka = new Kafka(this.kafkaConfig);
+    // Настройка Kafka с минимальным логированием
+    this.kafka = new Kafka({
+      ...this.kafkaConfig,
+      logLevel: 1, // ERROR only (убираем INFO логи KafkaJS)
+    });
     this.producer = this.kafka.producer();
   }
 

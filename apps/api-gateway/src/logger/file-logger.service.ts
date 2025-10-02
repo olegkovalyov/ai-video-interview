@@ -54,9 +54,20 @@ export class FileLoggerService implements NestLoggerService {
       }
     });
 
-    // Дублируем в console для разработки
+    // Дублируем в console для разработки (с цветами)
     if (process.env.NODE_ENV === 'development') {
-      const consoleMsg = `[${level.toUpperCase()}] ${context || 'App'} - ${logEntry.message}`;
+      const levelColors = {
+        ERROR: '\x1b[31m[ERROR]\x1b[0m',
+        WARN: '\x1b[33m[WARN] \x1b[0m',
+        INFO: '\x1b[32m[INFO] \x1b[0m',
+        DEBUG: '\x1b[34m[DEBUG]\x1b[0m',
+        VERBOSE: '\x1b[35m[VERBOSE]\x1b[0m',
+        FATAL: '\x1b[41m[FATAL]\x1b[0m',
+      };
+      
+      const coloredLevel = levelColors[level.toUpperCase()] || `[${level.toUpperCase()}]`;
+      const contextColored = context ? `\x1b[36m${context}\x1b[0m` : 'App';
+      const consoleMsg = `${coloredLevel} ${contextColored} - ${logEntry.message}`;
       console.log(consoleMsg);
     }
   }

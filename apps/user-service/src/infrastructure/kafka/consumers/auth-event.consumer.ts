@@ -4,24 +4,29 @@ import { Kafka, Consumer, EachBatchPayload } from 'kafkajs';
 import { EventIdempotencyService } from '../services/event-idempotency.service';
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
 import { LoggerService } from '../../logger/logger.service';
+import { UserAuthenticatedEvent } from '@repo/shared';
 
-interface AuthEvent {
-  eventType: string;
+// Base event structure from @repo/shared
+interface BaseKafkaEvent {
   eventId: string;
-  timestamp: string;
-  data: any;
+  eventType: string;
+  timestamp: number;
+  version: string;
+  source: string;
+  payload: any;
 }
 
 /**
  * Kafka Consumer for Auth Events
  * Consumes events from auth-events topic (from API Gateway)
  * Uses manual offset commits and idempotency checking
+ * Handles user.authenticated events to create users on first login
  */
 @Injectable()
 export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
   private kafka: Kafka;
   private consumer: Consumer;
-  private readonly topic = 'auth-events';
+  private readonly topic = 'auth-events'; // From @repo/shared KAFKA_TOPICS.AUTH_EVENTS
   private readonly groupId = 'user-service-auth-events';
   private readonly dlqTopic = 'auth-events-dlq';
 
@@ -32,7 +37,11 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly idempotencyService: EventIdempotencyService,
     private readonly logger: LoggerService,
   ) {
-    this.kafka = new Kafka(this.kafkaConfig);
+    // Настройка Kafka с кастомным логгером (убираем verbose логи)
+    this.kafka = new Kafka({
+      ...this.kafkaConfig,
+      logLevel: 1, // ERROR only (0=NOTHING, 1=ERROR, 2=WARN, 4=INFO, 5=DEBUG)
+    });
     this.consumer = this.kafka.consumer({
       groupId: this.groupId,
       sessionTimeout: 30000,
@@ -90,7 +99,7 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
         if (!message.value) continue;
         
         // Parse event
-        const event: AuthEvent = JSON.parse(message.value.toString());
+        const event: BaseKafkaEvent = JSON.parse(message.value.toString());
 
         // Check idempotency
         const { processed } = await this.idempotencyService.processOnce(
@@ -99,7 +108,7 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
           async () => {
             await this.handleEvent(event);
           },
-          event.data,
+          event.payload,
         );
 
         if (processed) {
@@ -151,14 +160,20 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
   /**
    * Handle individual auth event
    */
-  private async handleEvent(event: AuthEvent): Promise<void> {
+  private async handleEvent(event: BaseKafkaEvent): Promise<void> {
     switch (event.eventType) {
-      case 'user_authenticated':
-        await this.handleUserAuthenticated(event);
+      case 'user.authenticated':
+        await this.handleUserAuthenticated(event as UserAuthenticatedEvent);
         break;
 
-      case 'user_logged_in':
-        await this.handleUserLoggedIn(event);
+      case 'user.logged_out':
+        // TODO: Handle logout event if needed
+        this.logger.debug('User logged out event received', {
+          category: 'kafka',
+          component: 'AuthEventConsumer',
+          eventType: event.eventType,
+          eventId: event.eventId,
+        });
         break;
 
       default:
@@ -172,18 +187,18 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Handle user_authenticated event
+   * Handle user.authenticated event
    * Create user if doesn't exist (first login)
    */
-  private async handleUserAuthenticated(event: AuthEvent): Promise<void> {
-    const { keycloakId, email, firstName, lastName } = event.data;
+  private async handleUserAuthenticated(event: UserAuthenticatedEvent): Promise<void> {
+    const { userId, email, firstName, lastName } = event.payload;
 
     try {
       const command = new CreateUserCommand(
-        keycloakId,
+        userId, // keycloakId
         email,
-        firstName,
-        lastName,
+        firstName || 'Unknown',
+        lastName || 'User',
       );
 
       await this.commandBus.execute(command);
@@ -192,7 +207,9 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
         category: 'kafka',
         component: 'AuthEventConsumer',
         email,
-        keycloakId,
+        keycloakId: userId,
+        firstName,
+        lastName,
       });
     } catch (error) {
       // If user already exists, it's ok (idempotent)
@@ -206,22 +223,6 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
         throw error;
       }
     }
-  }
-
-  /**
-   * Handle user_logged_in event
-   * Update last_login_at timestamp
-   */
-  private async handleUserLoggedIn(event: AuthEvent): Promise<void> {
-    const { userId, timestamp } = event.data;
-    
-    // TODO: Implement UpdateLastLoginCommand or direct repository update
-    this.logger.debug('User logged in event received', {
-      category: 'kafka',
-      component: 'AuthEventConsumer',
-      userId,
-      timestamp,
-    });
   }
 
   /**

@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import * as winston from 'winston';
 import * as path from 'path';
 import DailyRotateFile = require('winston-daily-rotate-file');
+import { prettyConsoleFormat, shouldEnableConsole } from './console.formatter';
+import LokiTransport = require('winston-loki');
 
 export interface LogContext {
   userId?: string;
@@ -22,42 +24,33 @@ export class LoggerService {
   private logger: winston.Logger;
 
   constructor() {
-    // Логи в папке сервиса: apps/user-service/logs/
-    const logsDir = path.join(__dirname, '../../../logs');
-    
-    // Создаем директорию если не существует
     const fs = require('fs');
+    
+    // Логи в папке сервиса: apps/user-service/logs/
+    const baseLogsDir = path.join(__dirname, '../../../logs');
+    
+    // Папка по дате: logs/2025-10-02/
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const logsDir = path.join(baseLogsDir, today);
+    
+    // Создаем директорию с датой
     if (!fs.existsSync(logsDir)) {
       fs.mkdirSync(logsDir, { recursive: true });
-    }
-    
-    // Создаем archive директорию
-    const archiveDir = path.join(logsDir, 'archive');
-    if (!fs.existsSync(archiveDir)) {
-      fs.mkdirSync(archiveDir, { recursive: true });
     }
     
     const absolutePath = path.resolve(logsDir);
     console.log(`📝 Logger initialized. Log directory: ${absolutePath}`);
     
-    // Формат для файлов - чистый JSON для Loki
+    // Формат для файлов - чистый JSON для Loki/Grafana
     const fileFormat = winston.format.combine(
       winston.format.timestamp(), // ISO 8601 формат
       winston.format.errors({ stack: true }),
       winston.format.json()
     );
 
-    // Формат для консоли - красивый вывод
+    // Формат для консоли - красивый вывод как в NestJS
     const consoleFormat = winston.format.combine(
-      winston.format.colorize(),
-      winston.format.timestamp({
-        format: 'YYYY-MM-DD HH:mm:ss.SSS'
-      }),
-      winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
-        const { version, environment, ...cleanMeta } = meta;
-        const metaStr = Object.keys(cleanMeta).length > 0 ? `\n${JSON.stringify(cleanMeta, null, 2)}` : '';
-        return `[${level}] ${service} - ${message}${metaStr}`;
-      })
+      prettyConsoleFormat
     );
 
     this.logger = winston.createLogger({
@@ -68,40 +61,35 @@ export class LoggerService {
         environment: process.env.NODE_ENV || 'development'
       },
       transports: [
-        // Console для разработки
-        new winston.transports.Console({
-          level: 'debug',
-          format: consoleFormat
+        // Console для разработки (отключен в production)
+        ...(shouldEnableConsole() ? [
+          new winston.transports.Console({
+            level: 'debug', // Показываем все включая debug
+            format: consoleFormat
+          })
+        ] : []),
+        // Loki transport - прямая отправка в Loki (РЕАЛЬНОЕ ВРЕМЯ)
+        new LokiTransport({
+          host: 'http://localhost:3100',
+          labels: { service: 'user-service', environment: process.env.NODE_ENV || 'development' },
+          json: true,
+          format: fileFormat,
+          replaceTimestamp: true,
+          onConnectionError: (err) => console.error('Loki connection error:', err)
         }),
-        // Daily rotating file для всех логов (для Promtail/Loki)
-        new DailyRotateFile({
-          filename: path.join(logsDir, 'user-service-%DATE%.log'),
-          datePattern: 'YYYY-MM-DD',
-          zippedArchive: true,
-          maxSize: '20m',
-          maxFiles: '14d', // Храним 14 дней
+        // Файл в папке по дате: logs/2025-10-02/user-service.log (fallback)
+        new winston.transports.File({
+          filename: path.join(logsDir, 'user-service.log'),
           level: 'debug',
           format: fileFormat,
+          maxsize: 100 * 1024 * 1024, // 100MB per day
         }),
-        // Daily rotating file только для ошибок
-        new DailyRotateFile({
-          filename: path.join(logsDir, 'user-service-error-%DATE%.log'),
-          datePattern: 'YYYY-MM-DD',
-          zippedArchive: true,
-          maxSize: '20m',
-          maxFiles: '30d', // Храним ошибки 30 дней
+        // Отдельный файл для ошибок
+        new winston.transports.File({
+          filename: path.join(logsDir, 'user-service-error.log'),
           level: 'error',
           format: fileFormat,
-        }),
-        // Monthly archive для долгосрочного хранения
-        new DailyRotateFile({
-          filename: path.join(logsDir, 'archive', 'user-service-%DATE%.log'),
-          datePattern: 'YYYY-MM',
-          zippedArchive: true,
-          maxSize: '100m',
-          maxFiles: '12m', // Храним 12 месяцев
-          level: 'info',
-          format: fileFormat,
+          maxsize: 50 * 1024 * 1024, // 50MB
         })
       ]
     });

@@ -26,6 +26,8 @@ export interface UserAuthenticatedEvent extends BaseEvent {
   payload: {
     userId: string;
     email: string;
+    firstName?: string;
+    lastName?: string;
     authMethod: 'oauth2' | 'jwt_refresh';
     sessionId: string;
     ipAddress?: string;
@@ -89,7 +91,7 @@ export class UserEventFactory {
     userId: string,
     email: string,
     sessionId: string,
-    authData: Partial<UserAuthenticatedEvent['payload']>
+    authData: Partial<UserAuthenticatedEvent['payload']> & { firstName?: string; lastName?: string }
   ): UserAuthenticatedEvent {
     return {
       eventId: crypto.randomUUID(),
@@ -102,6 +104,8 @@ export class UserEventFactory {
         email,
         sessionId,
         authMethod: 'oauth2',
+        firstName: authData.firstName,
+        lastName: authData.lastName,
         ...authData,
       },
     };

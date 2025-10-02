@@ -219,12 +219,19 @@ export class KeycloakService {
 
   /**
    * Получает URL для End Session (logout)
+   * ВАЖНО: id_token_hint обязателен для Keycloak!
    */
   getEndSessionUrl(idToken?: string, postLogoutRedirectUri?: string): string {
     const params = new URLSearchParams();
     
+    // КРИТИЧНО: Keycloak требует id_token_hint для logout
     if (idToken) {
       params.append('id_token_hint', idToken);
+    } else {
+      this.logger.warn('⚠️  Building End Session URL WITHOUT id_token_hint - Keycloak may reject this!', {
+        hasPostLogoutRedirectUri: !!postLogoutRedirectUri,
+        recommendation: 'Ensure id_token cookie is properly set and not expired'
+      });
     }
     
     if (postLogoutRedirectUri) {
@@ -236,7 +243,8 @@ export class KeycloakService {
     this.logger.debug('Generated End Session URL:', {
       endSessionUrl,
       hasIdToken: !!idToken,
-      postLogoutRedirectUri
+      postLogoutRedirectUri,
+      warning: !idToken ? 'Missing id_token_hint' : undefined
     });
     
     return endSessionUrl;

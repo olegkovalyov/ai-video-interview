@@ -20,8 +20,8 @@ import { GetUserPermissionsHandler } from './queries/get-user-permissions/get-us
 import { GetUserStatsHandler } from './queries/get-user-stats/get-user-stats.handler';
 
 // Event Handlers (Domain Events → Kafka)
-// import { UserCreatedEventHandler } from './event-handlers/user-created.handler';
-// import { UserUpdatedEventHandler } from './event-handlers/user-updated.handler';
+import { UserCreatedEventHandler } from './event-handlers/user-created.handler';
+import { UserUpdatedEventHandler } from './event-handlers/user-updated.handler';
 
 const CommandHandlers = [
   CreateUserHandler,
@@ -41,8 +41,8 @@ const QueryHandlers = [
 ];
 
 const EventHandlers = [
-  // UserCreatedEventHandler,
-  // UserUpdatedEventHandler,
+  UserCreatedEventHandler,
+  UserUpdatedEventHandler,
 ];
 
 @Module({
