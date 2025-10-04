@@ -7,8 +7,8 @@ describe('CircuitBreaker', () => {
     circuit = new CircuitBreaker({
       failureThreshold: 3,
       successThreshold: 2,
-      timeout: 1000,
-      resetTimeout: 5000,
+      timeout: 100,        // Быстрее для тестов
+      resetTimeout: 1000,  // Быстрее для тестов
       name: 'test-circuit',
     });
   });
@@ -39,7 +39,7 @@ describe('CircuitBreaker', () => {
 
     it('should timeout slow requests', async () => {
       const slowFn = () =>
-        new Promise((resolve) => setTimeout(resolve, 2000));
+        new Promise((resolve) => setTimeout(resolve, 200));
 
       await expect(circuit.execute(slowFn)).rejects.toThrow('timeout');
     });
@@ -69,7 +69,7 @@ describe('CircuitBreaker', () => {
 
     it('should transition to HALF_OPEN after reset timeout', async () => {
       // Wait for reset timeout
-      await new Promise((resolve) => setTimeout(resolve, 5100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
 
       // Circuit should now be HALF_OPEN
       const result = await circuit.execute(() => Promise.resolve('success'));
@@ -88,7 +88,7 @@ describe('CircuitBreaker', () => {
       }
 
       // Wait for reset timeout
-      await new Promise((resolve) => setTimeout(resolve, 5100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
     });
 
     it('should close after successful requests', async () => {
@@ -135,7 +135,7 @@ describe('CircuitBreaker', () => {
       }
 
       // Wait and recover
-      await new Promise((resolve) => setTimeout(resolve, 5100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       await circuit.execute(() => Promise.resolve('ok'));
       await circuit.execute(() => Promise.resolve('ok'));
 
