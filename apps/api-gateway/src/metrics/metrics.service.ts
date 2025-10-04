@@ -57,6 +57,44 @@ export class MetricsService implements OnModuleInit {
     registers: [register],
   });
 
+  // Service Proxy Metrics
+  private readonly serviceCallsTotal = new Counter({
+    name: 'service_calls_total',
+    help: 'Total number of inter-service HTTP calls',
+    labelNames: ['service', 'method', 'status'], // service: user-service, interview-service
+    registers: [register],
+  });
+
+  private readonly serviceCallDuration = new Histogram({
+    name: 'service_call_duration_milliseconds',
+    help: 'Duration of inter-service HTTP calls in milliseconds',
+    labelNames: ['service', 'method'],
+    buckets: [10, 50, 100, 300, 500, 1000, 3000, 5000],
+    registers: [register],
+  });
+
+  // Circuit Breaker Metrics
+  private readonly circuitBreakerState = new Gauge({
+    name: 'circuit_breaker_state',
+    help: 'Circuit breaker state (0=CLOSED, 1=OPEN, 2=HALF_OPEN)',
+    labelNames: ['circuit'],
+    registers: [register],
+  });
+
+  private readonly circuitBreakerFailures = new Gauge({
+    name: 'circuit_breaker_recent_failures',
+    help: 'Number of recent failures in rolling window',
+    labelNames: ['circuit'],
+    registers: [register],
+  });
+
+  private readonly circuitBreakerTransitions = new Counter({
+    name: 'circuit_breaker_state_transitions_total',
+    help: 'Total number of circuit breaker state transitions',
+    labelNames: ['circuit', 'from_state', 'to_state'],
+    registers: [register],
+  });
+
   onModuleInit() {
     // Collect default Node.js metrics (CPU, memory, etc.)
     collectDefaultMetrics({ register });
@@ -92,6 +130,32 @@ export class MetricsService implements OnModuleInit {
   // Business Metrics Methods
   incrementUserOperations(operation: 'create' | 'update' | 'delete' | 'authenticate') {
     this.userOperationsTotal.inc({ operation });
+  }
+
+  // Service Proxy Metrics Methods
+  recordServiceCall(
+    service: string,
+    method: string,
+    status: 'success' | 'error',
+    durationMs: number
+  ) {
+    this.serviceCallsTotal.inc({ service, method, status });
+    this.serviceCallDuration.observe({ service, method }, durationMs);
+  }
+
+  // Circuit Breaker Metrics Methods
+  setCircuitBreakerState(circuit: string, state: string) {
+    // Map state to numeric value: CLOSED=0, OPEN=1, HALF_OPEN=2
+    const stateValue = state === 'CLOSED' ? 0 : state === 'OPEN' ? 1 : 2;
+    this.circuitBreakerState.set({ circuit }, stateValue);
+  }
+
+  setCircuitBreakerFailures(circuit: string, failures: number) {
+    this.circuitBreakerFailures.set({ circuit }, failures);
+  }
+
+  recordCircuitBreakerTransition(circuit: string, fromState: string, toState: string) {
+    this.circuitBreakerTransitions.inc({ circuit, from_state: fromState, to_state: toState });
   }
 
   // Utility Methods
