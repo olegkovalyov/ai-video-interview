@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { BaseServiceProxy } from './base/base-service-proxy';
 import { LoggerService } from '../logger/logger.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { CircuitBreakerRegistry } from '../circuit-breaker';
 
 // DTO types
 export interface UserDTO {
@@ -63,7 +64,7 @@ export class UserServiceProxy extends BaseServiceProxy {
     httpService: HttpService,
     loggerService: LoggerService,
     metricsService: MetricsService,
-    circuitBreakerRegistry: any,
+    circuitBreakerRegistry: CircuitBreakerRegistry,
     private readonly configService: ConfigService,
   ) {
     super(httpService, loggerService, metricsService, circuitBreakerRegistry);
@@ -76,37 +77,29 @@ export class UserServiceProxy extends BaseServiceProxy {
   }
 
   /**
-   * Получает пользователя по ID
+   * Получает профиль текущего пользователя
+   * ПРОСТО ПРОКСИРУЕТ /users/me с JWT токеном
    */
-  async getUser(userId: string): Promise<UserDTO> {
-    return this.get<UserDTO>(`/api/v1/users/${userId}`, {
+  async getCurrentUserProfile(authHeader?: string): Promise<UserDTO> {
+    return this.get<UserDTO>(`/api/v1/users/me`, {
       timeout: 3000,
+      headers: authHeader ? {
+        'Authorization': authHeader,
+      } : {},
     });
   }
 
   /**
-   * Получает профиль пользователя
+   * Обновляет профиль текущего пользователя
+   * ПРОСТО ПРОКСИРУЕТ /users/me с JWT токеном
    */
-  async getUserProfile(userId: string): Promise<UserProfileDTO> {
-    return this.get<UserProfileDTO>(`/api/v1/users/${userId}/profile`, {
-      timeout: 3000,
+  async updateCurrentUserProfile(authHeader?: string, updates?: any): Promise<UserDTO> {
+    return this.put<UserDTO>(`/api/v1/users/me`, updates, {
+      timeout: 5000,
+      headers: authHeader ? {
+        'Authorization': authHeader,
+      } : {},
     });
-  }
-
-  /**
-   * Обновляет профиль пользователя
-   */
-  async updateUserProfile(
-    userId: string,
-    updates: Partial<UserProfileDTO>,
-  ): Promise<UserProfileDTO> {
-    return this.put<UserProfileDTO>(
-      `/api/v1/users/${userId}/profile`,
-      updates,
-      {
-        timeout: 5000,
-      },
-    );
   }
 
   /**

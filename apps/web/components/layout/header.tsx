@@ -6,7 +6,7 @@ import { useAuthStatus } from "@/hooks/useAuth"
 import { apiPost, apiGet } from "@/app/lib/api"
 import { useRouter, usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { LogOut, User, Settings, ChevronDown, LayoutDashboard, Briefcase, UserCircle, Users } from "lucide-react"
+import { LogOut, User, ChevronDown, LayoutDashboard, Briefcase, UserCircle, Users } from "lucide-react"
 import { SignInButton } from "@/components/auth/sign-in-button"
 import { LogoWithText } from "@/components/ui/logo"
 import {
@@ -172,12 +172,6 @@ export function Header({ currentPage }: HeaderProps) {
                     <Link href="/profile" className="cursor-pointer text-white hover:bg-white/20 transition-colors">
                       <UserCircle className="mr-2 h-4 w-4" />
                       <span>My Profile</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="px-3 py-2.5">
-                    <Link href="/settings" className="cursor-pointer text-white hover:bg-white/20 transition-colors">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-white/20" />

@@ -28,6 +28,8 @@ export class User extends AggregateRoot {
     private _avatarUrl?: string,
     private _bio?: string,
     private _phone?: string,
+    private _timezone: string = 'UTC',
+    private _language: string = 'en',
     private _emailVerified: boolean = false,
     private readonly _createdAt: Date = new Date(),
     private _updatedAt: Date = new Date(),
@@ -58,6 +60,8 @@ export class User extends AggregateRoot {
       undefined,
       undefined,
       undefined,
+      'UTC',
+      'en',
       false,
       new Date(),
       new Date(),
@@ -90,6 +94,8 @@ export class User extends AggregateRoot {
     avatarUrl?: string,
     bio?: string,
     phone?: string,
+    timezone?: string,
+    language?: string,
     emailVerified?: boolean,
     createdAt?: Date,
     updatedAt?: Date,
@@ -103,6 +109,8 @@ export class User extends AggregateRoot {
       avatarUrl,
       bio,
       phone,
+      timezone || 'UTC',
+      language || 'en',
       emailVerified,
       createdAt,
       updatedAt,
@@ -117,7 +125,13 @@ export class User extends AggregateRoot {
    * Update user profile
    * Validates state and emits UserUpdatedEvent
    */
-  public updateProfile(fullName: FullName, bio?: string, phone?: string): void {
+  public updateProfile(
+    fullName: FullName,
+    bio?: string,
+    phone?: string,
+    timezone?: string,
+    language?: string,
+  ): void {
     this.ensureNotDeleted();
     this.ensureNotSuspended();
 
@@ -139,6 +153,16 @@ export class User extends AggregateRoot {
     if (phone !== undefined && phone !== this._phone) {
       this._phone = phone;
       changes.phone = phone;
+    }
+
+    if (timezone !== undefined && timezone !== this._timezone) {
+      this._timezone = timezone;
+      changes.timezone = timezone;
+    }
+
+    if (language !== undefined && language !== this._language) {
+      this._language = language;
+      changes.language = language;
     }
 
     if (Object.keys(changes).length > 0) {
@@ -337,6 +361,14 @@ export class User extends AggregateRoot {
 
   public get phone(): string | undefined {
     return this._phone;
+  }
+
+  public get timezone(): string {
+    return this._timezone;
+  }
+
+  public get language(): string {
+    return this._language;
   }
 
   public get emailVerified(): boolean {

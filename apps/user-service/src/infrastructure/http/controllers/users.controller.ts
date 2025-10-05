@@ -79,6 +79,8 @@ export class UsersController {
       dto.lastName,
       dto.bio,
       dto.phone,
+      dto.timezone,
+      dto.language,
     );
 
     const user = await this.commandBus.execute(command);

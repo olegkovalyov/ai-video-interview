@@ -28,6 +28,8 @@ export class UserMapper {
     entity.avatarUrl = user.avatarUrl || null;
     entity.bio = user.bio || null;
     entity.phone = user.phone || null;
+    entity.timezone = user.timezone;
+    entity.language = user.language;
     entity.createdAt = user.createdAt;
     entity.updatedAt = user.updatedAt;
     
@@ -56,6 +58,8 @@ export class UserMapper {
       entity.avatarUrl || undefined,
       entity.bio || undefined,
       entity.phone || undefined,
+      entity.timezone,
+      entity.language,
       entity.emailVerified,
       entity.createdAt,
       entity.updatedAt,

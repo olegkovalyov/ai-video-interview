@@ -22,25 +22,27 @@ async function bootstrap() {
   // Enable graceful shutdown
   app.enableShutdownHooks();
 
+  const port = process.env.PORT || 3001;
+
   logger.info('🚀 API Gateway starting up', {
     service: 'api-gateway',
     action: 'startup',
-    port: 3002,
+    port,
     corsOrigin: process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000',
     nodeEnv: process.env.NODE_ENV || 'development'
   });
 
-  await app.listen(3002);
+  await app.listen(port);
   
   logger.info('✅ API Gateway successfully started', {
     service: 'api-gateway',
     action: 'startup_complete',
-    port: 3002,
-    url: 'http://localhost:3002',
+    port,
+    url: `http://localhost:${port}`,
     features: ['authentication', 'tracing', 'metrics', 'kafka_events']
   });
 
-  console.log('🚀 API Gateway is running on http://localhost:3002');
+  console.log(`🚀 API Gateway is running on http://localhost:${port}`);
 
   // Graceful shutdown handlers
   const gracefulShutdown = async (signal: string) => {

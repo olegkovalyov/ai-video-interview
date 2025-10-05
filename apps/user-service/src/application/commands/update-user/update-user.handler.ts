@@ -27,10 +27,10 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
     // 2. Update profile
     if (command.firstName && command.lastName) {
       const fullName = FullName.create(command.firstName, command.lastName);
-      user.updateProfile(fullName, command.bio, command.phone);
-    } else if (command.bio !== undefined || command.phone !== undefined) {
-      // Only bio or phone update, keep existing name
-      user.updateProfile(user.fullName, command.bio, command.phone);
+      user.updateProfile(fullName, command.bio, command.phone, command.timezone, command.language);
+    } else if (command.bio !== undefined || command.phone !== undefined || command.timezone !== undefined || command.language !== undefined) {
+      // Only bio/phone/timezone/language update, keep existing name
+      user.updateProfile(user.fullName, command.bio, command.phone, command.timezone, command.language);
     }
 
     // 3. Save

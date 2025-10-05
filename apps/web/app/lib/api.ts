@@ -1,4 +1,4 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3002';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3001';
 
 interface RequestOptions {
   method: string;

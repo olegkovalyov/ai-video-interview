@@ -1,23 +1,39 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Upload, Trash2, Camera, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Camera, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getCurrentUser, uploadAvatar, deleteAvatar } from '@/lib/api/users';
 
 export default function UploadAvatarPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [currentAvatar] = useState<string | null>(null); // TODO: Load from API
+  const [currentAvatar, setCurrentAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const user = await getCurrentUser();
+        setCurrentAvatar(user.avatarUrl || null);
+      } catch (err) {
+        console.error('Failed to load user:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadUser();
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,16 +70,8 @@ export default function UploadAvatarPage() {
     setSuccess(false);
 
     try {
-      // TODO: Replace with actual API call
-      // const formData = new FormData();
-      // formData.append('file', selectedFile);
-      // const response = await apiPost('/users/me/avatar', formData);
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      console.log('Uploading avatar:', selectedFile);
-
+      const result = await uploadAvatar(selectedFile);
+      setCurrentAvatar(result.avatarUrl);
       setSuccess(true);
       
       // Redirect after success
@@ -83,14 +91,8 @@ export default function UploadAvatarPage() {
     setError(null);
 
     try {
-      // TODO: Replace with actual API call
-      // await apiDelete('/users/me/avatar');
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      console.log('Removing avatar');
-
+      await deleteAvatar();
+      setCurrentAvatar(null);
       router.push('/profile');
     } catch (err: any) {
       setError(err.message || 'Failed to remove avatar');
@@ -112,6 +114,22 @@ export default function UploadAvatarPage() {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+        <Header />
+        <main className="container mx-auto px-6 py-12 max-w-3xl">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
+              <p className="text-white/80">Loading...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">

@@ -9,5 +9,7 @@ export class UpdateUserCommand {
     public readonly lastName?: string,
     public readonly bio?: string,
     public readonly phone?: string,
+    public readonly timezone?: string,
+    public readonly language?: string,
   ) {}
 }

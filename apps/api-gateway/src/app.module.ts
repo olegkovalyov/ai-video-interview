@@ -18,6 +18,7 @@ import { MetricsController } from './metrics/metrics.controller';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
 import { HealthController } from './health/health.controller';
+import { UsersController } from './users/users.controller';
 import { LoggerService } from './logger/logger.service';
 import { TraceService } from './tracing/trace.service';
 import {
@@ -42,7 +43,13 @@ import { CircuitBreakerRegistry } from './circuit-breaker';
     }),
     KafkaModule,
   ],
-  controllers: [AppController, AuthController, MetricsController, HealthController],
+  controllers: [
+    AppController,
+    AuthController,
+    MetricsController,
+    HealthController,
+    UsersController,
+  ],
   providers: [
     AppService, 
     AuthService, // Deprecated - for backward compatibility

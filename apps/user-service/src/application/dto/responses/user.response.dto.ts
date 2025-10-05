@@ -31,6 +31,12 @@ export class UserResponseDto {
   phone?: string;
 
   @ApiProperty()
+  timezone: string;
+
+  @ApiProperty()
+  language: string;
+
+  @ApiProperty()
   emailVerified: boolean;
 
   @ApiProperty()
@@ -64,6 +70,8 @@ export class UserResponseDto {
     dto.avatarUrl = user.avatarUrl;
     dto.bio = user.bio;
     dto.phone = user.phone;
+    dto.timezone = user.timezone;
+    dto.language = user.language;
     dto.emailVerified = user.emailVerified;
     dto.status = user.status.value;
     dto.isActive = user.isActive;

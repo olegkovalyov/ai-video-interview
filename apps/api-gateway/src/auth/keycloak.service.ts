@@ -313,4 +313,82 @@ export class KeycloakService {
 
     return userInfo;
   }
+
+  /**
+   * Получает admin access token для Keycloak Admin API
+   * Используется для административных операций (например, смена пароля)
+   */
+  private async getAdminToken(): Promise<string> {
+    const tokenUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token`;
+
+    const params = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: this.clientId,
+      client_secret: this.clientSecret,
+    });
+
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      this.logger.error('Failed to get admin token:', {
+        status: response.status,
+        error,
+      });
+      throw new Error(`Failed to get admin token: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.access_token;
+  }
+
+  /**
+   * Update user password in Keycloak
+   * MVP version - simplified without current password check
+   */
+  async updatePassword(userId: string, newPassword: string): Promise<void> {
+    this.logger.debug('Updating user password in Keycloak', { userId });
+
+    try {
+      // Get admin token
+      const adminToken = await this.getAdminToken();
+
+      // Update password via Keycloak Admin API
+      const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}/reset-password`;
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          type: 'password',
+          value: newPassword,
+          temporary: false, // Password is permanent, not temporary
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        this.logger.error('Failed to update password:', {
+          status: response.status,
+          error,
+          userId,
+        });
+        throw new Error(`Failed to update password: ${response.status} ${error}`);
+      }
+
+      this.logger.log('Password updated successfully', { userId });
+    } catch (error) {
+      this.logger.error('Error updating password:', error);
+      throw error;
+    }
+  }
 }

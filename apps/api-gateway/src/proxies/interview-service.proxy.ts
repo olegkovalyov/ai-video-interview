@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { BaseServiceProxy } from './base/base-service-proxy';
 import { LoggerService } from '../logger/logger.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { CircuitBreakerRegistry } from '../circuit-breaker';
 
 // DTO types
 export interface InterviewDTO {
@@ -75,7 +76,7 @@ export class InterviewServiceProxy extends BaseServiceProxy {
     httpService: HttpService,
     loggerService: LoggerService,
     metricsService: MetricsService,
-    circuitBreakerRegistry: any,
+    circuitBreakerRegistry: CircuitBreakerRegistry,
     private readonly configService: ConfigService,
   ) {
     super(httpService, loggerService, metricsService, circuitBreakerRegistry);

@@ -31,4 +31,16 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(20)
   phone?: string;
+
+  @ApiPropertyOptional({ example: 'UTC+03:00', description: 'User timezone in UTC format' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  timezone?: string;
+
+  @ApiPropertyOptional({ example: 'en', description: 'User language code (for Whisper speech recognition)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  language?: string;
 }

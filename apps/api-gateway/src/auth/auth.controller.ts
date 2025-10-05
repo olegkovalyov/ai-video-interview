@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Get, Query, Res, Req, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Res, Req, HttpStatus, UseGuards } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { KeycloakService } from './keycloak.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 
 @Controller('auth')
@@ -73,6 +74,50 @@ export class AuthController {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  /**
+   * Change password (MVP - simplified without current password check)
+   * POST /api/auth/change-password
+   */
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Req() req: Request,
+    @Body() body: { newPassword: string },
+    @Res() res: Response,
+  ) {
+    try {
+      const userId = (req as any).user?.sub; // Keycloak User ID
+      
+      if (!userId) {
+        return res.status(HttpStatus.UNAUTHORIZED).json({
+          success: false,
+          error: 'User not authenticated',
+        });
+      }
+
+      if (!body.newPassword || body.newPassword.length < 8) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          success: false,
+          error: 'Password must be at least 8 characters long',
+        });
+      }
+
+      // Change password in Keycloak (simplified for MVP)
+      await this.keycloakService.updatePassword(userId, body.newPassword);
+
+      return res.json({
+        success: true,
+        message: 'Password changed successfully',
+      });
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: error.message || 'Failed to change password',
+      });
     }
   }
 }
