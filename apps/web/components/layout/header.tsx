@@ -6,7 +6,7 @@ import { useAuthStatus } from "@/hooks/useAuth"
 import { apiPost, apiGet } from "@/app/lib/api"
 import { useRouter, usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { LogOut, User, ChevronDown, LayoutDashboard, Briefcase, UserCircle, Users } from "lucide-react"
+import { LogOut, User, ChevronDown, LayoutDashboard, Briefcase, UserCircle } from "lucide-react"
 import { SignInButton } from "@/components/auth/sign-in-button"
 import { LogoWithText } from "@/components/ui/logo"
 import {
@@ -103,16 +103,15 @@ export function Header({ currentPage }: HeaderProps) {
               >
                 Candidates
               </Link>
-              {user?.role === 'admin' && (
-                <Link 
-                  href="/admin" 
-                  className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                    pathname.startsWith('/admin') ? 'text-yellow-400' : ''
-                  }`}
-                >
-                  Admin
-                </Link>
-              )}
+              {/* TODO: Add role check when roles are implemented */}
+              <Link 
+                href="/admin/users" 
+                className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                  pathname.startsWith('/admin') ? 'text-yellow-400' : ''
+                }`}
+              >
+                Users
+              </Link>
             </nav>
           ) : (
             <nav className="hidden md:flex items-center space-x-6">
