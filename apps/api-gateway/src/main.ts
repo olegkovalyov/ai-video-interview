@@ -6,12 +6,14 @@ import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.int
 import { LoggerService } from './logger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true, // Буферизуем логи до подключения logger
+  });
   
   const logger = app.get(LoggerService);
   
-  // Отключаем встроенный NestJS Logger - используем только Winston
-  // app.useLogger(false); // Полностью отключить NestJS логи
+  // Используем наш Winston Logger для ВСЕХ NestJS логов
+  app.useLogger(logger);
   
   const corsOptions: CorsOptions = {
     origin: process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000',

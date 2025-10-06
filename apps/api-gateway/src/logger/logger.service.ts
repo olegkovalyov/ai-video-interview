@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import * as path from 'path';
 import DailyRotateFile = require('winston-daily-rotate-file');
@@ -20,7 +20,7 @@ export interface LogContext {
 }
 
 @Injectable()
-export class LoggerService {
+export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
 
   constructor() {
@@ -77,6 +77,7 @@ export class LoggerService {
           json: true,
           format: fileFormat,
           replaceTimestamp: true,
+          level: 'debug', // Отправляем все логи включая debug
           onConnectionError: (err) => console.error('Loki connection error:', err)
         }),
         // Файл в папке по дате: logs/2025-10-02/api-gateway.log (fallback)
@@ -101,23 +102,71 @@ export class LoggerService {
     this.logger.info(message, context);
   }
 
-  error(message: string, error?: Error, context?: LogContext) {
-    this.logger.error(message, {
-      ...context,
-      error: error ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      } : undefined
+  // Перегруженный error для совместимости с NestJS и нашим кодом
+  error(message: any, ...optionalParams: any[]) {
+    // Поддерживаем разные форматы:
+    // 1. error(message, stack, context) - NestJS format
+    // 2. error(message, Error, context) - наш старый format
+    // 3. error(message, context) - упрощенный format
+    
+    if (optionalParams.length === 0) {
+      // Только message
+      this.logger.error(String(message));
+      return;
+    }
+    
+    const firstParam = optionalParams[0];
+    const secondParam = optionalParams.length > 1 ? optionalParams[1] : undefined;
+    
+    // Проверяем если первый параметр - Error object
+    if (firstParam instanceof Error) {
+      this.logger.error(String(message), {
+        ...(typeof secondParam === 'string' ? { context: secondParam } : secondParam),
+        error: {
+          name: firstParam.name,
+          message: firstParam.message,
+          stack: firstParam.stack
+        }
+      });
+      return;
+    }
+    
+    // Иначе считаем что это NestJS format (message, stack, context)
+    const hasStack = typeof firstParam === 'string' && firstParam.includes('\n');
+    const stack = hasStack ? firstParam : undefined;
+    const contextIndex = hasStack ? 1 : 0;
+    const context = optionalParams.length > contextIndex ? optionalParams[contextIndex] : undefined;
+    
+    this.logger.error(String(message), {
+      ...(typeof context === 'string' ? { context } : context),
+      stack: stack
     });
   }
 
-  warn(message: string, context?: LogContext) {
-    this.logger.warn(message, context);
+  warn(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.logger.warn(String(message), typeof context === 'string' ? { context } : context);
   }
 
-  debug(message: string, context?: LogContext) {
-    this.logger.debug(message, context);
+  debug(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.logger.debug(String(message), typeof context === 'string' ? { context } : context);
+  }
+
+  // Методы для совместимости с NestJS LoggerService interface
+  log(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.info(String(message), typeof context === 'string' ? { context } : context);
+  }
+
+  verbose(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.debug(String(message), typeof context === 'string' ? { context } : context);
+  }
+
+  fatal(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.error(String(message), undefined, typeof context === 'string' ? { context } : context);
   }
 
   /**
@@ -138,6 +187,20 @@ export class LoggerService {
     this.logger.info(message, {
       ...context,
       data: data
+    });
+  }
+
+  /**
+   * Метод для логирования ошибок с Error объектом (для обратной совместимости)
+   */
+  errorWithException(message: string, error?: Error, context?: LogContext) {
+    this.logger.error(message, {
+      ...context,
+      error: error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      } : undefined
     });
   }
 

@@ -2,12 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { LoggerService } from './infrastructure/logger/logger.service';
 
 async function bootstrap() {
-  // NestJS встроенный логгер (для системных логов Nest)
   const app = await NestFactory.create(AppModule, {
-    logger: ['log', 'error', 'warn'], // Только важные уровни, без debug
+    bufferLogs: true, // Буферизуем логи до подключения logger
   });
+  
+  const logger = app.get(LoggerService);
+  
+  // Используем наш Winston Logger для ВСЕХ NestJS логов
+  app.useLogger(logger);
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
@@ -43,9 +48,24 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = process.env.PORT || 3003;
+  
+  logger.info('🚀 User Service starting up', {
+    service: 'user-service',
+    action: 'startup',
+    port,
+    nodeEnv: process.env.NODE_ENV || 'development'
+  });
+  
   await app.listen(port);
   
-  // Startup логи через console (минимум)
+  logger.info('✅ User Service successfully started', {
+    service: 'user-service',
+    action: 'startup_complete',
+    port,
+    url: `http://localhost:${port}`,
+    docsUrl: `http://localhost:${port}/api/docs`
+  });
+  
   console.log(`🚀 User Service running on http://localhost:${port}`);
   console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
 

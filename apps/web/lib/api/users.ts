@@ -3,7 +3,7 @@
  * Методы для работы с User Service через API Gateway
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { apiGet, apiPost, apiPut, apiDelete, API_BASE } from '@/app/lib/api';
 
 export interface User {
   id: string;
@@ -43,56 +43,21 @@ export interface UserProfile {
  * Получить профиль текущего пользователя
  */
 export async function getCurrentUser(): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-    credentials: 'include', // Отправляем cookies
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch current user: ${response.statusText}`);
-  }
-
-  return response.json();
+  return apiGet<User>('/api/users/me');
 }
 
 /**
  * Обновить профиль текущего пользователя
  */
 export async function updateCurrentUser(updates: Partial<User>): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(updates),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to update user: ${response.statusText}`);
-  }
-
-  return response.json();
+  return apiPut<User>('/api/users/me', updates);
 }
 
 /**
  * Получить статистику текущего пользователя
  */
 export async function getCurrentUserStats(): Promise<UserStats> {
-  const response = await fetch(`${API_BASE_URL}/api/users/me/stats`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch user stats: ${response.statusText}`);
-  }
-
-  return response.json();
+  return apiGet<UserStats>('/api/users/me/stats');
 }
 
 /**
@@ -102,7 +67,8 @@ export async function uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
+  // TODO: Add interceptor support for FormData requests
+  const response = await fetch(`${API_BASE}/api/users/me/avatar`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -119,33 +85,14 @@ export async function uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
  * Удалить аватар
  */
 export async function deleteAvatar(): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/users/me/avatar`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to delete avatar: ${response.statusText}`);
-  }
+  return apiDelete<void>('/api/users/me/avatar');
 }
 
 /**
  * Зарезервировать квоту для интервью
  */
 export async function reserveInterviewQuota(): Promise<{ reservationId: string }> {
-  const response = await fetch(`${API_BASE_URL}/api/users/quota/reserve`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to reserve quota: ${response.statusText}`);
-  }
-
-  return response.json();
+  return apiPost<{ reservationId: string }>('/api/users/quota/reserve');
 }
 
 // ========================================
@@ -171,37 +118,12 @@ export async function listUsers(params?: {
   if (params?.limit) query.append('limit', String(params.limit));
   if (params?.search) query.append('search', params.search);
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/users?${query}`,
-    {
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch users list: ${response.statusText}`);
-  }
-
-  return response.json();
+  return apiGet<UsersListResponse>(`/api/users?${query}`);
 }
 
 /**
  * Получить пользователя по ID (admin)
  */
 export async function getUserById(id: string): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/users/${id}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch user: ${response.statusText}`);
-  }
-
-  return response.json();
+  return apiGet<User>(`/api/users/${id}`);
 }

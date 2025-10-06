@@ -65,6 +65,8 @@ async function attemptTokenRefresh(): Promise<boolean> {
 async function performRefresh(): Promise<boolean> {
   try {
     console.log('🔄 Frontend: Attempting token refresh...');
+    console.log('🔄 Frontend: Refresh URL:', `${API_BASE}/auth/refresh`);
+    console.log('🔄 Frontend: credentials: include (cookies will be sent)');
     
     const res = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
@@ -72,12 +74,17 @@ async function performRefresh(): Promise<boolean> {
       credentials: 'include',
     });
     
+    console.log('🔄 Frontend: Refresh response status:', res.status);
+    
     if (res.ok) {
       const data = await res.json();
-      console.log('✅ Frontend: Token refresh successful');
+      console.log('✅ Frontend: Token refresh successful, data:', data);
       return data.success === true;
     } else {
-      console.log('❌ Frontend: Token refresh failed:', res.status);
+      const errorText = await res.text();
+      console.log('❌ Frontend: Token refresh failed');
+      console.log('❌ Status:', res.status);
+      console.log('❌ Response:', errorText);
       return false;
     }
   } catch (error) {
@@ -98,6 +105,22 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
 export async function apiGet<T>(path: string): Promise<T> {
   return makeRequest<T>(path, {
     method: 'GET',
+    credentials: 'include',
+  });
+}
+
+export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
+  return makeRequest<T>(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  return makeRequest<T>(path, {
+    method: 'DELETE',
     credentials: 'include',
   });
 }
