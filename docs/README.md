@@ -1,324 +1,172 @@
-# 🎯 AI Video Interview Platform - Архитектурная документация
+# 🎯 AI Video Interview Platform - Documentation v2
 
-Полная архитектурная документация для платформы асинхронных AI-видеоинтервью.
-
----
-
-## 📋 Обзор проекта
-
-**AI Video Interview Platform** - это масштабируемая платформа, где рекрутеры могут отправлять кандидатам ссылки для прохождения асинхронных интервью (видео или аудио), а затем получать автоматический анализ и расшифровку ответов с помощью AI.
-
-### 🎯 Ключевые возможности
-- ✅ Создание кастомных интервью с вопросами
-- ✅ Генерация публичных ссылок для кандидатов  
-- ✅ Запись видео/аудио ответов в браузере
-- ✅ AI-анализ речи и содержания (Whisper + GPT-4)
-- ✅ Автоматические отчеты и оценки
-- ✅ Система уведомлений и интеграций
-- ✅ Многоуровневые тарифные планы
+**Версия документации:** 2.0  
+**Последнее обновление:** 2025-10-06
 
 ---
 
-## 📚 Структура документации
+## 📚 Навигация
 
-### 🏗️ [01. Bounded Contexts](./architecture/01-bounded-contexts.md)
-**Domain-Driven Design декомпозиция системы**
+### 🚀 [01. Getting Started](./01-getting-started/)
+Быстрый старт и базовая информация
+- [Overview](./01-getting-started/OVERVIEW.md) - Обзор платформы
+- [Quick Start](./01-getting-started/QUICK_START.md) - Запуск за 5 минут
+- [Local Development](./01-getting-started/LOCAL_DEVELOPMENT.md) - Полный dev setup
+- [Glossary](./01-getting-started/GLOSSARY.md) - Термины и определения
 
-Система разделена на **8 bounded contexts**:
-- 🔐 **Identity & Access** - Аутентификация и авторизация
-- 🎯 **Interview Management** - Управление интервью  
-- 🎬 **Media Processing** - Обработка медиафайлов
-- 🤖 **AI Analysis** - Анализ речи и содержания
-- 💰 **Billing & Subscription** - Платежи и подписки
-- 📧 **Notification** - Уведомления и интеграции
-- 📊 **Reporting & Analytics** - Отчеты и аналитика
-- 🎭 **Candidate Response** - Публичная часть для кандидатов
+### 🏗️ [02. Architecture](./02-architecture/)
+High-level архитектура системы
+- [System Overview](./02-architecture/SYSTEM_OVERVIEW.md) - C4 Context diagram
+- [Services Overview](./02-architecture/SERVICES_OVERVIEW.md) - Все микросервисы
+- [Containers Infrastructure](./02-architecture/CONTAINERS_INFRASTRUCTURE.md) - Docker containers
+- [Bounded Contexts](./02-architecture/BOUNDED_CONTEXTS.md) - DDD декомпозиция
+- [Communication Patterns](./02-architecture/COMMUNICATION_PATTERNS.md) - Sync/Async, Kafka
+- [Data Architecture](./02-architecture/DATA_ARCHITECTURE.md) - Database per service
+- [Deployment Architecture](./02-architecture/DEPLOYMENT_ARCHITECTURE.md) - Docker, K8s
 
-### 🔗 [02. Схемы взаимодействия](./architecture/02-system-interactions.md)
-**Диаграммы архитектуры и взаимодействий**
+### 🔧 [03. Services](./03-services/)
+Детальная документация по каждому сервису
+- [API Gateway](./03-services/API_GATEWAY.md) ✅
+- [User Service](./03-services/USER_SERVICE.md) ✅
+- [Interview Service](./03-services/INTERVIEW_SERVICE.md) 🟡
+- [Candidate Response Service](./03-services/CANDIDATE_RESPONSE_SERVICE.md) ❌
+- [Media Service](./03-services/MEDIA_SERVICE.md) 🟡
+- [AI Analysis Service](./03-services/AI_ANALYSIS_SERVICE.md) ❌
+- [Notification Service](./03-services/NOTIFICATION_SERVICE.md) ❌
+- [Reporting Service](./03-services/REPORTING_SERVICE.md) ❌
+- [Billing Service](./03-services/BILLING_SERVICE.md) ❌
 
-Включает:
-- 🏛️ **C4 диаграммы** (Context + Container)
-- 📋 **Sequence диаграммы** для ключевых сценариев
-- 🔄 **Event Flow** диаграммы
-- 🏗️ **Инфраструктурные схемы**
-- 📊 **Data Flow** диаграммы
+### 📡 [04. API](./04-api/)
+API спецификации и документация
+- [REST Conventions](./04-api/REST_CONVENTIONS.md) - Общие правила
+- [Error Handling](./04-api/ERROR_HANDLING.md) - Стандартные ошибки
+- [Authentication](./04-api/AUTHENTICATION.md) - JWT, OAuth flow
+- [Pagination](./04-api/PAGINATION.md) - Cursor vs Offset
+- [OpenAPI Specs](./04-api/openapi/) - Auto-generated спецификации
+- [Examples](./04-api/examples/) - Живые примеры запросов
 
-### 🗄️ [03. Архитектура баз данных](./architecture/03-database-architecture.md) 
-**Детальный анализ выбора и структуры БД**
+### 📨 [05. Events](./05-events/)
+Event-driven архитектура
+- [Event Catalog](./05-events/EVENT_CATALOG.md) - Все события
+- [Event Schema Standard](./05-events/EVENT_SCHEMA_STANDARD.md) - Формат событий
+- [Kafka Configuration](./05-events/KAFKA_CONFIGURATION.md) - Topics, partitions
+- [Idempotency](./05-events/IDEMPOTENCY.md) - Exactly-once processing
+- [DLQ Handling](./05-events/DLQ_HANDLING.md) - Dead Letter Queue
+- [Event Schemas](./05-events/schemas/) - JSON schemas
 
-Рекомендуемый стек:
-- **PostgreSQL** - основная OLTP база данных
-- **Redis** - кэширование и сессии
-- **ClickHouse** - аналитика и метрики (OLAP)
-- **S3/MinIO** - объектное хранилище медиафайлов
-- **Elasticsearch** - полнотекстовый поиск (опционально)
+### 🗄️ [06. Database](./06-database/)
+Database документация и схемы
+- [Database Strategy](./06-database/DATABASE_STRATEGY.md) - Database per service
+- [Migrations](./06-database/MIGRATIONS.md) - TypeORM migrations
+- [Backup & Restore](./06-database/BACKUP_RESTORE.md) - Backup стратегия
+- [Schemas](./06-database/schemas/) - ERD диаграммы + DDL
+- [Queries](./06-database/queries/) - Полезные queries
 
-### 🚀 [04. План реализации](./architecture/04-implementation-roadmap.md)
-**Пошаговый roadmap от MVP до Production**
+### ⚙️ [07. Infrastructure](./07-infrastructure/)
+Инфраструктура и deployment
+- [Docker Setup](./07-infrastructure/DOCKER_SETUP.md) - Docker Compose
+- [Networking](./07-infrastructure/NETWORKING.md) - Internal DNS
+- [Secrets Management](./07-infrastructure/SECRETS_MANAGEMENT.md) - Env vars, Vault
+- [CI/CD](./07-infrastructure/CI_CD.md) - GitHub Actions
+- [Kubernetes](./07-infrastructure/KUBERNETES.md) - K8s setup (future)
 
-**4 основных фазы разработки:**
-- **Phase 1: MVP Foundation** (6-8 недель) - Базовая функциональность
-- **Phase 2: AI Integration** (4-6 недель) - AI-анализ и отчеты  
-- **Phase 3: Production Ready** (4-6 недель) - Платежи, мониторинг, DevOps
-- **Phase 4: Advanced Features** (8-10 недель) - Продвинутые возможности
+### 📊 [08. Observability](./08-observability/)
+Мониторинг, логи, трейсинг
+- [Overview](./08-observability/OVERVIEW.md) - 3 pillars
+- [Logging Guide](./08-observability/LOGGING_GUIDE.md) - Winston, Loki
+- [Metrics Guide](./08-observability/METRICS_GUIDE.md) - Prometheus
+- [Tracing Guide](./08-observability/TRACING_GUIDE.md) - Jaeger
+- [Alerts](./08-observability/ALERTS.md) - Alerting rules
+- [Grafana Dashboards](./08-observability/grafana-dashboards/) - Dashboard exports
+- [Queries](./08-observability/queries/) - Prometheus, Loki queries
 
-### 📋 [05. Архитектурные решения](./architecture/05-architecture-decisions.md)
-**Обоснование технологических выборов и принципов**
+### 🔐 [09. Security](./09-security/)
+Безопасность и аутентификация
+- [Authentication Flow](./09-security/AUTHENTICATION_FLOW.md) - OAuth flow
+- [Authorization](./09-security/AUTHORIZATION.md) - RBAC
+- [JWT Validation](./09-security/JWT_VALIDATION.md) - Token validation
+- [API Security](./09-security/API_SECURITY.md) - Rate limiting, CORS
+- [Secrets Rotation](./09-security/SECRETS_ROTATION.md) - Key rotation
+- [Security Checklist](./09-security/SECURITY_CHECKLIST.md) - Pre-production audit
 
-Ключевые решения:
-- **Микросервисная архитектура** с DDD принципами
-- **Event-driven** взаимодействие через Kafka
-- **CQRS** паттерн для разделения чтения/записи
-- **Multi-tenant** архитектура с Row-Level Security
+### 👨‍💻 [10. Development](./10-development/)
+Руководства для разработчиков
+- [Coding Standards](./10-development/CODING_STANDARDS.md) - Style guide
+- [Git Workflow](./10-development/GIT_WORKFLOW.md) - Branch strategy
+- [Testing Guide](./10-development/TESTING_GUIDE.md) - Unit, Integration, E2E
+- [Debug Guide](./10-development/DEBUG_GUIDE.md) - VS Code configs
+- [Common Tasks](./10-development/COMMON_TASKS.md) - Частые задачи
+- [Examples](./10-development/examples/) - Code examples
 
----
+### 🔧 [11. Operations](./11-operations/)
+Operational runbooks (🚧 Coming Soon)
+- Deployment
+- Rollback
+- Scaling
+- Disaster Recovery
+- Runbooks
 
-## 🛠️ Технологический стек
+### 📋 [12. Decisions](./12-decisions/)
+Architecture Decision Records (🚧 Coming Soon)
+- ADR-001: Microservices Architecture
+- ADR-002: Kafka over RabbitMQ
+- ADR-003: TypeORM
+- ADR-004: Keycloak
 
-### Backend
-```yaml
-Primary Framework: NestJS (TypeScript)
-AI Service: FastAPI (Python)
-Message Queue: Apache Kafka
-API Gateway: NestJS + BetterAuth
-```
+### 🗺️ [13. Roadmap](./13-roadmap/)
+Планы развития (🚧 Coming Soon)
+- Current Status
+- MVP Scope
+- Backlog
+- Tech Debt
 
-### Frontend  
-```yaml
-Framework: Next.js 14+ (App Router)
-UI Library: Shadcn/ui + Tailwind CSS
-Authentication: BetterAuth
-```
-
-### Infrastructure
-```yaml
-Orchestration: Kubernetes + Helm
-Monitoring: Prometheus + Grafana + Loki
-CI/CD: GitHub Actions + ArgoCD
-Cloud: AWS/GCP (с поддержкой multi-cloud)
-```
-
-### AI & Analytics
-```yaml
-Speech-to-Text: OpenAI Whisper
-Content Analysis: GPT-4 + LlamaIndex
-Analytics: ClickHouse
-Search: Elasticsearch (опционально)
-```
-
----
-
-## 📊 Архитектурная схема (High-Level)
-
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        Web[Web Dashboard<br/>Next.js]
-        Mobile[Mobile App<br/>React Native]
-        Public[Public Interview<br/>Next.js]
-    end
-    
-    subgraph "API Layer"
-        Gateway[API Gateway<br/>NestJS + Auth]
-    end
-    
-    subgraph "Business Services"
-        User[User Service]
-        Interview[Interview Service]
-        Media[Media Service]
-        AI[AI Service<br/>Python]
-        Billing[Billing Service]
-        Notification[Notification Service]
-        Reporting[Reporting Service]
-    end
-    
-    subgraph "Data Layer"
-        PG[(PostgreSQL<br/>Main DB)]
-        Redis[(Redis<br/>Cache)]
-        CH[(ClickHouse<br/>Analytics)]
-        S3[(S3/MinIO<br/>Files)]
-    end
-    
-    subgraph "External APIs"
-        OpenAI[OpenAI API]
-        Stripe[Stripe API]
-        Email[Resend API]
-    end
-    
-    Web --> Gateway
-    Mobile --> Gateway
-    Public --> Gateway
-    
-    Gateway --> User
-    Gateway --> Interview
-    Gateway --> Media
-    Gateway --> Billing
-    Gateway --> Reporting
-    
-    Media --> AI
-    AI --> OpenAI
-    Billing --> Stripe
-    Notification --> Email
-    
-    User --> PG
-    Interview --> PG
-    Media --> PG
-    Billing --> PG
-    
-    Gateway --> Redis
-    User --> Redis
-    
-    Reporting --> CH
-    Media --> S3
-    
-    style Gateway fill:#e1f5fe
-    style AI fill:#f3e5f5
-    style PG fill:#e8f5e8
-    style S3 fill:#fff3e0
-```
+### 📚 [14. Resources](./14-resources/)
+Полезные ссылки и инструменты (🚧 Coming Soon)
+- External APIs
+- Tools
+- Learning Resources
+- Troubleshooting FAQ
 
 ---
 
-## 🚀 Быстрый старт
+## 🎯 Быстрые ссылки
 
-### Предварительные требования
-```bash
-# Необходимые инструменты
-- Node.js 18+
-- Python 3.9+
-- Docker & Docker Compose
-- Kubernetes (minikube для dev)
-- PostgreSQL 15+
-- Redis 7+
-```
+### Для новых разработчиков:
+1. [Quick Start](./01-getting-started/QUICK_START.md)
+2. [System Overview](./02-architecture/SYSTEM_OVERVIEW.md)
+3. [Coding Standards](./10-development/CODING_STANDARDS.md)
 
-### Локальная разработка
-```bash
-# Клонирование и настройка
-git clone <repository>
-cd ai-video-interview
+### Для backend разработчиков:
+1. [Services Overview](./02-architecture/SERVICES_OVERVIEW.md)
+2. [API Conventions](./04-api/REST_CONVENTIONS.md)
+3. [Event Catalog](./05-events/EVENT_CATALOG.md)
 
-# Установка зависимостей
-npm install
-cd packages && npm run install:all
-
-# Настройка окружения
-cp .env.example .env
-# Настройте переменные окружения
-
-# Запуск инфраструктуры
-docker-compose up -d postgres redis kafka minio
-
-# Миграции БД
-npm run db:migrate
-
-# Запуск сервисов в dev режиме
-npm run dev
-```
-
-### Production развертывание
-```bash
-# Helm deployment
-helm repo add ai-interview ./k8s/helm
-helm install ai-interview ./k8s/helm/ai-interview \
-  --namespace ai-interview \
-  --create-namespace \
-  --values values-production.yaml
-```
+### Для DevOps:
+1. [Containers Infrastructure](./02-architecture/CONTAINERS_INFRASTRUCTURE.md)
+2. [Docker Setup](./07-infrastructure/DOCKER_SETUP.md)
+3. [Observability Overview](./08-observability/OVERVIEW.md)
 
 ---
 
-## 📈 Roadmap и Milestones
+## 📝 Changelog
 
-### 🎯 MVP (Недели 1-8)
-- [x] Базовая аутентификация и RBAC
-- [x] CRUD интервью с публичными ссылками  
-- [x] Запись и загрузка медиафайлов
-- [x] Базовая обработка видео/аудио
-
-### 🤖 AI Integration (Недели 9-12)
-- [ ] Whisper транскрипция
-- [ ] GPT-4 анализ содержания
-- [ ] Генерация отчетов
-- [ ] Email уведомления
-
-### 🚀 Production Ready (Недели 13-18)
-- [ ] Stripe интеграция
-- [ ] Kubernetes деплой
-- [ ] Мониторинг и алерты
-- [ ] Load testing
-
-### 🌟 Advanced Features (Недели 19-26)
-- [ ] Computer Vision анализ
-- [ ] Real-time аналитика
-- [ ] API интеграции и webhooks
-- [ ] Mobile приложения
+### 2025-10-06 - v2.0
+- ✅ Создана новая структура документации
+- ✅ Добавлен Services Overview
+- ✅ Добавлен Containers Infrastructure
+- ✅ Детальная документация API Gateway
+- ✅ Детальная документация User Service
 
 ---
 
-## 👥 Команда и роли
+## 🤝 Контрибьюция
 
-```yaml
-Рекомендуемый состав команды:
-  Backend Developers: 2-3 (NestJS, Python)
-  Frontend Developer: 1-2 (Next.js, React)
-  DevOps Engineer: 1 (Kubernetes, CI/CD)
-  AI/ML Engineer: 1 (OpenAI, ML models)
-  QA Engineer: 1 (Testing, automation)
-  Product Manager: 1
-  UI/UX Designer: 1
-```
+При обновлении документации:
+1. Следуй существующей структуре
+2. Обновляй `CHANGELOG.md`
+3. Проверяй ссылки: `npm run docs:check-links`
+4. Генерируй OpenAPI specs: `npm run docs:generate-api`
 
 ---
 
-## 💰 Оценка бюджета
-
-### Разработка (MVP)
-```yaml
-Команда (6-8 недель): $50,000 - $80,000
-External Services: $2,000 - $5,000
-Infrastructure (dev): $1,000 - $2,000
-Total MVP: $53,000 - $87,000
-```
-
-### Операционные расходы (месячно)
-```yaml
-Infrastructure: $1,150 - $5,300
-AI API (OpenAI): $200 - $2,000
-Monitoring & Tools: $300 - $500
-Total Monthly: $1,650 - $7,800
-```
-
----
-
-## 📞 Support & Contributing
-
-### Документация
-- [API Documentation](./api-docs.md)
-- [Deployment Guide](./deployment.md) 
-- [Troubleshooting](./troubleshooting.md)
-
-### Contributing
-1. Fork репозиторий
-2. Создайте feature branch
-3. Commit изменения
-4. Push в branch
-5. Создайте Pull Request
-
-### Issues & Support
-- GitHub Issues для багов и feature requests
-- Slack канал для обсуждений команды
-- Документация и runbooks в Confluence
-
----
-
-## 📝 License
-
-MIT License - см. [LICENSE](../LICENSE) файл для деталей.
-
----
-
-**Последнее обновление:** Январь 2024  
-**Версия архитектуры:** 1.0  
-**Статус:** Ready for Implementation
+**Вопросы?** Создай issue в репозитории или спроси в команде.
