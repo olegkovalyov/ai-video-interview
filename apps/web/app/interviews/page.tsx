@@ -5,6 +5,7 @@ import { Plus, Search, Filter, Play, Users, Calendar, MoreVertical } from 'lucid
 import { Header } from '@/components/layout/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 export default function InterviewsPage() {
   // Mock data
@@ -42,6 +43,7 @@ export default function InterviewsPage() {
   ];
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
       <Header />
       
@@ -205,5 +207,6 @@ export default function InterviewsPage() {
         )}
       </main>
     </div>
+    </ProtectedRoute>
   );
 }

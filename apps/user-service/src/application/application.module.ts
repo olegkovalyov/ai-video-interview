@@ -22,6 +22,8 @@ import { GetUserStatsHandler } from './queries/get-user-stats/get-user-stats.han
 // Event Handlers (Domain Events → Kafka)
 import { UserCreatedEventHandler } from './event-handlers/user-created.handler';
 import { UserUpdatedEventHandler } from './event-handlers/user-updated.handler';
+import { UserSuspendedEventHandler } from './event-handlers/user-suspended.handler';
+import { UserDeletedEventHandler } from './event-handlers/user-deleted.handler';
 
 const CommandHandlers = [
   CreateUserHandler,
@@ -43,6 +45,8 @@ const QueryHandlers = [
 const EventHandlers = [
   UserCreatedEventHandler,
   UserUpdatedEventHandler,
+  UserSuspendedEventHandler,
+  UserDeletedEventHandler,
 ];
 
 @Module({
