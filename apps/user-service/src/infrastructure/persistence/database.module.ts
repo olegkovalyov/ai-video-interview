@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserEntity } from './entities/user.entity';
 import { RoleEntity } from './entities/role.entity';
-import { ProcessedEventEntity } from './entities/processed-event.entity';
 import { InboxEntity } from './entities/inbox.entity';
 import { OutboxEntity } from './entities/outbox.entity';
 import { UserMapper } from './mappers/user.mapper';
@@ -22,7 +21,7 @@ import { TypeOrmRoleRepository } from './repositories/typeorm-role.repository';
         username: configService.get('DATABASE_USER', 'user_service'),
         password: configService.get('DATABASE_PASSWORD', 'password'),
         database: configService.get('DATABASE_NAME', 'user_service_db'),
-        entities: [UserEntity, RoleEntity, ProcessedEventEntity, InboxEntity, OutboxEntity],
+        entities: [UserEntity, RoleEntity, InboxEntity, OutboxEntity],
         synchronize: false, // Always use migrations
         logging: false, // Disable SQL logging (too verbose)
         ssl: configService.get('DATABASE_SSL', 'false') === 'true'
@@ -31,7 +30,7 @@ import { TypeOrmRoleRepository } from './repositories/typeorm-role.repository';
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([UserEntity, RoleEntity, ProcessedEventEntity, InboxEntity, OutboxEntity]),
+    TypeOrmModule.forFeature([UserEntity, RoleEntity, InboxEntity, OutboxEntity]),
   ],
   providers: [
     UserMapper,
