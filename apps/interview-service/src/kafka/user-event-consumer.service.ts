@@ -21,12 +21,12 @@ export class UserEventConsumerService implements OnModuleInit {
       },
       {
         fromBeginning: false,
-        autoCommit: false,
-        mode: 'eachBatch'
+        autoCommit: true,
+        mode: 'eachMessage'
       }
     );
 
-    console.log('🎯 Interview Service subscribed to User Events (manual commit mode)');
+    console.log('🎯 Interview Service subscribed to User Events (eachMessage mode)');
   }
 
   private async handleUserEvent(event: any) {

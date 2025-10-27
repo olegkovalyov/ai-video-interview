@@ -70,7 +70,7 @@ export class UserServiceProxy extends BaseServiceProxy {
     super(httpService, loggerService, metricsService, circuitBreakerRegistry);
     this.baseUrl =
       this.configService.get<string>('USER_SERVICE_URL') ||
-      'http://localhost:3003';
+      'http://localhost:8002';
     
     // Инициализируем Circuit Breaker
     this.initCircuitBreaker();

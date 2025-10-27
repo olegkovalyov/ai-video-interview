@@ -24,7 +24,7 @@ async function bootstrap() {
   // Enable graceful shutdown
   app.enableShutdownHooks();
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 8001;
 
   logger.info('🚀 API Gateway starting up', {
     service: 'api-gateway',

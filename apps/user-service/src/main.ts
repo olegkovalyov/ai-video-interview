@@ -47,7 +47,7 @@ async function bootstrap() {
   // Graceful shutdown (from memory)
   app.enableShutdownHooks();
 
-  const port = process.env.PORT || 3003;
+  const port = process.env.PORT || 8002;
   
   logger.info('🚀 User Service starting up', {
     service: 'user-service',

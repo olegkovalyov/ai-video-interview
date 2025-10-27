@@ -54,12 +54,41 @@ export interface UserLoggedOutEvent extends BaseEvent {
   };
 }
 
+export interface UserDeletedEvent extends BaseEvent {
+  eventType: 'user.deleted';
+  payload: {
+    userId: string;
+    deletedBy: 'admin' | 'user' | 'system';
+  };
+}
+
+export interface UserRoleAssignedEvent extends BaseEvent {
+  eventType: 'user.role_assigned';
+  payload: {
+    userId: string;
+    roleName: string;
+    assignedBy?: string;
+  };
+}
+
+export interface UserRoleRemovedEvent extends BaseEvent {
+  eventType: 'user.role_removed';
+  payload: {
+    userId: string;
+    roleName: string;
+    removedBy?: string;
+  };
+}
+
 // Union type for all user events
 export type UserEvent = 
   | UserRegisteredEvent 
   | UserAuthenticatedEvent 
   | UserProfileUpdatedEvent 
-  | UserLoggedOutEvent;
+  | UserLoggedOutEvent
+  | UserDeletedEvent
+  | UserRoleAssignedEvent
+  | UserRoleRemovedEvent;
 
 // Kafka topics
 export const USER_EVENTS_TOPIC = 'user.events';
@@ -111,6 +140,27 @@ export class UserEventFactory {
     };
   }
 
+  static createUserProfileUpdated(
+    userId: string,
+    updatedFields: string[],
+    previousValues: Record<string, any>,
+    newValues: Record<string, any>
+  ): UserProfileUpdatedEvent {
+    return {
+      eventId: crypto.randomUUID(),
+      eventType: 'user.profile_updated',
+      timestamp: Date.now(),
+      version: '1.0',
+      source: 'api-gateway',
+      payload: {
+        userId,
+        updatedFields,
+        previousValues,
+        newValues,
+      },
+    };
+  }
+
   static createUserLoggedOut(
     userId: string,
     sessionId: string,
@@ -126,6 +176,61 @@ export class UserEventFactory {
         userId,
         sessionId,
         logoutReason,
+      },
+    };
+  }
+
+  static createUserDeleted(
+    userId: string,
+    deletedBy: UserDeletedEvent['payload']['deletedBy'] = 'admin'
+  ): UserDeletedEvent {
+    return {
+      eventId: crypto.randomUUID(),
+      eventType: 'user.deleted',
+      timestamp: Date.now(),
+      version: '1.0',
+      source: 'api-gateway',
+      payload: {
+        userId,
+        deletedBy,
+      },
+    };
+  }
+
+  static createUserRoleAssigned(
+    userId: string,
+    roleName: string,
+    assignedBy?: string
+  ): UserRoleAssignedEvent {
+    return {
+      eventId: crypto.randomUUID(),
+      eventType: 'user.role_assigned',
+      timestamp: Date.now(),
+      version: '1.0',
+      source: 'api-gateway',
+      payload: {
+        userId,
+        roleName,
+        assignedBy,
+      },
+    };
+  }
+
+  static createUserRoleRemoved(
+    userId: string,
+    roleName: string,
+    removedBy?: string
+  ): UserRoleRemovedEvent {
+    return {
+      eventId: crypto.randomUUID(),
+      eventType: 'user.role_removed',
+      timestamp: Date.now(),
+      version: '1.0',
+      source: 'api-gateway',
+      payload: {
+        userId,
+        roleName,
+        removedBy,
       },
     };
   }

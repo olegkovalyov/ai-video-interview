@@ -82,7 +82,7 @@ export class InterviewServiceProxy extends BaseServiceProxy {
     super(httpService, loggerService, metricsService, circuitBreakerRegistry);
     this.baseUrl =
       this.configService.get<string>('INTERVIEW_SERVICE_URL') ||
-      'http://localhost:3004';
+      'http://localhost:8003';
     
     // Инициализируем Circuit Breaker
     this.initCircuitBreaker();

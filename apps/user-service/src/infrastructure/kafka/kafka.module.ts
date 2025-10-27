@@ -3,20 +3,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { UserEventProducer } from './producers/user-event.producer';
 import { AuthEventConsumer } from './consumers/auth-event.consumer';
-import { EventIdempotencyService } from './services/event-idempotency.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ProcessedEventEntity } from '../persistence/entities/processed-event.entity';
+import { KafkaService } from '@repo/shared';
 
 @Module({
   imports: [
     ConfigModule,
     CqrsModule, // Provides CommandBus for AuthEventConsumer
-    TypeOrmModule.forFeature([ProcessedEventEntity]),
   ],
   providers: [
     UserEventProducer,
     AuthEventConsumer,
-    EventIdempotencyService,
     {
       provide: 'KAFKA_CONFIG',
       useFactory: (configService: ConfigService) => ({
@@ -33,7 +29,13 @@ import { ProcessedEventEntity } from '../persistence/entities/processed-event.en
       }),
       inject: [ConfigService],
     },
+    {
+      provide: 'KAFKA_SERVICE',
+      useFactory: () => {
+        return new KafkaService('user-service');
+      },
+    },
   ],
-  exports: [UserEventProducer, AuthEventConsumer, EventIdempotencyService],
+  exports: [UserEventProducer, AuthEventConsumer, 'KAFKA_SERVICE'],
 })
 export class KafkaModule {}

@@ -29,6 +29,7 @@ import {
 } from './auth/services';
 import { UserServiceProxy, InterviewServiceProxy } from './proxies';
 import { CircuitBreakerRegistry } from './circuit-breaker';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { CircuitBreakerRegistry } from './circuit-breaker';
       maxRedirects: 5,
     }),
     KafkaModule,
+    AdminModule,
   ],
   controllers: [
     AppController,

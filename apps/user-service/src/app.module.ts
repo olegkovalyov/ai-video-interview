@@ -6,6 +6,7 @@ import { KafkaModule } from './infrastructure/kafka/kafka.module';
 import { StorageModule } from './infrastructure/storage/storage.module';
 import { HttpModule } from './infrastructure/http/http.module';
 import { LoggerModule } from './infrastructure/logger/logger.module';
+import { MessagingModule } from './infrastructure/messaging/messaging.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LoggerModule } from './infrastructure/logger/logger.module';
     DatabaseModule,
     KafkaModule,
     StorageModule,
+    MessagingModule, // INBOX/OUTBOX pattern with BullMQ
     
     // Application (CQRS)
     ApplicationModule,
