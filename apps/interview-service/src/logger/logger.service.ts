@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import * as path from 'path';
+import { prettyConsoleFormat, shouldEnableConsole } from './console.formatter';
+import LokiTransport = require('winston-loki');
 
 export interface LogContext {
   userId?: string;
@@ -17,56 +19,77 @@ export interface LogContext {
 }
 
 @Injectable()
-export class LoggerService {
+export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
 
   constructor() {
-    // Создаем папку для логов если её нет
-    const logsDir = path.join(process.cwd(), '../../logs');
+    const fs = require('fs');
     
+    // Логи в папке сервиса: apps/interview-service/logs/
+    const baseLogsDir = path.join(__dirname, '../../logs');
+    
+    // Папка по дате: logs/2025-10-28/
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const logsDir = path.join(baseLogsDir, today);
+    
+    // Создаем директорию с датой
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    
+    const absolutePath = path.resolve(logsDir);
+    console.log(`📝 Logger initialized. Log directory: ${absolutePath}`);
+    
+    // Формат для файлов - чистый JSON для Loki/Grafana
+    const fileFormat = winston.format.combine(
+      winston.format.timestamp(), // ISO 8601 формат
+      winston.format.errors({ stack: true }),
+      winston.format.json()
+    );
+
+    // Формат для консоли - красивый вывод как в NestJS
+    const consoleFormat = winston.format.combine(
+      prettyConsoleFormat
+    );
+
     this.logger = winston.createLogger({
-      level: process.env.LOG_LEVEL || 'info',
-      format: winston.format.combine(
-        winston.format.timestamp({
-          format: 'YYYY-MM-DD HH:mm:ss.SSS'
-        }),
-        winston.format.errors({ stack: true }),
-        winston.format.json(),
-        winston.format.printf(({ timestamp, level, message, service, ...meta }) => {
-          return JSON.stringify({
-            timestamp,
-            level: level.toUpperCase(),
-            service: service || 'api-gateway',
-            message,
-            ...meta
-          });
-        })
-      ),
+      level: process.env.LOG_LEVEL || 'debug',
       defaultMeta: {
-        service: 'api-gateway',
+        service: 'interview-service',
         version: process.env.npm_package_version || '1.0.0',
         environment: process.env.NODE_ENV || 'development'
       },
       transports: [
-        // Console для разработки
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-          )
+        // Console для разработки (отключен в production)
+        ...(shouldEnableConsole() ? [
+          new winston.transports.Console({
+            level: 'debug', // Показываем все включая debug
+            format: consoleFormat
+          })
+        ] : []),
+        // Loki transport - прямая отправка в Loki (РЕАЛЬНОЕ ВРЕМЯ)
+        new LokiTransport({
+          host: 'http://localhost:3100',
+          labels: { service: 'interview-service', environment: process.env.NODE_ENV || 'development' },
+          json: true,
+          format: fileFormat,
+          replaceTimestamp: true,
+          level: 'debug', // Отправляем все логи включая debug
+          onConnectionError: (err) => console.error('Loki connection error:', err)
         }),
-        // Файл для всех логов (для Promtail)
+        // Файл в папке по дате: logs/2025-10-28/interview-service.log (fallback)
         new winston.transports.File({
-          filename: path.join(logsDir, 'api-gateway.log'),
-          maxsize: 10 * 1024 * 1024, // 10MB
-          maxFiles: 5
+          filename: path.join(logsDir, 'interview-service.log'),
+          level: 'debug',
+          format: fileFormat,
+          maxsize: 100 * 1024 * 1024, // 100MB per day
         }),
-        // Файл только для ошибок
+        // Отдельный файл для ошибок
         new winston.transports.File({
-          filename: path.join(logsDir, 'api-gateway-error.log'),
+          filename: path.join(logsDir, 'interview-service-error.log'),
           level: 'error',
-          maxsize: 10 * 1024 * 1024,
-          maxFiles: 5
+          format: fileFormat,
+          maxsize: 50 * 1024 * 1024, // 50MB
         })
       ]
     });
@@ -76,33 +99,118 @@ export class LoggerService {
     this.logger.info(message, context);
   }
 
-  error(message: string, error?: Error, context?: LogContext) {
-    this.logger.error(message, {
-      ...context,
-      error: error ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      } : undefined
+  // Перегруженный error для совместимости с NestJS и нашим кодом
+  error(message: any, ...optionalParams: any[]) {
+    if (optionalParams.length === 0) {
+      this.logger.error(String(message));
+      return;
+    }
+    
+    const firstParam = optionalParams[0];
+    const secondParam = optionalParams.length > 1 ? optionalParams[1] : undefined;
+    
+    // Проверяем если первый параметр - Error object
+    if (firstParam instanceof Error) {
+      this.logger.error(String(message), {
+        ...(typeof secondParam === 'string' ? { context: secondParam } : secondParam),
+        error: {
+          name: firstParam.name,
+          message: firstParam.message,
+          stack: firstParam.stack
+        }
+      });
+      return;
+    }
+    
+    // Иначе считаем что это NestJS format (message, stack, context)
+    const hasStack = typeof firstParam === 'string' && firstParam.includes('\n');
+    const stack = hasStack ? firstParam : undefined;
+    const contextIndex = hasStack ? 1 : 0;
+    const context = optionalParams.length > contextIndex ? optionalParams[contextIndex] : undefined;
+    
+    this.logger.error(String(message), {
+      ...(typeof context === 'string' ? { context } : context),
+      stack: stack
     });
   }
 
-  warn(message: string, context?: LogContext) {
-    this.logger.warn(message, context);
+  warn(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.logger.warn(String(message), typeof context === 'string' ? { context } : context);
   }
 
-  debug(message: string, context?: LogContext) {
-    this.logger.debug(message, context);
+  debug(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.logger.debug(String(message), typeof context === 'string' ? { context } : context);
   }
 
-  // Специальные методы для различных типов логов
+  // Методы для совместимости с NestJS LoggerService interface
+  log(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.info(String(message), typeof context === 'string' ? { context } : context);
+  }
 
-  authLog(action: string, context: LogContext) {
-    this.info(`Auth: ${action}`, {
+  verbose(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.debug(String(message), typeof context === 'string' ? { context } : context);
+  }
+
+  fatal(message: any, ...optionalParams: any[]) {
+    const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
+    this.error(String(message), undefined, typeof context === 'string' ? { context } : context);
+  }
+
+  debugObject(message: string, data: Record<string, any>, context?: LogContext) {
+    this.logger.debug(message, {
       ...context,
-      category: 'authentication',
-      action
+      data: data
     });
+  }
+
+  infoObject(message: string, data: Record<string, any>, context?: LogContext) {
+    this.logger.info(message, {
+      ...context,
+      data: data
+    });
+  }
+
+  // Domain-specific logging methods
+
+  commandLog(commandName: string, success: boolean, context?: LogContext) {
+    const message = `Command: ${commandName} ${success ? 'success' : 'failed'}`;
+    if (success) {
+      this.info(message, { ...context, category: 'command', commandName, success });
+    } else {
+      this.error(message, undefined, { ...context, category: 'command', commandName, success });
+    }
+  }
+
+  queryLog(queryName: string, duration: number, context?: LogContext) {
+    this.debug(`Query: ${queryName} took ${duration}ms`, {
+      ...context,
+      category: 'query',
+      queryName,
+      duration
+    });
+  }
+
+  eventLog(eventName: string, context?: LogContext) {
+    this.info(`Event: ${eventName}`, {
+      ...context,
+      category: 'event',
+      eventName
+    });
+  }
+
+  kafkaLog(action: string, topic: string, success: boolean, context?: LogContext) {
+    const message = `Kafka: ${action} to ${topic} ${success ? 'success' : 'failed'}`;
+    const logData = { ...context, category: 'kafka', action, topic, success };
+    
+    if (success) {
+      this.info(message, logData);
+    } else {
+      this.error(message, undefined, logData);
+    }
   }
 
   httpLog(method: string, url: string, statusCode: number, duration: number, context?: LogContext) {
@@ -114,23 +222,6 @@ export class LoggerService {
       statusCode,
       duration
     });
-  }
-
-  businessLog(event: string, context: LogContext) {
-    this.info(`Business: ${event}`, {
-      ...context,
-      category: 'business',
-      event
-    });
-  }
-
-  kafkaLog(action: string, topic: string, success: boolean, context?: LogContext) {
-    const message = `Kafka: ${action} to ${topic} ${success ? 'success' : 'failed'}`;
-    if (success) {
-      this.info(message, { ...context, category: 'kafka', action, topic, success });
-    } else {
-      this.error(message, undefined, { ...context, category: 'kafka', action, topic, success });
-    }
   }
 
   performanceLog(operation: string, duration: number, context?: LogContext) {

@@ -2,25 +2,23 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { KafkaModule } from './kafka/kafka.module';
-import { ProcessedEvent } from './entities/processed-event.entity';
+import { LoggerModule } from './logger/logger.module';
+import { HealthController } from './health/health.controller';
 
+/**
+ * Interview Service - Main Module
+ * 
+ * Минимальная конфигурация без лишних зависимостей
+ * - Логирование в консоль и Grafana (Winston + Loki)
+ * - Health checks
+ * - Готов к добавлению бизнес-логики
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/ai_video_interview_interview',
-      entities: [ProcessedEvent],
-      migrations: ['dist/database/migrations/*.js'],
-      migrationsTableName: 'typeorm_migrations',
-      synchronize: false,
-      logging: process.env.NODE_ENV === 'development',
-    }),
-    KafkaModule,
+    LoggerModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}

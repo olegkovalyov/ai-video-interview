@@ -1,25 +1,39 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { LoggerService } from './logger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true, // Буферизуем логи до инициализации custom logger
+  });
+
+  // Подключаем наш Winston logger
+  const logger = app.get(LoggerService);
+  app.useLogger(logger);
+
   // Enable graceful shutdown
   app.enableShutdownHooks();
-  
+
   const port = process.env.INTERVIEW_SERVICE_PORT || 8003;
   await app.listen(port);
-  console.log(`🎤 Interview Service running on http://localhost:${port}`);
+
+  logger.info(`🎤 Interview Service running on http://localhost:${port}`, {
+    category: 'startup',
+    port: port,
+  });
 
   // Graceful shutdown handlers
   const gracefulShutdown = async (signal: string) => {
-    console.log(`\n⚠️ Received ${signal}, shutting down Interview Service gracefully...`);
+    logger.warn(`Received ${signal}, shutting down Interview Service gracefully...`, {
+      category: 'shutdown',
+      signal,
+    });
     try {
       await app.close();
-      console.log('✅ Interview Service closed successfully');
+      logger.info('Interview Service closed successfully', { category: 'shutdown' });
       process.exit(0);
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      logger.error('Error during shutdown', error as Error, { category: 'shutdown' });
       process.exit(1);
     }
   };
