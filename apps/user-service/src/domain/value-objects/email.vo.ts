@@ -1,5 +1,5 @@
-import { ValueObject } from '../../shared/base/base.value-object';
-import { DomainException } from '../../shared/exceptions/domain.exception';
+import { ValueObject } from '../base/base.value-object';
+import { DomainException } from '../exceptions/domain.exception';
 
 interface EmailProps {
   value: string;

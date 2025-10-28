@@ -1,4 +1,4 @@
-import { AggregateRoot } from '../../shared/base/base.aggregate-root';
+import { AggregateRoot } from '../base/base.aggregate-root';
 import { Email } from '../value-objects/email.vo';
 import { FullName } from '../value-objects/full-name.vo';
 import { UserStatus } from '../value-objects/user-status.vo';
@@ -6,7 +6,7 @@ import { UserCreatedEvent } from '../events/user-created.event';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserSuspendedEvent } from '../events/user-suspended.event';
 import { UserDeletedEvent } from '../events/user-deleted.event';
-import { DomainException } from '../../shared/exceptions/domain.exception';
+import { DomainException } from '../exceptions/domain.exception';
 import {
   UserDeletedException,
   UserSuspendedException,

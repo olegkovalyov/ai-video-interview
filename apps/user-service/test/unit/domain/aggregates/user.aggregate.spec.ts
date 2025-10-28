@@ -11,7 +11,7 @@ import {
   UserSuspendedException,
   InvalidUserOperationException,
 } from '../../../../src/domain/exceptions/user.exceptions';
-import { DomainException } from '../../../../src/shared/exceptions/domain.exception';
+import { DomainException } from '../../../../src/domain/exceptions/domain.exception';
 
 describe('User Aggregate', () => {
   const userId = 'user-123';
@@ -66,7 +66,9 @@ describe('User Aggregate', () => {
         'https://example.com/avatar.jpg',
         'Bio text',
         '+1234567890',
-        true,
+        'UTC',        // timezone
+        'en',         // language
+        true,         // emailVerified
         new Date('2024-01-01'),
         new Date('2024-01-02'),
       );

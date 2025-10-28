@@ -1,5 +1,5 @@
 import { FullName } from '../../../../src/domain/value-objects/full-name.vo';
-import { DomainException } from '../../../../src/shared/exceptions/domain.exception';
+import { DomainException } from '../../../../src/domain/exceptions/domain.exception';
 
 describe('FullName Value Object', () => {
   describe('create', () => {

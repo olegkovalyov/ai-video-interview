@@ -1,7 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { Kafka, Consumer, EachBatchPayload } from 'kafkajs';
-import { EventIdempotencyService } from '../services/event-idempotency.service';
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
 import { LoggerService } from '../../logger/logger.service';
 import { UserAuthenticatedEvent } from '@repo/shared';
@@ -34,7 +33,6 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
     @Inject('KAFKA_CONFIG')
     private readonly kafkaConfig: any,
     private readonly commandBus: CommandBus,
-    private readonly idempotencyService: EventIdempotencyService,
     private readonly logger: LoggerService,
   ) {
     // Настройка Kafka с кастомным логгером (убираем verbose логи)
@@ -101,31 +99,15 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
         // Parse event
         const event: BaseKafkaEvent = JSON.parse(message.value.toString());
 
-        // Check idempotency
-        const { processed } = await this.idempotencyService.processOnce(
-          event.eventId,
-          event.eventType,
-          async () => {
-            await this.handleEvent(event);
-          },
-          event.payload,
-        );
+        // Process event (idempotency handled by CommandHandler)
+        await this.handleEvent(event);
 
-        if (processed) {
-          this.logger.kafkaLog('consume', this.topic, true, {
-            component: 'AuthEventConsumer',
-            eventType: event.eventType,
-            eventId: event.eventId,
-            action: 'event_processed',
-          });
-        } else {
-          this.logger.debug('Skipped duplicate event', {
-            category: 'kafka',
-            component: 'AuthEventConsumer',
-            eventType: event.eventType,
-            eventId: event.eventId,
-          });
-        }
+        this.logger.kafkaLog('consume', this.topic, true, {
+          component: 'AuthEventConsumer',
+          eventType: event.eventType,
+          eventId: event.eventId,
+          action: 'event_processed',
+        });
 
         // Resolve offset after successful processing
         resolveOffset(message.offset);

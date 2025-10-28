@@ -1,5 +1,5 @@
 import { Email } from '../../../../src/domain/value-objects/email.vo';
-import { DomainException } from '../../../../src/shared/exceptions/domain.exception';
+import { DomainException } from '../../../../src/domain/exceptions/domain.exception';
 
 describe('Email Value Object', () => {
   describe('create', () => {

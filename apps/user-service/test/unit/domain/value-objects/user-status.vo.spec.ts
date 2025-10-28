@@ -1,5 +1,5 @@
 import { UserStatus } from '../../../../src/domain/value-objects/user-status.vo';
-import { DomainException } from '../../../../src/shared/exceptions/domain.exception';
+import { DomainException } from '../../../../src/domain/exceptions/domain.exception';
 
 describe('UserStatus Value Object', () => {
   describe('factory methods', () => {
