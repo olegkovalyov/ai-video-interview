@@ -41,6 +41,9 @@ apps/*/logs/archive/*.json
 apps/*/logs/*.json
 !apps/*/logs/.gitkeep
 
+# Runtime data (local development)
+.runtime/
+
 # Misc
 .DS_Store
 *.pem
