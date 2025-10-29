@@ -6,6 +6,8 @@ import { UserCreatedEvent } from '../events/user-created.event';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserSuspendedEvent } from '../events/user-suspended.event';
 import { UserDeletedEvent } from '../events/user-deleted.event';
+import { RoleAssignedEvent } from '../events/role-assigned.event';
+import { RoleRemovedEvent } from '../events/role-removed.event';
 import { DomainException } from '../exceptions/domain.exception';
 import {
   UserDeletedException,
@@ -254,8 +256,9 @@ export class User extends AggregateRoot {
   }
 
   /**
-   * Soft delete user
+   * Delete user (hard delete)
    * Emits UserDeletedEvent
+   * Actual deletion from DB happens in repository
    */
   public delete(deletedBy: string): void {
     if (this._status.isDeleted()) {
@@ -309,6 +312,54 @@ export class User extends AggregateRoot {
         avatarUrl: null,
       }),
     );
+  }
+
+  /**
+   * Assign role to user
+   * Emits RoleAssignedEvent
+   */
+  public assignRole(roleName: string, assignedBy: string): void {
+    this.ensureNotDeleted();
+
+    if (!roleName || roleName.trim().length === 0) {
+      throw new DomainException('Role name cannot be empty');
+    }
+
+    // Generate a simple role ID (in production, this would come from a roles service)
+    const roleId = `role-${roleName}-${Date.now()}`;
+
+    this._updatedAt = new Date();
+
+    this.apply(new RoleAssignedEvent(
+      this._id,
+      roleId,
+      roleName,
+      assignedBy,
+    ));
+  }
+
+  /**
+   * Remove role from user
+   * Emits RoleRemovedEvent
+   */
+  public removeRole(roleName: string, removedBy: string): void {
+    this.ensureNotDeleted();
+
+    if (!roleName || roleName.trim().length === 0) {
+      throw new DomainException('Role name cannot be empty');
+    }
+
+    // Generate a simple role ID (in production, this would come from a roles service)
+    const roleId = `role-${roleName}`;
+
+    this._updatedAt = new Date();
+
+    this.apply(new RoleRemovedEvent(
+      this._id,
+      roleId,
+      roleName,
+      removedBy,
+    ));
   }
 
   // ========================================

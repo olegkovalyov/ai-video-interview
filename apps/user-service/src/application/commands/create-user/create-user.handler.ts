@@ -6,6 +6,7 @@ import type { IUserRepository } from '../../../domain/repositories/user.reposito
 import { Email } from '../../../domain/value-objects/email.vo';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
+import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
 import { v4 as uuid } from 'uuid';
 
 /**
@@ -18,6 +19,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
     private readonly eventBus: EventBus,
+    private readonly outboxService: OutboxService,
   ) {}
 
   async execute(command: CreateUserCommand): Promise<User> {
@@ -51,11 +53,33 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     // 4. Save to repository
     await this.userRepository.save(user);
 
-    // 5. Publish domain events
+    // 5. Publish domain events (internal only - logging, metrics, etc.)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);
     });
     user.clearEvents();
+
+    // 6. Publish integration event to Kafka (for other services)
+    await this.outboxService.saveEvent(
+      'user.created',
+      {
+        eventId: uuid(),
+        eventType: 'user.created',
+        timestamp: Date.now(),
+        version: '1.0',
+        source: 'user-service',
+        payload: {
+          userId: user.id,
+          keycloakId: user.keycloakId,
+          email: user.email.value,
+          firstName: user.fullName.firstName,
+          lastName: user.fullName.lastName,
+          status: user.status.value,
+          createdAt: user.createdAt.toISOString(),
+        },
+      },
+      user.id,
+    );
 
     return user;
   }

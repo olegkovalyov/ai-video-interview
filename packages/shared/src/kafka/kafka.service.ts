@@ -25,7 +25,11 @@ export class KafkaService {
       this.producer = this.kafka.producer({
         maxInFlightRequests: 1,
         idempotent: true,
-        transactionTimeout: 30000,
+        retry: {
+          retries: 10, // Increase retries for idempotent producer (default is 5)
+          initialRetryTime: 300,
+          maxRetryTime: 30000,
+        },
       });
       
       await this.producer.connect();

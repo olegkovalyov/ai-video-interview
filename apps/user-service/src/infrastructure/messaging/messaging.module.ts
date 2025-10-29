@@ -10,6 +10,7 @@ import { OutboxEntity } from '../persistence/entities/outbox.entity';
 import { InboxConsumerService } from './inbox/inbox-consumer.service';
 import { InboxWorkerProcessor } from './inbox/inbox-worker.processor';
 import { InboxSchedulerService } from './inbox/inbox-scheduler.service';
+import { OutboxService } from './outbox/outbox.service';
 import { OutboxPublisherProcessor } from './outbox/outbox-publisher.processor';
 import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
 
@@ -70,6 +71,7 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
     InboxSchedulerService,
 
     // OUTBOX
+    OutboxService,
     OutboxPublisherProcessor,
     OutboxSchedulerService,
   ],
@@ -77,6 +79,7 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
   exports: [
     BullModule,
     InboxConsumerService,
+    OutboxService,
   ],
 })
 export class MessagingModule {}

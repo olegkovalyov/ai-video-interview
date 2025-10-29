@@ -27,7 +27,7 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;
 
   /**
-   * Delete user (soft delete)
+   * Delete user (hard delete with CASCADE)
    */
   delete(id: string): Promise<void>;
 }

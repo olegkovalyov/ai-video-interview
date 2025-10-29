@@ -8,6 +8,8 @@ import { InboxEntity } from '../../persistence/entities/inbox.entity';
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
 import { UpdateUserCommand } from '../../../application/commands/update-user/update-user.command';
 import { DeleteUserCommand } from '../../../application/commands/delete-user/delete-user.command';
+import { AssignRoleCommand } from '../../../application/commands/assign-role/assign-role.command';
+import { RemoveRoleCommand } from '../../../application/commands/remove-role/remove-role.command';
 import {
   UserRegisteredEvent,
   UserProfileUpdatedEvent,
@@ -87,11 +89,18 @@ export class InboxWorkerProcessor {
   }
 
   private async processEvent(event: any) {
-    console.log(`📋 INBOX WORKER: Processing event type: ${event.eventType}`);
+    console.log(`📋 INBOX WORKER: Processing event type: ${event.eventType}, source: ${event.source}`);
 
+    // ===== IGNORE INTEGRATION EVENTS from user-service itself =====
+    // Integration events (source='user-service') are for OTHER services (interview-service)
+    if (event.source === 'user-service') {
+      console.log(`⏩ INBOX WORKER: Ignoring integration event ${event.eventType} from user-service (for other services)`);
+      return;
+    }
+
+    // ===== PROCESS COMMANDS from API Gateway =====
     switch (event.eventType) {
       case 'user.registered':
-      case 'user.created': // Handle both types (created from outbox, registered from API Gateway)
         await this.handleUserRegistered(event as UserRegisteredEvent);
         break;
 
@@ -157,11 +166,25 @@ export class InboxWorkerProcessor {
 
   private async handleUserRoleAssigned(event: UserRoleAssignedEvent) {
     console.log(`🎭 INBOX WORKER: Role assigned: ${event.payload.roleName} to ${event.payload.userId}`);
-    // TODO: Implement role assignment command
+
+    const command = new AssignRoleCommand(
+      event.payload.userId,
+      event.payload.roleName,
+      event.payload.assignedBy,
+    );
+
+    await this.commandBus.execute(command);
   }
 
   private async handleUserRoleRemoved(event: UserRoleRemovedEvent) {
     console.log(`🎭 INBOX WORKER: Role removed: ${event.payload.roleName} from ${event.payload.userId}`);
-    // TODO: Implement role removal command
+
+    const command = new RemoveRoleCommand(
+      event.payload.userId,
+      event.payload.roleName,
+      event.payload.removedBy,
+    );
+
+    await this.commandBus.execute(command);
   }
 }

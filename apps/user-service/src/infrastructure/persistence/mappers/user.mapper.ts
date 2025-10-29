@@ -33,11 +33,6 @@ export class UserMapper {
     entity.createdAt = user.createdAt;
     entity.updatedAt = user.updatedAt;
     
-    // Handle soft delete
-    if (user.isDeleted) {
-      entity.deletedAt = user.updatedAt;
-    }
-    
     return entity;
   }
 

@@ -48,6 +48,7 @@ export class TypeOrmUserRepository implements IUserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.softDelete(id);
+    // Hard delete - CASCADE will delete related records (roles, etc.)
+    await this.repository.delete(id);
   }
 }
