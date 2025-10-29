@@ -15,7 +15,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["PORT", "NODE_ENV", "LOG_LEVEL", "INTERVIEW_SERVICE_PORT"]
     },
     "start": {
       "dependsOn": ["build"],
@@ -23,7 +24,8 @@
     },
     "start:dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["PORT", "NODE_ENV", "LOG_LEVEL", "INTERVIEW_SERVICE_PORT", "DATABASE_URL", "KAFKA_BROKERS", "REDIS_HOST"]
     },
     "test": {
       "dependsOn": ["^build"],

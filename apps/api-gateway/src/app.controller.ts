@@ -1,23 +1,21 @@
-import { Controller, Get, Request, UseGuards } from '@nestjs/common';
-import { AppService } from './app.service';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
+import { JwtRefreshGuard } from './auth/jwt-refresh.guard';
+import { Request } from 'express';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
   @Get()
   getHello(): string {
-    return this.appService.getHello();
+    return 'Hello from API Gateway!';
   }
 
+  @UseGuards(JwtRefreshGuard)
   @Get('protected')
-  @UseGuards(JwtAuthGuard)
-  getProtected(@Request() req: any) {
+  getProtected(@Req() req: Request & { user?: any }): { message: string; timestamp: string; user: any } {
     return {
-      message: 'Access granted to protected resource',
-      user: req.user,
+      message: 'This is a protected route! Your JWT is valid.',
       timestamp: new Date().toISOString(),
+      user: req.user || null,
     };
   }
 }

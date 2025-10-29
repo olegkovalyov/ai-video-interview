@@ -1,0 +1,107 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Docker container logs
+  - job_name: docker-containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker-containers
+          __path__: /var/lib/docker/containers/*/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            attrs:
+      - json:
+          source: attrs
+          expressions:
+            tag:
+      - regex:
+          source: tag
+          expression: '^(?P<container_name>[^|]+)\|'
+      - timestamp:
+          source: time
+          format: RFC3339Nano
+      - labels:
+          stream:
+          container_name:
+      - output:
+          source: output
+
+  # Application logs from NestJS services (локальные файлы)
+  - job_name: nestjs-apps
+    static_configs:
+      # Docker (если запускается в контейнерах)
+      - targets:
+          - localhost
+        labels:
+          job: nestjs-apps
+          __path__: /app/*/logs/20??-??-??/*.log
+      # Локальная разработка (macOS/Linux) - структура logs/YYYY-MM-DD/service.log
+      - targets:
+          - localhost
+        labels:
+          job: nestjs-apps-local
+          __path__: /Users/oleg/www/ai-video-interview/apps/*/logs/20??-??-??/*.log
+    pipeline_stages:
+      # Извлекаем service name из пути файла (для Docker)
+      - regex:
+          source: filename
+          expression: '/app/(?P<service_name>[^/]+)/logs/'
+      # Извлекаем service name из пути файла (для локальной разработки)
+      - regex:
+          source: filename
+          expression: '/apps/(?P<service_name>[^/]+)/logs/'
+      # Парсим весь JSON
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            service: service
+            category: category
+            action: action
+            topic: topic
+            success: success
+      # Парсим timestamp в ISO 8601 формате
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      # Добавляем labels для фильтрации
+      - labels:
+          service_name:
+          service:
+          level:
+          category:
+      # Весь JSON попадет в Loki (не указываем output - по умолчанию вся строка)
+
+  # System logs (optional)
+  - job_name: system-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-logs
+          __path__: /var/log/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\S+\s+\S+\s+\S+)\s+(?P<hostname>\S+)\s+(?P<service>\S+):\s+(?P<message>.*)$'
+      - timestamp:
+          source: timestamp
+          format: Jan 02 15:04:05
+      - labels:
+          hostname:
+          service:
+      - output:
+          source: message

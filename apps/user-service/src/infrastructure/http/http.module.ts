@@ -1,0 +1,15 @@
+import { Module } from '@nestjs/common';
+import { UsersController } from './controllers/users.controller';
+import { InternalController } from './controllers/internal.controller';
+import { HealthController } from './controllers/health.controller';
+import { RolesGuard } from './guards/roles.guard';
+import { InternalServiceGuard } from './guards/internal-service.guard';
+import { ApplicationModule } from '../../application/application.module';
+import { StorageModule } from '../storage/storage.module';
+
+@Module({
+  imports: [ApplicationModule, StorageModule],
+  controllers: [UsersController, InternalController, HealthController],
+  providers: [RolesGuard, InternalServiceGuard],
+})
+export class HttpModule {}

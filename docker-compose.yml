@@ -54,37 +54,32 @@ services:
       timeout: 20s
       retries: 3
 
-  # Kafka - Message queue (for later phases)
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    container_name: ai-interview-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-    profiles:
-      - kafka
-
+  # Kafka - Message queue with KRaft (no Zookeeper needed)
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: ai-interview-kafka
-    depends_on:
-      - zookeeper
     ports:
       - "9092:9092"
+      - "9997:9997"  # JMX port for metrics
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://kafka:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      # JMX settings for metrics
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_HOSTNAME: kafka
     volumes:
       - kafka_data:/var/lib/kafka/data
-    profiles:
-      - kafka
 
   # Kafka UI - Web interface for Kafka management
   kafka-ui:
@@ -97,85 +92,146 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: ai-interview-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
       DYNAMIC_CONFIG_ENABLED: true
-    profiles:
-      - kafka
 
-  # Authentik - Authentication & Identity Provider
-  authentik-postgresql:
-    image: postgres:15-alpine
-    container_name: ai-interview-authentik-postgres
+  # Kafka Exporter - Export Kafka metrics to Prometheus
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: ai-interview-kafka-exporter
+    depends_on:
+      - kafka
+    ports:
+      - "9308:9308"
+    command:
+      - --kafka.server=kafka:29092
+      - --web.listen-address=0.0.0.0:9308
+
+  # Keycloak - Authentication & Identity Provider
+  keycloak-postgres:
+    image: postgres:16-alpine
+    container_name: ai-interview-keycloak-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: authentik
-      POSTGRES_USER: authentik
-      POSTGRES_PASSWORD: authentik-password
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak-password
     volumes:
-      - authentik_postgres_data:/var/lib/postgresql/data
+      - keycloak_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U authentik"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -d keycloak -U keycloak"]
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
-  authentik-redis:
-    image: redis:7-alpine
-    container_name: ai-interview-authentik-redis
-    command: redis-server --appendonly yes
-    volumes:
-      - authentik_redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  authentik-server:
-    image: ghcr.io/goauthentik/server:2024.2.2
-    container_name: ai-interview-authentik-server
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: ai-interview-keycloak
     restart: unless-stopped
-    command: server
     environment:
-      AUTHENTIK_SECRET_KEY: "super-secret-key-change-in-production"
-      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
-      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
-      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
-      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
-      AUTHENTIK_POSTGRESQL__USER: authentik
-      AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: authentik-password
-      AUTHENTIK_REDIS__HOST: authentik-redis
-    volumes:
-      - authentik_media:/media
-      - authentik_custom_templates:/templates
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin123
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak-password
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
     ports:
-      - "9443:9000"
-    depends_on:
-      - authentik-postgresql
-      - authentik-redis
-
-  authentik-worker:
-    image: ghcr.io/goauthentik/server:2024.2.2
-    container_name: ai-interview-authentik-worker
-    restart: unless-stopped
-    command: worker
-    environment:
-      AUTHENTIK_SECRET_KEY: "super-secret-key-change-in-production"
-      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
-      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
-      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
-      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
-      AUTHENTIK_POSTGRESQL__USER: authentik
-      AUTHENTIK_POSTGRESQL__NAME: authentik
-      AUTHENTIK_POSTGRESQL__PASSWORD: authentik-password
-      AUTHENTIK_REDIS__HOST: authentik-redis
+      - "8090:8080"
     volumes:
-      - authentik_media:/media
-      - authentik_custom_templates:/templates
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./infra/keycloak/theme:/opt/keycloak/themes
     depends_on:
-      - authentik-postgresql
-      - authentik-redis
+      keycloak-postgres:
+        condition: service_healthy
+    command: start-dev
+
+  # Observability Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ai-interview-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infra/observability/rules:/etc/prometheus/rules
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+
+  # Logs Stack - Grafana Loki (CloudWatch Logs alternative)
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: ai-interview-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infra/observability/loki/loki-config.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: ai-interview-promtail
+    volumes:
+      - ./infra/observability/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./apps:/app:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  # Distributed Tracing - Jaeger (AWS X-Ray alternative)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: ai-interview-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector
+      - "14250:14250"  # gRPC collector
+      - "6831:6831/udp"  # UDP agent
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
+
+  # Grafana - Visualization and dashboards
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: ai-interview-grafana
+    ports:
+      - "3002:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  # Node Exporter - System metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: ai-interview-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
 
   # ClickHouse - Analytics database (for later phases)
   clickhouse:
@@ -197,13 +253,11 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
-  zookeeper_data:
   kafka_data:
   clickhouse_data:
-  authentik_postgres_data:
-  authentik_redis_data:
-  authentik_media:
-  authentik_custom_templates:
+  keycloak_postgres_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   default:

@@ -1,0 +1,1 @@
+{"root":["./src/events/index.ts","./src/events/user.events.ts","./src/kafka/kafka-health.service.ts","./src/kafka/kafka.service.ts"],"version":"5.8.3"}

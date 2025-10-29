@@ -1,45 +1,144 @@
 #!/bin/bash
 
-# Create Kafka topics for AI Video Interview Platform
-# Run this script after starting Kafka with: npm run kafka:up
+# Kafka Topics Management Script for AI Video Interview Platform
+# This script performs full Kafka reset and creates minimal topic set
+# 
+# Usage: ./create-kafka-topics.sh
+# Prerequisites: Kafka container must be running (docker compose up -d)
 
-echo "Creating Kafka topics for AI Video Interview Platform..."
+set -e  # Exit on any error
 
-# Wait for Kafka to be ready
-echo "Waiting for Kafka to be ready..."
-sleep 10
+echo "🔧 Kafka Topics Management - Full Reset & Setup"
+echo "=============================================="
 
-# Define topics
-TOPICS=(
-    "user-events"
-    "interview-events" 
-    "media-events"
-    "notification-events"
-    "ai-analysis-events"
-    "audit-events"
-    # Command topics for RPC-style communication
-    "user-commands"
-    "auth-commands.login"
-    "auth-commands.refresh"
-    "user-commands.register"
-)
+# Check if Kafka container is running
+if ! docker ps | grep -q "ai-interview-kafka"; then
+    echo "❌ Error: Kafka container is not running!"
+    echo "Please start Kafka first: docker compose up -d"
+    exit 1
+fi
 
-# Create topics
-for topic in "${TOPICS[@]}"; do
-    echo "Creating topic: $topic"
-    docker exec ai-interview-kafka kafka-topics \
-        --bootstrap-server localhost:9092 \
-        --create \
-        --topic "$topic" \
-        --partitions 3 \
-        --replication-factor 1 \
-        --if-not-exists
+# Wait for Kafka to be fully ready
+echo "⏳ Waiting for Kafka to be ready..."
+for i in {1..30}; do
+    if docker exec ai-interview-kafka kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+        echo "✅ Kafka is ready!"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "❌ Timeout: Kafka failed to start within 30 seconds"
+        exit 1
+    fi
+    sleep 1
 done
 
-echo "✅ All Kafka topics created successfully!"
-echo "🌐 Access Kafka UI at: http://localhost:8080"
 echo ""
-echo "Created topics:"
-for topic in "${TOPICS[@]}"; do
-    echo "  - $topic"
-done
+echo "🧹 STEP 1: Full Kafka Reset"
+echo "============================"
+
+# Get list of existing topics (excluding internal topics)
+EXISTING_TOPICS=$(docker exec ai-interview-kafka kafka-topics \
+    --bootstrap-server localhost:9092 \
+    --list 2>/dev/null | grep -v "^__" || true)
+
+if [ -n "$EXISTING_TOPICS" ]; then
+    echo "🗑️  Deleting existing topics:"
+    echo "$EXISTING_TOPICS" | while read -r topic; do
+        if [ -n "$topic" ]; then
+            echo "   - Deleting: $topic"
+            docker exec ai-interview-kafka kafka-topics \
+                --bootstrap-server localhost:9092 \
+                --delete --topic "$topic" >/dev/null 2>&1 || true
+        fi
+    done
+    
+    # Wait for topics to be deleted
+    sleep 2
+else
+    echo "ℹ️  No existing topics found"
+fi
+
+# Reset consumer groups (delete all consumer group data)
+echo "🔄 Resetting consumer groups..."
+CONSUMER_GROUPS=$(docker exec ai-interview-kafka kafka-consumer-groups \
+    --bootstrap-server localhost:9092 \
+    --list 2>/dev/null || true)
+
+if [ -n "$CONSUMER_GROUPS" ]; then
+    echo "$CONSUMER_GROUPS" | while read -r group; do
+        if [ -n "$group" ] && [ "$group" != "GROUP" ]; then
+            echo "   - Resetting group: $group"
+            docker exec ai-interview-kafka kafka-consumer-groups \
+                --bootstrap-server localhost:9092 \
+                --delete --group "$group" >/dev/null 2>&1 || true
+        fi
+    done
+else
+    echo "ℹ️  No consumer groups found"
+fi
+
+echo ""
+echo "🏗️  STEP 2: Creating Kafka Topics"
+echo "================================"
+
+# Create auth-events topic (from API Gateway)
+echo "📝 Creating topic: auth-events"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic auth-events \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1 \
+    --config retention.ms=604800000 \
+    --config segment.ms=86400000 \
+    --if-not-exists
+
+# Create auth-events DLQ
+echo "📝 Creating DLQ topic: auth-events-dlq"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic auth-events-dlq \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 \
+    --replication-factor 1 \
+    --config retention.ms=2592000000 \
+    --if-not-exists
+
+# Create user-events topic (from User Service)
+echo "📝 Creating topic: user-events"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic user-events \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1 \
+    --config retention.ms=604800000 \
+    --config segment.ms=86400000 \
+    --if-not-exists
+
+# Create user-events DLQ
+echo "📝 Creating DLQ topic: user-events-dlq"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic user-events-dlq \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 \
+    --replication-factor 1 \
+    --config retention.ms=2592000000 \
+    --if-not-exists
+
+echo ""
+echo "✅ Kafka Setup Complete!"
+echo "========================"
+echo ""
+echo "📊 Created Topics:"
+echo "  - auth-events (3 partitions) - Auth events from API Gateway"
+echo "  - auth-events-dlq (1 partition)"
+echo "  - user-events (3 partitions) - Domain events from User Service"
+echo "  - user-events-dlq (1 partition)"
+echo ""
+echo "🔧 Topic Configuration:"
+echo "  - Retention: 7 days (main topics), 30 days (DLQ)"
+echo "  - Compression: None (producer default)"
+echo "  - Partitioning: By userId for ordering guarantees"
+echo ""
+echo "🌐 Access Kafka UI: http://localhost:8080"
+echo "📋 List topics: docker exec ai-interview-kafka kafka-topics --bootstrap-server localhost:9092 --list"
+echo ""
+echo "🎯 Ready for events!"

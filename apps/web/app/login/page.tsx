@@ -1,78 +1,73 @@
 "use client";
 import { useState } from "react";
-import { apiPost } from "../lib/api";
-import { useRouter } from "next/navigation";
+import { apiGet } from "../lib/api";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { LogoWithText } from "@/components/ui/logo";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const beginLogin = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiPost<{ user: any; session: { token: string } }>(
-        "/auth/sign-in/email",
-        { email, password }
-      );
-      // Better Auth uses session tokens, but we can get JWT via /auth/token
-      const tokenRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'}/auth/token`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${res.session.token}`,
-        },
-      });
-      const tokenData = await tokenRes.json();
-      
-      localStorage.setItem("accessToken", tokenData.token);
-      localStorage.setItem("sessionToken", res.session.token);
-      router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+      const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN || "http://localhost:3000";
+      const callbackUrl = `${webOrigin}/auth/callback`;
+      const qs = new URLSearchParams({ redirect_uri: callbackUrl }).toString();
+      const { authUrl } = await apiGet<{ authUrl: string; state: string; redirectUri: string }>(`/auth/login?${qs}`);
+      window.location.assign(authUrl);
+    } catch (e: any) {
+      setError(e.message || "Failed to start login");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 360, margin: "60px auto", fontFamily: "sans-serif" }}>
-      <h1>Login</h1>
-      <form onSubmit={onSubmit}>
-        <div style={{ marginBottom: 12 }}>
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: "100%", padding: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            style={{ width: "100%", padding: 8 }}
-          />
-        </div>
-        {error && (
-          <div style={{ color: "#b00020", marginBottom: 12 }}>{error}</div>
-        )}
-        <button type="submit" disabled={loading}>
-          {loading ? "Signing in..." : "Login"}
-        </button>
-      </form>
-      <p style={{ marginTop: 12 }}>
-        No account? <a href="/register">Register</a>
-      </p>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center p-6">
+      <Link 
+        href="/" 
+        className="absolute top-6 left-6 hover:opacity-80 transition-opacity"
+      >
+        <LogoWithText />
+      </Link>
+      
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <h1 className="text-3xl font-bold text-white mb-6">
+            Welcome Back
+          </h1>
+          
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+          
+          <Button 
+            onClick={beginLogin} 
+            disabled={loading}
+            variant={loading ? "secondary" : "brand"}
+            size="lg"
+            className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200"
+          >
+            {loading ? "Redirecting..." : "Continue with Keycloak"}
+          </Button>
+          
+          <p className="text-white/90">
+            No account?{" "}
+            <Link 
+              href="/register"
+              className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
+            >
+              Create account
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
