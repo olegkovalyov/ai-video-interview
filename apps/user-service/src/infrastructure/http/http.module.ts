@@ -6,9 +6,10 @@ import { RolesGuard } from './guards/roles.guard';
 import { InternalServiceGuard } from './guards/internal-service.guard';
 import { ApplicationModule } from '../../application/application.module';
 import { StorageModule } from '../storage/storage.module';
+import { KafkaModule } from '../kafka/kafka.module';
 
 @Module({
-  imports: [ApplicationModule, StorageModule],
+  imports: [ApplicationModule, StorageModule, KafkaModule],
   controllers: [UsersController, InternalController, HealthController],
   providers: [RolesGuard, InternalServiceGuard],
 })

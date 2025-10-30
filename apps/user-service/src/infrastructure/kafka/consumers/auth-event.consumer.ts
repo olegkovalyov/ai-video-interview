@@ -42,8 +42,16 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
     });
     this.consumer = this.kafka.consumer({
       groupId: this.groupId,
-      sessionTimeout: 30000,
-      heartbeatInterval: 3000,
+      
+      // ============ FIX: Session & Heartbeat ============
+      sessionTimeout: 60000,      // 60 seconds (default: 30000ms)
+      heartbeatInterval: 10000,   // 10 seconds (must be < sessionTimeout/3)
+      
+      // ============ FIX: Rebalance Timeout ============
+      rebalanceTimeout: 60000,    // 60 seconds
+      
+      // ============ FIX: Max Wait Time ============
+      maxWaitTimeInMs: 5000,      // Wait max 5 seconds for new data
     });
   }
 

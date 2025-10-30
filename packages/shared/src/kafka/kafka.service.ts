@@ -1,5 +1,7 @@
-import { Kafka, Producer, Consumer, KafkaMessage, EachBatchPayload } from 'kafkajs';
+import { Kafka, Producer, Consumer, KafkaMessage, EachBatchPayload, logLevel } from 'kafkajs';
 import { KAFKA_CONFIG } from '../events';
+import * as net from 'net';
+import * as tls from 'tls';
 
 export class KafkaService {
   private kafka: Kafka;
@@ -13,9 +15,32 @@ export class KafkaService {
     this.kafka = new Kafka({
       clientId: `${KAFKA_CONFIG.clientId}-${serviceName}`,
       brokers,
+      logLevel: logLevel.ERROR,
+      
+      // ============ FIX: Connection Settings ============
+      connectionTimeout: 10000, // 10 seconds (default: 1000ms)
+      requestTimeout: 30000,     // 30 seconds (default: 30000ms)
+      
+      // ============ FIX: Retry Settings ============
       retry: {
-        initialRetryTime: 100,
-        retries: 8,
+        initialRetryTime: 300,    // 300ms
+        retries: 8,               // More retries before giving up
+        maxRetryTime: 30000,      // Max 30 seconds between retries
+        multiplier: 2,            // Exponential backoff
+        factor: 0.2,              // Randomization factor
+      },
+      
+      // ============ FIX: Socket Keep-Alive ============
+      socketFactory: ({ host, port, ssl, onConnect }) => {
+        const socket = ssl
+          ? tls.connect({ host, port, ...ssl }, onConnect)
+          : net.connect({ host, port }, onConnect);
+        
+        // Enable TCP keep-alive to detect dead connections!
+        socket.setKeepAlive(true, 60000); // Send keep-alive every 60 seconds
+        socket.setTimeout(0); // Disable socket timeout
+        
+        return socket;
       },
     });
   }
@@ -44,8 +69,16 @@ export class KafkaService {
     if (!this.consumers.has(consumerKey)) {
       const consumer = this.kafka.consumer({
         groupId: `${groupId}-${this.serviceName}`,
-        sessionTimeout: 30000,
-        heartbeatInterval: 3000,
+        
+        // ============ FIX: Session & Heartbeat ============
+        sessionTimeout: 60000,      // 60 seconds (default: 30000ms)
+        heartbeatInterval: 10000,   // 10 seconds (must be < sessionTimeout/3)
+        
+        // ============ FIX: Rebalance Timeout ============
+        rebalanceTimeout: 60000,    // 60 seconds
+        
+        // ============ FIX: Max Wait Time ============
+        maxWaitTimeInMs: 5000,      // Wait max 5 seconds for new data
       });
       
       await consumer.connect();

@@ -78,8 +78,26 @@ services:
       # JMX settings for metrics
       KAFKA_JMX_PORT: 9997
       KAFKA_JMX_HOSTNAME: kafka
+      
+      # ============ FIX: Connection Keep-Alive ============
+      # Close idle connections after 10 minutes (default: 10 min)
+      KAFKA_CONNECTIONS_MAX_IDLE_MS: 600000
+      
+      # ============ FIX: Request Timeouts ============
+      KAFKA_REQUEST_TIMEOUT_MS: 30000
+      
+      # ============ FIX: Socket Buffer Sizes ============
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 102400
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: 102400
     volumes:
       - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Kafka UI - Web interface for Kafka management
   kafka-ui:
