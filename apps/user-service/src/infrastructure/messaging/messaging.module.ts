@@ -38,7 +38,15 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
         }
         
         return {
-          connection: redisConfig,
+          redis: {
+            ...redisConfig,
+            maxRetriesPerRequest: null, // Required for BullMQ
+            enableReadyCheck: false,    // Skip ready check for faster startup
+            retryStrategy: (times: number) => {
+              if (times > 10) return null; // Stop after 10 retries
+              return Math.min(times * 50, 2000); // Max 2s between retries
+            },
+          },
         } as any; // Type workaround for @nestjs/bull compatibility
       },
       inject: [ConfigService],
