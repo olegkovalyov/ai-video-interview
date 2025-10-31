@@ -15,16 +15,16 @@ import { DomainException } from '../../../../src/domain/exceptions/domain.except
 
 describe('User Aggregate', () => {
   const userId = 'user-123';
-  const keycloakId = 'keycloak-123';
+  const externalAuthId = 'external-auth-123';
   const email = Email.create('test@example.com');
   const fullName = FullName.create('John', 'Doe');
 
   describe('create', () => {
     it('should create user with valid data', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
 
       expect(user.id).toBe(userId);
-      expect(user.keycloakId).toBe(keycloakId);
+      expect(user.externalAuthId).toBe(externalAuthId);
       expect(user.email.value).toBe('test@example.com');
       expect(user.fullName.firstName).toBe('John');
       expect(user.fullName.lastName).toBe('Doe');
@@ -37,18 +37,18 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserCreatedEvent', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       const events = user.getUncommittedEvents();
 
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(UserCreatedEvent);
       expect((events[0] as UserCreatedEvent).userId).toBe(userId);
       expect((events[0] as UserCreatedEvent).email).toBe('test@example.com');
-      expect((events[0] as UserCreatedEvent).keycloakId).toBe(keycloakId);
+      expect((events[0] as UserCreatedEvent).externalAuthId).toBe(externalAuthId);
     });
 
     it('should set timestamps', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
 
       expect(user.createdAt).toBeInstanceOf(Date);
       expect(user.updatedAt).toBeInstanceOf(Date);
@@ -59,7 +59,7 @@ describe('User Aggregate', () => {
     it('should reconstitute user without emitting events', () => {
       const user = User.reconstitute(
         userId,
-        keycloakId,
+        externalAuthId,
         email,
         fullName,
         UserStatus.active(),
@@ -86,7 +86,7 @@ describe('User Aggregate', () => {
 
   describe('updateProfile', () => {
     it('should update profile successfully', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents(); // Clear creation event
 
       const newFullName = FullName.create('Jane', 'Smith');
@@ -99,7 +99,7 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserUpdatedEvent with changes', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       const newFullName = FullName.create('Jane', 'Smith');
@@ -115,7 +115,7 @@ describe('User Aggregate', () => {
     });
 
     it('should not emit event if nothing changed', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.updateProfile(fullName); // Same name
@@ -124,14 +124,14 @@ describe('User Aggregate', () => {
     });
 
     it('should throw if user is deleted', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.delete('admin-id');
 
       expect(() => user.updateProfile(fullName)).toThrow(UserDeletedException);
     });
 
     it('should throw if user is suspended', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.suspend('Policy violation', 'admin-id');
 
       expect(() => user.updateProfile(fullName)).toThrow(UserSuspendedException);
@@ -140,7 +140,7 @@ describe('User Aggregate', () => {
 
   describe('changeEmail', () => {
     it('should change email successfully', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       const newEmail = Email.create('newemail@example.com');
@@ -151,7 +151,7 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserUpdatedEvent', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       const newEmail = Email.create('newemail@example.com');
@@ -164,7 +164,7 @@ describe('User Aggregate', () => {
     });
 
     it('should not emit event if email unchanged', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.changeEmail(email); // Same email
@@ -175,7 +175,7 @@ describe('User Aggregate', () => {
 
   describe('verifyEmail', () => {
     it('should verify email', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.verifyEmail();
@@ -185,7 +185,7 @@ describe('User Aggregate', () => {
     });
 
     it('should not emit event if already verified', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.verifyEmail();
       user.clearEvents();
 
@@ -197,7 +197,7 @@ describe('User Aggregate', () => {
 
   describe('suspend', () => {
     it('should suspend active user', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.suspend('Policy violation', 'admin-id');
@@ -207,7 +207,7 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserSuspendedEvent', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.suspend('Policy violation', 'admin-id');
@@ -222,7 +222,7 @@ describe('User Aggregate', () => {
     });
 
     it('should throw if user already suspended', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.suspend('First reason', 'admin-1');
 
       expect(() => user.suspend('Second reason', 'admin-2'))
@@ -232,7 +232,7 @@ describe('User Aggregate', () => {
     });
 
     it('should throw if user is deleted', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.delete('admin-id');
 
       expect(() => user.suspend('reason', 'admin-id')).toThrow(UserDeletedException);
@@ -241,7 +241,7 @@ describe('User Aggregate', () => {
 
   describe('activate', () => {
     it('should activate suspended user', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.suspend('Policy violation', 'admin-id');
       user.clearEvents();
 
@@ -252,7 +252,7 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserUpdatedEvent', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.suspend('Policy violation', 'admin-id');
       user.clearEvents();
 
@@ -264,7 +264,7 @@ describe('User Aggregate', () => {
     });
 
     it('should not emit event if already active', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.activate(); // Already active
@@ -275,7 +275,7 @@ describe('User Aggregate', () => {
 
   describe('delete', () => {
     it('should soft delete user', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.delete('admin-id');
@@ -285,7 +285,7 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserDeletedEvent', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.delete('admin-id');
@@ -297,7 +297,7 @@ describe('User Aggregate', () => {
     });
 
     it('should not emit event if already deleted', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.delete('admin-1');
       user.clearEvents();
 
@@ -309,7 +309,7 @@ describe('User Aggregate', () => {
 
   describe('uploadAvatar', () => {
     it('should upload avatar successfully', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       const avatarUrl = 'https://example.com/avatar.jpg';
@@ -319,7 +319,7 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserUpdatedEvent', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.uploadAvatar('https://example.com/avatar.jpg');
@@ -330,14 +330,14 @@ describe('User Aggregate', () => {
     });
 
     it('should throw on empty avatar URL', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
 
       expect(() => user.uploadAvatar('')).toThrow(DomainException);
       expect(() => user.uploadAvatar('   ')).toThrow(DomainException);
     });
 
     it('should throw if user is deleted', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.delete('admin-id');
 
       expect(() => user.uploadAvatar('https://example.com/avatar.jpg'))
@@ -345,7 +345,7 @@ describe('User Aggregate', () => {
     });
 
     it('should throw if user is suspended', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.suspend('reason', 'admin-id');
 
       expect(() => user.uploadAvatar('https://example.com/avatar.jpg'))
@@ -355,7 +355,7 @@ describe('User Aggregate', () => {
 
   describe('removeAvatar', () => {
     it('should remove avatar successfully', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.uploadAvatar('https://example.com/avatar.jpg');
       user.clearEvents();
 
@@ -365,7 +365,7 @@ describe('User Aggregate', () => {
     });
 
     it('should emit UserUpdatedEvent', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.uploadAvatar('https://example.com/avatar.jpg');
       user.clearEvents();
 
@@ -377,7 +377,7 @@ describe('User Aggregate', () => {
     });
 
     it('should not emit event if no avatar to remove', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.clearEvents();
 
       user.removeAvatar(); // No avatar
@@ -388,7 +388,7 @@ describe('User Aggregate', () => {
 
   describe('invariants', () => {
     it('should prevent operations on deleted user', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.delete('admin-id');
 
       expect(() => user.updateProfile(fullName)).toThrow(UserDeletedException);
@@ -401,7 +401,7 @@ describe('User Aggregate', () => {
     });
 
     it('should prevent operations on suspended user', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.suspend('Policy violation', 'admin-id');
 
       expect(() => user.updateProfile(fullName)).toThrow(UserSuspendedException);
@@ -410,7 +410,7 @@ describe('User Aggregate', () => {
     });
 
     it('should allow read operations on suspended user', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       user.suspend('Policy violation', 'admin-id');
 
       // These should not throw
@@ -422,7 +422,7 @@ describe('User Aggregate', () => {
 
   describe('event management', () => {
     it('should accumulate multiple events', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       
       expect(user.getUncommittedEvents()).toHaveLength(1); // UserCreatedEvent
 
@@ -434,7 +434,7 @@ describe('User Aggregate', () => {
     });
 
     it('should clear events after commit', () => {
-      const user = User.create(userId, keycloakId, email, fullName);
+      const user = User.create(userId, externalAuthId, email, fullName);
       expect(user.getUncommittedEvents()).toHaveLength(1);
 
       user.clearEvents();

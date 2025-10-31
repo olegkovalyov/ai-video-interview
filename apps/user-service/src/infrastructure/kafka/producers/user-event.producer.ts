@@ -182,7 +182,7 @@ export class UserEventProducer implements OnModuleInit, OnModuleDestroy {
       return {
         userId: event.userId,
         email: event.email,
-        keycloakId: event.keycloakId,
+        externalAuthId: event.externalAuthId,
         firstName: event.firstName,
         lastName: event.lastName,
         createdAt: new Date().toISOString(),

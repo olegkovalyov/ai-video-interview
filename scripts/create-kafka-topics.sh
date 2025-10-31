@@ -102,7 +102,28 @@ docker exec ai-interview-kafka kafka-topics --create \
     --config retention.ms=2592000000 \
     --if-not-exists
 
-# Create user-events topic (from User Service)
+# Create user-commands topic (TO User Service from API Gateway)
+echo "📝 Creating topic: user-commands"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic user-commands \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1 \
+    --config retention.ms=604800000 \
+    --config segment.ms=86400000 \
+    --if-not-exists
+
+# Create user-commands DLQ
+echo "📝 Creating DLQ topic: user-commands-dlq"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic user-commands-dlq \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 \
+    --replication-factor 1 \
+    --config retention.ms=2592000000 \
+    --if-not-exists
+
+# Create user-events topic (FROM User Service to other services)
 echo "📝 Creating topic: user-events"
 docker exec ai-interview-kafka kafka-topics --create \
     --topic user-events \
@@ -130,13 +151,18 @@ echo ""
 echo "📊 Created Topics:"
 echo "  - auth-events (3 partitions) - Auth events from API Gateway"
 echo "  - auth-events-dlq (1 partition)"
-echo "  - user-events (3 partitions) - Domain events from User Service"
+echo "  - user-commands (3 partitions) - Commands TO User Service"
+echo "  - user-commands-dlq (1 partition)"
+echo "  - user-events (3 partitions) - Integration events FROM User Service"
 echo "  - user-events-dlq (1 partition)"
 echo ""
 echo "🔧 Topic Configuration:"
 echo "  - Retention: 7 days (main topics), 30 days (DLQ)"
 echo "  - Compression: None (producer default)"
 echo "  - Partitioning: By userId for ordering guarantees"
+echo ""
+echo "📐 Architecture:"
+echo "  API Gateway → user-commands → User Service → user-events → Other Services"
 echo ""
 echo "🌐 Access Kafka UI: http://localhost:8080"
 echo "📋 List topics: docker exec ai-interview-kafka kafka-topics --bootstrap-server localhost:9092 --list"

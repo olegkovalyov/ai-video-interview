@@ -89,7 +89,12 @@ export class KafkaService {
     return this.consumers.get(consumerKey)!;
   }
 
-  async publishEvent(topic: string, event: any, options?: { partitionKey?: string }): Promise<void> {
+  async publishEvent(
+    topic: string, 
+    event: any, 
+    additionalHeaders?: Record<string, Buffer | string>,
+    options?: { partitionKey?: string }
+  ): Promise<void> {
     const startTime = Date.now();
     try {
       const producer = await this.createProducer();
@@ -100,16 +105,20 @@ export class KafkaService {
                           event.eventId || 
                           'default';
       
+      // Merge default headers with additional headers (for tracing)
+      const headers = {
+        eventType: event.eventType,
+        version: event.version?.toString() || '1',
+        ...additionalHeaders, // Include trace context headers
+      };
+      
       await producer.send({
         topic,
         messages: [
           {
             key: partitionKey,
             value: JSON.stringify(event),
-            headers: {
-              eventType: event.eventType,
-              version: event.version?.toString() || '1',
-            },
+            headers,
           },
         ],
       });

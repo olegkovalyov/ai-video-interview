@@ -20,9 +20,9 @@ export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true, type: 'varchar', length: 255, name: 'keycloak_id' })
+  @Column({ unique: true, type: 'varchar', length: 255, name: 'external_auth_id' })
   @Index()
-  keycloakId: string;
+  externalAuthId: string;
 
   @Column({ unique: true, type: 'varchar', length: 255 })
   @Index()

@@ -10,7 +10,7 @@ export class UserResponseDto {
   id: string;
 
   @ApiProperty()
-  keycloakId: string;
+  externalAuthId: string;
 
   @ApiProperty()
   email: string;
@@ -63,7 +63,7 @@ export class UserResponseDto {
   static fromDomain(user: User): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
-    dto.keycloakId = user.keycloakId;
+    dto.externalAuthId = user.externalAuthId;
     dto.email = user.email.value;
     dto.firstName = user.fullName.firstName;
     dto.lastName = user.fullName.lastName;

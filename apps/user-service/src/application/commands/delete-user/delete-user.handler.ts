@@ -20,8 +20,8 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
   ) {}
 
   async execute(command: DeleteUserCommand): Promise<void> {
-    // 1. Find user by keycloakId (command.userId is actually keycloakId from event)
-    const user = await this.userRepository.findByKeycloakId(command.userId);
+    // 1. Find user by external auth ID
+    const user = await this.userRepository.findByExternalAuthId(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
     }
@@ -43,7 +43,7 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
         source: 'user-service',
         payload: {
           userId: user.id,
-          keycloakId: user.keycloakId,
+          externalAuthId: user.externalAuthId,
           email: user.email.value,
           deletedAt: new Date().toISOString(),
         },

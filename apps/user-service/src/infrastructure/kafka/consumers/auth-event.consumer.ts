@@ -4,6 +4,7 @@ import { Kafka, Consumer, EachBatchPayload } from 'kafkajs';
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
 import { LoggerService } from '../../logger/logger.service';
 import { UserAuthenticatedEvent } from '@repo/shared';
+import { v4 as uuid } from 'uuid';
 
 // Base event structure from @repo/shared
 interface BaseKafkaEvent {
@@ -181,11 +182,16 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
    * Create user if doesn't exist (first login)
    */
   private async handleUserAuthenticated(event: UserAuthenticatedEvent): Promise<void> {
-    const { userId, email, firstName, lastName } = event.payload;
+    // Note: event.payload.userId from auth-events is external auth provider ID
+    const { userId: externalAuthId, email, firstName, lastName } = event.payload;
 
     try {
+      // Generate internal userId for User Service
+      const userId = uuid();
+      
       const command = new CreateUserCommand(
-        userId, // keycloakId
+        userId,           // Internal userId (primary key)
+        externalAuthId,   // External auth provider ID
         email,
         firstName || 'Unknown',
         lastName || 'User',
@@ -196,8 +202,9 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
       this.logger.info('User created from auth event', {
         category: 'kafka',
         component: 'AuthEventConsumer',
+        userId,
+        externalAuthId,
         email,
-        keycloakId: userId,
         firstName,
         lastName,
       });

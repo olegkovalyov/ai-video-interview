@@ -4,6 +4,6 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/events/**/*", "src/kafka/**/*"],
-  "exclude": ["dist", "node_modules", "src/dto/**/*", "src/utils/**/*", "src/constants/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules", "src/dto/**/*", "src/utils/**/*", "src/constants/**/*", "src/types/**/*"]
 }

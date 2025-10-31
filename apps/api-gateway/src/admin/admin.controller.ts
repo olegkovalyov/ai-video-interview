@@ -1,11 +1,16 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, Inject } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { KeycloakAdminService } from './keycloak-admin.service';
 import { LoggerService } from '../logger/logger.service';
-import { KafkaService, UserEventFactory, KAFKA_TOPICS } from '@repo/shared';
+import { UserCommandPublisher } from './user-command-publisher.service';
 
 /**
  * Admin Controller
- * Управление пользователями через Keycloak Admin API + Kafka events
+ * Управление пользователями через Keycloak Admin API + Kafka commands
+ * 
+ * Architecture:
+ * - Creates users in Keycloak
+ * - Publishes commands to user-commands topic
+ * - User Service consumes commands and creates users in DB
  * 
  * NOTE: Без auth guard для тестирования через curl
  * TODO: Добавить @UseGuards(JwtAuthGuard, RolesGuard) после тестов
@@ -15,7 +20,7 @@ export class AdminController {
   constructor(
     private readonly keycloakAdminService: KeycloakAdminService,
     private readonly loggerService: LoggerService,
-    @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
+    private readonly userCommandPublisher: UserCommandPublisher,
   ) {}
 
   /**
@@ -50,26 +55,21 @@ export class AdminController {
         enabled: true,
       });
 
-      this.loggerService.info('Admin: User created successfully', {
+      this.loggerService.info('Admin: User created successfully in Keycloak', {
         keycloakId: result.keycloakId,
         email: result.email,
       });
 
-      // Публикуем событие в Kafka
-      const event = UserEventFactory.createUserRegistered(
+      // Публикуем команду в user-commands topic
+      await this.userCommandPublisher.publishUserCreate(
         result.keycloakId,
         result.email,
-        {
-          firstName: result.firstName,
-          lastName: result.lastName,
-          registrationMethod: 'oauth',
-        },
+        result.firstName,
+        result.lastName,
+        body.password,
       );
 
-      await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, event);
-
-      this.loggerService.info('Admin: User created event published', {
-        eventId: event.eventId,
+      this.loggerService.info('Admin: user.create command published', {
         keycloakId: result.keycloakId,
       });
 
@@ -170,22 +170,16 @@ export class AdminController {
     try {
       await this.keycloakAdminService.updateUser(id, body);
 
-      this.loggerService.info('Admin: User updated successfully', { userId: id });
+      this.loggerService.info('Admin: User updated successfully in Keycloak', { userId: id });
 
-      // Публикуем событие в Kafka
-      const event = UserEventFactory.createUserProfileUpdated(
+      // Публикуем команду в user-commands topic
+      await this.userCommandPublisher.publishUserUpdate(
         id,
-        Object.keys(body),
-        {},
-        body,
+        body.firstName,
+        body.lastName,
       );
 
-      await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, event);
-
-      this.loggerService.info('Admin: User updated event published', {
-        eventId: event.eventId,
-        userId: id,
-      });
+      this.loggerService.info('Admin: user.update command published', { userId: id });
 
       return {
         success: true,
@@ -210,17 +204,12 @@ export class AdminController {
     try {
       await this.keycloakAdminService.deleteUser(id);
 
-      this.loggerService.info('Admin: User deleted successfully', { userId: id });
+      this.loggerService.info('Admin: User deleted successfully in Keycloak', { userId: id });
 
-      // Публикуем событие в Kafka
-      const event = UserEventFactory.createUserDeleted(id, 'admin');
+      // Публикуем команду в user-commands topic
+      await this.userCommandPublisher.publishUserDelete(id, 'admin');
 
-      await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, event);
-
-      this.loggerService.info('Admin: User deleted event published', {
-        eventId: event.eventId,
-        userId: id,
-      });
+      this.loggerService.info('Admin: user.delete command published', { userId: id });
 
       return {
         success: true,
@@ -308,18 +297,15 @@ export class AdminController {
     try {
       await this.keycloakAdminService.assignRole(id, body.roleName);
 
-      this.loggerService.info('Admin: Role assigned successfully', {
+      this.loggerService.info('Admin: Role assigned successfully in Keycloak', {
         userId: id,
         roleName: body.roleName,
       });
 
-      // Публикуем событие в Kafka
-      const event = UserEventFactory.createUserRoleAssigned(id, body.roleName);
+      // Публикуем команду в user-commands topic
+      await this.userCommandPublisher.publishUserAssignRole(id, body.roleName);
 
-      await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, event);
-
-      this.loggerService.info('Admin: Role assigned event published', {
-        eventId: event.eventId,
+      this.loggerService.info('Admin: user.assign_role command published', {
         userId: id,
         roleName: body.roleName,
       });
@@ -356,18 +342,15 @@ export class AdminController {
     try {
       await this.keycloakAdminService.removeRole(id, roleName);
 
-      this.loggerService.info('Admin: Role removed successfully', {
+      this.loggerService.info('Admin: Role removed successfully in Keycloak', {
         userId: id,
         roleName,
       });
 
-      // Публикуем событие в Kafka
-      const event = UserEventFactory.createUserRoleRemoved(id, roleName);
+      // Публикуем команду в user-commands topic
+      await this.userCommandPublisher.publishUserRemoveRole(id, roleName);
 
-      await this.kafkaService.publishEvent(KAFKA_TOPICS.USER_EVENTS, event);
-
-      this.loggerService.info('Admin: Role removed event published', {
-        eventId: event.eventId,
+      this.loggerService.info('Admin: user.remove_role command published', {
         userId: id,
         roleName,
       });
@@ -381,6 +364,58 @@ export class AdminController {
         userId: id,
         roleName,
       });
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/admin/users/:id/suspend
+   * Suspend user
+   * 
+   * curl -X POST http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/suspend
+   */
+  @Post('users/:id/suspend')
+  async suspendUser(@Param('id') id: string) {
+    this.loggerService.info('Admin: Suspending user', { userId: id });
+
+    try {
+      // Публикуем команду в user-commands topic
+      await this.userCommandPublisher.publishUserSuspend(id);
+
+      this.loggerService.info('Admin: user.suspend command published', { userId: id });
+
+      return {
+        success: true,
+        message: 'User suspended successfully',
+      };
+    } catch (error) {
+      this.loggerService.error('Admin: Failed to suspend user', error, { userId: id });
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/admin/users/:id/activate
+   * Activate user
+   * 
+   * curl -X POST http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/activate
+   */
+  @Post('users/:id/activate')
+  async activateUser(@Param('id') id: string) {
+    this.loggerService.info('Admin: Activating user', { userId: id });
+
+    try {
+      // Публикуем команду в user-commands topic
+      await this.userCommandPublisher.publishUserActivate(id);
+
+      this.loggerService.info('Admin: user.activate command published', { userId: id });
+
+      return {
+        success: true,
+        message: 'User activated successfully',
+      };
+    } catch (error) {
+      this.loggerService.error('Admin: Failed to activate user', error, { userId: id });
       throw error;
     }
   }

@@ -20,8 +20,8 @@ export class RemoveRoleHandler implements ICommandHandler<RemoveRoleCommand> {
   ) {}
 
   async execute(command: RemoveRoleCommand): Promise<User> {
-    // 1. Load user
-    const user = await this.userRepository.findById(command.userId);
+    // 1. Load user by external auth ID
+    const user = await this.userRepository.findByExternalAuthId(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
     }
@@ -49,7 +49,7 @@ export class RemoveRoleHandler implements ICommandHandler<RemoveRoleCommand> {
         source: 'user-service',
         payload: {
           userId: user.id,
-          keycloakId: user.keycloakId,
+          externalAuthId: user.externalAuthId,
           roleName: command.roleName,
           removedBy: command.removedBy,
           removedAt: new Date().toISOString(),

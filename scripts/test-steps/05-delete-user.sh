@@ -25,14 +25,15 @@ DELETE_RESPONSE=$(curl -s -X DELETE "${API_GATEWAY}/api/admin/users/${KEYCLOAK_I
 echo "$DELETE_RESPONSE" | jq .
 
 echo ""
-echo -e "${GREEN}✅ User deleted${NC}"
+echo -e "${GREEN}✅ User deleted (HARD DELETE)${NC}"
 echo ""
 echo "⏳ Wait 3-5 seconds, then check:"
 echo "1. API Gateway logs - user.deleted event"
 echo "2. User Service logs - INBOX processing + DeleteUserCommand"
 echo "3. PostgreSQL:"
 echo "   SELECT * FROM inbox WHERE event_type = 'user.deleted' ORDER BY created_at DESC LIMIT 1;"
-echo "   SELECT email, status, deleted_at, updated_at FROM users WHERE email = 'testuser@example.com';"
+echo "   SELECT * FROM users WHERE email = 'testuser@example.com';"
 echo "   SELECT * FROM outbox WHERE event_type = 'user.deleted' ORDER BY created_at DESC LIMIT 1;"
 echo ""
-echo -e "${BLUE}🎯 EXPECTED: status='deleted', deleted_at IS NOT NULL${NC}"
+echo -e "${BLUE}🎯 EXPECTED: User NOT FOUND in database (hard delete with CASCADE)${NC}"
+echo -e "${BLUE}   All related data (roles, etc.) also deleted${NC}"

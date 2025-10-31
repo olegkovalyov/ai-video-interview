@@ -30,9 +30,9 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     return entity ? this.mapper.toDomain(entity) : null;
   }
 
-  async findByKeycloakId(keycloakId: string): Promise<User | null> {
+  async findByExternalAuthId(externalAuthId: string): Promise<User | null> {
     const entity = await this.repository.findOne({
-      where: { keycloakId },
+      where: { externalAuthId },
       relations: ['roles'],
     });
     return entity ? this.mapper.toDomain(entity) : null;

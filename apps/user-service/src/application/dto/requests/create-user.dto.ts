@@ -6,10 +6,10 @@ import { ApiProperty } from '@nestjs/swagger';
  * Validation for user creation request
  */
 export class CreateUserDto {
-  @ApiProperty({ example: 'keycloak-uuid-123' })
+  @ApiProperty({ example: 'external-auth-uuid-123' })
   @IsString()
   @IsNotEmpty()
-  keycloakId: string;
+  externalAuthId: string;
 
   @ApiProperty({ example: 'user@example.com' })
   @IsEmail()

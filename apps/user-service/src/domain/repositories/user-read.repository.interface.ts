@@ -32,9 +32,9 @@ export interface IUserReadRepository {
   findById(id: string): Promise<User | null>;
 
   /**
-   * Find user by Keycloak ID
+   * Find user by external auth provider ID
    */
-  findByKeycloakId(keycloakId: string): Promise<User | null>;
+  findByExternalAuthId(externalAuthId: string): Promise<User | null>;
 
   /**
    * Find user by email

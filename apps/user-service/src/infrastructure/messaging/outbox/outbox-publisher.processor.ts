@@ -3,16 +3,23 @@ import type { Job } from 'bull';
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
+import { KafkaService, KAFKA_TOPICS, injectTraceContext } from '@repo/shared';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 
 /**
  * OUTBOX Publisher Processor
  * 
- * Publishes events from outbox table to Kafka:
+ * Publishes integration events from outbox to user-events topic:
  * 1. Fetches event from outbox table
- * 2. Publishes to Kafka
+ * 2. Publishes to user-events Kafka topic with trace context
  * 3. Updates outbox status
+ * 
+ * Integration events (source='user-service'):
+ * - user.created, user.updated, user.deleted
+ * - user.suspended, user.activated  
+ * - user.role_assigned, user.role_removed
+ * 
+ * Consumed by: Interview Service, Notification Service, Analytics
  * 
  * Runs with concurrency for parallel publishing
  */
@@ -49,10 +56,11 @@ export class OutboxPublisherProcessor {
     await this.outboxRepository.save(outbox);
 
     try {
-      // 3. Publish to Kafka
+      // 3. Publish to user-events topic with trace context
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_EVENTS,
         outbox.payload,
+        injectTraceContext(), // Propagate distributed trace
       );
 
       // 4. Mark as published
@@ -60,7 +68,7 @@ export class OutboxPublisherProcessor {
       outbox.publishedAt = new Date();
       await this.outboxRepository.save(outbox);
 
-      console.log(`✅ OUTBOX PUBLISHER: Successfully published ${eventId} (${outbox.eventType})`);
+      console.log(`✅ OUTBOX PUBLISHER: Successfully published ${eventId} (${outbox.eventType}) to user-events`);
     } catch (error) {
       // 5. Handle failure
       outbox.status = 'failed';

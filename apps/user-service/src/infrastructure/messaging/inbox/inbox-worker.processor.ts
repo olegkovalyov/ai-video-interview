@@ -8,23 +8,38 @@ import { InboxEntity } from '../../persistence/entities/inbox.entity';
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
 import { UpdateUserCommand } from '../../../application/commands/update-user/update-user.command';
 import { DeleteUserCommand } from '../../../application/commands/delete-user/delete-user.command';
+import { SuspendUserCommand } from '../../../application/commands/suspend-user/suspend-user.command';
+import { ActivateUserCommand } from '../../../application/commands/activate-user/activate-user.command';
 import { AssignRoleCommand } from '../../../application/commands/assign-role/assign-role.command';
 import { RemoveRoleCommand } from '../../../application/commands/remove-role/remove-role.command';
 import {
-  UserRegisteredEvent,
-  UserProfileUpdatedEvent,
-  UserDeletedEvent,
-  UserRoleAssignedEvent,
-  UserRoleRemovedEvent,
+  UserCommand,
+  UserCreateCommand,
+  UserUpdateCommand,
+  UserDeleteCommand,
+  UserSuspendCommand,
+  UserActivateCommand,
+  UserAssignRoleCommand,
+  UserRemoveRoleCommand,
 } from '@repo/shared';
 
 /**
  * INBOX Worker Processor
  * 
- * Processes messages from inbox table:
- * 1. Fetches message from inbox table
- * 2. Executes business logic (Commands)
- * 3. Updates inbox status
+ * Processes commands from user-commands topic:
+ * 1. Fetches command from inbox table
+ * 2. Executes CQRS command
+ * 3. Command handler publishes integration event to OUTBOX
+ * 4. Updates inbox status
+ * 
+ * Command → Event mapping:
+ * - user.create → CreateUserCommand → user.created event
+ * - user.update → UpdateUserCommand → user.updated event
+ * - user.delete → DeleteUserCommand → user.deleted event
+ * - user.suspend → SuspendUserCommand → user.suspended event
+ * - user.activate → ActivateUserCommand → user.activated event
+ * - user.assign_role → AssignRoleCommand → user.role_assigned event
+ * - user.remove_role → RemoveRoleCommand → user.role_removed event
  * 
  * Runs with concurrency for parallel processing
  */
@@ -88,101 +103,122 @@ export class InboxWorkerProcessor {
     }
   }
 
-  private async processEvent(event: any) {
-    console.log(`📋 INBOX WORKER: Processing event type: ${event.eventType}, source: ${event.source}`);
+  private async processEvent(command: any) {
+    console.log(`📋 INBOX WORKER: Processing command: ${command.eventType} from ${command.source}`);
 
-    // ===== IGNORE INTEGRATION EVENTS from user-service itself =====
-    // Integration events (source='user-service') are for OTHER services (interview-service)
-    if (event.source === 'user-service') {
-      console.log(`⏩ INBOX WORKER: Ignoring integration event ${event.eventType} from user-service (for other services)`);
-      return;
-    }
-
-    // ===== PROCESS COMMANDS from API Gateway =====
-    switch (event.eventType) {
-      case 'user.registered':
-        await this.handleUserRegistered(event as UserRegisteredEvent);
+    // Process commands (we only receive from user-commands topic)
+    switch (command.eventType as string) {
+      case 'user.create':
+        await this.handleUserCreate(command as UserCreateCommand);
         break;
 
-      case 'user.profile_updated':
-        await this.handleUserProfileUpdated(event as UserProfileUpdatedEvent);
+      case 'user.update':
+        await this.handleUserUpdate(command as UserUpdateCommand);
         break;
 
-      case 'user.deleted':
-        await this.handleUserDeleted(event as UserDeletedEvent);
+      case 'user.delete':
+        await this.handleUserDelete(command as UserDeleteCommand);
         break;
 
-      case 'user.role_assigned':
-        await this.handleUserRoleAssigned(event as UserRoleAssignedEvent);
+      case 'user.suspend':
+        await this.handleUserSuspend(command as UserSuspendCommand);
         break;
 
-      case 'user.role_removed':
-        await this.handleUserRoleRemoved(event as UserRoleRemovedEvent);
+      case 'user.activate':
+        await this.handleUserActivate(command as UserActivateCommand);
+        break;
+
+      case 'user.assign_role':
+        await this.handleUserAssignRole(command as UserAssignRoleCommand);
+        break;
+
+      case 'user.remove_role':
+        await this.handleUserRemoveRole(command as UserRemoveRoleCommand);
         break;
 
       default:
-        console.log(`⚠️  INBOX WORKER: Unknown event type: ${event.eventType}`);
+        console.log(`⚠️  INBOX WORKER: Unknown command type: ${command.eventType}`);
     }
   }
 
-  private async handleUserRegistered(event: UserRegisteredEvent) {
-    console.log(`🆕 INBOX WORKER: User registered: ${event.payload.userId} (${event.payload.email})`);
+  private async handleUserCreate(cmd: UserCreateCommand) {
+    console.log(`🆕 INBOX WORKER: user.create - ${cmd.payload.userId} (${cmd.payload.email})`);
 
     const command = new CreateUserCommand(
-      event.payload.userId, // keycloakId
-      event.payload.email,
-      event.payload.firstName || '',
-      event.payload.lastName || '',
+      cmd.payload.userId,          // Internal userId (primary key)
+      cmd.payload.externalAuthId,  // External auth provider ID
+      cmd.payload.email,
+      cmd.payload.firstName || '',
+      cmd.payload.lastName || '',
     );
 
     await this.commandBus.execute(command);
   }
 
-  private async handleUserProfileUpdated(event: UserProfileUpdatedEvent) {
-    console.log(`📝 INBOX WORKER: User profile updated: ${event.payload.userId}`);
+  private async handleUserUpdate(cmd: UserUpdateCommand) {
+    console.log(`📝 INBOX WORKER: user.update - ${cmd.payload.userId}`);
 
     const command = new UpdateUserCommand(
-      event.payload.userId,
-      event.payload.newValues.firstName as string,
-      event.payload.newValues.lastName as string,
-      event.payload.newValues.bio as string,
-      event.payload.newValues.phone as string,
-      event.payload.newValues.timezone as string,
-      event.payload.newValues.language as string,
+      cmd.payload.userId,
+      cmd.payload.firstName,
+      cmd.payload.lastName,
+      undefined, // bio
+      undefined, // phone
+      undefined, // timezone
+      undefined, // language
     );
 
     await this.commandBus.execute(command);
   }
 
-  private async handleUserDeleted(event: UserDeletedEvent) {
-    console.log(`🗑️  INBOX WORKER: User deleted: ${event.payload.userId}`);
+  private async handleUserDelete(cmd: UserDeleteCommand) {
+    console.log(`🗑️  INBOX WORKER: user.delete - ${cmd.payload.userId}`);
 
     const command = new DeleteUserCommand(
-      event.payload.userId,
-      event.payload.deletedBy || 'system', // deletedBy or default to 'system'
+      cmd.payload.userId,
+      cmd.payload.deletedBy,
+    );
+    
+    await this.commandBus.execute(command);
+  }
+
+  private async handleUserSuspend(cmd: UserSuspendCommand) {
+    console.log(`⏸️  INBOX WORKER: user.suspend - ${cmd.payload.userId}`);
+
+    const command = new SuspendUserCommand(
+      cmd.payload.userId,
+      cmd.payload.reason || 'Admin action',
+      'admin',
     );
     await this.commandBus.execute(command);
   }
 
-  private async handleUserRoleAssigned(event: UserRoleAssignedEvent) {
-    console.log(`🎭 INBOX WORKER: Role assigned: ${event.payload.roleName} to ${event.payload.userId}`);
+  private async handleUserActivate(cmd: UserActivateCommand) {
+    console.log(`▶️  INBOX WORKER: user.activate - ${cmd.payload.userId}`);
+
+    const command = new ActivateUserCommand(cmd.payload.userId);
+    await this.commandBus.execute(command);
+  }
+
+  private async handleUserAssignRole(cmd: UserAssignRoleCommand) {
+    console.log(`🎭 INBOX WORKER: user.assign_role - ${cmd.payload.roleName} to ${cmd.payload.userId}`);
 
     const command = new AssignRoleCommand(
-      event.payload.userId,
-      event.payload.roleName,
-      event.payload.assignedBy,
+      cmd.payload.userId,
+      cmd.payload.roleName,
+      cmd.payload.assignedBy,
     );
 
     await this.commandBus.execute(command);
   }
 
-  private async handleUserRoleRemoved(event: UserRoleRemovedEvent) {
-    console.log(`🎭 INBOX WORKER: Role removed: ${event.payload.roleName} from ${event.payload.userId}`);
+  private async handleUserRemoveRole(cmd: UserRemoveRoleCommand) {
+    console.log(`🎭 INBOX WORKER: user.remove_role - ${cmd.payload.roleName} from ${cmd.payload.userId}`);
 
     const command = new RemoveRoleCommand(
-      event.payload.userId,
-      event.payload.roleName,
-      event.payload.removedBy,
+      cmd.payload.userId,
+      cmd.payload.roleName,
+      cmd.payload.removedBy,
     );
 
     await this.commandBus.execute(command);

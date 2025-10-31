@@ -16,7 +16,7 @@ describe('GetUserHandler', () => {
     // Create mock
     mockRepository = {
       findById: jest.fn(),
-      findByKeycloakId: jest.fn(),
+      findByExternalAuthId: jest.fn(),
       findByEmail: jest.fn(),
       list: jest.fn(),
       count: jest.fn(),
@@ -49,7 +49,7 @@ describe('GetUserHandler', () => {
       // Arrange
       const user = User.reconstitute(
         userId,
-        'keycloak-123',
+        'external-auth-123',
         Email.create('test@example.com'),
         FullName.create('John', 'Doe'),
         UserStatus.active(),

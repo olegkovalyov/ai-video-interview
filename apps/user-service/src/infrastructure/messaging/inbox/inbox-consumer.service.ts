@@ -3,18 +3,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
-import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
+import { KafkaService, KAFKA_TOPICS, withKafkaTracing, extractTraceContext } from '@repo/shared';
 import { InboxEntity } from '../../persistence/entities/inbox.entity';
 
 /**
  * INBOX Consumer Service
  * 
- * Listens to Kafka events (eachMessage mode):
- * 1. Saves message to inbox table
- * 2. Adds job to BullMQ queue for processing
- * 3. Kafka auto-commits offset after successful processing
+ * Subscribes to user-commands topic and processes commands:
+ * 1. Extracts trace context from Kafka headers
+ * 2. Saves message to inbox table (idempotency via unique message_id)
+ * 3. Adds job to BullMQ queue for processing
+ * 4. Kafka auto-commits offset after successful processing
  * 
- * Uses idempotency (unique message_id) to prevent duplicates
+ * Architecture:
+ * - Consumes commands from user-commands topic
+ * - Does NOT consume user-events (those are for other services)
  */
 @Injectable()
 export class InboxConsumerService implements OnModuleInit {
@@ -35,7 +38,7 @@ export class InboxConsumerService implements OnModuleInit {
     
     try {
       await this.kafkaService.subscribe(
-        KAFKA_TOPICS.USER_EVENTS,
+        KAFKA_TOPICS.USER_COMMANDS, // ✅ Subscribe to user-commands, not user-events!
         'user-service-inbox-group',
         async (message) => {
           await this.handleKafkaMessage(message);
@@ -47,7 +50,7 @@ export class InboxConsumerService implements OnModuleInit {
         },
       );
 
-      this.logger.log('✅ INBOX Consumer started successfully (subscribed to user-events)');
+      this.logger.log('✅ INBOX Consumer started successfully (subscribed to user-commands)');
     } catch (error) {
       this.logger.error('❌ Failed to start INBOX Consumer', error.stack);
       throw error;

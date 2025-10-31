@@ -1,7 +1,7 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiResponse, ApiSecurity } from '@nestjs/swagger';
-import { GetUserByKeycloakIdQuery } from '../../../application/queries/get-user-by-keycloak-id/get-user-by-keycloak-id.query';
+import { GetUserByExternalAuthIdQuery } from '../../../application/queries/get-user-by-external-auth-id/get-user-by-external-auth-id.query';
 import { GetUserPermissionsQuery } from '../../../application/queries/get-user-permissions/get-user-permissions.query';
 import { UserResponseDto } from '../../../application/dto/responses/user.response.dto';
 import { UserPermissionsResponseDto } from '../../../application/dto/responses/user-permissions.response.dto';
@@ -18,14 +18,14 @@ import { InternalServiceGuard } from '../guards/internal-service.guard';
 export class InternalController {
   constructor(private readonly queryBus: QueryBus) {}
 
-  @Get('users/by-keycloak/:keycloakId')
-  @ApiOperation({ summary: 'Get user by Keycloak ID (Internal)' })
+  @Get('users/by-external-auth/:externalAuthId')
+  @ApiOperation({ summary: 'Get user by external auth ID (Internal)' })
   @ApiResponse({ status: 200, type: UserResponseDto })
-  async getUserByKeycloakId(
-    @Param('keycloakId') keycloakId: string,
+  async getUserByExternalAuthId(
+    @Param('externalAuthId') externalAuthId: string,
   ): Promise<UserResponseDto> {
     const user = await this.queryBus.execute(
-      new GetUserByKeycloakIdQuery(keycloakId),
+      new GetUserByExternalAuthIdQuery(externalAuthId),
     );
     return UserResponseDto.fromDomain(user);
   }

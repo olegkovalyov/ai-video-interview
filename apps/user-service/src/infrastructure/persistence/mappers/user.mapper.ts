@@ -19,7 +19,7 @@ export class UserMapper {
     const entity = new UserEntity();
     
     entity.id = user.id;
-    entity.keycloakId = user.keycloakId;
+    entity.externalAuthId = user.externalAuthId;
     entity.email = user.email.value;
     entity.firstName = user.fullName.firstName;
     entity.lastName = user.fullName.lastName;
@@ -46,7 +46,7 @@ export class UserMapper {
 
     return User.reconstitute(
       entity.id,
-      entity.keycloakId,
+      entity.externalAuthId,
       email,
       fullName,
       status,
