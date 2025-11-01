@@ -3,7 +3,7 @@
  * Методы для работы с User Service через API Gateway
  */
 
-import { apiGet, apiPost, apiPut, apiDelete, API_BASE } from '@/app/lib/api';
+import { apiGet, apiPost, apiPut, apiDelete, API_BASE } from '@/lib/api';
 
 export interface User {
   id: string;
@@ -126,4 +126,25 @@ export async function listUsers(params?: {
  */
 export async function getUserById(id: string): Promise<User> {
   return apiGet<User>(`/api/users/${id}`);
+}
+
+/**
+ * Suspend user (Admin)
+ */
+export async function suspendUser(id: string, reason?: string): Promise<User> {
+  return apiPost<User>(`/api/users/${id}/suspend`, { reason });
+}
+
+/**
+ * Activate user (Admin)
+ */
+export async function activateUser(id: string): Promise<User> {
+  return apiPost<User>(`/api/users/${id}/activate`, {});
+}
+
+/**
+ * Delete user (Admin)
+ */
+export async function deleteUser(id: string): Promise<{ success: boolean; message: string }> {
+  return apiDelete<{ success: boolean; message: string }>(`/api/users/${id}`);
 }

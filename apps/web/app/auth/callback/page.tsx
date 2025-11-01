@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet } from "../../lib/api";
+import { apiGet } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,14 +22,15 @@ export default function AuthCallbackPage() {
         
         // forward the same query to the API; it will set cookies and respond
         const resp = await apiGet<{ success: boolean }>(`/auth/callback${qs}`);
-        if (resp && (resp as any).success) {
+        if (resp && resp.success) {
           setStatus("✅ Authentication successful! Redirecting to dashboard...");
           setTimeout(() => router.replace("/dashboard"), 1000);
         } else {
           setError("Authentication callback failed - invalid response from server");
         }
-      } catch (e: any) {
-        setError(e.message || "Callback error");
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        setError(errorMessage || "Callback error");
       }
     };
     run();

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -20,9 +20,8 @@ export function ProtectedRoute({
   requireAdmin = false,
   requireHR = false 
 }: ProtectedRouteProps) {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -40,9 +39,11 @@ export function ProtectedRoute({
           .find(row => row.startsWith('access_token='))
           ?.split('=')[1];
 
-        if (token) {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const roles: string[] = payload.realm_access?.roles || [];
+        if (token && typeof token === 'string') {
+          const parts = token.split('.');
+          if (parts.length === 3 && parts[1]) {
+            const payload = JSON.parse(atob(parts[1]));
+            const roles: string[] = payload.realm_access?.roles || [];
 
           // Проверка admin роли
           if (requireAdmin && !roles.includes('admin')) {
@@ -54,6 +55,7 @@ export function ProtectedRoute({
           if (requireHR && !roles.includes('hr') && !roles.includes('admin')) {
             router.push('/dashboard');
             return;
+          }
           }
         }
       } catch (error) {

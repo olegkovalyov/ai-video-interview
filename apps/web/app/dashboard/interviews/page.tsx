@@ -1,10 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet } from "../../lib/api";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Copy, Calendar, Users, FileText, Video } from "lucide-react";
@@ -22,7 +20,7 @@ interface Interview {
 }
 
 export default function InterviewsPage() {
-  const router = useRouter();
+  // const router = useRouter();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,8 +75,9 @@ export default function InterviewsPage() {
         ]);
         setLoading(false);
       }, 1000);
-    } catch (e: any) {
-      setError(e.message || "Failed to load interviews");
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      setError(errorMessage || "Failed to load interviews");
       setLoading(false);
     }
   };
@@ -120,7 +119,7 @@ export default function InterviewsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header currentPage="interviews" />
+      <Header />
 
       <main className="container mx-auto px-6 py-12">
         {error && (

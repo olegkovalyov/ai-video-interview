@@ -1,7 +1,5 @@
 "use client";
 import { useState } from "react";
-import { apiPost } from "../../../lib/api";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface Question {
   id: string;
@@ -99,8 +97,9 @@ export default function CreateInterviewPage() {
       
       // Redirect to interviews list
       router.push('/dashboard/interviews');
-    } catch (e: any) {
-      setError(e.message || 'Failed to create interview');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      setError(errorMessage || 'Failed to create interview');
       setLoading(false);
     }
   };
@@ -450,7 +449,7 @@ export default function CreateInterviewPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header currentPage="interviews" />
+      <Header />
 
       <main className="container mx-auto px-6 py-12 max-w-4xl">
         {error && (

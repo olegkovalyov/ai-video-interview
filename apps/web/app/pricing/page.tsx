@@ -10,7 +10,7 @@ import Link from "next/link"
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header currentPage="pricing" />
+      <Header />
       
       <main>
         {/* Hero Section */}

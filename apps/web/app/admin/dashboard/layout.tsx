@@ -1,4 +1,5 @@
 import { HeaderWithRoles } from '@/components/layout/header-with-roles';
+export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardLayout({
   children,

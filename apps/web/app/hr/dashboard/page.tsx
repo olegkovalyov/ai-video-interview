@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet } from "../../lib/api";
+import { apiGet } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,16 +10,15 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 export default function HRDashboardPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({ myInterviews: 8, activeCandidates: 23, pendingReviews: 12 });
+  const [stats] = useState({ myInterviews: 8, activeCandidates: 23, pendingReviews: 12 });
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const res = await apiGet("/protected") as { user: any };
-        setUser(res.user);
-      } catch (e: any) {
-        if (e.message?.includes('401')) {
+        await apiGet("/protected");
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        if (errorMessage.includes('401')) {
           router.replace("/login");
         } else {
           setError("Failed to load user data");

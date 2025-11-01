@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from 'react';
-import { apiPost } from '@/app/lib/api';
+import { apiPost } from '@/lib/api';
 
 export function useAuthRefresh() {
   const refreshTokens = useCallback(async (): Promise<boolean> => {

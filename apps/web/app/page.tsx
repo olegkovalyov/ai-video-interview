@@ -11,7 +11,7 @@ import Link from "next/link"
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header currentPage="home" />
+      <Header />
       
       <main>
         <Hero />
@@ -25,7 +25,7 @@ export default function LandingPage() {
                 <div className="text-4xl mb-4">ℹ️</div>
                 <h3 className="text-xl font-semibold text-white mb-3">Learn About Us</h3>
                 <p className="text-white/80 mb-6 leading-relaxed">
-                  Discover our mission, meet our team, and understand how we're revolutionizing the hiring process.
+                  Discover our mission, meet our team, and understand how we are revolutionizing the hiring process.
                 </p>
                 <Button asChild variant="glass" className="w-full">
                   <Link href="/about">Learn More</Link>
@@ -38,7 +38,7 @@ export default function LandingPage() {
                 <div className="text-4xl mb-4">💰</div>
                 <h3 className="text-xl font-semibold text-white mb-3">View Pricing</h3>
                 <p className="text-white/80 mb-6 leading-relaxed">
-                  Explore our transparent pricing plans and find the perfect fit for your organization's needs.
+                  Explore our transparent pricing plans and find the perfect fit for your organization needs.
                 </p>
                 <Button asChild variant="glass" className="w-full">
                   <Link href="/pricing">View Pricing</Link>

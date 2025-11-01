@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, Edit2, Save, X, Upload, User as UserIcon } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2, Edit2, Save, X, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, updateCurrentUser, type User } from '@/lib/api/users';
@@ -47,7 +48,6 @@ export function ProfileClient() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    setValue,
     watch,
     reset,
   } = useForm<ProfileFormData>({
@@ -73,6 +73,7 @@ export function ProfileClient() {
 
   useEffect(() => {
     loadUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadUser = async () => {
@@ -208,9 +209,11 @@ export function ProfileClient() {
           <div className="flex items-start gap-6">
             <div className="flex-shrink-0">
               {previewUrl || user?.avatarUrl ? (
-                <img
-                  src={previewUrl || user?.avatarUrl}
+                <Image
+                  src={previewUrl || user?.avatarUrl || ''}
                   alt="Avatar"
+                  width={128}
+                  height={128}
                   className="w-32 h-32 rounded-full object-cover border-4 border-white/30"
                 />
               ) : (

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { apiGet } from "../lib/api";
+import { apiGet } from "@/lib/api";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,8 +19,9 @@ export default function LoginPage() {
       const qs = new URLSearchParams({ redirect_uri: callbackUrl }).toString();
       const { authUrl } = await apiGet<{ authUrl: string; state: string; redirectUri: string }>(`/auth/login?${qs}`);
       window.location.assign(authUrl);
-    } catch (e: any) {
-      setError(e.message || "Failed to start login");
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      setError(errorMessage || "Failed to start login");
     } finally {
       setLoading(false);
     }

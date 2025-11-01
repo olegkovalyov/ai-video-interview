@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save, UserPlus } from 'lucide-react';
+import { ArrowLeft, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CreateUserPage() {
@@ -47,8 +47,9 @@ export default function CreateUserPage() {
       
       // Redirect to users list
       router.push('/admin/users');
-    } catch (err: any) {
-      setError(err.message || 'Failed to create user');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || 'Failed to create user');
       setIsCreating(false);
     }
   };

@@ -3,7 +3,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Key, Shield } from 'lucide-react';
-import { toast } from 'sonner';
 
 const KEYCLOAK_URL = process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://localhost:8090';
 const KEYCLOAK_REALM = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'ai-video-interview';
@@ -44,7 +43,7 @@ export default function SecurityPage() {
                 Change Password
               </h2>
               <p className="text-white/70 mb-6">
-                Update your account password to keep your account secure. You'll be redirected to a secure page to complete the process.
+                Update your account password to keep your account secure. You will be redirected to a secure page to complete the process.
               </p>
               
               <Button

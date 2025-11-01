@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { apiGet } from "../lib/api";
+import { apiGet } from "@/lib/api";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,8 +19,9 @@ export default function RegisterPage() {
       const qs = new URLSearchParams({ redirect_uri: callbackUrl }).toString();
       const { authUrl } = await apiGet<{ authUrl: string; state: string; redirectUri: string }>(`/auth/register?${qs}`);
       window.location.assign(authUrl);
-    } catch (e: any) {
-      setError(e.message || "Failed to start registration");
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      setError(errorMessage || "Failed to start registration");
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ export default function RegisterPage() {
           
           <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
             <p className="text-white/80 text-sm">
-              You'll be redirected to our secure registration system. After creating your account, you'll automatically return to the dashboard.
+              You will be redirected to our secure registration system. After creating your account, you will automatically return to the dashboard.
             </p>
           </div>
         </CardContent>

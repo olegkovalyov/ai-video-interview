@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ButtonProps } from "@/components/ui/button";
-import { apiGet } from "@/app/lib/api";
+import { apiGet } from "@/lib/api";
 
 interface SignInButtonProps extends Omit<ButtonProps, 'onClick'> {
   children?: React.ReactNode;

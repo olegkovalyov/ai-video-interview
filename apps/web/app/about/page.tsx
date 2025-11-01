@@ -29,7 +29,7 @@ const differentiators = [
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header currentPage="about" />
+      <Header />
       
       <main>
         {/* Hero Section */}
@@ -41,7 +41,7 @@ export default function AboutPage() {
             </h1>
             
             <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
-              We're revolutionizing the hiring process with cutting-edge AI technology 
+              We are revolutionizing the hiring process with cutting-edge AI technology 
               that makes interviews smarter, faster, and more effective.
             </p>
           </div>

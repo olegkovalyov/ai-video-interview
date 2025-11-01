@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet } from "../lib/api";
+import { apiGet } from "@/lib/api";
+import type { User } from "@/lib/types/user";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,18 +11,19 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 export default function DashboardPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState({ interviews: 0, candidates: 0, responses: 0 });
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const res = await apiGet("/protected") as { user: any };
+        const res = await apiGet("/protected") as { user: User };
         setUser(res.user);
         // TODO: Load real stats from API
         setStats({ interviews: 3, candidates: 12, responses: 8 });
-      } catch (e: any) {
-        if (e.message?.includes('401')) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        if (errorMessage.includes('401')) {
           router.replace("/login");
         } else {
           setError("Failed to load user data");

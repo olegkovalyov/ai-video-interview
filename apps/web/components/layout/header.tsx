@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { useAuthStatus } from "@/hooks/useAuth"
-import { apiPost, apiGet } from "@/app/lib/api"
+import { useAuthStatus } from "@/lib/hooks/useAuth"
+import { apiPost, apiGet } from "@/lib/api"
 import { useRouter, usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { LogOut, User, ChevronDown, LayoutDashboard, Briefcase, UserCircle } from "lucide-react"
+import type { User } from "@/lib/types/user"
+import { LogOut, ChevronDown, UserCircle } from "lucide-react"
 import { SignInButton } from "@/components/auth/sign-in-button"
 import { LogoWithText } from "@/components/ui/logo"
 import {
@@ -19,22 +19,21 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 interface HeaderProps {
-  currentPage?: string;
   userRoles?: string[]; // Роли передаются из Server Component
 }
 
-export function Header({ currentPage, userRoles = [] }: HeaderProps) {
+export function Header({ userRoles = [] }: HeaderProps) {
   const { isAuthenticated, loading } = useAuthStatus();
   const router = useRouter();
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
       if (isAuthenticated) {
         try {
-          const res = await apiGet("/protected") as { user: any };
+          const res = await apiGet("/protected") as { user: User };
           setUser(res.user);
         } catch (error) {
           console.error('Failed to load user:', error);

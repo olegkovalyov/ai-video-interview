@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { apiGet } from '@/app/lib/api';
+import { apiGet } from '@/lib/api';
 
 interface User {
   sub: string;

@@ -25,10 +25,12 @@ export function middleware(request: NextRequest) {
 
   try {
     // Decode JWT payload (simple base64 decode)
-    const payload = JSON.parse(
-      Buffer.from(accessToken.split('.')[1], 'base64').toString()
-    );
+    const parts = accessToken.split('.');
+    if (parts.length !== 3 || !parts[1]) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
     
+    const payload = JSON.parse(atob(parts[1]));
     const roles: string[] = payload.realm_access?.roles || [];
 
     // Redirect to role-specific dashboard

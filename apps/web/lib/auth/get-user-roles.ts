@@ -14,9 +14,11 @@ export async function getUserRoles(): Promise<string[]> {
     }
     
     // Decode JWT payload (base64)
-    const payload = JSON.parse(
-      Buffer.from(token.split('.')[1], 'base64').toString()
-    );
+    const parts = token.split('.');
+    if (parts.length !== 3 || !parts[1]) {
+      return [];
+    }
+    const payload = JSON.parse(atob(parts[1]));
     
     return payload.realm_access?.roles || [];
   } catch (error) {
@@ -41,9 +43,11 @@ export async function getUserFromToken(): Promise<{
       return null;
     }
     
-    const payload = JSON.parse(
-      Buffer.from(token.split('.')[1], 'base64').toString()
-    );
+    const parts = token.split('.');
+    if (parts.length !== 3 || !parts[1]) {
+      return null;
+    }
+    const payload = JSON.parse(atob(parts[1]));
     
     return {
       name: payload.name,
