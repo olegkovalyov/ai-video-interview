@@ -1,9 +1,8 @@
-import { HeaderWithRoles } from '@/components/layout/header-with-roles';
 export const dynamic = 'force-dynamic';
 import { ProfileNav } from './profile-nav';
 import { ProfileWrapper } from './profile-wrapper';
 
-export default async function ProfileLayout({
+export default function ProfileLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -11,8 +10,6 @@ export default async function ProfileLayout({
   return (
     <ProfileWrapper>
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-        <HeaderWithRoles />
-        
         <main className="container mx-auto px-6 py-12">
           {/* Page Header */}
           <div className="mb-8">

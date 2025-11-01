@@ -1,6 +1,5 @@
 "use client";
 
-import { Header } from "@/components/layout/header"
 import { PricingPlans } from "@/components/sections/pricing-plans"
 import { FAQ } from "@/components/sections/faq"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,7 +9,6 @@ import Link from "next/link"
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header />
       
       <main>
         {/* Hero Section */}

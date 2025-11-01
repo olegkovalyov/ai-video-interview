@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function HRDashboardPage() {
   const router = useRouter();
@@ -31,7 +30,6 @@ export default function HRDashboardPage() {
 
 
   return (
-    <ProtectedRoute requireHR={true}>
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
 
       <main className="container mx-auto px-6 py-12">
@@ -132,6 +130,5 @@ export default function HRDashboardPage() {
         </Card>
       </main>
     </div>
-    </ProtectedRoute>
   );
 }

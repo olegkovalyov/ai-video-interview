@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-export default function AdminDashboardPage() {
+export default function CandidateDashboardPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [stats] = useState({ totalUsers: 127, activeInterviews: 15, totalCandidates: 89, totalHRs: 12 });
+  const [stats] = useState({ invitations: 2, completed: 5, pending: 1 });
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -31,7 +30,6 @@ export default function AdminDashboardPage() {
 
 
   return (
-    <ProtectedRoute requireAdmin={true}>
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
 
       <main className="container mx-auto px-6 py-12">
@@ -44,81 +42,75 @@ export default function AdminDashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Admin Dashboard 👨‍💼
+            My Interviews 🎓
           </h1>
           <p className="text-lg text-white/80">
-            System overview and user management
+            View your interview invitations and submissions
           </p>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.totalUsers}</div>
-              <div className="text-sm text-white/80">Total Users</div>
+              <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.invitations}</div>
+              <div className="text-sm text-white/80">New Invitations</div>
             </CardContent>
           </Card>
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-green-400 mb-2">{stats.activeInterviews}</div>
-              <div className="text-sm text-white/80">Active Interviews</div>
+              <div className="text-3xl font-bold text-green-400 mb-2">{stats.completed}</div>
+              <div className="text-sm text-white/80">Completed</div>
             </CardContent>
           </Card>
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-blue-400 mb-2">{stats.totalCandidates}</div>
-              <div className="text-sm text-white/80">Total Candidates</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-purple-400 mb-2">{stats.totalHRs}</div>
-              <div className="text-sm text-white/80">HR Users</div>
+              <div className="text-3xl font-bold text-blue-400 mb-2">{stats.pending}</div>
+              <div className="text-sm text-white/80">In Progress</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          {/* Manage Users */}
+          {/* Active Invitations */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Manage Users</h3>
+              <div className="text-5xl mb-4">📬</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Active Invitations</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                Create, edit, and manage user accounts
+                View and start your pending interviews
               </p>
               <Button asChild variant="brand" className="w-full mt-auto">
-                <Link href="/admin/users">Manage Users</Link>
+                <Link href="/candidate/invitations">View Invitations</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* System Settings */}
+          {/* My Submissions */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">⚙️</div>
-              <h3 className="text-xl font-semibold text-white mb-3">System Settings</h3>
+              <div className="text-5xl mb-4">📹</div>
+              <h3 className="text-xl font-semibold text-white mb-3">My Submissions</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                Configure system-wide settings
+                Review your completed interview responses
               </p>
               <Button asChild variant="glass" className="w-full mt-auto">
-                <Link href="/admin/settings">Settings</Link>
+                <Link href="/candidate/submissions">View All</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Analytics */}
+          {/* Profile */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Analytics</h3>
+              <div className="text-5xl mb-4">👤</div>
+              <h3 className="text-xl font-semibold text-white mb-3">My Profile</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                View system-wide analytics and reports
+                Update your profile and preferences
               </p>
               <Button asChild variant="glass" className="w-full mt-auto">
-                <Link href="/admin/analytics">View Reports</Link>
+                <Link href="/profile">Edit Profile</Link>
               </Button>
             </CardContent>
           </Card>
@@ -127,17 +119,16 @@ export default function AdminDashboardPage() {
         {/* Recent Activity */}
         <Card className="bg-white/10 backdrop-blur-md border-white/20">
           <CardContent className="p-8">
-            <h2 className="text-2xl font-semibold text-white mb-6">System Activity</h2>
+            <h2 className="text-2xl font-semibold text-white mb-6">Recent Activity</h2>
             <div className="text-center py-12">
-              <div className="text-5xl mb-4">🔒</div>
+              <div className="text-5xl mb-4">🎯</div>
               <p className="text-white/80 text-lg">
-                Admin activity monitoring coming soon
+                No recent activity yet. Start your first interview!
               </p>
             </div>
           </CardContent>
         </Card>
       </main>
     </div>
-    </ProtectedRoute>
   );
 }

@@ -39,10 +39,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
     if (roles.includes('hr')) {
-      return NextResponse.redirect(new URL('/hr/dashboard', request.url));
+      return NextResponse.redirect(new URL('/hr', request.url));
     }
     if (roles.includes('candidate')) {
-      return NextResponse.redirect(new URL('/candidate/dashboard', request.url));
+      return NextResponse.redirect(new URL('/candidate', request.url));
     }
 
     // No recognized role - redirect to login

@@ -1,6 +1,5 @@
 "use client";
 
-import { Header } from "@/components/layout/header"
 import { Mission } from "@/components/sections/mission"
 import { Stats } from "@/components/sections/stats"
 import { Team } from "@/components/sections/team"
@@ -29,7 +28,6 @@ const differentiators = [
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header />
       
       <main>
         {/* Hero Section */}
