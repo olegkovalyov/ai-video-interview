@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { ProfileNav } from './profile-nav';
-import { ProfileWrapper } from './profile-wrapper';
+import { ProfileNav } from '@/features/profile';
+import { ProfileWrapper } from '@/features/profile';
 
 export default function ProfileLayout({
   children,

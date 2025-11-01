@@ -7,7 +7,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import type { User } from "@/lib/types/user"
 import { LogOut, ChevronDown, UserCircle } from "lucide-react"
-import { SignInButton } from "@/components/auth/sign-in-button"
+import { SignInButton } from "@/features/auth"
 import { LogoWithText } from "@/components/ui/logo"
 import {
   DropdownMenu,
@@ -82,7 +82,7 @@ export function Header({ userRoles = [] }: HeaderProps) {
               <Link 
                 href="/dashboard" 
                 className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/hr') || pathname.startsWith('/candidate') ? 'text-yellow-400' : ''
+                  pathname === '/dashboard' || pathname.startsWith('/dashboard/') ? 'text-yellow-400' : ''
                 }`}
               >
                 Dashboard

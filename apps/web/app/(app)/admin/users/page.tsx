@@ -1,4 +1,4 @@
-import { UsersListClient } from './UsersListClient';
+import { UsersList } from '@/features/users';
 import { Users } from 'lucide-react';
 
 export default function AdminUsersPage() {
@@ -19,7 +19,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Dynamic Users List */}
-        <UsersListClient />
+        <UsersList />
       </div>
     </div>
   );

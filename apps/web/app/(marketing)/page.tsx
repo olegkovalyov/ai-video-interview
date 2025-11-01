@@ -4,7 +4,7 @@ import { Hero } from "@/components/sections/hero"
 import { Features } from "@/components/sections/features"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { SignInButton } from "@/components/auth/sign-in-button"
+import { SignInButton } from "@/features/auth"
 import Link from "next/link"
 
 export default function LandingPage() {

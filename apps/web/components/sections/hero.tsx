@@ -1,6 +1,6 @@
 "use client";
 
-import { SignInButton } from "@/components/auth/sign-in-button"
+import { SignInButton } from "@/features/auth"
 
 export function Hero() {
   return (
