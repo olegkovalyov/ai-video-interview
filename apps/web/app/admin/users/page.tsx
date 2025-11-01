@@ -1,11 +1,9 @@
-import { Header } from '@/components/layout/header';
 import { UsersListClient } from './UsersListClient';
 import { Users } from 'lucide-react';
 
 export default function AdminUsersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header />
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">

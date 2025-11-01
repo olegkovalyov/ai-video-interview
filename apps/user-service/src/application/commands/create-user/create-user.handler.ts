@@ -3,6 +3,7 @@ import { Inject } from '@nestjs/common';
 import { CreateUserCommand } from './create-user.command';
 import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import type { IRoleRepository } from '../../../domain/repositories/role.repository.interface';
 import { Email } from '../../../domain/value-objects/email.vo';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
@@ -12,12 +13,15 @@ import { v4 as uuid } from 'uuid';
 /**
  * Create User Command Handler
  * Orchestrates user creation use case
+ * Auto-assigns 'candidate' role to new users
  */
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
   constructor(
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    @Inject('IRoleRepository')
+    private readonly roleRepository: IRoleRepository,
     private readonly eventBus: EventBus,
     private readonly outboxService: OutboxService,
   ) {}
@@ -53,13 +57,25 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     // 4. Save to repository
     await this.userRepository.save(user);
 
-    // 5. Publish domain events (internal only - logging, metrics, etc.)
+    // 5. Auto-assign 'candidate' role to new users
+    try {
+      const candidateRole = await this.roleRepository.findByName('candidate');
+      if (candidateRole) {
+        user.assignRole('candidate', 'system');
+        await this.roleRepository.assignToUser(user.id, candidateRole.id, 'system');
+      }
+    } catch (error) {
+      // Log but don't fail user creation if role assignment fails
+      console.error('Failed to assign candidate role:', error);
+    }
+
+    // 6. Publish domain events (internal only - logging, metrics, etc.)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);
     });
     user.clearEvents();
 
-    // 6. Publish integration event to Kafka (for other services)
+    // 7. Publish integration event to Kafka (for other services)
     await this.outboxService.saveEvent(
       'user.created',
       {

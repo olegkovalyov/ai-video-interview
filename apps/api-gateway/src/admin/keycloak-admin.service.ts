@@ -495,4 +495,42 @@ export class KeycloakAdminService {
       throw error;
     }
   }
+
+  /**
+   * Верифицирует email пользователя в Keycloak
+   */
+  async verifyEmail(userId: string): Promise<void> {
+    this.logger.log('Verifying email for user in Keycloak', { userId });
+
+    try {
+      const adminToken = await this.getAdminToken();
+      const updateUrl = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}`;
+
+      const response = await fetch(updateUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          emailVerified: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        this.logger.error('Failed to verify email in Keycloak', {
+          status: response.status,
+          error,
+          userId,
+        });
+        throw new Error(`Failed to verify email in Keycloak: ${response.status}`);
+      }
+
+      this.logger.log('Email verified successfully', { userId });
+    } catch (error) {
+      this.logger.error('Error verifying email', { error: error.message, userId });
+      throw error;
+    }
+  }
 }

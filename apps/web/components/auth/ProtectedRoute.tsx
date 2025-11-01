@@ -33,20 +33,36 @@ export function ProtectedRoute({
         return;
       }
 
-      // TODO: Проверка ролей когда будет role в user object
-      // if (requireAdmin && user?.role !== 'admin') {
-      //   router.push('/dashboard');
-      //   return;
-      // }
+      // Проверка ролей из JWT токена
+      try {
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('access_token='))
+          ?.split('=')[1];
 
-      // if (requireHR && !['admin', 'hr'].includes(user?.role || '')) {
-      //   router.push('/dashboard');
-      //   return;
-      // }
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const roles: string[] = payload.realm_access?.roles || [];
+
+          // Проверка admin роли
+          if (requireAdmin && !roles.includes('admin')) {
+            router.push('/dashboard');
+            return;
+          }
+
+          // Проверка HR роли (admin тоже может)
+          if (requireHR && !roles.includes('hr') && !roles.includes('admin')) {
+            router.push('/dashboard');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse JWT token:', error);
+      }
 
       setIsChecking(false);
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, router, requireAdmin, requireHR]);
 
   // Показываем loader пока проверяем
   if (loading || isChecking) {

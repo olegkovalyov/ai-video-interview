@@ -1,8 +1,9 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import { AssignRoleCommand } from './assign-role.command';
 import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import type { IRoleRepository } from '../../../domain/repositories/role.repository.interface';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
 import { v4 as uuid } from 'uuid';
@@ -15,6 +16,8 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
   constructor(
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    @Inject('IRoleRepository')
+    private readonly roleRepository: IRoleRepository,
     private readonly eventBus: EventBus,
     private readonly outboxService: OutboxService,
   ) {}
@@ -26,13 +29,21 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
       throw new UserNotFoundException(command.userId);
     }
 
-    // 2. Assign role
+    // 2. Find role by name
+    const role = await this.roleRepository.findByName(command.roleName);
+    if (!role) {
+      throw new NotFoundException(`Role not found: ${command.roleName}`);
+    }
+
+    // 3. Assign role in database (creates record in user_roles table)
+    await this.roleRepository.assignToUser(
+      user.id,
+      role.id,
+      command.assignedBy || 'system',
+    );
+
+    // 4. Emit domain event (for event sourcing & consistency)
     user.assignRole(command.roleName, command.assignedBy || 'system');
-
-    // 3. Save
-    await this.userRepository.save(user);
-
-    // 4. Publish domain events (internal only)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);
     });
@@ -51,6 +62,7 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
           userId: user.id,
           externalAuthId: user.externalAuthId,
           roleName: command.roleName,
+          roleId: role.id,
           assignedBy: command.assignedBy,
           assignedAt: new Date().toISOString(),
         },

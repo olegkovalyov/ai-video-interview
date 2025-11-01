@@ -1,7 +1,10 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { KeycloakAdminService } from './keycloak-admin.service';
 import { LoggerService } from '../logger/logger.service';
 import { UserCommandPublisher } from './user-command-publisher.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 /**
  * Admin Controller
@@ -12,10 +15,12 @@ import { UserCommandPublisher } from './user-command-publisher.service';
  * - Publishes commands to user-commands topic
  * - User Service consumes commands and creates users in DB
  * 
- * NOTE: Без auth guard для тестирования через curl
- * TODO: Добавить @UseGuards(JwtAuthGuard, RolesGuard) после тестов
+ * NOTE: Guards temporarily removed for script-based user creation
+ * TODO: Add @UseGuards(JwtAuthGuard, RolesGuard) + @Roles('admin') when dashboard is ready
  */
 @Controller('api/admin')
+// @UseGuards(JwtAuthGuard, RolesGuard)
+// @Roles('admin')
 export class AdminController {
   constructor(
     private readonly keycloakAdminService: KeycloakAdminService,
@@ -416,6 +421,31 @@ export class AdminController {
       };
     } catch (error) {
       this.loggerService.error('Admin: Failed to activate user', error, { userId: id });
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/admin/users/:id/verify-email
+   * Верифицирует email пользователя в Keycloak
+   * 
+   * curl -X POST http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/verify-email
+   */
+  @Post('users/:id/verify-email')
+  async verifyEmail(@Param('id') id: string) {
+    this.loggerService.info('Admin: Verifying email for user', { userId: id });
+
+    try {
+      await this.keycloakAdminService.verifyEmail(id);
+
+      this.loggerService.info('Admin: Email verified successfully', { userId: id });
+
+      return {
+        success: true,
+        message: 'Email verified successfully',
+      };
+    } catch (error) {
+      this.loggerService.error('Admin: Failed to verify email', error, { userId: id });
       throw error;
     }
   }

@@ -99,7 +99,7 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
     for (const message of batch.messages) {
       try {
         if (!message.value) continue;
-        
+
         // Parse event
         const event: BaseKafkaEvent = JSON.parse(message.value.toString());
 
@@ -183,7 +183,7 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
     try {
       // Generate internal userId for User Service
       const userId = uuid();
-      
+
       const command = new CreateUserCommand(
         userId,           // Internal userId (primary key)
         externalAuthId,   // External auth provider ID
@@ -193,7 +193,7 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
       );
 
       await this.commandBus.execute(command);
-      
+
       this.logger.info('User created from auth event', {
         category: 'kafka',
         component: 'AuthEventConsumer',
@@ -242,7 +242,7 @@ export class AuthEventConsumer implements OnModuleInit, OnModuleDestroy {
       });
 
       await producer.disconnect();
-      
+
       this.logger.warn('Message sent to DLQ', {
         category: 'kafka',
         component: 'AuthEventConsumer',

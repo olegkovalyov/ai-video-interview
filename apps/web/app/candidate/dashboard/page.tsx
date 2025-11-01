@@ -1,25 +1,23 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiGet } from "../lib/api";
+import { apiGet } from "../../lib/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-export default function DashboardPage() {
+export default function CandidateDashboardPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({ interviews: 0, candidates: 0, responses: 0 });
+  const [stats, setStats] = useState({ invitations: 2, completed: 5, pending: 1 });
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
         const res = await apiGet("/protected") as { user: any };
         setUser(res.user);
-        // TODO: Load real stats from API
-        setStats({ interviews: 3, candidates: 12, responses: 8 });
       } catch (e: any) {
         if (e.message?.includes('401')) {
           router.replace("/login");
@@ -47,10 +45,10 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome back{user?.name ? `, ${user.name}` : ''}! 👋
+            My Interviews 🎓
           </h1>
           <p className="text-lg text-white/80">
-            Manage your AI-powered video interviews and analyze candidate responses
+            View your interview invitations and submissions
           </p>
         </div>
 
@@ -58,64 +56,64 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.interviews}</div>
-              <div className="text-sm text-white/80">Active Interviews</div>
+              <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.invitations}</div>
+              <div className="text-sm text-white/80">New Invitations</div>
             </CardContent>
           </Card>
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-green-400 mb-2">{stats.candidates}</div>
-              <div className="text-sm text-white/80">Total Candidates</div>
+              <div className="text-3xl font-bold text-green-400 mb-2">{stats.completed}</div>
+              <div className="text-sm text-white/80">Completed</div>
             </CardContent>
           </Card>
           <Card className="bg-white/10 backdrop-blur-md border-white/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-blue-400 mb-2">{stats.responses}</div>
-              <div className="text-sm text-white/80">Pending Reviews</div>
+              <div className="text-3xl font-bold text-blue-400 mb-2">{stats.pending}</div>
+              <div className="text-sm text-white/80">In Progress</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          {/* Create New Interview */}
+          {/* Active Invitations */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">➕</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Create Interview</h3>
+              <div className="text-5xl mb-4">📬</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Active Invitations</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                Set up a new video interview with custom questions
+                View and start your pending interviews
               </p>
               <Button asChild variant="brand" className="w-full mt-auto">
-                <Link href="/dashboard/interviews/create">Get Started</Link>
+                <Link href="/candidate/invitations">View Invitations</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* My Interviews */}
+          {/* My Submissions */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">📋</div>
-              <h3 className="text-xl font-semibold text-white mb-3">My Interviews</h3>
+              <div className="text-5xl mb-4">📹</div>
+              <h3 className="text-xl font-semibold text-white mb-3">My Submissions</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                View and manage all your interviews
+                Review your completed interview responses
               </p>
               <Button asChild variant="glass" className="w-full mt-auto">
-                <Link href="/dashboard/interviews">View All</Link>
+                <Link href="/candidate/submissions">View All</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Analytics */}
+          {/* Profile */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Analytics</h3>
+              <div className="text-5xl mb-4">👤</div>
+              <h3 className="text-xl font-semibold text-white mb-3">My Profile</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                View performance insights and reports
+                Update your profile and preferences
               </p>
               <Button asChild variant="glass" className="w-full mt-auto">
-                <Link href="/dashboard/analytics">View Reports</Link>
+                <Link href="/profile">Edit Profile</Link>
               </Button>
             </CardContent>
           </Card>
@@ -128,7 +126,7 @@ export default function DashboardPage() {
             <div className="text-center py-12">
               <div className="text-5xl mb-4">🎯</div>
               <p className="text-white/80 text-lg">
-                No recent activity yet. Create your first interview to get started!
+                No recent activity yet. Start your first interview!
               </p>
             </div>
           </CardContent>

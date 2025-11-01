@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Plus, Search, Filter, Play, Users, Calendar, MoreVertical } from 'lucide-react';
-import { Header } from '@/components/layout/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -45,8 +44,6 @@ export default function InterviewsPage() {
   return (
     <ProtectedRoute>
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Header />
-      
       <main className="container mx-auto px-6 py-12">
         {/* Page Header */}
         <div className="mb-8 flex justify-between items-center">
