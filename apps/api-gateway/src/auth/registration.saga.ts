@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
-import { UserServiceHttpClient } from '../admin/user-service-http.client';
+import { UserServiceClient } from '../clients';
 import { KeycloakAdminService } from '../admin/keycloak-admin.service';
 import { LoggerService } from '../logger/logger.service';
 
@@ -16,7 +16,6 @@ export interface UserResult {
   email: string;
   firstName: string;
   lastName: string;
-  status: string;
   isNew: boolean;
 }
 
@@ -34,7 +33,7 @@ export interface UserResult {
 @Injectable()
 export class RegistrationSaga {
   constructor(
-    private readonly userServiceClient: UserServiceHttpClient,
+    private readonly userServiceClient: UserServiceClient,
     private readonly keycloakAdmin: KeycloakAdminService,
     private readonly logger: LoggerService,
   ) {}
@@ -71,7 +70,6 @@ export class RegistrationSaga {
           email: existingUser.email,
           firstName: existingUser.firstName,
           lastName: existingUser.lastName,
-          status: existingUser.status,
           isNew: false, // Returning user
         };
       }
@@ -88,7 +86,7 @@ export class RegistrationSaga {
       const userId = uuid();
 
       // STEP 2.1: Create user in User Service
-      const newUser = await this.userServiceClient.createUser({
+      const newUser = await this.userServiceClient.createUserInternal({
         userId,
         externalAuthId: dto.keycloakId,
         email: dto.email,
@@ -114,7 +112,7 @@ export class RegistrationSaga {
           userId,
         });
 
-        await this.userServiceClient.assignRole(userId, 'candidate');
+        await this.userServiceClient.assignRoleInternal(userId, 'candidate');
 
         this.logger.info('RegistrationSaga: Candidate role assigned', {
           operationId,
@@ -132,7 +130,7 @@ export class RegistrationSaga {
 
         // Compensation: Delete user from User Service
         try {
-          await this.userServiceClient.deleteUser(userId);
+          await this.userServiceClient.deleteUserInternal(userId);
           this.logger.info('RegistrationSaga: User deleted from User Service (role assignment failed)', {
             operationId,
             userId,
@@ -153,7 +151,6 @@ export class RegistrationSaga {
         email: newUser.data.email,
         firstName: newUser.data.firstName,
         lastName: newUser.data.lastName,
-        status: newUser.data.status,
         isNew: true, // First login - can show onboarding!
       };
     } catch (error) {
@@ -223,19 +220,17 @@ export class RegistrationSaga {
     email: string;
     firstName: string;
     lastName: string;
-    status: string;
   } | null> {
     try {
       const response = await this.userServiceClient.getUserByExternalAuthId(keycloakId);
 
-      // UserServiceHttpClient already returns response.data from axios
+      // UserServiceClient already returns response.data from axios
       if (response && response.id) {
         return {
           userId: response.id, // User Service returns 'id' not 'userId'
           email: response.email,
-          firstName: response.firstName,
-          lastName: response.lastName,
-          status: response.status,
+          firstName: response.firstName || 'Unknown',
+          lastName: response.lastName || 'User',
         };
       }
 

@@ -3,7 +3,7 @@ import { KeycloakAdminService } from './keycloak-admin.service';
 import { LoggerService } from '../logger/logger.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { UserCommandPublisher } from './user-command-publisher.service';
-import { UserServiceHttpClient } from './user-service-http.client';
+import { UserServiceClient } from '../clients';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -31,7 +31,7 @@ export class AdminController {
     private readonly loggerService: LoggerService,
     private readonly userOrchestrationSaga: UserOrchestrationSaga,
     private readonly userCommandPublisher: UserCommandPublisher,
-    private readonly userServiceHttpClient: UserServiceHttpClient,
+    private readonly userServiceClient: UserServiceClient,
   ) {}
 
   /**
@@ -101,7 +101,7 @@ export class AdminController {
       const enrichedUsers = await Promise.all(
         keycloakUsers.map(async (kcUser) => {
           try {
-            const userServiceData = await this.userServiceHttpClient.getUserByExternalAuthId(kcUser.id);
+            const userServiceData = await this.userServiceClient.getUserByExternalAuthId(kcUser.id);
             return {
               ...kcUser,
               lastLoginAt: userServiceData?.lastLoginAt || null,

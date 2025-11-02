@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { KeycloakAdminService } from './keycloak-admin.service';
-import { UserServiceHttpClient } from './user-service-http.client';
+import { UserServiceClient } from '../clients';
 import { OrphanedUsersService } from './orphaned-users.service';
 import { LoggerService } from '../logger/logger.service';
 
@@ -33,7 +33,7 @@ export interface CreateUserResult {
 export class UserOrchestrationSaga {
   constructor(
     private readonly keycloakAdmin: KeycloakAdminService,
-    private readonly userServiceClient: UserServiceHttpClient,
+    private readonly userServiceClient: UserServiceClient,
     private readonly orphanedUsers: OrphanedUsersService,
     private readonly logger: LoggerService,
   ) {}
@@ -83,7 +83,7 @@ export class UserOrchestrationSaga {
 
       const userId = uuid(); // Generate userId in API Gateway
 
-      await this.userServiceClient.createUser({
+      await this.userServiceClient.createUserInternal({
         userId,
         externalAuthId: keycloakId,
         email: dto.email,
@@ -168,7 +168,19 @@ export class UserOrchestrationSaga {
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
         keycloakId,
       );
-      const userId = userServiceUser.id; // getUserByExternalAuthId already returns data
+      
+      if (!userServiceUser) {
+        throw new HttpException(
+          {
+            success: false,
+            error: 'User not found in User Service',
+            code: 'USER_NOT_FOUND_IN_USER_SERVICE',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      
+      const userId = userServiceUser.id;
 
       // STEP 4: Update in User Service
       this.logger.info('Saga Step 2: Updating user in User Service', {
@@ -176,7 +188,7 @@ export class UserOrchestrationSaga {
         userId,
       });
 
-      await this.userServiceClient.updateUser(userId, dto);
+      await this.userServiceClient.updateUserInternal(userId, dto);
 
       this.logger.info('Saga: User update completed successfully', {
         operationId,
@@ -240,7 +252,19 @@ export class UserOrchestrationSaga {
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
         keycloakId,
       );
-      const userId = userServiceUser.id; // getUserByExternalAuthId already returns data
+      
+      if (!userServiceUser) {
+        throw new HttpException(
+          {
+            success: false,
+            error: 'User not found in User Service',
+            code: 'USER_NOT_FOUND_IN_USER_SERVICE',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      
+      const userId = userServiceUser.id;
 
       // STEP 2: Delete from User Service first (we can restore if Keycloak fails)
       this.logger.info('Saga Step 1: Deleting user from User Service', {
@@ -248,7 +272,7 @@ export class UserOrchestrationSaga {
         userId,
       });
 
-      await this.userServiceClient.deleteUser(userId);
+      await this.userServiceClient.deleteUserInternal(userId);
 
       // STEP 3: Delete from Keycloak
       this.logger.info('Saga Step 2: Deleting user from Keycloak', {
@@ -313,11 +337,23 @@ export class UserOrchestrationSaga {
 
       await this.keycloakAdmin.assignRole(keycloakId, roleName);
 
-      // STEP 2: Get userId
+      // STEP 2: Get userId from User Service
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
         keycloakId,
       );
-      const userId = userServiceUser.id; // getUserByExternalAuthId already returns data
+      
+      if (!userServiceUser) {
+        throw new HttpException(
+          {
+            success: false,
+            error: 'User not found in User Service',
+            code: 'USER_NOT_FOUND_IN_USER_SERVICE',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      
+      const userId = userServiceUser.id;
 
       // STEP 3: Assign in User Service
       this.logger.info('Saga Step 2: Assigning role in User Service', {
@@ -326,7 +362,7 @@ export class UserOrchestrationSaga {
         roleName,
       });
 
-      await this.userServiceClient.assignRole(userId, roleName);
+      await this.userServiceClient.assignRoleInternal(userId, roleName);
 
       this.logger.info('Saga: Role assignment completed successfully', {
         operationId,
@@ -387,11 +423,23 @@ export class UserOrchestrationSaga {
     });
 
     try {
-      // STEP 1: Get userId
+      // STEP 1: Get userId from User Service
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
         keycloakId,
       );
-      const userId = userServiceUser.id; // getUserByExternalAuthId already returns data
+      
+      if (!userServiceUser) {
+        throw new HttpException(
+          {
+            success: false,
+            error: 'User not found in User Service',
+            code: 'USER_NOT_FOUND_IN_USER_SERVICE',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      
+      const userId = userServiceUser.id;
 
       // STEP 2: Remove from User Service first
       this.logger.info('Saga Step 1: Removing role from User Service', {
@@ -400,7 +448,7 @@ export class UserOrchestrationSaga {
         roleName,
       });
 
-      await this.userServiceClient.removeRole(userId, roleName);
+      await this.userServiceClient.removeRoleInternal(userId, roleName);
 
       // STEP 3: Remove from Keycloak
       this.logger.info('Saga Step 2: Removing role from Keycloak', {

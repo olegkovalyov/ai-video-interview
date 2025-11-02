@@ -4,11 +4,12 @@ import { AdminController } from './admin.controller';
 import { KeycloakAdminService } from './keycloak-admin.service';
 import { UserCommandPublisher } from './user-command-publisher.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
-import { UserServiceHttpClient } from './user-service-http.client';
 import { OrphanedUsersService } from './orphaned-users.service';
 import { LoggerService } from '../logger/logger.service';
 import { KafkaModule } from '../kafka/kafka.module';
 import { AuthModule } from '../auth/auth.module';
+import { UserServiceClient } from '../clients';
+import { CircuitBreakerRegistry } from '../circuit-breaker';
 
 /**
  * Admin Module
@@ -16,7 +17,7 @@ import { AuthModule } from '../auth/auth.module';
  * 
  * Architecture:
  * - UserOrchestrationSaga coordinates Keycloak + User Service
- * - UserServiceHttpClient handles HTTP communication
+ * - UserServiceClient handles HTTP communication (unified proxy + internal)
  * - OrphanedUsersService tracks rollback failures
  * - Synchronous operations with compensation logic
  */
@@ -31,14 +32,15 @@ import { AuthModule } from '../auth/auth.module';
     KeycloakAdminService,
     UserCommandPublisher, // Keep for suspend/activate (async operations)
     UserOrchestrationSaga,
-    UserServiceHttpClient,
+    UserServiceClient,
     OrphanedUsersService,
     LoggerService,
+    CircuitBreakerRegistry,
   ],
   exports: [
     KeycloakAdminService,
     UserOrchestrationSaga,
-    UserServiceHttpClient, // Export for RegistrationSaga
+    UserServiceClient, // Export for RegistrationSaga
   ],
 })
 export class AdminModule {}

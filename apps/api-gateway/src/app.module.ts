@@ -13,7 +13,7 @@ import { KeycloakService } from './auth/keycloak.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { JwtRefreshGuard } from './auth/jwt-refresh.guard';
 import { AuthErrorInterceptor } from './auth/auth-error.interceptor';
-import { MetricsService } from './metrics/metrics.service';
+import { MetricsModule } from './metrics/metrics.module';
 import { MetricsController } from './metrics/metrics.controller';
 import { MetricsInterceptor } from './metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
@@ -28,7 +28,8 @@ import {
   RedirectUriHelper,
 } from './auth/services';
 import { RegistrationSaga } from './auth/registration.saga';
-import { UserServiceProxy, InterviewServiceProxy } from './proxies';
+import { UserServiceClient } from './clients';
+import { InterviewServiceProxy } from './proxies';
 import { CircuitBreakerRegistry } from './circuit-breaker';
 import { AdminModule } from './admin/admin.module';
 
@@ -44,6 +45,7 @@ import { AdminModule } from './admin/admin.module';
       maxRedirects: 5,
     }),
     KafkaModule,
+    MetricsModule,
     AdminModule,
   ],
   controllers: [
@@ -63,7 +65,6 @@ import { AdminModule } from './admin/admin.module';
     KeycloakService,
     JwtAuthGuard,
     JwtRefreshGuard,
-    MetricsService,
     LoggerService,
     TraceService,
     
@@ -77,8 +78,8 @@ import { AdminModule } from './admin/admin.module';
     // Circuit Breaker
     CircuitBreakerRegistry,
     
-    // Service Proxies
-    UserServiceProxy,
+    // Service Clients
+    UserServiceClient,
     InterviewServiceProxy,
     {
       provide: APP_INTERCEPTOR,

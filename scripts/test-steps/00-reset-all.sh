@@ -63,10 +63,6 @@ echo -e "${GREEN}✓ Cleared users table${NC}"
 docker exec -i ai-interview-postgres psql -U postgres -d ai_video_interview_user -c "DELETE FROM outbox;" 2>&1
 echo -e "${GREEN}✓ Cleared outbox table${NC}"
 
-# Clear inbox
-docker exec -i ai-interview-postgres psql -U postgres -d ai_video_interview_user -c "DELETE FROM inbox;" 2>&1
-echo -e "${GREEN}✓ Cleared inbox table${NC}"
-
 echo -e "\n${YELLOW}Step 4: Verifying cleanup...${NC}"
 
 # Count users in Keycloak
