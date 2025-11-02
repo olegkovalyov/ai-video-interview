@@ -35,6 +35,7 @@ export class User extends AggregateRoot {
     private _emailVerified: boolean = false,
     private readonly _createdAt: Date = new Date(),
     private _updatedAt: Date = new Date(),
+    private _lastLoginAt?: Date,
   ) {
     super();
   }
@@ -101,6 +102,7 @@ export class User extends AggregateRoot {
     emailVerified?: boolean,
     createdAt?: Date,
     updatedAt?: Date,
+    lastLoginAt?: Date,
   ): User {
     return new User(
       id,
@@ -116,6 +118,7 @@ export class User extends AggregateRoot {
       emailVerified,
       createdAt,
       updatedAt,
+      lastLoginAt,
     );
   }
 
@@ -432,6 +435,10 @@ export class User extends AggregateRoot {
 
   public get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  public get lastLoginAt(): Date | undefined {
+    return this._lastLoginAt;
   }
 
   // Convenience getters

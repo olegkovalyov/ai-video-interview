@@ -17,7 +17,7 @@ export default function CreateUserPage() {
     firstName: '',
     lastName: '',
     email: '',
-    role: 'Candidate',
+    role: 'candidate',
     sendWelcomeEmail: true,
   });
 
@@ -37,13 +37,19 @@ export default function CreateUserPage() {
     setError(null);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await apiPost('/admin/users', formData);
+      // Import dynamically to avoid circular dependencies
+      const { createUser, assignRole } = await import('@/lib/api/users');
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create user
+      const response = await createUser({
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        password: 'ChangeMe123!', // Default password
+      });
       
-      console.log('Creating user:', formData);
+      // Assign selected role (всегда назначаем роль)
+      await assignRole(response.data.keycloakId, formData.role);
       
       // Redirect to users list
       router.push('/admin/users');
@@ -170,10 +176,9 @@ export default function CreateUserPage() {
                         required
                         className="mt-2 w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white h-9"
                       >
-                        <option value="Candidate">Candidate</option>
-                        <option value="HR">HR Manager</option>
-                        <option value="Admin">Administrator</option>
-                        <option value="Viewer">Viewer</option>
+                        <option value="candidate">Candidate</option>
+                        <option value="hr">HR Manager</option>
+                        <option value="admin">Administrator</option>
                       </select>
                       <p className="text-xs text-white/60 mt-1">
                         Determines user permissions and access level

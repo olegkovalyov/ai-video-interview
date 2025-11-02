@@ -32,6 +32,7 @@ export class UserMapper {
     entity.language = user.language;
     entity.createdAt = user.createdAt;
     entity.updatedAt = user.updatedAt;
+    entity.lastLoginAt = user.lastLoginAt || null;
     
     return entity;
   }
@@ -58,6 +59,7 @@ export class UserMapper {
       entity.emailVerified,
       entity.createdAt,
       entity.updatedAt,
+      entity.lastLoginAt || undefined,
     );
   }
 

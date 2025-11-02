@@ -3,6 +3,7 @@ import { KeycloakAdminService } from './keycloak-admin.service';
 import { LoggerService } from '../logger/logger.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { UserCommandPublisher } from './user-command-publisher.service';
+import { UserServiceHttpClient } from './user-service-http.client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -30,6 +31,7 @@ export class AdminController {
     private readonly loggerService: LoggerService,
     private readonly userOrchestrationSaga: UserOrchestrationSaga,
     private readonly userCommandPublisher: UserCommandPublisher,
+    private readonly userServiceHttpClient: UserServiceHttpClient,
   ) {}
 
   /**
@@ -89,20 +91,40 @@ export class AdminController {
     this.loggerService.info('Admin: Listing users', { search, max, first });
 
     try {
-      const users = await this.keycloakAdminService.listUsers({
+      const keycloakUsers = await this.keycloakAdminService.listUsers({
         search,
         max: max || 100,
         first: first || 0,
       });
 
+      // Enrich with User Service data (last_login_at, etc.)
+      const enrichedUsers = await Promise.all(
+        keycloakUsers.map(async (kcUser) => {
+          try {
+            const userServiceData = await this.userServiceHttpClient.getUserByExternalAuthId(kcUser.id);
+            return {
+              ...kcUser,
+              lastLoginAt: userServiceData?.lastLoginAt || null,
+            };
+          } catch (error) {
+            // User might not exist in User Service yet
+            this.loggerService.debug('User not found in User Service', { keycloakId: kcUser.id });
+            return {
+              ...kcUser,
+              lastLoginAt: null,
+            };
+          }
+        })
+      );
+
       this.loggerService.info('Admin: Users listed successfully', {
-        count: users.length,
+        count: enrichedUsers.length,
       });
 
       return {
         success: true,
-        data: users,
-        count: users.length,
+        data: enrichedUsers,
+        count: enrichedUsers.length,
       };
     } catch (error) {
       this.loggerService.error('Admin: Failed to list users', error);
@@ -283,7 +305,7 @@ export class AdminController {
 
   /**
    * POST /api/admin/users/:id/suspend
-   * Suspend user
+   * Suspend user (synchronous via Keycloak)
    * 
    * curl -X POST http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/suspend
    */
@@ -292,10 +314,10 @@ export class AdminController {
     this.loggerService.info('Admin: Suspending user', { userId: id });
 
     try {
-      // Публикуем команду в user-commands topic
-      await this.userCommandPublisher.publishUserSuspend(id);
+      // Directly disable user in Keycloak (synchronous)
+      await this.keycloakAdminService.updateUser(id, { enabled: false });
 
-      this.loggerService.info('Admin: user.suspend command published', { userId: id });
+      this.loggerService.info('Admin: User suspended successfully in Keycloak', { userId: id });
 
       return {
         success: true,
@@ -309,7 +331,7 @@ export class AdminController {
 
   /**
    * POST /api/admin/users/:id/activate
-   * Activate user
+   * Activate user (synchronous via Keycloak)
    * 
    * curl -X POST http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/activate
    */
@@ -318,10 +340,10 @@ export class AdminController {
     this.loggerService.info('Admin: Activating user', { userId: id });
 
     try {
-      // Публикуем команду в user-commands topic
-      await this.userCommandPublisher.publishUserActivate(id);
+      // Directly enable user in Keycloak (synchronous)
+      await this.keycloakAdminService.updateUser(id, { enabled: true });
 
-      this.loggerService.info('Admin: user.activate command published', { userId: id });
+      this.loggerService.info('Admin: User activated successfully in Keycloak', { userId: id });
 
       return {
         success: true,

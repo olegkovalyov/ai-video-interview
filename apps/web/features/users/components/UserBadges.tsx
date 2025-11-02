@@ -9,13 +9,13 @@ export function UserRoleBadge({ role }: UserRoleBadgeProps) {
   const styles = {
     admin: 'bg-purple-500/20 text-purple-200 border-purple-500/30',
     hr: 'bg-blue-500/20 text-blue-200 border-blue-500/30',
-    user: 'bg-gray-500/20 text-gray-200 border-gray-500/30',
+    candidate: 'bg-gray-500/20 text-gray-200 border-gray-500/30',
   };
   
   const labels = {
     admin: 'Admin',
     hr: 'HR',
-    user: 'User',
+    candidate: 'Candidate',
   };
 
   return (

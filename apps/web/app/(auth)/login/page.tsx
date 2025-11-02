@@ -33,15 +33,15 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-white mb-6">
             Welcome Back
           </h1>
-          
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-3 rounded-lg mb-6">
               {error}
             </div>
           )}
-          
-          <Button 
-            onClick={beginLogin} 
+
+          <Button
+            onClick={beginLogin}
             disabled={loading}
             variant={loading ? "secondary" : "brand"}
             size="lg"
@@ -49,10 +49,10 @@ export default function LoginPage() {
           >
             {loading ? "Redirecting..." : "Continue with Keycloak"}
           </Button>
-          
+
           <p className="text-white/90">
             No account?{" "}
-            <Link 
+            <Link
               href="/register"
               className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
             >

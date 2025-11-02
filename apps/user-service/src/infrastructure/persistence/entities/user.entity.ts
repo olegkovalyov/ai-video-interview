@@ -65,7 +65,7 @@ export class UserEntity {
   status: 'active' | 'suspended' | 'deleted';
 
   @Column({ nullable: true, type: 'timestamp', name: 'last_login_at' })
-  lastLoginAt: Date;
+  lastLoginAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   @Index()

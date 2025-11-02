@@ -1,4 +1,4 @@
-import { Edit2, Trash2, UserX, UserCheck, Users as UsersIcon } from 'lucide-react';
+import { Edit2, Trash2, Users as UsersIcon, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { User, UserRole } from '../types/user.types';
 import { UserRoleBadge, UserStatusBadge } from './UserBadges';
@@ -10,9 +10,10 @@ interface UsersTableProps {
   onStatusToggle: (userId: string) => void;
   onDelete: (userId: string) => void;
   onEdit?: (userId: string) => void;
+  loadingUsers?: Set<string>;
 }
 
-export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEdit }: UsersTableProps) {
+export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEdit, loadingUsers = new Set() }: UsersTableProps) {
   if (users.length === 0) {
     return (
       <Card className="bg-white/10 backdrop-blur-md border-white/20">
@@ -43,8 +44,16 @@ export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEd
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+              {users.map((user) => {
+                const isLoading = loadingUsers.has(user.id);
+                return (
+                <tr 
+                  key={user.id} 
+                  className={`
+                    border-b border-white/10 hover:bg-white/5 transition-all duration-200
+                    ${isLoading ? 'opacity-60 blur-[0.5px]' : ''}
+                  `}
+                >
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
@@ -62,19 +71,49 @@ export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEd
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       <UserRoleBadge role={user.role} />
-                      <select
-                        value={user.role}
-                        onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
-                        className="text-xs bg-white/10 border border-white/30 rounded px-2 py-1 text-white"
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="hr">HR</option>
-                        <option value="user">User</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={user.role}
+                          onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
+                          disabled={isLoading}
+                          className={`
+                            text-xs bg-white/10 border border-white/30 rounded px-2 py-1 text-white
+                            transition-all duration-200
+                            ${isLoading ? 'cursor-not-allowed pr-8' : 'cursor-pointer'}
+                          `}
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="hr">HR</option>
+                          <option value="candidate">Candidate</option>
+                        </select>
+                        {isLoading && (
+                          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-blue-400" />
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="p-4">
-                    <UserStatusBadge status={user.status} />
+                    <div className="flex items-center gap-3">
+                      <UserStatusBadge status={user.status} />
+                      {/* Toggle Switch */}
+                      <button
+                        onClick={() => onStatusToggle(user.id)}
+                        disabled={isLoading || user.status === 'deleted'}
+                        className={`
+                          relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                          ${isLoading || user.status === 'deleted' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                          ${user.status === 'active' ? 'bg-green-500' : 'bg-gray-600'}
+                        `}
+                        title={user.status === 'active' ? 'Click to suspend' : 'Click to activate'}
+                      >
+                        <span
+                          className={`
+                            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                            ${user.status === 'active' ? 'translate-x-6' : 'translate-x-1'}
+                          `}
+                        />
+                      </button>
+                    </div>
                   </td>
                   <td className="p-4 text-white/80 text-sm">
                     {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
@@ -82,20 +121,8 @@ export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEd
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => onStatusToggle(user.id)}
-                        disabled={user.status === 'deleted'}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={user.status === 'active' ? 'Suspend' : 'Activate'}
-                      >
-                        {user.status === 'active' ? (
-                          <UserX className="w-4 h-4 text-red-400" />
-                        ) : (
-                          <UserCheck className="w-4 h-4 text-green-400" />
-                        )}
-                      </button>
-                      <button
                         onClick={() => onDelete(user.id)}
-                        disabled={user.status === 'deleted'}
+                        disabled={isLoading || user.status === 'deleted'}
                         className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Delete"
                       >
@@ -104,7 +131,8 @@ export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEd
                       {onEdit && (
                         <button
                           onClick={() => onEdit(user.id)}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                          disabled={isLoading}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4 text-blue-400" />
@@ -113,7 +141,8 @@ export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEd
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -57,6 +57,9 @@ export class UserResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
+  @ApiPropertyOptional()
+  lastLoginAt?: Date;
+
   /**
    * Factory method to create DTO from domain model
    */
@@ -79,6 +82,7 @@ export class UserResponseDto {
     dto.isDeleted = user.isDeleted;
     dto.createdAt = user.createdAt;
     dto.updatedAt = user.updatedAt;
+    dto.lastLoginAt = user.lastLoginAt;
     return dto;
   }
 }

@@ -32,11 +32,9 @@ export class KeycloakService {
 
     const authUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/auth?${params.toString()}`;
     
-    this.logger.debug('Generated Keycloak authorization URL:', {
-      authUrl,
+    this.logger.debug('Generated Keycloak authorization URL', {
       redirectUri,
       state,
-      clientId: this.clientId
     });
     
     return { authUrl, state };

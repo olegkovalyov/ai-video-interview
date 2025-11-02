@@ -222,7 +222,7 @@ export interface UserRoleRemovedEvent extends BaseEvent {
 export interface UserAuthenticatedEvent extends BaseEvent {
   eventType: 'user.authenticated';
   payload: {
-    userId: string;
+    externalAuthId: string;  // Keycloak ID (external auth provider ID)
     email: string;
     firstName?: string;
     lastName?: string;
@@ -236,7 +236,7 @@ export interface UserAuthenticatedEvent extends BaseEvent {
 export interface UserLoggedOutEvent extends BaseEvent {
   eventType: 'user.logged_out';
   payload: {
-    userId: string;
+    externalAuthId: string;  // Keycloak ID (external auth provider ID)
     sessionId: string;
     logoutReason: 'user_action' | 'token_expired' | 'admin_action';
   };
@@ -397,7 +397,7 @@ export class UserCommandFactory {
 // ============ AUTH EVENT FACTORIES ============
 export class AuthEventFactory {
   static createUserAuthenticated(
-    userId: string,
+    externalAuthId: string,
     email: string,
     sessionId: string,
     authData?: Partial<UserAuthenticatedEvent['payload']>
@@ -409,7 +409,7 @@ export class AuthEventFactory {
       version: '1.0',
       source: 'api-gateway',
       payload: {
-        userId,
+        externalAuthId,
         email,
         sessionId,
         authMethod: 'oauth2',
@@ -419,7 +419,7 @@ export class AuthEventFactory {
   }
 
   static createUserLoggedOut(
-    userId: string,
+    externalAuthId: string,
     sessionId: string,
     logoutReason: UserLoggedOutEvent['payload']['logoutReason']
   ): UserLoggedOutEvent {
@@ -430,7 +430,7 @@ export class AuthEventFactory {
       version: '1.0',
       source: 'api-gateway',
       payload: {
-        userId,
+        externalAuthId,
         sessionId,
         logoutReason,
       },

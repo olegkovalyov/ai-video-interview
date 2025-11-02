@@ -81,7 +81,7 @@ export class UserServiceProxy extends BaseServiceProxy {
    * ПРОСТО ПРОКСИРУЕТ /users/me с JWT токеном
    */
   async getCurrentUserProfile(authHeader?: string): Promise<UserDTO> {
-    return this.get<UserDTO>(`/api/v1/users/me`, {
+    return this.get<UserDTO>(`/users/me`, {
       timeout: 3000,
       headers: authHeader ? {
         'Authorization': authHeader,
@@ -94,7 +94,7 @@ export class UserServiceProxy extends BaseServiceProxy {
    * ПРОСТО ПРОКСИРУЕТ /users/me с JWT токеном
    */
   async updateCurrentUserProfile(authHeader?: string, updates?: any): Promise<UserDTO> {
-    return this.put<UserDTO>(`/api/v1/users/me`, updates, {
+    return this.put<UserDTO>(`/users/me`, updates, {
       timeout: 5000,
       headers: authHeader ? {
         'Authorization': authHeader,
@@ -107,7 +107,7 @@ export class UserServiceProxy extends BaseServiceProxy {
    */
   async reserveInterviewQuota(userId: string): Promise<QuotaReservationDTO> {
     return this.post<QuotaReservationDTO>(
-      `/api/v1/users/${userId}/quota/reserve`,
+      `/users/${userId}/quota/reserve`,
       {
         resourceType: 'interview',
       },
@@ -123,7 +123,7 @@ export class UserServiceProxy extends BaseServiceProxy {
    */
   async releaseQuota(userId: string, reservationId: string): Promise<void> {
     return this.delete<void>(
-      `/api/v1/users/${userId}/quota/reservations/${reservationId}`,
+      `/users/${userId}/quota/reservations/${reservationId}`,
       {
         timeout: 3000,
       },
@@ -134,7 +134,7 @@ export class UserServiceProxy extends BaseServiceProxy {
    * Получает статистику пользователя
    */
   async getUserStats(userId: string): Promise<UserStatsDTO> {
-    return this.get<UserStatsDTO>(`/api/v1/users/${userId}/stats`, {
+    return this.get<UserStatsDTO>(`/users/${userId}/stats`, {
       timeout: 5000,
     });
   }
@@ -143,7 +143,7 @@ export class UserServiceProxy extends BaseServiceProxy {
    * Проверяет существование пользователя по email
    */
   async checkUserExists(email: string): Promise<{ exists: boolean }> {
-    return this.get<{ exists: boolean }>(`/api/v1/users/check?email=${email}`, {
+    return this.get<{ exists: boolean }>(`/users/check?email=${email}`, {
       timeout: 2000,
     });
   }
@@ -163,7 +163,7 @@ export class UserServiceProxy extends BaseServiceProxy {
     });
 
     return this.get<{ users: UserDTO[]; total: number; page: number }>(
-      `/api/v1/users?${query}`,
+      `/users?${query}`,
       {
         timeout: 5000,
       },

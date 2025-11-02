@@ -1,21 +1,28 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEventProducer } from './producers/user-event.producer';
+import { AuthLoginConsumer } from './consumers/auth-login.consumer';
+import { UserEntity } from '../persistence/entities/user.entity';
 import { KafkaService } from '@repo/shared';
+import { LoggerModule } from '../logger/logger.module';
 
 /**
  * Kafka Module
  * Handles Kafka integration for User Service
  * 
- * Note: User creation now handled via sync HTTP (Saga pattern)
- * This module only publishes domain events to Kafka (via OutboxService)
+ * Producers: Domain events via OutboxService
+ * Consumers: Auth events for last_login_at updates
  */
 @Module({
   imports: [
     ConfigModule,
+    TypeOrmModule.forFeature([UserEntity]),
+    LoggerModule,
   ],
   providers: [
     UserEventProducer,
+    AuthLoginConsumer,
     {
       provide: 'KAFKA_CONFIG',
       useFactory: (configService: ConfigService) => ({
