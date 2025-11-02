@@ -56,7 +56,6 @@ echo -e "${YELLOW}→ Truncating database tables...${NC}"
 docker exec ai-interview-postgres psql -U postgres -d ai_video_interview_user -c "
   TRUNCATE TABLE user_roles CASCADE;
   TRUNCATE TABLE users CASCADE;
-  TRUNCATE TABLE inbox CASCADE;
   TRUNCATE TABLE outbox CASCADE;
 "
 

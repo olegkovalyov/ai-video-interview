@@ -47,10 +47,6 @@ echo ""
 echo -e "${GREEN}✅ Admin user created with Keycloak ID: ${KEYCLOAK_ID}${NC}"
 echo ""
 
-# Wait for processing
-echo -e "${YELLOW}→ Waiting for processing...${NC}"
-sleep 3
-
 # Assign admin role
 echo -e "${YELLOW}→ Assigning admin role...${NC}"
 

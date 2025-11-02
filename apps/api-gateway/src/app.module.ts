@@ -27,6 +27,7 @@ import {
   AuthEventPublisher,
   RedirectUriHelper,
 } from './auth/services';
+import { RegistrationSaga } from './auth/registration.saga';
 import { UserServiceProxy, InterviewServiceProxy } from './proxies';
 import { CircuitBreakerRegistry } from './circuit-breaker';
 import { AdminModule } from './admin/admin.module';
@@ -71,6 +72,7 @@ import { AdminModule } from './admin/admin.module';
     SessionManager,
     AuthEventPublisher,
     RedirectUriHelper,
+    RegistrationSaga, // Saga for ensuring user exists on login
     
     // Circuit Breaker
     CircuitBreakerRegistry,

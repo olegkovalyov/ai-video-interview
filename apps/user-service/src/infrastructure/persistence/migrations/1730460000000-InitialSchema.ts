@@ -287,85 +287,7 @@ export class InitialSchema1730460000000 implements MigrationInterface {
     );
 
     // ============================================
-    // 4. INBOX TABLE (INBOX Pattern - Idempotency)
-    // ============================================
-    await queryRunner.createTable(
-      new Table({
-        name: 'inbox',
-        columns: [
-          {
-            name: 'id',
-            type: 'uuid',
-            isPrimary: true,
-            default: 'uuid_generate_v4()',
-          },
-          {
-            name: 'message_id',
-            type: 'varchar',
-            length: '255',
-            isUnique: true,
-            isNullable: false,
-          },
-          {
-            name: 'event_type',
-            type: 'varchar',
-            length: '100',
-            isNullable: false,
-          },
-          {
-            name: 'payload',
-            type: 'jsonb',
-            isNullable: false,
-          },
-          {
-            name: 'status',
-            type: 'enum',
-            enum: ['pending', 'processing', 'processed', 'failed'],
-            default: "'pending'",
-          },
-          {
-            name: 'error_message',
-            type: 'text',
-            isNullable: true,
-          },
-          {
-            name: 'retry_count',
-            type: 'integer',
-            default: 0,
-          },
-          {
-            name: 'created_at',
-            type: 'timestamp',
-            default: 'CURRENT_TIMESTAMP',
-          },
-          {
-            name: 'processed_at',
-            type: 'timestamp',
-            isNullable: true,
-          },
-        ],
-      }),
-      true,
-    );
-
-    await queryRunner.createIndex(
-      'inbox',
-      new TableIndex({
-        name: 'idx_inbox_status',
-        columnNames: ['status'],
-      }),
-    );
-
-    await queryRunner.createIndex(
-      'inbox',
-      new TableIndex({
-        name: 'idx_inbox_created_at',
-        columnNames: ['created_at'],
-      }),
-    );
-
-    // ============================================
-    // 5. OUTBOX TABLE (OUTBOX Pattern - Reliable Publishing)
+    // 4. OUTBOX TABLE (OUTBOX Pattern - Reliable Publishing)
     // ============================================
     await queryRunner.createTable(
       new Table({
@@ -459,7 +381,6 @@ export class InitialSchema1730460000000 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop all tables in reverse order
     await queryRunner.dropTable('outbox', true);
-    await queryRunner.dropTable('inbox', true);
     await queryRunner.dropTable('user_roles', true);
     await queryRunner.dropTable('roles', true);
     await queryRunner.dropTable('users', true);

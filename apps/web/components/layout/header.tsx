@@ -82,7 +82,7 @@ export function Header({ userRoles = [] }: HeaderProps) {
               <Link 
                 href="/dashboard" 
                 className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname === '/dashboard' || pathname.startsWith('/dashboard/') ? 'text-yellow-400' : ''
+                  pathname === '/dashboard' || pathname.startsWith('/dashboard/') || pathname === '/admin/dashboard' || pathname.startsWith('/admin/dashboard/') ? 'text-yellow-400' : ''
                 }`}
               >
                 Dashboard
@@ -209,10 +209,10 @@ export function Header({ userRoles = [] }: HeaderProps) {
             ) : (
               // Если не залогинен - показываем Login/Register
               <>
-                <SignInButton variant="glass" size="sm">
+                <SignInButton variant="glass" size="sm" mode="login">
                   Login
                 </SignInButton>
-                <SignInButton variant="brand" size="sm">
+                <SignInButton variant="brand" size="sm" mode="register">
                   Sign Up
                 </SignInButton>
               </>

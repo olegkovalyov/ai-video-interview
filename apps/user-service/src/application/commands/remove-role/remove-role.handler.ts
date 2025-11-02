@@ -23,8 +23,8 @@ export class RemoveRoleHandler implements ICommandHandler<RemoveRoleCommand> {
   ) {}
 
   async execute(command: RemoveRoleCommand): Promise<User> {
-    // 1. Load user by external auth ID
-    const user = await this.userRepository.findByExternalAuthId(command.userId);
+    // 1. Load user by ID (internal ID, not external auth ID)
+    const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
     }

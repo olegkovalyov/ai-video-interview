@@ -56,10 +56,6 @@ echo ""
 echo -e "${GREEN}✅ HR user created with Keycloak ID: ${KEYCLOAK_ID}${NC}"
 echo ""
 
-# Wait for processing
-echo -e "${YELLOW}→ Waiting for processing...${NC}"
-sleep 3
-
 # Assign HR role
 echo -e "${YELLOW}→ Assigning HR role...${NC}"
 

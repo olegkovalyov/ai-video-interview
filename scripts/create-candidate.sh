@@ -55,7 +55,17 @@ fi
 echo ""
 echo -e "${GREEN}✅ Candidate user created with Keycloak ID: ${KEYCLOAK_ID}${NC}"
 echo ""
-echo -e "${YELLOW}→ Note: 'candidate' role is auto-assigned by default${NC}"
+
+# Assign candidate role (admin creation doesn't auto-assign)
+echo -e "${YELLOW}→ Assigning candidate role...${NC}"
+
+ROLE_RESPONSE=$(curl -s -X POST "${API_GATEWAY}/api/admin/users/${KEYCLOAK_ID}/roles" \
+  -H "Content-Type: application/json" \
+  -d '{"roleName": "candidate"}')
+
+echo "$ROLE_RESPONSE" | jq .
+
+echo -e "${GREEN}✅ Candidate role assigned${NC}"
 echo ""
 
 # Save credentials

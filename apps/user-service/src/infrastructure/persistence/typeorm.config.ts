@@ -1,8 +1,7 @@
 import { DataSource } from 'typeorm';
-import { UserEntity } from '../infrastructure/persistence/entities/user.entity';
-import { RoleEntity } from '../infrastructure/persistence/entities/role.entity';
-import { InboxEntity } from '../infrastructure/persistence/entities/inbox.entity';
-import { OutboxEntity } from '../infrastructure/persistence/entities/outbox.entity';
+import { UserEntity } from './entities/user.entity';
+import { RoleEntity } from './entities/role.entity';
+import { OutboxEntity } from './entities/outbox.entity';
 
 export default new DataSource({
   type: 'postgres',
@@ -11,7 +10,7 @@ export default new DataSource({
   username: process.env.DATABASE_USER || 'postgres',
   password: process.env.DATABASE_PASSWORD || 'postgres',
   database: process.env.DATABASE_NAME || 'ai_video_interview_user',
-  entities: [UserEntity, RoleEntity, InboxEntity, OutboxEntity],
+  entities: [UserEntity, RoleEntity, OutboxEntity],
   migrations: ['src/infrastructure/persistence/migrations/*.ts'],
   synchronize: false,
   logging: false,

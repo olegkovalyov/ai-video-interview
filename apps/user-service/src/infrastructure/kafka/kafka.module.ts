@@ -1,18 +1,21 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { CqrsModule } from '@nestjs/cqrs';
 import { UserEventProducer } from './producers/user-event.producer';
-import { AuthEventConsumer } from './consumers/auth-event.consumer';
 import { KafkaService } from '@repo/shared';
 
+/**
+ * Kafka Module
+ * Handles Kafka integration for User Service
+ * 
+ * Note: User creation now handled via sync HTTP (Saga pattern)
+ * This module only publishes domain events to Kafka (via OutboxService)
+ */
 @Module({
   imports: [
     ConfigModule,
-    CqrsModule, // Provides CommandBus for AuthEventConsumer
   ],
   providers: [
     UserEventProducer,
-    AuthEventConsumer,
     {
       provide: 'KAFKA_CONFIG',
       useFactory: (configService: ConfigService) => ({
@@ -36,6 +39,6 @@ import { KafkaService } from '@repo/shared';
       },
     },
   ],
-  exports: [UserEventProducer, AuthEventConsumer, 'KAFKA_SERVICE'],
+  exports: [UserEventProducer, 'KAFKA_SERVICE'],
 })
 export class KafkaModule {}

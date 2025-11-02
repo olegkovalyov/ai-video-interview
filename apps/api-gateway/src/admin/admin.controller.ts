@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { KeycloakAdminService } from './keycloak-admin.service';
 import { LoggerService } from '../logger/logger.service';
+import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { UserCommandPublisher } from './user-command-publisher.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -8,12 +9,14 @@ import { Roles } from '../auth/roles.decorator';
 
 /**
  * Admin Controller
- * Управление пользователями через Keycloak Admin API + Kafka commands
+ * Управление пользователями через Saga Orchestration Pattern
  * 
  * Architecture:
- * - Creates users in Keycloak
- * - Publishes commands to user-commands topic
- * - User Service consumes commands and creates users in DB
+ * - Uses UserOrchestrationSaga for distributed transactions (CRUD, roles)
+ * - Coordinates Keycloak + User Service with rollback support
+ * - Synchronous HTTP communication with 5s timeout
+ * - Immediate response to frontend
+ * - Suspend/Activate remain async via Kafka (not critical for immediate response)
  * 
  * NOTE: Guards temporarily removed for script-based user creation
  * TODO: Add @UseGuards(JwtAuthGuard, RolesGuard) + @Roles('admin') when dashboard is ready
@@ -25,12 +28,13 @@ export class AdminController {
   constructor(
     private readonly keycloakAdminService: KeycloakAdminService,
     private readonly loggerService: LoggerService,
+    private readonly userOrchestrationSaga: UserOrchestrationSaga,
     private readonly userCommandPublisher: UserCommandPublisher,
   ) {}
 
   /**
    * POST /api/admin/users
-   * Создаёт нового пользователя в Keycloak
+   * Создаёт нового пользователя через Saga Orchestration
    * 
    * Тестирование через curl:
    * curl -X POST http://localhost:8001/api/admin/users \
@@ -44,50 +48,29 @@ export class AdminController {
     lastName: string;
     password?: string;
   }) {
-    this.loggerService.info('Admin: Creating user in Keycloak', {
+    this.loggerService.info('Admin: Creating user via Saga', {
       email: body.email,
       firstName: body.firstName,
       lastName: body.lastName,
     });
 
-    try {
-      // Создаём пользователя в Keycloak
-      const result = await this.keycloakAdminService.createUser({
-        email: body.email,
-        firstName: body.firstName,
-        lastName: body.lastName,
-        password: body.password || 'password', // Default password
-        enabled: true,
-      });
+    // Execute Saga orchestration (Keycloak + User Service)
+    const result = await this.userOrchestrationSaga.executeCreateUser({
+      email: body.email,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      password: body.password || 'password',
+    });
 
-      this.loggerService.info('Admin: User created successfully in Keycloak', {
+    // Return immediate response (synchronous!)
+    return {
+      success: true,
+      data: {
+        userId: result.userId,
         keycloakId: result.keycloakId,
-        email: result.email,
-      });
-
-      // Публикуем команду в user-commands topic
-      await this.userCommandPublisher.publishUserCreate(
-        result.keycloakId,
-        result.email,
-        result.firstName,
-        result.lastName,
-        body.password,
-      );
-
-      this.loggerService.info('Admin: user.create command published', {
-        keycloakId: result.keycloakId,
-      });
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      this.loggerService.error('Admin: Failed to create user', error, {
         email: body.email,
-      });
-      throw error;
-    }
+      },
+    };
   }
 
   /**
@@ -170,30 +153,15 @@ export class AdminController {
       enabled?: boolean;
     },
   ) {
-    this.loggerService.info('Admin: Updating user', { userId: id, updates: body });
+    this.loggerService.info('Admin: Updating user via Saga', { userId: id, updates: body });
 
-    try {
-      await this.keycloakAdminService.updateUser(id, body);
+    // Execute Saga orchestration
+    const result = await this.userOrchestrationSaga.executeUpdateUser(id, {
+      firstName: body.firstName,
+      lastName: body.lastName,
+    });
 
-      this.loggerService.info('Admin: User updated successfully in Keycloak', { userId: id });
-
-      // Публикуем команду в user-commands topic
-      await this.userCommandPublisher.publishUserUpdate(
-        id,
-        body.firstName,
-        body.lastName,
-      );
-
-      this.loggerService.info('Admin: user.update command published', { userId: id });
-
-      return {
-        success: true,
-        message: 'User updated successfully',
-      };
-    } catch (error) {
-      this.loggerService.error('Admin: Failed to update user', error, { userId: id });
-      throw error;
-    }
+    return result;
   }
 
   /**
@@ -204,26 +172,12 @@ export class AdminController {
    */
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string) {
-    this.loggerService.info('Admin: Deleting user', { userId: id });
+    this.loggerService.info('Admin: Deleting user via Saga', { userId: id });
 
-    try {
-      await this.keycloakAdminService.deleteUser(id);
+    // Execute Saga orchestration
+    const result = await this.userOrchestrationSaga.executeDeleteUser(id);
 
-      this.loggerService.info('Admin: User deleted successfully in Keycloak', { userId: id });
-
-      // Публикуем команду в user-commands topic
-      await this.userCommandPublisher.publishUserDelete(id, 'admin');
-
-      this.loggerService.info('Admin: user.delete command published', { userId: id });
-
-      return {
-        success: true,
-        message: 'User deleted successfully',
-      };
-    } catch (error) {
-      this.loggerService.error('Admin: Failed to delete user', error, { userId: id });
-      throw error;
-    }
+    return result;
   }
 
   /**
@@ -294,38 +248,15 @@ export class AdminController {
     @Param('id') id: string,
     @Body() body: { roleName: string },
   ) {
-    this.loggerService.info('Admin: Assigning role to user', {
+    this.loggerService.info('Admin: Assigning role via Saga', {
       userId: id,
       roleName: body.roleName,
     });
 
-    try {
-      await this.keycloakAdminService.assignRole(id, body.roleName);
+    // Execute Saga orchestration
+    const result = await this.userOrchestrationSaga.executeAssignRole(id, body.roleName);
 
-      this.loggerService.info('Admin: Role assigned successfully in Keycloak', {
-        userId: id,
-        roleName: body.roleName,
-      });
-
-      // Публикуем команду в user-commands topic
-      await this.userCommandPublisher.publishUserAssignRole(id, body.roleName);
-
-      this.loggerService.info('Admin: user.assign_role command published', {
-        userId: id,
-        roleName: body.roleName,
-      });
-
-      return {
-        success: true,
-        message: `Role ${body.roleName} assigned successfully`,
-      };
-    } catch (error) {
-      this.loggerService.error('Admin: Failed to assign role', error, {
-        userId: id,
-        roleName: body.roleName,
-      });
-      throw error;
-    }
+    return result;
   }
 
   /**
@@ -339,38 +270,15 @@ export class AdminController {
     @Param('id') id: string,
     @Param('roleName') roleName: string,
   ) {
-    this.loggerService.info('Admin: Removing role from user', {
+    this.loggerService.info('Admin: Removing role via Saga', {
       userId: id,
       roleName,
     });
 
-    try {
-      await this.keycloakAdminService.removeRole(id, roleName);
+    // Execute Saga orchestration
+    const result = await this.userOrchestrationSaga.executeRemoveRole(id, roleName);
 
-      this.loggerService.info('Admin: Role removed successfully in Keycloak', {
-        userId: id,
-        roleName,
-      });
-
-      // Публикуем команду в user-commands topic
-      await this.userCommandPublisher.publishUserRemoveRole(id, roleName);
-
-      this.loggerService.info('Admin: user.remove_role command published', {
-        userId: id,
-        roleName,
-      });
-
-      return {
-        success: true,
-        message: `Role ${roleName} removed successfully`,
-      };
-    } catch (error) {
-      this.loggerService.error('Admin: Failed to remove role', error, {
-        userId: id,
-        roleName,
-      });
-      throw error;
-    }
+    return result;
   }
 
   /**

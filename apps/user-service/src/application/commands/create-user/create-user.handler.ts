@@ -57,18 +57,10 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     // 4. Save to repository
     await this.userRepository.save(user);
 
-    // 5. Auto-assign 'candidate' role to new users
-    try {
-      const candidateRole = await this.roleRepository.findByName('candidate');
-      if (candidateRole) {
-        user.assignRole('candidate', 'system');
-        await this.roleRepository.assignToUser(user.id, candidateRole.id, 'system');
-      }
-    } catch (error) {
-      // Log but don't fail user creation if role assignment fails
-      console.error('Failed to assign candidate role:', error);
-    }
-
+    // 5. Auto-assign 'candidate' role - REMOVED
+    // Role assignment should be done explicitly via Admin API or separate saga step
+    // to avoid transaction conflicts and ensure proper orchestration
+    
     // 6. Publish domain events (internal only - logging, metrics, etc.)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);

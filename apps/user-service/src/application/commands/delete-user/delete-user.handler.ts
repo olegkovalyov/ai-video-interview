@@ -20,8 +20,8 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
   ) {}
 
   async execute(command: DeleteUserCommand): Promise<void> {
-    // 1. Find user by external auth ID
-    const user = await this.userRepository.findByExternalAuthId(command.userId);
+    // 1. Find user by ID (internal ID, not external auth ID)
+    const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
     }

@@ -14,8 +14,14 @@ async function bootstrap() {
   // Используем наш Winston Logger для ВСЕХ NestJS логов
   app.useLogger(logger);
 
-  // Global prefix
-  app.setGlobalPrefix('api/v1');
+  // Global prefix (exclude internal service endpoints)
+  app.setGlobalPrefix('api/v1', {
+    exclude: [
+      'internal/(.*)',  // Все пути начинающиеся с /internal
+      'health/(.*)',    // Все пути начинающиеся с /health
+      'health',         // Endpoint /health
+    ],
+  });
 
   // Validation pipe
   app.useGlobalPipes(
