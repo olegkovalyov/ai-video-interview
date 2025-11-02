@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AdminController } from './admin.controller';
-import { KeycloakAdminService } from './keycloak-admin.service';
+import { KeycloakTokenService, KeycloakUserService, KeycloakRoleService, KeycloakEmailService } from './keycloak';
 import { UserCommandPublisher } from './user-command-publisher.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { OrphanedUsersService } from './orphaned-users.service';
@@ -29,18 +29,26 @@ import { CircuitBreakerRegistry } from '../circuit-breaker';
   ],
   controllers: [AdminController],
   providers: [
-    KeycloakAdminService,
-    UserCommandPublisher, // Keep for suspend/activate (async operations)
+    // Keycloak modular services
+    KeycloakTokenService,
+    KeycloakUserService,
+    KeycloakRoleService,
+    KeycloakEmailService,
+    
+    // Saga orchestration
     UserOrchestrationSaga,
-    UserServiceClient,
+    UserCommandPublisher, // Keep for suspend/activate (async operations)
     OrphanedUsersService,
+    
+    // Shared services
+    UserServiceClient,
     LoggerService,
     CircuitBreakerRegistry,
   ],
   exports: [
-    KeycloakAdminService,
+    KeycloakUserService, // Export for RegistrationSaga
     UserOrchestrationSaga,
-    UserServiceClient, // Export for RegistrationSaga
+    UserServiceClient,
   ],
 })
 export class AdminModule {}

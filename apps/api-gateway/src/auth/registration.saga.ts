@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { UserServiceClient } from '../clients';
-import { KeycloakAdminService } from '../admin/keycloak-admin.service';
+import { KeycloakUserService } from '../admin/keycloak';
 import { LoggerService } from '../logger/logger.service';
 
 export interface EnsureUserExistsDto {
@@ -34,7 +34,7 @@ export interface UserResult {
 export class RegistrationSaga {
   constructor(
     private readonly userServiceClient: UserServiceClient,
-    private readonly keycloakAdmin: KeycloakAdminService,
+    private readonly keycloakUserService: KeycloakUserService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -182,7 +182,7 @@ export class RegistrationSaga {
         });
 
         // Delete from Keycloak to prevent orphaned state
-        await this.keycloakAdmin.deleteUser(dto.keycloakId);
+        await this.keycloakUserService.deleteUser(dto.keycloakId);
 
         this.logger.info('RegistrationSaga: Compensation successful - user deleted from Keycloak', {
           operationId,

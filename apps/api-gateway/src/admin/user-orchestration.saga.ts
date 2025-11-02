@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
-import { KeycloakAdminService } from './keycloak-admin.service';
+import { KeycloakUserService, KeycloakRoleService } from './keycloak';
 import { UserServiceClient } from '../clients';
 import { OrphanedUsersService } from './orphaned-users.service';
 import { LoggerService } from '../logger/logger.service';
@@ -32,7 +32,8 @@ export interface CreateUserResult {
 @Injectable()
 export class UserOrchestrationSaga {
   constructor(
-    private readonly keycloakAdmin: KeycloakAdminService,
+    private readonly keycloakUserService: KeycloakUserService,
+    private readonly keycloakRoleService: KeycloakRoleService,
     private readonly userServiceClient: UserServiceClient,
     private readonly orphanedUsers: OrphanedUsersService,
     private readonly logger: LoggerService,
@@ -58,7 +59,7 @@ export class UserOrchestrationSaga {
       // ═══════════════════════════════════════════════════════════
       this.logger.info('Saga Step 1: Creating user in Keycloak', { operationId });
 
-      const keycloakResult = await this.keycloakAdmin.createUser({
+      const keycloakResult = await this.keycloakUserService.createUser({
         email: dto.email,
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -150,7 +151,7 @@ export class UserOrchestrationSaga {
 
     try {
       // STEP 1: Get current state for potential rollback
-      const currentUser = await this.keycloakAdmin.getUser(keycloakId);
+      const currentUser = await this.keycloakUserService.getUser(keycloakId);
       previousKeycloakState = {
         firstName: currentUser.firstName,
         lastName: currentUser.lastName,
@@ -162,7 +163,7 @@ export class UserOrchestrationSaga {
         keycloakId,
       });
 
-      await this.keycloakAdmin.updateUser(keycloakId, dto);
+      await this.keycloakUserService.updateUser(keycloakId, dto);
 
       // STEP 3: Get userId from User Service
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
@@ -209,7 +210,7 @@ export class UserOrchestrationSaga {
       // Rollback Keycloak if User Service failed
       if (previousKeycloakState) {
         try {
-          await this.keycloakAdmin.updateUser(keycloakId, previousKeycloakState);
+          await this.keycloakUserService.updateUser(keycloakId, previousKeycloakState);
           this.logger.info('Saga: Keycloak update rolled back', {
             operationId,
             keycloakId,
@@ -280,7 +281,7 @@ export class UserOrchestrationSaga {
         keycloakId,
       });
 
-      await this.keycloakAdmin.deleteUser(keycloakId);
+      await this.keycloakUserService.deleteUser(keycloakId);
 
       this.logger.info('Saga: User deletion completed successfully', {
         operationId,
@@ -335,7 +336,7 @@ export class UserOrchestrationSaga {
         roleName,
       });
 
-      await this.keycloakAdmin.assignRole(keycloakId, roleName);
+      await this.keycloakRoleService.assignRole(keycloakId, roleName);
 
       // STEP 2: Get userId from User Service
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
@@ -384,7 +385,7 @@ export class UserOrchestrationSaga {
 
       // Rollback: Remove role from Keycloak
       try {
-        await this.keycloakAdmin.removeRole(keycloakId, roleName);
+        await this.keycloakRoleService.removeRole(keycloakId, roleName);
         this.logger.info('Saga: Keycloak role assignment rolled back', {
           operationId,
           keycloakId,
@@ -457,7 +458,7 @@ export class UserOrchestrationSaga {
         roleName,
       });
 
-      await this.keycloakAdmin.removeRole(keycloakId, roleName);
+      await this.keycloakRoleService.removeRole(keycloakId, roleName);
 
       this.logger.info('Saga: Role removal completed successfully', {
         operationId,
@@ -511,7 +512,7 @@ export class UserOrchestrationSaga {
 
     try {
       // Attempt to delete from Keycloak
-      await this.keycloakAdmin.deleteUser(keycloakId);
+      await this.keycloakUserService.deleteUser(keycloakId);
 
       this.logger.info('Saga: Compensation successful - Keycloak user deleted', {
         operationId,

@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { KeycloakAdminService } from './keycloak-admin.service';
+import { KeycloakUserService, KeycloakRoleService, KeycloakEmailService } from './keycloak';
 import { LoggerService } from '../logger/logger.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { UserCommandPublisher } from './user-command-publisher.service';
@@ -27,7 +27,9 @@ import { Roles } from '../auth/roles.decorator';
 // @Roles('admin')
 export class AdminController {
   constructor(
-    private readonly keycloakAdminService: KeycloakAdminService,
+    private readonly keycloakUserService: KeycloakUserService,
+    private readonly keycloakRoleService: KeycloakRoleService,
+    private readonly keycloakEmailService: KeycloakEmailService,
     private readonly loggerService: LoggerService,
     private readonly userOrchestrationSaga: UserOrchestrationSaga,
     private readonly userCommandPublisher: UserCommandPublisher,
@@ -91,7 +93,7 @@ export class AdminController {
     this.loggerService.info('Admin: Listing users', { search, max, first });
 
     try {
-      const keycloakUsers = await this.keycloakAdminService.listUsers({
+      const keycloakUsers = await this.keycloakUserService.listUsers({
         search,
         max: max || 100,
         first: first || 0,
@@ -143,7 +145,7 @@ export class AdminController {
     this.loggerService.info('Admin: Getting user', { userId: id });
 
     try {
-      const user = await this.keycloakAdminService.getUser(id);
+      const user = await this.keycloakUserService.getUser(id);
 
       this.loggerService.info('Admin: User retrieved successfully', { userId: id });
 
@@ -213,7 +215,7 @@ export class AdminController {
     this.loggerService.info('Admin: Getting available roles');
 
     try {
-      const roles = await this.keycloakAdminService.getAvailableRoles();
+      const roles = await this.keycloakRoleService.getAvailableRoles();
 
       this.loggerService.info('Admin: Roles retrieved successfully', {
         count: roles.length,
@@ -240,7 +242,7 @@ export class AdminController {
     this.loggerService.info('Admin: Getting user roles', { userId: id });
 
     try {
-      const roles = await this.keycloakAdminService.getUserRoles(id);
+      const roles = await this.keycloakRoleService.getUserRoles(id);
 
       this.loggerService.info('Admin: User roles retrieved successfully', {
         userId: id,
@@ -315,7 +317,7 @@ export class AdminController {
 
     try {
       // Directly disable user in Keycloak (synchronous)
-      await this.keycloakAdminService.updateUser(id, { enabled: false });
+      await this.keycloakUserService.updateUser(id, { enabled: false });
 
       this.loggerService.info('Admin: User suspended successfully in Keycloak', { userId: id });
 
@@ -341,7 +343,7 @@ export class AdminController {
 
     try {
       // Directly enable user in Keycloak (synchronous)
-      await this.keycloakAdminService.updateUser(id, { enabled: true });
+      await this.keycloakUserService.updateUser(id, { enabled: true });
 
       this.loggerService.info('Admin: User activated successfully in Keycloak', { userId: id });
 
@@ -366,7 +368,7 @@ export class AdminController {
     this.loggerService.info('Admin: Verifying email for user', { userId: id });
 
     try {
-      await this.keycloakAdminService.verifyEmail(id);
+      await this.keycloakEmailService.verifyEmail(id);
 
       this.loggerService.info('Admin: Email verified successfully', { userId: id });
 
