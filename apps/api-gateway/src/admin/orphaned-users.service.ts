@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 
 export interface OrphanedUserDetails {
   reason: 'rollback_failed' | 'user_service_unavailable' | 'keycloak_delete_failed';

@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 import { KeycloakUserService, KeycloakRoleService } from './keycloak';
 import { UserServiceClient } from '../clients';
 import { OrphanedUsersService } from './orphaned-users.service';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 
 export interface CreateUserDto {
   email: string;

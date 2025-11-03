@@ -12,7 +12,7 @@ import {
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserServiceClient } from '../clients';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 
 /**
  * Users Controller

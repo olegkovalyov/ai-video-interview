@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { KafkaService, AuthEventFactory, KAFKA_TOPICS } from '@repo/shared';
-import { LoggerService } from '../../logger/logger.service';
+import { LoggerService } from '../../core/logging/logger.service';
 import { TraceService } from '../../tracing/trace.service';
 import * as crypto from 'crypto';
 

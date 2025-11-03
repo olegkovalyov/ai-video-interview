@@ -1,4 +1,4 @@
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 
 export enum CircuitState {
   CLOSED = 'CLOSED',       // Нормальная работа

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { CircuitBreaker, CircuitBreakerOptions, CircuitState } from './circuit-breaker';
 

@@ -2,7 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { UserServiceClient } from '../clients';
 import { KeycloakUserService } from '../admin/keycloak';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 
 export interface EnsureUserExistsDto {
   keycloakId: string;

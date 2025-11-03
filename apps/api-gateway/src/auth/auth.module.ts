@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
 import { OidcService } from './oidc.service';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 
 /**
  * Auth Module

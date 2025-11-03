@@ -5,7 +5,7 @@ import { KeycloakTokenService, KeycloakUserService, KeycloakRoleService, Keycloa
 import { UserCommandPublisher } from './user-command-publisher.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { OrphanedUsersService } from './orphaned-users.service';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 import { KafkaModule } from '../kafka/kafka.module';
 import { AuthModule } from '../auth/auth.module';
 import { UserServiceClient } from '../clients';

@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { BaseServiceProxy } from '../proxies/base/base-service-proxy';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../circuit-breaker';
 import { CreateUserInternalDto, CreateUserInternalResponse } from '../admin/dto/create-user-internal.dto';

@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { KeycloakUserService, KeycloakRoleService, KeycloakEmailService } from './keycloak';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { UserCommandPublisher } from './user-command-publisher.service';
 import { UserServiceClient } from '../clients';

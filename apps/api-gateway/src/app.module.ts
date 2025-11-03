@@ -19,7 +19,7 @@ import { MetricsInterceptor } from './metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
 import { HealthController } from './health/health.controller';
 import { UsersController } from './users/users.controller';
-import { LoggerService } from './logger/logger.service';
+import { LoggingModule } from './core/logging/logging.module';
 import { TraceService } from './tracing/trace.service';
 import {
   AuthOrchestrator,
@@ -44,6 +44,10 @@ import { AdminModule } from './admin/admin.module';
       timeout: 5000,
       maxRedirects: 5,
     }),
+    
+    // Core infrastructure
+    LoggingModule,
+    
     KafkaModule,
     MetricsModule,
     AdminModule,
@@ -65,7 +69,6 @@ import { AdminModule } from './admin/admin.module';
     KeycloakService,
     JwtAuthGuard,
     JwtRefreshGuard,
-    LoggerService,
     TraceService,
     
     // New auth services (refactored)

@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { TokenService } from '../token.service';
 import { CookieService } from '../cookie.service';
 import { KeycloakService } from '../keycloak.service';
-import { LoggerService } from '../../logger/logger.service';
+import { LoggerService } from '../../core/logging/logger.service';
 import { RedirectUriHelper } from './redirect-uri.helper';
 
 export interface SessionValidationResult {

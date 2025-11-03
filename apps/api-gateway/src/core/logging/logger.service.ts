@@ -27,9 +27,9 @@ export class LoggerService implements NestLoggerService {
     const fs = require('fs');
     
     // Логи в папке сервиса: apps/api-gateway/logs/
-    // __dirname в compiled = apps/api-gateway/dist/logger
-    // ../../logs = apps/api-gateway/logs (2 уровня вверх из dist/logger)
-    const baseLogsDir = path.join(__dirname, '../../logs');
+    // __dirname в compiled = apps/api-gateway/dist/core/logging
+    // ../../../logs = apps/api-gateway/logs (3 уровня вверх из dist/core/logging)
+    const baseLogsDir = path.join(__dirname, '../../../logs');
     
     // Папка по дате: logs/2025-10-02/
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

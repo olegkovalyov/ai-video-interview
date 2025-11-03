@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { BaseServiceProxy } from './base/base-service-proxy';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../core/logging/logger.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../circuit-breaker';
 
