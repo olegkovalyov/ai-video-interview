@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { BaseServiceProxy } from './base/base-service-proxy';
-import { LoggerService } from '../core/logging/logger.service';
-import { MetricsService } from '../core/metrics/metrics.service';
-import { CircuitBreakerRegistry } from '../core/circuit-breaker';
+import { BaseServiceProxy } from '../../../proxies/base/base-service-proxy';
+import { LoggerService } from '../../../core/logging/logger.service';
+import { MetricsService } from '../../../core/metrics/metrics.service';
+import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
 
 // DTO types
 export interface InterviewDTO {

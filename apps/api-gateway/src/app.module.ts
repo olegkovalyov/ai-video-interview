@@ -27,9 +27,9 @@ import {
   RedirectUriHelper,
 } from './auth/services';
 import { RegistrationSaga } from './auth/registration.saga';
-import { InterviewServiceProxy } from './proxies';
 import { CircuitBreakerModule } from './core/circuit-breaker/circuit-breaker.module';
 import { UserServiceModule } from './modules/user-service/user-service.module';
+import { InterviewServiceModule } from './modules/interview-service/interview-service.module';
 
 @Module({
   imports: [
@@ -54,6 +54,7 @@ import { UserServiceModule } from './modules/user-service/user-service.module';
     
     // Microservice modules
     UserServiceModule,
+    InterviewServiceModule,
   ],
   controllers: [
     AppController,
@@ -77,9 +78,6 @@ import { UserServiceModule } from './modules/user-service/user-service.module';
     AuthEventPublisher,
     RedirectUriHelper,
     RegistrationSaga, // Saga for ensuring user exists on login
-    
-    // Service Clients
-    InterviewServiceProxy,
     {
       provide: APP_INTERCEPTOR,
       useClass: AuthErrorInterceptor,
