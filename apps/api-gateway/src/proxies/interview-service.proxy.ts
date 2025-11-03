@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { BaseServiceProxy } from './base/base-service-proxy';
 import { LoggerService } from '../core/logging/logger.service';
-import { MetricsService } from '../metrics/metrics.service';
+import { MetricsService } from '../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../circuit-breaker';
 
 // DTO types

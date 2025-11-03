@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { TokenService } from '../token.service';
 import { CookieService } from '../cookie.service';
 import { KeycloakService } from '../keycloak.service';
-import { MetricsService } from '../../metrics/metrics.service';
+import { MetricsService } from '../../core/metrics/metrics.service';
 import { LoggerService } from '../../core/logging/logger.service';
 import { TraceService } from '../../tracing/trace.service';
 import { SessionManager } from './session-manager.service';

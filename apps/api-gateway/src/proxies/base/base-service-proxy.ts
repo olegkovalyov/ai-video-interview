@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { LoggerService } from '../../core/logging/logger.service';
-import { MetricsService } from '../../metrics/metrics.service';
+import { MetricsService } from '../../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../../circuit-breaker/circuit-breaker-registry.service';
 import { CircuitBreaker, CircuitBreakerOptions } from '../../circuit-breaker/circuit-breaker';
 
