@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { AdminController } from './admin.controller';
+import { AdminUsersController } from './controllers/admin-users.controller';
+import { AdminRolesController } from './controllers/admin-roles.controller';
+import { AdminActionsController } from './controllers/admin-actions.controller';
 import { KeycloakTokenService, KeycloakUserService, KeycloakRoleService, KeycloakEmailService } from './keycloak';
 import { UserCommandPublisher } from './user-command-publisher.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
@@ -27,7 +29,11 @@ import { CircuitBreakerRegistry } from '../circuit-breaker';
     KafkaModule,
     AuthModule,
   ],
-  controllers: [AdminController],
+  controllers: [
+    AdminUsersController,
+    AdminRolesController,
+    AdminActionsController,
+  ],
   providers: [
     // Keycloak modular services
     KeycloakTokenService,
