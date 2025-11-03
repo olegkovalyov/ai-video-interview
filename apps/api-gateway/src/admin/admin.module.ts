@@ -11,7 +11,7 @@ import { LoggerService } from '../core/logging/logger.service';
 import { KafkaModule } from '../kafka/kafka.module';
 import { AuthModule } from '../auth/auth.module';
 import { UserServiceClient } from '../clients';
-import { CircuitBreakerRegistry } from '../circuit-breaker';
+import { CircuitBreakerRegistry } from '../core/circuit-breaker';
 
 /**
  * Admin Module

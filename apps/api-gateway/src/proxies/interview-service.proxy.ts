@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { BaseServiceProxy } from './base/base-service-proxy';
 import { LoggerService } from '../core/logging/logger.service';
 import { MetricsService } from '../core/metrics/metrics.service';
-import { CircuitBreakerRegistry } from '../circuit-breaker';
+import { CircuitBreakerRegistry } from '../core/circuit-breaker';
 
 // DTO types
 export interface InterviewDTO {

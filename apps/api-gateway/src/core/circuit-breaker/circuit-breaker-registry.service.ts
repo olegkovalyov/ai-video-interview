@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { LoggerService } from '../core/logging/logger.service';
-import { MetricsService } from '../core/metrics/metrics.service';
+import { LoggerService } from '../logging/logger.service';
+import { MetricsService } from '../metrics/metrics.service';
 import { CircuitBreaker, CircuitBreakerOptions, CircuitState } from './circuit-breaker';
 
 /**

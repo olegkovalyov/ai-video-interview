@@ -30,7 +30,7 @@ import {
 import { RegistrationSaga } from './auth/registration.saga';
 import { UserServiceClient } from './clients';
 import { InterviewServiceProxy } from './proxies';
-import { CircuitBreakerRegistry } from './circuit-breaker';
+import { CircuitBreakerModule } from './core/circuit-breaker/circuit-breaker.module';
 import { AdminModule } from './admin/admin.module';
 
 @Module({
@@ -49,6 +49,7 @@ import { AdminModule } from './admin/admin.module';
     LoggingModule,
     MetricsModule,
     TracingModule,
+    CircuitBreakerModule,
     
     KafkaModule,
     AdminModule,
@@ -77,9 +78,6 @@ import { AdminModule } from './admin/admin.module';
     AuthEventPublisher,
     RedirectUriHelper,
     RegistrationSaga, // Saga for ensuring user exists on login
-    
-    // Circuit Breaker
-    CircuitBreakerRegistry,
     
     // Service Clients
     UserServiceClient,

@@ -4,8 +4,8 @@ import { firstValueFrom } from 'rxjs';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { LoggerService } from '../../core/logging/logger.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
-import { CircuitBreakerRegistry } from '../../circuit-breaker/circuit-breaker-registry.service';
-import { CircuitBreaker, CircuitBreakerOptions } from '../../circuit-breaker/circuit-breaker';
+import { CircuitBreakerRegistry } from '../../core/circuit-breaker/circuit-breaker-registry.service';
+import { CircuitBreaker, CircuitBreakerOptions } from '../../core/circuit-breaker/circuit-breaker';
 
 export interface ProxyRequestOptions {
   timeout?: number;
