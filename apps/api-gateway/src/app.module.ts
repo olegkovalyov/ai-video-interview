@@ -17,7 +17,7 @@ import { MetricsModule } from './core/metrics/metrics.module';
 import { MetricsController } from './core/metrics/metrics.controller';
 import { MetricsInterceptor } from './core/metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
-import { HealthController } from './health/health.controller';
+import { HealthModule } from './core/health/health.module';
 import { UsersController } from './users/users.controller';
 import { LoggingModule } from './core/logging/logging.module';
 import { TracingModule } from './core/tracing/tracing.module';
@@ -50,6 +50,7 @@ import { AdminModule } from './admin/admin.module';
     MetricsModule,
     TracingModule,
     CircuitBreakerModule,
+    HealthModule,
     
     KafkaModule,
     AdminModule,
@@ -58,7 +59,6 @@ import { AdminModule } from './admin/admin.module';
     AppController,
     AuthController,
     MetricsController,
-    HealthController,
     UsersController,
   ],
   providers: [

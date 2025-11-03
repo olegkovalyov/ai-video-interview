@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { CircuitBreakerRegistry } from '../core/circuit-breaker';
+import { CircuitBreakerRegistry } from '../circuit-breaker/circuit-breaker-registry.service';
 
 @Controller('health')
 export class HealthController {
