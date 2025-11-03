@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { KafkaService, AuthEventFactory, KAFKA_TOPICS } from '@repo/shared';
 import { LoggerService } from '../../core/logging/logger.service';
-import { TraceService } from '../../tracing/trace.service';
+import { TraceService } from '../../core/tracing/trace.service';
 import * as crypto from 'crypto';
 
 export type AuthMethod = 'oauth2' | 'jwt_refresh';

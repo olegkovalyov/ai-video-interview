@@ -5,7 +5,7 @@ import { CookieService } from '../cookie.service';
 import { KeycloakService } from '../keycloak.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
 import { LoggerService } from '../../core/logging/logger.service';
-import { TraceService } from '../../tracing/trace.service';
+import { TraceService } from '../../core/tracing/trace.service';
 import { SessionManager } from './session-manager.service';
 import { AuthEventPublisher } from './auth-event-publisher.service';
 import { RedirectUriHelper } from './redirect-uri.helper';
