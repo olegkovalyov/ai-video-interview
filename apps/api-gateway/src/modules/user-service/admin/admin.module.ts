@@ -4,7 +4,7 @@ import { AdminUsersController } from './controllers/admin-users.controller';
 import { AdminRolesController } from './controllers/admin-roles.controller';
 import { AdminActionsController } from './controllers/admin-actions.controller';
 import { KeycloakTokenService, KeycloakUserService, KeycloakRoleService, KeycloakEmailService } from './keycloak';
-import { UserCommandPublisher } from './user-command-publisher.service';
+import { UserCommandPublisher } from '../../../kafka/producers';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { OrphanedUsersService } from './orphaned-users.service';
 import { LoggerService } from '../../../core/logging/logger.service';

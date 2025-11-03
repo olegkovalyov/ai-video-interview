@@ -7,7 +7,7 @@ import { MetricsService } from '../../metrics/metrics.service';
 import { LoggerService } from '../../logging/logger.service';
 import { TraceService } from '../../tracing/trace.service';
 import { SessionManager } from './session-manager.service';
-import { AuthEventPublisher } from './auth-event-publisher.service';
+import { AuthEventPublisher } from '../../../kafka/producers';
 import { RedirectUriHelper } from './redirect-uri.helper';
 import { RegistrationSaga } from '../sagas/registration.saga';
 
