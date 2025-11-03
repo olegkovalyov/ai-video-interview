@@ -2,10 +2,10 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { BaseServiceProxy } from '../proxies/base/base-service-proxy';
-import { LoggerService } from '../core/logging/logger.service';
-import { MetricsService } from '../core/metrics/metrics.service';
-import { CircuitBreakerRegistry } from '../core/circuit-breaker';
+import { BaseServiceProxy } from '../../../proxies/base/base-service-proxy';
+import { LoggerService } from '../../../core/logging/logger.service';
+import { MetricsService } from '../../../core/metrics/metrics.service';
+import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
 import { CreateUserInternalDto, CreateUserInternalResponse } from '../admin/dto/create-user-internal.dto';
 
 // ============================================================================

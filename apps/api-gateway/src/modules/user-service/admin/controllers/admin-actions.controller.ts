@@ -1,6 +1,6 @@
 import { Controller, Post, Param } from '@nestjs/common';
 import { KeycloakUserService, KeycloakEmailService } from '../keycloak';
-import { LoggerService } from '../../core/logging/logger.service';
+import { LoggerService } from '../../../../core/logging/logger.service';
 
 /**
  * Admin Actions Controller

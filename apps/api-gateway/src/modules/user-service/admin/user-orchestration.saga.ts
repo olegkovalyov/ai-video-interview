@@ -1,9 +1,9 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { KeycloakUserService, KeycloakRoleService } from './keycloak';
-import { UserServiceClient } from '../clients';
+import { UserServiceClient } from '../clients/user-service.client';
 import { OrphanedUsersService } from './orphaned-users.service';
-import { LoggerService } from '../core/logging/logger.service';
+import { LoggerService } from '../../../core/logging/logger.service';
 
 export interface CreateUserDto {
   email: string;

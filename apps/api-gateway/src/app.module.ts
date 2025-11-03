@@ -18,7 +18,6 @@ import { MetricsController } from './core/metrics/metrics.controller';
 import { MetricsInterceptor } from './core/metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
 import { HealthModule } from './core/health/health.module';
-import { UsersController } from './users/users.controller';
 import { LoggingModule } from './core/logging/logging.module';
 import { TracingModule } from './core/tracing/tracing.module';
 import {
@@ -28,10 +27,9 @@ import {
   RedirectUriHelper,
 } from './auth/services';
 import { RegistrationSaga } from './auth/registration.saga';
-import { UserServiceClient } from './clients';
 import { InterviewServiceProxy } from './proxies';
 import { CircuitBreakerModule } from './core/circuit-breaker/circuit-breaker.module';
-import { AdminModule } from './admin/admin.module';
+import { UserServiceModule } from './modules/user-service/user-service.module';
 
 @Module({
   imports: [
@@ -53,13 +51,14 @@ import { AdminModule } from './admin/admin.module';
     HealthModule,
     
     KafkaModule,
-    AdminModule,
+    
+    // Microservice modules
+    UserServiceModule,
   ],
   controllers: [
     AppController,
     AuthController,
     MetricsController,
-    UsersController,
   ],
   providers: [
     AppService, 
@@ -80,7 +79,6 @@ import { AdminModule } from './admin/admin.module';
     RegistrationSaga, // Saga for ensuring user exists on login
     
     // Service Clients
-    UserServiceClient,
     InterviewServiceProxy,
     {
       provide: APP_INTERCEPTOR,

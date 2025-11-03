@@ -7,11 +7,11 @@ import { KeycloakTokenService, KeycloakUserService, KeycloakRoleService, Keycloa
 import { UserCommandPublisher } from './user-command-publisher.service';
 import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { OrphanedUsersService } from './orphaned-users.service';
-import { LoggerService } from '../core/logging/logger.service';
-import { KafkaModule } from '../kafka/kafka.module';
-import { AuthModule } from '../auth/auth.module';
-import { UserServiceClient } from '../clients';
-import { CircuitBreakerRegistry } from '../core/circuit-breaker';
+import { LoggerService } from '../../../core/logging/logger.service';
+import { KafkaModule } from '../../../kafka/kafka.module';
+import { AuthModule } from '../../../auth/auth.module';
+import { UserServiceClient } from '../clients/user-service.client';
+import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
 
 /**
  * Admin Module

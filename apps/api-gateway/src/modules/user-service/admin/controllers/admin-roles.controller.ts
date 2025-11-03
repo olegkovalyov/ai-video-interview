@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Delete, Body, Param } from '@nestjs/common';
 import { KeycloakRoleService } from '../keycloak';
-import { LoggerService } from '../../core/logging/logger.service';
+import { LoggerService } from '../../../../core/logging/logger.service';
 import { UserOrchestrationSaga } from '../user-orchestration.saga';
 
 /**

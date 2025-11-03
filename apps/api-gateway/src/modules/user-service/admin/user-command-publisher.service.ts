@@ -6,7 +6,7 @@ import {
   injectTraceContext,
   getTraceInfo,
 } from '@repo/shared';
-import { LoggerService } from '../core/logging/logger.service';
+import { LoggerService } from '../../../core/logging/logger.service';
 import { trace } from '@opentelemetry/api';
 import { v4 as uuid } from 'uuid';
 

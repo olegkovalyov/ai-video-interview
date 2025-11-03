@@ -10,9 +10,9 @@ import {
   Query,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { UserServiceClient } from '../clients';
-import { LoggerService } from '../core/logging/logger.service';
+import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
+import { UserServiceClient } from '../clients/user-service.client';
+import { LoggerService } from '../../../core/logging/logger.service';
 
 /**
  * Users Controller
