@@ -5,18 +5,15 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { KafkaModule } from '../kafka/kafka.module';
-import { InboxEntity } from '../persistence/entities/inbox.entity';
 import { OutboxEntity } from '../persistence/entities/outbox.entity';
-import { InboxConsumerService } from './inbox/inbox-consumer.service';
-import { InboxWorkerProcessor } from './inbox/inbox-worker.processor';
-import { InboxSchedulerService } from './inbox/inbox-scheduler.service';
 import { OutboxService } from './outbox/outbox.service';
 import { OutboxPublisherProcessor } from './outbox/outbox-publisher.processor';
 import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
 
 /**
  * Messaging Module
- * Handles INBOX/OUTBOX pattern with BullMQ workers
+ * Handles OUTBOX pattern with BullMQ workers
+ * Note: INBOX removed - now using sync HTTP for user operations
  */
 @Module({
   imports: [
@@ -38,21 +35,24 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
         }
         
         return {
-          connection: redisConfig,
+          redis: {
+            ...redisConfig,
+            maxRetriesPerRequest: null, // Required for BullMQ
+            enableReadyCheck: false,    // Skip ready check for faster startup
+            retryStrategy: (times: number) => {
+              if (times > 10) return null; // Stop after 10 retries
+              return Math.min(times * 50, 2000); // Max 2s between retries
+            },
+          },
         } as any; // Type workaround for @nestjs/bull compatibility
       },
       inject: [ConfigService],
     }),
 
     // Register Queues
-    BullModule.registerQueue(
-      {
-        name: 'inbox-processor',
-      },
-      {
-        name: 'outbox-publisher',
-      },
-    ),
+    BullModule.registerQueue({
+      name: 'outbox-publisher',
+    }),
 
     // Scheduler for polling
     ScheduleModule.forRoot(),
@@ -61,16 +61,11 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
     CqrsModule,
 
     // TypeORM entities
-    TypeOrmModule.forFeature([InboxEntity, OutboxEntity]),
+    TypeOrmModule.forFeature([OutboxEntity]),
   ],
 
   providers: [
-    // INBOX
-    InboxConsumerService,
-    InboxWorkerProcessor,
-    InboxSchedulerService,
-
-    // OUTBOX
+    // OUTBOX - for publishing domain events to Kafka
     OutboxService,
     OutboxPublisherProcessor,
     OutboxSchedulerService,
@@ -78,7 +73,6 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
 
   exports: [
     BullModule,
-    InboxConsumerService,
     OutboxService,
   ],
 })

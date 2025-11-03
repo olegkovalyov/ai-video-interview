@@ -9,7 +9,21 @@ export const KAFKA_CONFIG = {
 };
 
 export const KAFKA_TOPICS = {
-  // Auth events from API Gateway (login, register, etc.)
+  // ============ COMMANDS (imperative - do this) ============
+  // Commands TO specific services from API Gateway/other services
+  
+  // User Service Commands
+  USER_COMMANDS: 'user-commands',
+  USER_COMMANDS_DLQ: 'user-commands-dlq',
+  
+  // Interview Service Commands (future)
+  INTERVIEW_COMMANDS: 'interview-commands',
+  INTERVIEW_COMMANDS_DLQ: 'interview-commands-dlq',
+  
+  // ============ EVENTS (past tense - this happened) ============
+  // Integration events FROM services TO other services
+  
+  // Auth events from API Gateway (login, logout)
   AUTH_EVENTS: 'auth-events',
   AUTH_EVENTS_DLQ: 'auth-events-dlq',
   
@@ -17,10 +31,11 @@ export const KAFKA_TOPICS = {
   USER_EVENTS: 'user-events',
   USER_EVENTS_DLQ: 'user-events-dlq',
   
-  // Other domain events
+  // Interview domain events from Interview Service
   INTERVIEW_EVENTS: 'interview-events',
   INTERVIEW_EVENTS_DLQ: 'interview-events-dlq',
   
+  // Analytics events
   USER_ANALYTICS: 'user-analytics',
   USER_ANALYTICS_DLQ: 'user-analytics-dlq',
 } as const;

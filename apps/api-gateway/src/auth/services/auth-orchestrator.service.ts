@@ -3,12 +3,13 @@ import { Request, Response } from 'express';
 import { TokenService } from '../token.service';
 import { CookieService } from '../cookie.service';
 import { KeycloakService } from '../keycloak.service';
-import { MetricsService } from '../../metrics/metrics.service';
-import { LoggerService } from '../../logger/logger.service';
-import { TraceService } from '../../tracing/trace.service';
+import { MetricsService } from '../../core/metrics/metrics.service';
+import { LoggerService } from '../../core/logging/logger.service';
+import { TraceService } from '../../core/tracing/trace.service';
 import { SessionManager } from './session-manager.service';
 import { AuthEventPublisher } from './auth-event-publisher.service';
 import { RedirectUriHelper } from './redirect-uri.helper';
+import { RegistrationSaga } from '../registration.saga';
 
 export interface LoginInitiationResult {
   success: boolean;
@@ -55,6 +56,7 @@ export class AuthOrchestrator {
     private readonly sessionManager: SessionManager,
     private readonly authEventPublisher: AuthEventPublisher,
     private readonly redirectUriHelper: RedirectUriHelper,
+    private readonly registrationSaga: RegistrationSaga,
   ) {}
 
   /**
@@ -216,10 +218,37 @@ export class AuthOrchestrator {
             }
           );
 
+          // Ensure user exists in User Service (Saga!)
+          // Creates user on first login, returns existing user on subsequent logins
+          const user = await this.traceService.withSpan(
+            'auth.registration.saga',
+            async (sagaSpan) => {
+              sagaSpan.setAttributes({
+                'user.external_auth_id': userInfo.sub,
+                'user.email': userInfo.email,
+              });
+              
+              const result = await this.registrationSaga.ensureUserExists({
+                keycloakId: userInfo.sub,
+                email: userInfo.email,
+                firstName: userInfo.given_name,
+                lastName: userInfo.family_name,
+              });
+
+              sagaSpan.setAttributes({
+                'user.id': result.userId,
+                'user.is_new': result.isNew,
+              });
+
+              return result;
+            }
+          );
+
           // Создаёт сессию (устанавливает cookies)
           this.sessionManager.createSession(res, tokens);
 
-          // Публикует Kafka событие
+          // Публикует Kafka событие (deprecated - теперь используем OutboxService)
+          // Оставлено для обратной совместимости с analytics
           await this.authEventPublisher.publishUserAuthenticated(
             userInfo,
             'oauth2'

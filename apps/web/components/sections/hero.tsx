@@ -1,6 +1,6 @@
 "use client";
 
-import { SignInButton } from "@/components/auth/sign-in-button"
+import { SignInButton } from "@/features/auth"
 
 export function Hero() {
   return (
@@ -17,10 +17,10 @@ export function Hero() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <SignInButton variant="brand" size="xl">
+          <SignInButton variant="brand" size="xl" mode="register">
             Create Account
           </SignInButton>
-          <SignInButton variant="glass" size="xl">
+          <SignInButton variant="glass" size="xl" mode="login">
             Sign In
           </SignInButton>
         </div>

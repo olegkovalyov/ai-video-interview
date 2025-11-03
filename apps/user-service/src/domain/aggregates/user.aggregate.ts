@@ -23,7 +23,7 @@ import {
 export class User extends AggregateRoot {
   private constructor(
     private readonly _id: string,
-    private readonly _keycloakId: string,
+    private readonly _externalAuthId: string,
     private _email: Email,
     private _fullName: FullName,
     private _status: UserStatus,
@@ -35,6 +35,7 @@ export class User extends AggregateRoot {
     private _emailVerified: boolean = false,
     private readonly _createdAt: Date = new Date(),
     private _updatedAt: Date = new Date(),
+    private _lastLoginAt?: Date,
   ) {
     super();
   }
@@ -49,13 +50,13 @@ export class User extends AggregateRoot {
    */
   public static create(
     id: string,
-    keycloakId: string,
+    externalAuthId: string,
     email: Email,
     fullName: FullName,
   ): User {
     const user = new User(
       id,
-      keycloakId,
+      externalAuthId,
       email,
       fullName,
       UserStatus.active(),
@@ -74,7 +75,7 @@ export class User extends AggregateRoot {
       new UserCreatedEvent(
         user.id,
         user.email.value,
-        user.keycloakId,
+        user.externalAuthId,
         user.fullName.firstName,
         user.fullName.lastName,
       ),
@@ -89,7 +90,7 @@ export class User extends AggregateRoot {
    */
   public static reconstitute(
     id: string,
-    keycloakId: string,
+    externalAuthId: string,
     email: Email,
     fullName: FullName,
     status: UserStatus,
@@ -101,10 +102,11 @@ export class User extends AggregateRoot {
     emailVerified?: boolean,
     createdAt?: Date,
     updatedAt?: Date,
+    lastLoginAt?: Date,
   ): User {
     return new User(
       id,
-      keycloakId,
+      externalAuthId,
       email,
       fullName,
       status,
@@ -116,6 +118,7 @@ export class User extends AggregateRoot {
       emailVerified,
       createdAt,
       updatedAt,
+      lastLoginAt,
     );
   }
 
@@ -386,8 +389,8 @@ export class User extends AggregateRoot {
     return this._id;
   }
 
-  public get keycloakId(): string {
-    return this._keycloakId;
+  public get externalAuthId(): string {
+    return this._externalAuthId;
   }
 
   public get email(): Email {
@@ -432,6 +435,10 @@ export class User extends AggregateRoot {
 
   public get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  public get lastLoginAt(): Date | undefined {
+    return this._lastLoginAt;
   }
 
   // Convenience getters

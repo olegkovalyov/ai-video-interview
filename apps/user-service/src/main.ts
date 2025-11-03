@@ -14,8 +14,12 @@ async function bootstrap() {
   // Используем наш Winston Logger для ВСЕХ NestJS логов
   app.useLogger(logger);
 
-  // Global prefix
-  app.setGlobalPrefix('api/v1');
+  // No global prefix for microservice
+  // Versioning should be handled at API Gateway level only
+  // User Service exposes simple paths:
+  // - /users (proxied by API Gateway)
+  // - /internal/* (service-to-service)
+  // - /health (monitoring)
 
   // Validation pipe
   app.useGlobalPipes(

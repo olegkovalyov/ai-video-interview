@@ -13,22 +13,24 @@ import { KeycloakService } from './auth/keycloak.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { JwtRefreshGuard } from './auth/jwt-refresh.guard';
 import { AuthErrorInterceptor } from './auth/auth-error.interceptor';
-import { MetricsService } from './metrics/metrics.service';
-import { MetricsController } from './metrics/metrics.controller';
-import { MetricsInterceptor } from './metrics/metrics.interceptor';
+import { MetricsModule } from './core/metrics/metrics.module';
+import { MetricsController } from './core/metrics/metrics.controller';
+import { MetricsInterceptor } from './core/metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
-import { HealthController } from './health/health.controller';
+import { HealthModule } from './core/health/health.module';
 import { UsersController } from './users/users.controller';
-import { LoggerService } from './logger/logger.service';
-import { TraceService } from './tracing/trace.service';
+import { LoggingModule } from './core/logging/logging.module';
+import { TracingModule } from './core/tracing/tracing.module';
 import {
   AuthOrchestrator,
   SessionManager,
   AuthEventPublisher,
   RedirectUriHelper,
 } from './auth/services';
-import { UserServiceProxy, InterviewServiceProxy } from './proxies';
-import { CircuitBreakerRegistry } from './circuit-breaker';
+import { RegistrationSaga } from './auth/registration.saga';
+import { UserServiceClient } from './clients';
+import { InterviewServiceProxy } from './proxies';
+import { CircuitBreakerModule } from './core/circuit-breaker/circuit-breaker.module';
 import { AdminModule } from './admin/admin.module';
 
 @Module({
@@ -42,6 +44,14 @@ import { AdminModule } from './admin/admin.module';
       timeout: 5000,
       maxRedirects: 5,
     }),
+    
+    // Core infrastructure
+    LoggingModule,
+    MetricsModule,
+    TracingModule,
+    CircuitBreakerModule,
+    HealthModule,
+    
     KafkaModule,
     AdminModule,
   ],
@@ -49,7 +59,6 @@ import { AdminModule } from './admin/admin.module';
     AppController,
     AuthController,
     MetricsController,
-    HealthController,
     UsersController,
   ],
   providers: [
@@ -62,21 +71,16 @@ import { AdminModule } from './admin/admin.module';
     KeycloakService,
     JwtAuthGuard,
     JwtRefreshGuard,
-    MetricsService,
-    LoggerService,
-    TraceService,
     
     // New auth services (refactored)
     AuthOrchestrator,
     SessionManager,
     AuthEventPublisher,
     RedirectUriHelper,
+    RegistrationSaga, // Saga for ensuring user exists on login
     
-    // Circuit Breaker
-    CircuitBreakerRegistry,
-    
-    // Service Proxies
-    UserServiceProxy,
+    // Service Clients
+    UserServiceClient,
     InterviewServiceProxy,
     {
       provide: APP_INTERCEPTOR,

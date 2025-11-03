@@ -1,18 +1,28 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { CqrsModule } from '@nestjs/cqrs';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEventProducer } from './producers/user-event.producer';
-import { AuthEventConsumer } from './consumers/auth-event.consumer';
+import { AuthLoginConsumer } from './consumers/auth-login.consumer';
+import { UserEntity } from '../persistence/entities/user.entity';
 import { KafkaService } from '@repo/shared';
+import { LoggerModule } from '../logger/logger.module';
 
+/**
+ * Kafka Module
+ * Handles Kafka integration for User Service
+ * 
+ * Producers: Domain events via OutboxService
+ * Consumers: Auth events for last_login_at updates
+ */
 @Module({
   imports: [
     ConfigModule,
-    CqrsModule, // Provides CommandBus for AuthEventConsumer
+    TypeOrmModule.forFeature([UserEntity]),
+    LoggerModule,
   ],
   providers: [
     UserEventProducer,
-    AuthEventConsumer,
+    AuthLoginConsumer,
     {
       provide: 'KAFKA_CONFIG',
       useFactory: (configService: ConfigService) => ({
@@ -36,6 +46,6 @@ import { KafkaService } from '@repo/shared';
       },
     },
   ],
-  exports: [UserEventProducer, AuthEventConsumer, 'KAFKA_SERVICE'],
+  exports: [UserEventProducer, 'KAFKA_SERVICE'],
 })
 export class KafkaModule {}

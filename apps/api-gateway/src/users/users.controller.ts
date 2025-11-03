@@ -11,18 +11,18 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { UserServiceProxy } from '../proxies/user-service.proxy';
-import { LoggerService } from '../logger/logger.service';
+import { UserServiceClient } from '../clients';
+import { LoggerService } from '../core/logging/logger.service';
 
 /**
  * Users Controller
- * Проксирует запросы к User Service
+ * Proxies requests to User Service
  */
 @Controller('api/users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(
-    private readonly userServiceProxy: UserServiceProxy,
+    private readonly userServiceClient: UserServiceClient,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -39,7 +39,7 @@ export class UsersController {
 
     try {
       // Прямой проксированный вызов к User Service /users/me
-      const user = await this.userServiceProxy.getCurrentUserProfile(authHeader);
+      const user = await this.userServiceClient.getCurrentUserProfile(authHeader);
       return user;
     } catch (error) {
       this.loggerService.error('Failed to fetch user profile', error);
@@ -59,7 +59,7 @@ export class UsersController {
     this.loggerService.info('Proxying PUT /users/me to User Service');
 
     try {
-      const user = await this.userServiceProxy.updateCurrentUserProfile(authHeader, updates);
+      const user = await this.userServiceClient.updateCurrentUserProfile(authHeader, updates);
       return user;
     } catch (error) {
       this.loggerService.error('Failed to update user profile', error);

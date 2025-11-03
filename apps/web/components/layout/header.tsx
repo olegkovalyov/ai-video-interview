@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { useAuthStatus } from "@/hooks/useAuth"
-import { apiPost, apiGet } from "@/app/lib/api"
+import { useAuthStatus } from "@/lib/hooks/useAuth"
+import { apiPost, apiGet } from "@/lib/api"
 import { useRouter, usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { LogOut, User, ChevronDown, LayoutDashboard, Briefcase, UserCircle } from "lucide-react"
-import { SignInButton } from "@/components/auth/sign-in-button"
+import type { User } from "@/lib/types/user"
+import { LogOut, ChevronDown, UserCircle } from "lucide-react"
+import { SignInButton } from "@/features/auth"
 import { LogoWithText } from "@/components/ui/logo"
 import {
   DropdownMenu,
@@ -19,21 +19,21 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 interface HeaderProps {
-  currentPage?: string
+  userRoles?: string[]; // Роли передаются из Server Component
 }
 
-export function Header({ currentPage }: HeaderProps) {
+export function Header({ userRoles = [] }: HeaderProps) {
   const { isAuthenticated, loading } = useAuthStatus();
   const router = useRouter();
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
       if (isAuthenticated) {
         try {
-          const res = await apiGet("/protected") as { user: any };
+          const res = await apiGet("/protected") as { user: User };
           setUser(res.user);
         } catch (error) {
           console.error('Failed to load user:', error);
@@ -69,7 +69,7 @@ export function Header({ currentPage }: HeaderProps) {
     }
   };
   return (
-    <header className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+    <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <Link href="/">
@@ -77,41 +77,52 @@ export function Header({ currentPage }: HeaderProps) {
           </Link>
           
           {/* Navigation для authenticated users */}
-          {isAuthenticated ? (
+          {(isAuthenticated || userRoles.length > 0) ? (
             <nav className="hidden md:flex items-center space-x-6">
               <Link 
                 href="/dashboard" 
                 className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname.startsWith('/dashboard') ? 'text-yellow-400' : ''
+                  pathname === '/dashboard' || pathname.startsWith('/dashboard/') || pathname === '/admin/dashboard' || pathname.startsWith('/admin/dashboard/') ? 'text-yellow-400' : ''
                 }`}
               >
                 Dashboard
               </Link>
-              <Link 
-                href="/interviews" 
-                className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname.startsWith('/interviews') ? 'text-yellow-400' : ''
-                }`}
-              >
-                Interviews
-              </Link>
-              <Link 
-                href="/candidates" 
-                className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname.startsWith('/candidates') ? 'text-yellow-400' : ''
-                }`}
-              >
-                Candidates
-              </Link>
-              {/* TODO: Add role check when roles are implemented */}
-              <Link 
-                href="/admin/users" 
-                className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname.startsWith('/admin') ? 'text-yellow-400' : ''
-                }`}
-              >
-                Users
-              </Link>
+              
+              {/* Interviews - для HR и Admin */}
+              {(userRoles.includes('hr') || userRoles.includes('admin')) && (
+                <Link 
+                  href="/interviews" 
+                  className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                    pathname.startsWith('/interviews') ? 'text-yellow-400' : ''
+                  }`}
+                >
+                  Interviews
+                </Link>
+              )}
+              
+              {/* Candidates - для HR и Admin */}
+              {(userRoles.includes('hr') || userRoles.includes('admin')) && (
+                <Link 
+                  href="/candidates" 
+                  className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                    pathname.startsWith('/candidates') ? 'text-yellow-400' : ''
+                  }`}
+                >
+                  Candidates
+                </Link>
+              )}
+              
+              {/* Users - только для Admin */}
+              {userRoles.includes('admin') && (
+                <Link 
+                  href="/admin/users" 
+                  className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                    pathname.startsWith('/admin/users') ? 'text-yellow-400' : ''
+                  }`}
+                >
+                  Users
+                </Link>
+              )}
             </nav>
           ) : (
             <nav className="hidden md:flex items-center space-x-6">
@@ -138,7 +149,7 @@ export function Header({ currentPage }: HeaderProps) {
             {loading ? (
               // Показываем лоадер пока проверяем аутентификацию
               <div className="w-20 h-8 bg-white/20 animate-pulse rounded"></div>
-            ) : isAuthenticated ? (
+            ) : (isAuthenticated || userRoles.length > 0) ? (
               // Если пользователь залогинен - показываем user menu
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -151,7 +162,7 @@ export function Header({ currentPage }: HeaderProps) {
                         {user?.name || 'User'}
                       </p>
                       <p className="text-xs text-white/70">
-                        {user?.role || 'User'}
+                        {userRoles.includes('admin') ? 'Admin' : userRoles.includes('hr') ? 'HR' : 'Candidate'}
                       </p>
                     </div>
                     <ChevronDown className="w-4 h-4 text-white/70 hidden md:block" />
@@ -160,7 +171,18 @@ export function Header({ currentPage }: HeaderProps) {
                 <DropdownMenuContent align="end" className="w-56 bg-white/10 backdrop-blur-xl border-white/20 rounded-lg shadow-2xl">
                   <DropdownMenuLabel className="px-3 py-2.5">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-semibold text-white leading-none">{user?.name || 'User'}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-white leading-none">{user?.name || 'User'}</p>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                          userRoles.includes('admin') 
+                            ? 'bg-purple-500/30 text-purple-200 border border-purple-400/50' 
+                            : userRoles.includes('hr')
+                            ? 'bg-blue-500/30 text-blue-200 border border-blue-400/50'
+                            : 'bg-green-500/30 text-green-200 border border-green-400/50'
+                        }`}>
+                          {userRoles.includes('admin') ? 'Admin' : userRoles.includes('hr') ? 'HR' : 'Candidate'}
+                        </span>
+                      </div>
                       <p className="text-xs leading-none text-white/60">
                         {user?.email || 'user@example.com'}
                       </p>
@@ -187,10 +209,10 @@ export function Header({ currentPage }: HeaderProps) {
             ) : (
               // Если не залогинен - показываем Login/Register
               <>
-                <SignInButton variant="glass" size="sm">
+                <SignInButton variant="glass" size="sm" mode="login">
                   Login
                 </SignInButton>
-                <SignInButton variant="brand" size="sm">
+                <SignInButton variant="brand" size="sm" mode="register">
                   Sign Up
                 </SignInButton>
               </>

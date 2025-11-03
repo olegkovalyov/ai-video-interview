@@ -10,7 +10,7 @@ export class UserResponseDto {
   id: string;
 
   @ApiProperty()
-  keycloakId: string;
+  externalAuthId: string;
 
   @ApiProperty()
   email: string;
@@ -57,13 +57,16 @@ export class UserResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
+  @ApiPropertyOptional()
+  lastLoginAt?: Date;
+
   /**
    * Factory method to create DTO from domain model
    */
   static fromDomain(user: User): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
-    dto.keycloakId = user.keycloakId;
+    dto.externalAuthId = user.externalAuthId;
     dto.email = user.email.value;
     dto.firstName = user.fullName.firstName;
     dto.lastName = user.fullName.lastName;
@@ -79,6 +82,7 @@ export class UserResponseDto {
     dto.isDeleted = user.isDeleted;
     dto.createdAt = user.createdAt;
     dto.updatedAt = user.updatedAt;
+    dto.lastLoginAt = user.lastLoginAt;
     return dto;
   }
 }

@@ -1,9 +1,9 @@
 // ВАЖНО: tracing должен инициализироваться ПЕРВЫМ
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import './tracing/tracing'; // Must be first import for OpenTelemetry
+import './core/tracing/tracing'; // Must be first import for OpenTelemetry
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
-import { LoggerService } from './logger/logger.service';
+import { LoggerService } from './core/logging/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

@@ -19,7 +19,7 @@ export class UserMapper {
     const entity = new UserEntity();
     
     entity.id = user.id;
-    entity.keycloakId = user.keycloakId;
+    entity.externalAuthId = user.externalAuthId;
     entity.email = user.email.value;
     entity.firstName = user.fullName.firstName;
     entity.lastName = user.fullName.lastName;
@@ -32,6 +32,7 @@ export class UserMapper {
     entity.language = user.language;
     entity.createdAt = user.createdAt;
     entity.updatedAt = user.updatedAt;
+    entity.lastLoginAt = user.lastLoginAt || null;
     
     return entity;
   }
@@ -46,7 +47,7 @@ export class UserMapper {
 
     return User.reconstitute(
       entity.id,
-      entity.keycloakId,
+      entity.externalAuthId,
       email,
       fullName,
       status,
@@ -58,6 +59,7 @@ export class UserMapper {
       entity.emailVerified,
       entity.createdAt,
       entity.updatedAt,
+      entity.lastLoginAt || undefined,
     );
   }
 

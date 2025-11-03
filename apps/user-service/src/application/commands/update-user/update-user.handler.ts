@@ -21,7 +21,7 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
   ) {}
 
   async execute(command: UpdateUserCommand): Promise<User> {
-    // 1. Load user
+    // 1. Load user by ID (internal ID, not external auth ID)
     const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
@@ -56,7 +56,7 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
         source: 'user-service',
         payload: {
           userId: user.id,
-          keycloakId: user.keycloakId,
+          externalAuthId: user.externalAuthId,
           email: user.email.value,
           firstName: user.fullName.firstName,
           lastName: user.fullName.lastName,

@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { KafkaService, UserEventFactory, KAFKA_TOPICS } from '@repo/shared';
-import { LoggerService } from '../../logger/logger.service';
-import { TraceService } from '../../tracing/trace.service';
+import { KafkaService, AuthEventFactory, KAFKA_TOPICS } from '@repo/shared';
+import { LoggerService } from '../../core/logging/logger.service';
+import { TraceService } from '../../core/tracing/trace.service';
 import * as crypto from 'crypto';
 
 export type AuthMethod = 'oauth2' | 'jwt_refresh';
@@ -43,7 +43,7 @@ export class AuthEventPublisher {
             userInfo.lastName ||
             userInfo.name?.split(' ')[1];
 
-          const userAuthEvent = UserEventFactory.createUserAuthenticated(
+          const userAuthEvent = AuthEventFactory.createUserAuthenticated(
             userInfo.sub as string,
             userInfo.email as string,
             sessionId,
@@ -111,7 +111,7 @@ export class AuthEventPublisher {
       async (span) => {
         try {
           const sessionId = userInfo?.session_id || crypto.randomUUID();
-          const userLogoutEvent = UserEventFactory.createUserLoggedOut(
+          const userLogoutEvent = AuthEventFactory.createUserLoggedOut(
             userInfo?.sub || 'unknown',
             sessionId,
             logoutReason

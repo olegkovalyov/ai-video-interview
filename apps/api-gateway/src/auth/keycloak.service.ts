@@ -32,11 +32,9 @@ export class KeycloakService {
 
     const authUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/auth?${params.toString()}`;
     
-    this.logger.debug('Generated Keycloak authorization URL:', {
-      authUrl,
+    this.logger.debug('Generated Keycloak authorization URL', {
       redirectUri,
       state,
-      clientId: this.clientId
     });
     
     return { authUrl, state };
@@ -50,14 +48,17 @@ export class KeycloakService {
     const state = crypto.randomUUID();
     
     const params = new URLSearchParams({
-      client_id: this.clientId,
       response_type: 'code',
-      scope: 'openid profile email',
+      client_id: this.clientId,
       redirect_uri: redirectUri,
+      state: state,
+      scope: 'openid profile email',
+      prompt: 'create', // OIDC standard parameter for registration (Keycloak 26.1.0+)
     });
 
-    // Keycloak registration endpoint - прямой путь к форме регистрации
-    const authUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/registrations?${params.toString()}`;
+    // Use standard OIDC auth endpoint with prompt=create parameter
+    // This follows OpenID Connect Prompt Create 1.0 specification
+    const authUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/auth?${params.toString()}`;
     
     this.logger.debug('Generated Keycloak registration URL:', {
       authUrl,

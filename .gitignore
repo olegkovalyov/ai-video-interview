@@ -47,3 +47,6 @@ apps/*/logs/*.json
 # Misc
 .DS_Store
 *.pem
+
+# Development plans (personal notes)
+docs/plan/

@@ -1,4 +1,4 @@
-import { Kafka, Producer, Consumer, KafkaMessage, EachBatchPayload } from 'kafkajs';
+import { Kafka, Producer, Consumer, KafkaMessage, EachBatchPayload, logLevel } from 'kafkajs';
 import { KAFKA_CONFIG } from '../events';
 
 export class KafkaService {
@@ -13,9 +13,17 @@ export class KafkaService {
     this.kafka = new Kafka({
       clientId: `${KAFKA_CONFIG.clientId}-${serviceName}`,
       brokers,
+      logLevel: logLevel.ERROR,
+      
+      // ============ FIX: Connection Settings ============
+      connectionTimeout: 10000, // 10 seconds (default: 1000ms)
+      requestTimeout: 30000,     // 30 seconds (default: 30000ms)
+      
+      // ============ FIX: Retry Settings ============
       retry: {
-        initialRetryTime: 100,
-        retries: 8,
+        initialRetryTime: 100,    // 100ms (faster initial retry)
+        retries: 5,               // Reasonable retry count
+        maxRetryTime: 30000,      // Max 30 seconds between retries
       },
     });
   }
@@ -44,8 +52,11 @@ export class KafkaService {
     if (!this.consumers.has(consumerKey)) {
       const consumer = this.kafka.consumer({
         groupId: `${groupId}-${this.serviceName}`,
-        sessionTimeout: 30000,
-        heartbeatInterval: 3000,
+        sessionTimeout: 30000,       // 30s (default, sufficient for most cases)
+        heartbeatInterval: 3000,     // 3s (default)
+        rebalanceTimeout: 60000,     // 60s
+        maxWaitTimeInMs: 5000,       // 5s
+        allowAutoTopicCreation: false,
       });
       
       await consumer.connect();
@@ -56,7 +67,12 @@ export class KafkaService {
     return this.consumers.get(consumerKey)!;
   }
 
-  async publishEvent(topic: string, event: any, options?: { partitionKey?: string }): Promise<void> {
+  async publishEvent(
+    topic: string, 
+    event: any, 
+    additionalHeaders?: Record<string, Buffer | string>,
+    options?: { partitionKey?: string }
+  ): Promise<void> {
     const startTime = Date.now();
     try {
       const producer = await this.createProducer();
@@ -67,16 +83,20 @@ export class KafkaService {
                           event.eventId || 
                           'default';
       
+      // Merge default headers with additional headers (for tracing)
+      const headers = {
+        eventType: event.eventType,
+        version: event.version?.toString() || '1',
+        ...additionalHeaders, // Include trace context headers
+      };
+      
       await producer.send({
         topic,
         messages: [
           {
             key: partitionKey,
             value: JSON.stringify(event),
-            headers: {
-              eventType: event.eventType,
-              version: event.version?.toString() || '1',
-            },
+            headers,
           },
         ],
       });

@@ -1,7 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { KafkaService } from '@repo/shared';
 
 /**
  * Health Controller
@@ -13,6 +14,8 @@ export class HealthController {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    @Inject('KAFKA_SERVICE')
+    private readonly kafkaService: KafkaService,
   ) {}
 
   @Get()
@@ -57,5 +60,30 @@ export class HealthController {
       status: 'alive',
       timestamp: new Date().toISOString(),
     };
+  }
+
+  @Get('kafka')
+  @ApiOperation({ summary: 'Kafka health check' })
+  @ApiResponse({ status: 200, description: 'Kafka connection status' })
+  async kafkaHealthCheck() {
+    try {
+      // Try to connect to Kafka admin and list topics
+      const admin = this.kafkaService['kafka'].admin();
+      await admin.connect();
+      const topics = await admin.listTopics();
+      await admin.disconnect();
+
+      return {
+        status: 'healthy',
+        topics: topics.length,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
 }

@@ -17,7 +17,7 @@ import { RemoveRoleHandler } from './commands/remove-role/remove-role.handler';
 
 // Query Handlers
 import { GetUserHandler } from './queries/get-user/get-user.handler';
-import { GetUserByKeycloakIdHandler } from './queries/get-user-by-keycloak-id/get-user-by-keycloak-id.handler';
+import { GetUserByExternalAuthIdHandler } from './queries/get-user-by-external-auth-id/get-user-by-external-auth-id.handler';
 import { ListUsersHandler } from './queries/list-users/list-users.handler';
 import { GetUserPermissionsHandler } from './queries/get-user-permissions/get-user-permissions.handler';
 import { GetUserStatsHandler } from './queries/get-user-stats/get-user-stats.handler';
@@ -35,7 +35,7 @@ const CommandHandlers = [
 
 const QueryHandlers = [
   GetUserHandler,
-  GetUserByKeycloakIdHandler,
+  GetUserByExternalAuthIdHandler,
   ListUsersHandler,
   GetUserPermissionsHandler,
   GetUserStatsHandler,

@@ -1,8 +1,9 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import { RemoveRoleCommand } from './remove-role.command';
 import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import type { IRoleRepository } from '../../../domain/repositories/role.repository.interface';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
 import { v4 as uuid } from 'uuid';
@@ -15,24 +16,30 @@ export class RemoveRoleHandler implements ICommandHandler<RemoveRoleCommand> {
   constructor(
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    @Inject('IRoleRepository')
+    private readonly roleRepository: IRoleRepository,
     private readonly eventBus: EventBus,
     private readonly outboxService: OutboxService,
   ) {}
 
   async execute(command: RemoveRoleCommand): Promise<User> {
-    // 1. Load user
+    // 1. Load user by ID (internal ID, not external auth ID)
     const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
     }
 
-    // 2. Remove role
+    // 2. Find role by name
+    const role = await this.roleRepository.findByName(command.roleName);
+    if (!role) {
+      throw new NotFoundException(`Role not found: ${command.roleName}`);
+    }
+
+    // 3. Remove role from database (deletes record from user_roles table)
+    await this.roleRepository.removeFromUser(user.id, role.id);
+
+    // 4. Emit domain event (for event sourcing & consistency)
     user.removeRole(command.roleName, command.removedBy || 'system');
-
-    // 3. Save
-    await this.userRepository.save(user);
-
-    // 4. Publish domain events (internal only)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);
     });
@@ -49,8 +56,9 @@ export class RemoveRoleHandler implements ICommandHandler<RemoveRoleCommand> {
         source: 'user-service',
         payload: {
           userId: user.id,
-          keycloakId: user.keycloakId,
+          externalAuthId: user.externalAuthId,
           roleName: command.roleName,
+          roleId: role.id,
           removedBy: command.removedBy,
           removedAt: new Date().toISOString(),
         },

@@ -17,7 +17,7 @@ export class SuspendUserHandler implements ICommandHandler<SuspendUserCommand> {
   ) {}
 
   async execute(command: SuspendUserCommand): Promise<User> {
-    // 1. Load user
+    // 1. Load user by ID (internal ID, not external auth ID)
     const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
