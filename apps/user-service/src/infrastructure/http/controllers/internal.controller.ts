@@ -15,6 +15,7 @@ import { AssignRoleInternalDto } from '../../../application/dto/requests/assign-
 import { UserResponseDto } from '../../../application/dto/responses/user.response.dto';
 import { UserPermissionsResponseDto } from '../../../application/dto/responses/user-permissions.response.dto';
 import { InternalServiceGuard } from '../guards/internal-service.guard';
+import { Public } from '../decorators/public.decorator';
 import { UserAlreadyExistsException, UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 
 /**
@@ -25,11 +26,34 @@ import { UserAlreadyExistsException, UserNotFoundException } from '../../../doma
 @Controller('internal')
 @ApiSecurity('internal-token')
 @UseGuards(InternalServiceGuard)
+@Public()
 export class InternalController {
   constructor(
     private readonly queryBus: QueryBus,
     private readonly commandBus: CommandBus,
   ) {}
+
+  @Get('users/:userId')
+  @ApiOperation({ summary: 'Get user by ID (Internal)' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getUserById(
+    @Param('userId') userId: string,
+  ): Promise<UserResponseDto> {
+    try {
+      const user = await this.queryBus.execute(new GetUserQuery(userId));
+      return UserResponseDto.fromDomain(user);
+    } catch (error) {
+      if (error instanceof UserNotFoundException) {
+        throw new NotFoundException({
+          success: false,
+          error: 'User not found',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+      throw error;
+    }
+  }
 
   @Get('users/by-external-auth/:externalAuthId')
   @ApiOperation({ summary: 'Get user by external auth ID (Internal)' })
@@ -123,31 +147,30 @@ export class InternalController {
 
   /**
    * PUT /internal/users/:id
-   * Update user (called by API Gateway via Saga)
+   * Update user (called by API Gateway)
    */
   @Put('users/:id')
-  @ApiOperation({ summary: 'Update user (Internal - Saga)' })
-  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiOperation({ summary: 'Update user profile (Internal)' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
   async updateUser(
     @Param('id') userId: string,
     @Body() dto: UpdateUserInternalDto,
-  ) {
+  ): Promise<UserResponseDto> {
     try {
       const user = await this.commandBus.execute(
-        new UpdateUserCommand(userId, dto.firstName, dto.lastName),
+        new UpdateUserCommand(
+          userId,
+          dto.firstName,
+          dto.lastName,
+          dto.bio,
+          dto.phone,
+          dto.timezone,
+          dto.language,
+        ),
       );
 
-      return {
-        success: true,
-        data: {
-          userId: user.id,
-          email: user.email.value,
-          firstName: user.fullName.firstName,
-          lastName: user.fullName.lastName,
-          updatedAt: user.updatedAt,
-        },
-      };
+      return UserResponseDto.fromDomain(user);
     } catch (error) {
       if (error instanceof UserNotFoundException) {
         throw new NotFoundException({

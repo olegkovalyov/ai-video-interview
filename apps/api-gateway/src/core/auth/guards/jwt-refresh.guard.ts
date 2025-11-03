@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { OidcService } from './oidc.service';
-import { CookieService } from './cookie.service';
-import { TokenService } from './token.service';
+import { OidcService } from '../services/oidc.service';
+import { CookieService } from '../services/cookie.service';
+import { TokenService } from '../services/token.service';
 
 @Injectable()
 export class JwtRefreshGuard implements CanActivate {

@@ -1,8 +1,8 @@
 import { Controller, Post, Body, Get, Query, Res, Req, HttpStatus, UseGuards } from '@nestjs/common';
 import { Response, Request } from 'express';
-import { AuthService } from './auth.service';
-import { KeycloakService } from './keycloak.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthService } from '../services/auth.service';
+import { KeycloakService } from '../services/keycloak.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 
 @Controller('auth')

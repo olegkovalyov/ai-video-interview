@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { AuthOrchestrator } from './services/auth-orchestrator.service';
+import { AuthOrchestrator } from '../services/auth-orchestrator.service';
 
 export interface LoginInitiationResult {
   success: boolean;

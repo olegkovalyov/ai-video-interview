@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AdminUsersController } from './controllers/admin-users.controller';
 import { AdminRolesController } from './controllers/admin-roles.controller';
@@ -9,7 +9,7 @@ import { UserOrchestrationSaga } from './user-orchestration.saga';
 import { OrphanedUsersService } from './orphaned-users.service';
 import { LoggerService } from '../../../core/logging/logger.service';
 import { KafkaModule } from '../../../kafka/kafka.module';
-import { AuthModule } from '../../../auth/auth.module';
+import { AuthModule } from '../../../core/auth/auth.module';
 import { UserServiceClient } from '../clients/user-service.client';
 import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
 
@@ -27,7 +27,7 @@ import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-br
   imports: [
     HttpModule,
     KafkaModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
   ],
   controllers: [
     AdminUsersController,

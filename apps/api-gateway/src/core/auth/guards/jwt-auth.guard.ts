@@ -1,12 +1,16 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { Request } from 'express';
-import { OidcService } from './oidc.service';
+import { OidcService } from '../services/oidc.service';
+import { RegistrationSaga } from '../sagas/registration.saga';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   private readonly logger = new Logger(JwtAuthGuard.name);
   
-  constructor(private readonly oidc: OidcService) {}
+  constructor(
+    private readonly oidc: OidcService,
+    private readonly registrationSaga: RegistrationSaga,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request & { user?: any }>();
@@ -40,8 +44,37 @@ export class JwtAuthGuard implements CanActivate {
     try {
       this.logger.debug('JWT Guard: Attempting token verification...');
       const { payload } = await this.oidc.verifyAccessToken(token);
-      req.user = payload;
-      this.logger.debug(`JWT Guard: Token verified successfully (user: ${payload?.sub})`);
+      
+      // КРИТИЧНО: Добавляем userId в request.user
+      // JWT payload содержит только sub (keycloakId), но нам нужен внутренний userId
+      try {
+        const keycloakId = payload.sub as string;
+        const email = (payload.email || '') as string;
+        const firstName = payload.given_name as string | undefined;
+        const lastName = payload.family_name as string | undefined;
+        
+        if (!keycloakId) {
+          throw new Error('Missing sub (keycloakId) in JWT payload');
+        }
+        
+        const userResult = await this.registrationSaga.ensureUserExists({
+          keycloakId,
+          email,
+          firstName,
+          lastName,
+        });
+        
+        req.user = {
+          ...payload,
+          userId: userResult.userId, // Добавляем внутренний userId
+        };
+        
+        this.logger.log(`🔐 JWT Guard: Token verified - keycloakId=${keycloakId}, userId=${userResult.userId}`);
+      } catch (error) {
+        this.logger.error(`JWT Guard: Failed to get userId for ${payload.sub}:`, error);
+        req.user = payload; // Fallback to just payload
+      }
+      
       return true;
     } catch (e: any) {
       this.logger.error(`JWT Guard: Token verification failed - ${e?.message}`);

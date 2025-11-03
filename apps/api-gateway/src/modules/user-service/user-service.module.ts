@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AdminModule } from './admin/admin.module';
 import { UsersController } from './controllers/users.controller';
 import { UserServiceClient } from './clients/user-service.client';
-import { AuthModule } from '../../auth/auth.module';
+import { AuthModule } from '../../core/auth/auth.module';
 
 /**
  * User Service Module
@@ -19,7 +19,7 @@ import { AuthModule } from '../../auth/auth.module';
 @Module({
   imports: [
     HttpModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
     AdminModule,
   ],
   controllers: [

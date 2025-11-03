@@ -10,7 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { JwtAuthGuard } from '../../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { UserServiceClient } from '../clients/user-service.client';
 import { LoggerService } from '../../../core/logging/logger.service';
 
@@ -29,17 +29,27 @@ export class UsersController {
   /**
    * GET /api/users/me
    * Получить профиль текущего пользователя
-   * ПРОСТО ПРОКСИРУЕТ запрос в User Service с JWT токеном
+   * Uses INTERNAL endpoint (not JWT proxy)
    */
   @Get('me')
-  async getCurrentUser(@Req() req: Request) {
-    const authHeader = req.headers['authorization'];
+  async getCurrentUser(@Req() req: Request & { user?: any }) {
+    const userId = req.user?.userId;
     
-    this.loggerService.info('Proxying GET /users/me to User Service');
+    if (!userId) {
+      this.loggerService.error('GET /users/me - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.log(`📡 [API Gateway] GET /users/me - userId: ${userId}`);
 
     try {
-      // Прямой проксированный вызов к User Service /users/me
-      const user = await this.userServiceClient.getCurrentUserProfile(authHeader);
+      // Internal call to User Service using userId
+      const user = await this.userServiceClient.getUserByIdInternal(userId);
+      
+      this.loggerService.log(`✅ [API Gateway] Received from User Service: userId=${user.id}, email=${user.email}`);
+      
       return user;
     } catch (error) {
       this.loggerService.error('Failed to fetch user profile', error);
@@ -47,19 +57,31 @@ export class UsersController {
     }
   }
 
+
   /**
    * PUT /api/users/me
    * Обновить профиль текущего пользователя
-   * ПРОСТО ПРОКСИРУЕТ запрос в User Service с JWT токеном
+   * Uses INTERNAL endpoint (not JWT proxy)
    */
   @Put('me')
-  async updateCurrentUser(@Req() req: Request, @Body() updates: any) {
-    const authHeader = req.headers['authorization'];
+  async updateCurrentUser(@Req() req: Request & { user?: any }, @Body() updates: any) {
+    const userId = req.user?.userId;
     
-    this.loggerService.info('Proxying PUT /users/me to User Service');
+    if (!userId) {
+      this.loggerService.error('PUT /users/me - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.info(`📝 [API Gateway] PUT /users/me - userId: ${userId}`);
 
     try {
-      const user = await this.userServiceClient.updateCurrentUserProfile(authHeader, updates);
+      // Internal call to User Service using userId
+      const user = await this.userServiceClient.updateUserProfileInternal(userId, updates);
+      
+      this.loggerService.log(`✅ [API Gateway] User profile updated: userId=${user.id}`);
+      
       return user;
     } catch (error) {
       this.loggerService.error('Failed to update user profile', error);

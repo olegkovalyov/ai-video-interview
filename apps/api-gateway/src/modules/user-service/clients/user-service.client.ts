@@ -258,17 +258,24 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   /**
-   * Update user (internal)
+   * Update user profile (internal)
    * Route: PUT /internal/users/:id
    * Uses: Internal service token
-   * Used by: UserOrchestrationSaga
+   * Used by: UsersController (for updating user profile)
    */
-  async updateUserInternal(
+  async updateUserProfileInternal(
     userId: string,
-    dto: { firstName?: string; lastName?: string },
-  ): Promise<any> {
+    dto: {
+      firstName?: string;
+      lastName?: string;
+      bio?: string;
+      phone?: string;
+      timezone?: string;
+      language?: string;
+    },
+  ): Promise<UserDTO> {
     try {
-      this.loggerService.info('UserServiceClient: Updating user (internal)', {
+      this.loggerService.info('UserServiceClient: Updating user profile (internal)', {
         userId,
       });
 
@@ -284,14 +291,25 @@ export class UserServiceClient extends BaseServiceProxy {
       );
 
       this.loggerService.info(
-        'UserServiceClient: User updated successfully (internal)',
+        'UserServiceClient: User profile updated successfully (internal)',
         { userId },
       );
 
       return response.data;
     } catch (error) {
-      return this.handleInternalError(error, 'update user', { userId });
+      return this.handleInternalError(error, 'update user profile', { userId });
     }
+  }
+
+  /**
+   * @deprecated Use updateUserProfileInternal() instead
+   * Update user (internal) - kept for backward compatibility
+   */
+  async updateUserInternal(
+    userId: string,
+    dto: { firstName?: string; lastName?: string },
+  ): Promise<any> {
+    return this.updateUserProfileInternal(userId, dto);
   }
 
   /**
@@ -400,10 +418,39 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   /**
+   * Get user by ID (internal)
+   * Route: GET /internal/users/:userId
+   * Uses: Internal service token
+   * Used by: UsersController (for getting user profile)
+   */
+  async getUserByIdInternal(userId: string): Promise<UserDTO> {
+    try {
+      this.loggerService.info(
+        'UserServiceClient: Getting user by ID (internal)',
+        { userId },
+      );
+
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.baseUrl}/internal/users/${userId}`,
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'get user by ID', { userId });
+    }
+  }
+
+  /**
    * Get user by external auth ID (internal)
    * Route: GET /internal/users/by-external-auth/:externalAuthId
    * Uses: Internal service token
-   * Used by: AdminController (for enriching user data)
+   * Used by: RegistrationSaga (for checking if user exists)
    */
   async getUserByExternalAuthId(externalAuthId: string): Promise<UserDTO | null> {
     try {

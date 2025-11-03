@@ -1,4 +1,5 @@
 import { Controller, Get, Inject } from '@nestjs/common';
+import { Public } from '../decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -10,6 +11,7 @@ import { KafkaService } from '@repo/shared';
  */
 @ApiTags('health')
 @Controller('health')
+@Public()
 export class HealthController {
   constructor(
     @InjectDataSource()

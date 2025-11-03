@@ -13,6 +13,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -27,6 +28,7 @@ import { UploadAvatarCommand } from '../../../application/commands/upload-avatar
 
 // Queries
 import { GetUserQuery } from '../../../application/queries/get-user/get-user.query';
+import { GetUserByExternalAuthIdQuery } from '../../../application/queries/get-user-by-external-auth-id/get-user-by-external-auth-id.query';
 import { ListUsersQuery } from '../../../application/queries/list-users/list-users.query';
 
 // DTOs
@@ -49,50 +51,47 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 @Controller('users')
 @ApiBearerAuth()
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
 
-  // ========================================
-  // CURRENT USER ENDPOINTS
-  // ========================================
-
-  @Get('me')
-  @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, type: UserResponseDto })
-  async getCurrentUser(@CurrentUser() userId: string): Promise<UserResponseDto> {
-    const user = await this.queryBus.execute(new GetUserQuery(userId));
-    return UserResponseDto.fromDomain(user);
+  /**
+   * Helper: resolve userId from JWT (can be either internal userId or externalAuthId)
+   * Returns the internal userId
+   * 
+   * @deprecated This is a temporary workaround for JWT that doesn't contain userId.
+   * Used only for avatar endpoints. Profile endpoints moved to internal API.
+   */
+  private async resolveUserId(userIdOrSub: string): Promise<string> {
+    this.logger.log(`📍 [User Service] resolveUserId - input: ${userIdOrSub}`);
+    try {
+      // Try as internal userId first
+      const user = await this.queryBus.execute(new GetUserQuery(userIdOrSub));
+      this.logger.log(`📍 [User Service] Found by userId: ${user.id}, email: ${user.email.value}`);
+      return user.id;
+    } catch (error) {
+      // If not found, try as externalAuthId
+      this.logger.log(`📍 [User Service] Not found by userId, trying externalAuthId: ${userIdOrSub}`);
+      const user = await this.queryBus.execute(new GetUserByExternalAuthIdQuery(userIdOrSub));
+      this.logger.log(`📍 [User Service] Found by externalAuthId: ${user.id}, email: ${user.email.value}`);
+      return user.id;
+    }
   }
 
-  @Put('me')
-  @ApiOperation({ summary: 'Update current user profile' })
-  @ApiResponse({ status: 200, type: UserResponseDto })
-  async updateCurrentUser(
-    @CurrentUser() userId: string,
-    @Body() dto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
-    const command = new UpdateUserCommand(
-      userId,
-      dto.firstName,
-      dto.lastName,
-      dto.bio,
-      dto.phone,
-      dto.timezone,
-      dto.language,
-    );
-
-    const user = await this.commandBus.execute(command);
-    return UserResponseDto.fromDomain(user);
-  }
+  // ========================================
+  // CURRENT USER ENDPOINTS (Avatar only)
+  // Note: Profile endpoints (GET/PUT /users/me) moved to Internal API
+  // ========================================
 
   @Post('me/avatar')
   @ApiOperation({ summary: 'Upload user avatar' })
   @ApiResponse({ status: 200, description: 'Avatar uploaded successfully' })
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(
-    @CurrentUser() userId: string,
+    @CurrentUser() userIdOrSub: string,
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -103,6 +102,7 @@ export class UsersController {
     )
     file: any,
   ): Promise<{ avatarUrl: string }> {
+    const userId = await this.resolveUserId(userIdOrSub);
     const command = new UploadAvatarCommand(userId, file);
     const user = await this.commandBus.execute(command);
     
@@ -112,7 +112,8 @@ export class UsersController {
   @Delete('me/avatar')
   @ApiOperation({ summary: 'Delete user avatar' })
   @ApiResponse({ status: 204, description: 'Avatar deleted successfully' })
-  async deleteAvatar(@CurrentUser() userId: string): Promise<void> {
+  async deleteAvatar(@CurrentUser() userIdOrSub: string): Promise<void> {
+    const userId = await this.resolveUserId(userIdOrSub);
     const command = new UpdateUserCommand(userId, undefined, undefined, undefined, undefined);
     await this.commandBus.execute(command);
   }
