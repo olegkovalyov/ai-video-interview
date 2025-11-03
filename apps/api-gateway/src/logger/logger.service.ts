@@ -118,14 +118,14 @@ export class LoggerService implements NestLoggerService {
     const firstParam = optionalParams[0];
     const secondParam = optionalParams.length > 1 ? optionalParams[1] : undefined;
     
-    // Проверяем если первый параметр - Error object
-    if (firstParam instanceof Error) {
+    // Проверяем если первый параметр - Error object или похож на Error
+    if (firstParam && typeof firstParam === 'object' && (firstParam instanceof Error || firstParam.stack || firstParam.message)) {
       this.logger.error(String(message), {
         ...(typeof secondParam === 'string' ? { context: secondParam } : secondParam),
         error: {
-          name: firstParam.name,
-          message: firstParam.message,
-          stack: firstParam.stack
+          name: firstParam.name || 'Error',
+          message: firstParam.message || String(firstParam),
+          stack: firstParam.stack || 'No stack trace'
         }
       });
       return;

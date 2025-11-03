@@ -20,7 +20,7 @@ const colorize = (text: string, color: keyof typeof colors): string => {
 /**
  * Pretty Console Formatter для development
  * Формат: [LEVEL] Category: message → details
- * 
+ *
  * Примеры:
  * [INFO] Auth: User authenticated → olegkovalyov@test.com
  * [INFO] Kafka: user.authenticated published → auth-events
@@ -35,58 +35,58 @@ export const prettyConsoleFormat = format.printf((info) => {
     info: colorize('[INFO] ', 'green'),
     debug: colorize('[DEBUG]', 'blue'),
   };
-  
+
   const level = levelColors[info.level] || colorize(`[${info.level.toUpperCase()}]`, 'white');
-  
+
   // Категория (если есть)
   let category = '';
   if (info.category && typeof info.category === 'string') {
     const categoryName = info.category.charAt(0).toUpperCase() + info.category.slice(1);
     category = colorize(`${categoryName}: `, 'cyan');
   }
-  
+
   // Базовое сообщение
   let msg = `${level} ${category}${info.message}`;
-  
+
   // Добавляем контекстные детали (средний уровень)
   const details: string[] = [];
-  
+
   // Kafka topics
   if (info.topic && typeof info.topic === 'string') {
     details.push(info.topic);
   }
-  
+
   // Email (для auth операций)
   if (info.email && typeof info.email === 'string') {
     details.push(colorize(info.email, 'cyan'));
   }
-  
+
   // User ID (короткий)
   if (info.userId && !info.email) {
     const shortId = typeof info.userId === 'string' ? info.userId.substring(0, 8) : info.userId;
     details.push(colorize(`(${shortId}...)`, 'gray'));
   }
-  
+
   // Event Type для Kafka
   if (info.eventType && typeof info.eventType === 'string') {
     details.push(colorize(info.eventType, 'magenta'));
   }
-  
+
   // Auth method
   if (info.authMethod && typeof info.authMethod === 'string') {
     details.push(colorize(info.authMethod, 'yellow'));
   }
-  
+
   // Добавляем детали
   if (details.length > 0) {
     msg += colorize(' → ', 'gray') + details.join(colorize(' | ', 'gray'));
   }
-  
+
   // Ошибка (если есть)
   if (info.error && typeof info.error === 'string') {
     msg += colorize(` | ${info.error}`, 'red');
   }
-  
+
   return msg;
 });
 

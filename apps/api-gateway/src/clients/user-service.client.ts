@@ -214,21 +214,33 @@ export class UserServiceClient extends BaseServiceProxy {
     dto: CreateUserInternalDto,
   ): Promise<CreateUserInternalResponse> {
     try {
-      this.loggerService.info('UserServiceClient: Creating user (internal)', {
-        userId: dto.userId,
-        email: dto.email,
+      const url = `${this.baseUrl}/internal/users`;
+      const headers = this.getInternalHeaders();
+      
+      this.loggerService.info('UserServiceClient: Creating user (internal) - REQUEST', {
+        url,
+        method: 'POST',
+        dto,
+        headers: { ...headers, 'X-Internal-Token': '***' }, // Hide token in logs
+        timeout: this.timeout,
       });
 
       const response = await firstValueFrom(
         this.httpService.post<CreateUserInternalResponse>(
-          `${this.baseUrl}/internal/users`,
+          url,
           dto,
           {
-            headers: this.getInternalHeaders(),
+            headers,
             timeout: this.timeout,
           },
         ),
       );
+      
+      this.loggerService.info('UserServiceClient: Creating user (internal) - RESPONSE', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+      });
 
       this.loggerService.info(
         'UserServiceClient: User created successfully (internal)',
@@ -447,12 +459,16 @@ export class UserServiceClient extends BaseServiceProxy {
   ): never {
     this.loggerService.error(
       `UserServiceClient: Failed to ${operation}`,
+      error,
       {
-        errorMessage: error.message,
-        errorStack: error.stack,
         errorResponse: error.response?.data,
         errorStatus: error.response?.status,
+        errorStatusText: error.response?.statusText,
         errorCode: error.code,
+        errorUrl: error.config?.url,
+        errorMethod: error.config?.method,
+        baseUrl: this.baseUrl,
+        timeout: this.timeout,
         ...context,
       },
     );

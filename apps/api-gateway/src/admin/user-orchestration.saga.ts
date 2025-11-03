@@ -57,22 +57,37 @@ export class UserOrchestrationSaga {
       // ═══════════════════════════════════════════════════════════
       // STEP 1: Create in Keycloak (source of truth for auth)
       // ═══════════════════════════════════════════════════════════
-      this.logger.info('Saga Step 1: Creating user in Keycloak', { operationId });
-
-      const keycloakResult = await this.keycloakUserService.createUser({
+      this.logger.info('Saga Step 1: Creating user in Keycloak', {
+        operationId,
         email: dto.email,
         firstName: dto.firstName,
         lastName: dto.lastName,
-        password: dto.password || 'password',
-        enabled: true,
       });
 
-      keycloakId = keycloakResult.keycloakId;
+      try {
+        const keycloakResult = await this.keycloakUserService.createUser({
+          email: dto.email,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          password: dto.password || 'password',
+          enabled: true,
+        });
 
-      this.logger.info('Saga Step 1: Keycloak user created', {
-        operationId,
-        keycloakId,
-      });
+        keycloakId = keycloakResult.keycloakId;
+
+        this.logger.info('Saga Step 1: Keycloak user created', {
+          operationId,
+          keycloakId,
+        });
+      } catch (keycloakError) {
+        this.logger.error('Saga Step 1: Keycloak call failed', keycloakError, {
+          operationId,
+          email: dto.email,
+          errorResponse: keycloakError.response?.data || keycloakError.response || 'No response',
+          errorStatus: keycloakError.status || keycloakError.response?.status,
+        });
+        throw keycloakError;
+      }
 
       // ═══════════════════════════════════════════════════════════
       // STEP 2: Create in User Service (sync HTTP)
@@ -84,19 +99,39 @@ export class UserOrchestrationSaga {
 
       const userId = uuid(); // Generate userId in API Gateway
 
-      await this.userServiceClient.createUserInternal({
+      this.logger.info('Saga Step 2: About to call User Service', {
+        operationId,
         userId,
-        externalAuthId: keycloakId,
+        keycloakId,
         email: dto.email,
         firstName: dto.firstName,
         lastName: dto.lastName,
       });
 
-      this.logger.info('Saga Step 2: User Service user created', {
-        operationId,
-        userId,
-        keycloakId,
-      });
+      try {
+        await this.userServiceClient.createUserInternal({
+          userId,
+          externalAuthId: keycloakId,
+          email: dto.email,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+        });
+
+        this.logger.info('Saga Step 2: User Service user created', {
+          operationId,
+          userId,
+          keycloakId,
+        });
+      } catch (userServiceError) {
+        this.logger.error('Saga Step 2: User Service call failed', userServiceError, {
+          operationId,
+          userId,
+          keycloakId,
+          errorResponse: userServiceError.response?.data || userServiceError.response || 'No response',
+          errorStatus: userServiceError.status || userServiceError.response?.status,
+        });
+        throw userServiceError;
+      }
 
       // ═══════════════════════════════════════════════════════════
       // SUCCESS: Both systems updated
@@ -119,6 +154,9 @@ export class UserOrchestrationSaga {
       this.logger.error('Saga: User creation failed', error, {
         operationId,
         keycloakId,
+        email: dto.email,
+        errorResponse: error.response?.data || error.response || 'No response data',
+        errorStatus: error.status || error.response?.status || 'No status',
       });
 
       await this.compensateUserCreation(keycloakId, operationId, error);
