@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { UserStatsCards } from './UserStatsCards';
 import { UserFilters } from './UserFilters';
 import { UsersTable } from './UsersTable';
-import { listUsers, assignRole, removeRole, suspendUser, activateUser, deleteUser, getUserRoles, type KeycloakUser } from '@/lib/api/users';
+import { listUsers, suspendUser, activateUser, deleteUser, getUserRoles, type KeycloakUser } from '@/lib/api/users';
 import { toast } from 'sonner';
 
 export function UsersList() {
@@ -72,40 +72,6 @@ export function UsersList() {
         return next;
       });
     }
-  };
-
-  // Handle role change
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-
-    const currentRole = userRoles.get(userId) || 'candidate';
-    if (currentRole === newRole) {
-      return; // No change needed
-    }
-
-    await withUserLock(userId, async () => {
-      // Remove old role if exists
-      if (currentRole) {
-        try {
-          await removeRole(userId, currentRole);
-        } catch (error) {
-          console.error('Failed to remove old role:', error);
-        }
-      }
-
-      // Assign new role
-      await assignRole(userId, newRole);
-
-      // Update local state immediately
-      setUserRoles(prev => {
-        const next = new Map(prev);
-        next.set(userId, newRole);
-        return next;
-      });
-
-      toast.success(`Role updated to ${newRole}`);
-    });
   };
 
   // Handle status toggle
@@ -184,7 +150,6 @@ export function UsersList() {
 
       <UsersTable
         users={mappedUsers}
-        onRoleChange={handleRoleChange}
         onStatusToggle={handleStatusToggle}
         onDelete={handleDelete}
         loadingUsers={loadingUsers}

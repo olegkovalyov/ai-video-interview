@@ -1,13 +1,71 @@
 import { cookies } from 'next/headers';
 
 /**
+ * BULLETPROOF AUTH - Level 2 Server-Side Role Check
+ * 
+ * Проверяет expiration токена и делает auto-refresh если нужно
+ * Используется в Server Components (layouts)
+ */
+
+/**
+ * Проверяет истёк ли токен (с 1-минутным буфером)
+ */
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const buffer = 60000; // 1 minute buffer - refresh before expiration
+    
+    return now >= (exp - buffer);
+  } catch {
+    return true; // Invalid token = expired
+  }
+}
+
+/**
  * Server-side функция для получения ролей из JWT токена
- * Используется только в Server Components
+ * С автоматическим refresh если токен истёк
  */
 export async function getUserRoles(): Promise<string[]> {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('access_token')?.value;
+    let token = cookieStore.get('access_token')?.value;
+    
+    // If token is expired or missing, try to refresh
+    if (!token || isTokenExpired(token)) {
+      console.log('[getUserRoles] Token expired or missing, attempting server-side refresh...');
+      
+      const refreshToken = cookieStore.get('refresh_token')?.value;
+      if (!refreshToken) {
+        console.log('[getUserRoles] No refresh token available');
+        return [];
+      }
+      
+      try {
+        // Call our server-side refresh API route
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh-server`, {
+          method: 'POST',
+          headers: {
+            'Cookie': `refresh_token=${refreshToken}`,
+          },
+        });
+        
+        if (refreshResponse.ok) {
+          console.log('[getUserRoles] ✅ Server-side refresh successful');
+          // Re-read cookies after refresh (cookies are updated by API Gateway)
+          const newCookieStore = await cookies();
+          token = newCookieStore.get('access_token')?.value;
+        } else {
+          console.log('[getUserRoles] ❌ Server-side refresh failed:', refreshResponse.status);
+          return [];
+        }
+      } catch (refreshError) {
+        console.error('[getUserRoles] ❌ Refresh error:', refreshError);
+        return [];
+      }
+    }
     
     if (!token) {
       return [];
@@ -22,7 +80,7 @@ export async function getUserRoles(): Promise<string[]> {
     
     return payload.realm_access?.roles || [];
   } catch (error) {
-    console.error('Failed to parse JWT token:', error);
+    console.error('[getUserRoles] Error:', error);
     return [];
   }
 }

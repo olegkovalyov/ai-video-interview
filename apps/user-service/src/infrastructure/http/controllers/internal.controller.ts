@@ -7,11 +7,8 @@ import { GetUserQuery } from '../../../application/queries/get-user/get-user.que
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
 import { UpdateUserCommand } from '../../../application/commands/update-user/update-user.command';
 import { DeleteUserCommand } from '../../../application/commands/delete-user/delete-user.command';
-import { AssignRoleCommand } from '../../../application/commands/assign-role/assign-role.command';
-import { RemoveRoleCommand } from '../../../application/commands/remove-role/remove-role.command';
 import { CreateUserInternalDto } from '../../../application/dto/requests/create-user-internal.dto';
 import { UpdateUserInternalDto } from '../../../application/dto/requests/update-user-internal.dto';
-import { AssignRoleInternalDto } from '../../../application/dto/requests/assign-role-internal.dto';
 import { UserResponseDto } from '../../../application/dto/responses/user.response.dto';
 import { UserPermissionsResponseDto } from '../../../application/dto/responses/user-permissions.response.dto';
 import { InternalServiceGuard } from '../guards/internal-service.guard';
@@ -222,25 +219,27 @@ export class InternalController {
   }
 
   /**
-   * POST /internal/users/:id/roles
-   * Assign role to user (called by API Gateway via Saga)
+   * POST /internal/users/:userId/select-role
+   * Internal endpoint to assign role (for admin/testing)
    */
-  @Post('users/:id/roles')
-  @ApiOperation({ summary: 'Assign role (Internal - Saga)' })
+  @Post('users/:userId/select-role')
+  @ApiOperation({ summary: 'Assign role to user (Internal)' })
   @ApiResponse({ status: 200, description: 'Role assigned successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async assignRole(
-    @Param('id') userId: string,
-    @Body() dto: AssignRoleInternalDto,
+  async selectRoleInternal(
+    @Param('userId') userId: string,
+    @Body() dto: { role: string },
   ) {
     try {
+      const { SelectRoleCommand } = await import('../../../application/commands/select-role/select-role.command.js');
+      
       await this.commandBus.execute(
-        new AssignRoleCommand(userId, dto.roleName, 'system'),
+        new SelectRoleCommand(userId, dto.role as 'candidate' | 'hr' | 'admin'),
       );
 
       return {
         success: true,
-        message: `Role ${dto.roleName} assigned successfully`,
+        message: `Role ${dto.role} assigned successfully`,
       };
     } catch (error) {
       if (error instanceof UserNotFoundException) {
@@ -254,44 +253,6 @@ export class InternalController {
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to assign role',
-        details: error.message,
-      });
-    }
-  }
-
-  /**
-   * DELETE /internal/users/:id/roles/:roleName
-   * Remove role from user (called by API Gateway via Saga)
-   */
-  @Delete('users/:id/roles/:roleName')
-  @ApiOperation({ summary: 'Remove role (Internal - Saga)' })
-  @ApiResponse({ status: 200, description: 'Role removed successfully' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async removeRole(
-    @Param('id') userId: string,
-    @Param('roleName') roleName: string,
-  ) {
-    try {
-      await this.commandBus.execute(
-        new RemoveRoleCommand(userId, roleName, 'system'),
-      );
-
-      return {
-        success: true,
-        message: `Role ${roleName} removed successfully`,
-      };
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: 'Failed to remove role',
         details: error.message,
       });
     }

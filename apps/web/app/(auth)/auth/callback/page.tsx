@@ -22,8 +22,27 @@ export default function AuthCallbackPage() {
         // forward the same query to the API; it will set cookies and respond
         const resp = await apiGet<{ success: boolean }>(`/auth/callback${qs}`);
         if (resp && resp.success) {
-          setStatus("✅ Authentication successful! Redirecting to dashboard...");
-          setTimeout(() => router.replace("/dashboard"), 1000);
+          setStatus("✅ Authentication successful! Checking your profile...");
+          
+          // Check user role
+          try {
+            const userResp = await apiGet<{ role?: string }>("/api/users/me");
+            
+            if (userResp?.role === 'pending') {
+              // User needs to select role
+              setStatus("Please select your role to continue...");
+              setTimeout(() => router.replace("/select-role"), 1000);
+            } else {
+              // User has role, go to dashboard
+              setStatus("Redirecting to dashboard...");
+              setTimeout(() => router.replace("/dashboard"), 1000);
+            }
+          } catch (userError) {
+            console.error('Failed to fetch user:', userError);
+            // Fallback to dashboard if user fetch fails
+            setStatus("Redirecting to dashboard...");
+            setTimeout(() => router.replace("/dashboard"), 1000);
+          }
         } else {
           setError("Authentication callback failed - invalid response from server");
         }

@@ -8,6 +8,7 @@ import { Email } from '../../../domain/value-objects/email.vo';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
 import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
+import { LoggerService } from '../../../infrastructure/logger/logger.service';
 import { v4 as uuid } from 'uuid';
 
 /**
@@ -24,9 +25,16 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     private readonly roleRepository: IRoleRepository,
     private readonly eventBus: EventBus,
     private readonly outboxService: OutboxService,
+    private readonly logger: LoggerService,
   ) {}
 
   async execute(command: CreateUserCommand): Promise<User> {
+    this.logger.info('Creating new user', {
+      email: command.email,
+      externalAuthId: command.externalAuthId,
+      userId: command.userId,
+    });
+
     // 1. Check if user already exists
     const existingUser = await this.userRepository.findByExternalAuthId(
       command.externalAuthId,
@@ -57,6 +65,13 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     // 4. Save to repository
     await this.userRepository.save(user);
 
+    this.logger.info('User created successfully', {
+      userId: user.id,
+      email: user.email.value,
+      role: user.role.toString(),
+      status: user.status.value,
+    });
+
     // 5. Auto-assign 'candidate' role - REMOVED
     // Role assignment should be done explicitly via Admin API or separate saga step
     // to avoid transaction conflicts and ensure proper orchestration
@@ -83,6 +98,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
           firstName: user.fullName.firstName,
           lastName: user.fullName.lastName,
           status: user.status.value,
+          role: user.role.toString(),
           createdAt: user.createdAt.toISOString(),
         },
       },

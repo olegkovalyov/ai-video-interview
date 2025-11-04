@@ -12,8 +12,9 @@ import { SuspendUserHandler } from './commands/suspend-user/suspend-user.handler
 import { ActivateUserHandler } from './commands/activate-user/activate-user.handler';
 import { DeleteUserHandler } from './commands/delete-user/delete-user.handler';
 import { UploadAvatarHandler } from './commands/upload-avatar/upload-avatar.handler';
-import { AssignRoleHandler } from './commands/assign-role/assign-role.handler';
-import { RemoveRoleHandler } from './commands/remove-role/remove-role.handler';
+import { SelectRoleHandler } from './commands/select-role';
+import { UpdateCandidateProfileHandler } from './commands/update-candidate-profile';
+import { UpdateHRProfileHandler } from './commands/update-hr-profile';
 
 // Query Handlers
 import { GetUserHandler } from './queries/get-user/get-user.handler';
@@ -29,8 +30,9 @@ const CommandHandlers = [
   ActivateUserHandler,
   DeleteUserHandler,
   UploadAvatarHandler,
-  AssignRoleHandler,
-  RemoveRoleHandler,
+  SelectRoleHandler,
+  UpdateCandidateProfileHandler,
+  UpdateHRProfileHandler,
 ];
 
 const QueryHandlers = [

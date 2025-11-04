@@ -36,12 +36,19 @@ export function Header({ userRoles = [] }: HeaderProps) {
           const res = await apiGet("/protected") as { user: User };
           setUser(res.user);
         } catch (error) {
-          console.error('Failed to load user:', error);
+          console.error('[Header] Failed to load user:', error);
+          // На ошибке очищаем пользователя
+          setUser(null);
         }
+      } else {
+        setUser(null);
       }
     };
 
     loadUser();
+    
+    // TokenRefreshProvider обновляет токены каждые 4 минуты
+    // Нам не нужен interval - просто загружаем при mount
   }, [isAuthenticated]);
 
   const handleLogout = async () => {
@@ -76,74 +83,125 @@ export function Header({ userRoles = [] }: HeaderProps) {
             <LogoWithText />
           </Link>
           
-          {/* Navigation для authenticated users */}
-          {(isAuthenticated || userRoles.length > 0) ? (
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link 
-                href="/dashboard" 
-                className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname === '/dashboard' || pathname.startsWith('/dashboard/') || pathname === '/admin/dashboard' || pathname.startsWith('/admin/dashboard/') ? 'text-yellow-400' : ''
-                }`}
-              >
-                Dashboard
-              </Link>
+          {/* Role-based Navigation */}
+          <nav className="hidden md:flex items-center space-x-6">
+            {/* Определяем primary role: admin > hr > candidate */}
+            {(() => {
+              const isAdmin = userRoles.includes('admin');
+              const isHR = userRoles.includes('hr');
+              const isCandidate = userRoles.includes('candidate');
+              const isAuthenticated = isAdmin || isHR || isCandidate;
               
-              {/* Interviews - для HR и Admin */}
-              {(userRoles.includes('hr') || userRoles.includes('admin')) && (
-                <Link 
-                  href="/interviews" 
-                  className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                    pathname.startsWith('/interviews') ? 'text-yellow-400' : ''
-                  }`}
-                >
-                  Interviews
-                </Link>
-              )}
+              // ADMIN MENU
+              if (isAdmin) {
+                return (
+                  <>
+                    <Link 
+                      href="/admin/dashboard" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/admin/dashboard') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link 
+                      href="/admin/interviews" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/admin/interviews') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Interviews
+                    </Link>
+                    <Link 
+                      href="/admin/users" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/admin/users') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Users
+                    </Link>
+                  </>
+                );
+              }
               
-              {/* Candidates - для HR и Admin */}
-              {(userRoles.includes('hr') || userRoles.includes('admin')) && (
-                <Link 
-                  href="/candidates" 
-                  className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                    pathname.startsWith('/candidates') ? 'text-yellow-400' : ''
-                  }`}
-                >
-                  Candidates
-                </Link>
-              )}
+              // HR MENU
+              if (isHR) {
+                return (
+                  <>
+                    <Link 
+                      href="/hr/dashboard" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/hr/dashboard') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link 
+                      href="/hr/interviews" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/hr/interviews') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Interviews
+                    </Link>
+                    <Link 
+                      href="/hr/candidates" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/hr/candidates') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Candidates
+                    </Link>
+                  </>
+                );
+              }
               
-              {/* Users - только для Admin */}
-              {userRoles.includes('admin') && (
-                <Link 
-                  href="/admin/users" 
-                  className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                    pathname.startsWith('/admin/users') ? 'text-yellow-400' : ''
-                  }`}
-                >
-                  Users
-                </Link>
-              )}
-            </nav>
-          ) : (
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link 
-                href="/about" 
-                className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname === '/about' ? 'text-yellow-400' : ''
-                }`}
-              >
-                About
-              </Link>
-              <Link 
-                href="/pricing" 
-                className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                  pathname === '/pricing' ? 'text-yellow-400' : ''
-                }`}
-              >
-                Pricing
-              </Link>
-            </nav>
-          )}
+              // CANDIDATE MENU
+              if (isCandidate) {
+                return (
+                  <>
+                    <Link 
+                      href="/candidate/dashboard" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/candidate/dashboard') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link 
+                      href="/candidate/interviews" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/candidate/interviews') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      My Interviews
+                    </Link>
+                  </>
+                );
+              }
+              
+              return null;
+            })()}
+            
+            {/* About & Pricing - для ВСЕХ (authenticated и неавтентифицированных) */}
+            <Link 
+              href="/about" 
+              className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                pathname === '/about' ? 'text-yellow-400' : ''
+              }`}
+            >
+              About
+            </Link>
+            
+            <Link 
+              href="/pricing" 
+              className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                pathname === '/pricing' ? 'text-yellow-400' : ''
+              }`}
+            >
+              Pricing
+            </Link>
+          </nav>
 
           <div className="flex items-center space-x-3">
             {loading ? (

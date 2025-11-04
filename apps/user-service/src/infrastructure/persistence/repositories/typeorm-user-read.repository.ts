@@ -25,7 +25,6 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
   async findById(id: string): Promise<User | null> {
     const entity = await this.repository.findOne({
       where: { id },
-      relations: ['roles'],
     });
     return entity ? this.mapper.toDomain(entity) : null;
   }
@@ -33,7 +32,6 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
   async findByExternalAuthId(externalAuthId: string): Promise<User | null> {
     const entity = await this.repository.findOne({
       where: { externalAuthId },
-      relations: ['roles'],
     });
     return entity ? this.mapper.toDomain(entity) : null;
   }
@@ -41,7 +39,6 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
   async findByEmail(email: string): Promise<User | null> {
     const entity = await this.repository.findOne({
       where: { email },
-      relations: ['roles'],
     });
     return entity ? this.mapper.toDomain(entity) : null;
   }

@@ -1,19 +1,18 @@
-import { Edit2, Trash2, Users as UsersIcon, Loader2 } from 'lucide-react';
+import { Edit2, Trash2, Users as UsersIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, UserRole } from '../types/user.types';
+import { User } from '../types/user.types';
 import { UserRoleBadge, UserStatusBadge } from './UserBadges';
 import { formatDate, getInitials } from '../utils/user-helpers';
 
 interface UsersTableProps {
   users: User[];
-  onRoleChange: (userId: string, newRole: UserRole) => void;
   onStatusToggle: (userId: string) => void;
   onDelete: (userId: string) => void;
   onEdit?: (userId: string) => void;
   loadingUsers?: Set<string>;
 }
 
-export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEdit, loadingUsers = new Set() }: UsersTableProps) {
+export function UsersTable({ users, onStatusToggle, onDelete, onEdit, loadingUsers = new Set() }: UsersTableProps) {
   if (users.length === 0) {
     return (
       <Card className="bg-white/10 backdrop-blur-md border-white/20">
@@ -69,28 +68,7 @@ export function UsersTable({ users, onRoleChange, onStatusToggle, onDelete, onEd
                   </td>
                   <td className="p-4 text-white/80">{user.email}</td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <UserRoleBadge role={user.role} />
-                      <div className="relative">
-                        <select
-                          value={user.role}
-                          onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
-                          disabled={isLoading}
-                          className={`
-                            text-xs bg-white/10 border border-white/30 rounded px-2 py-1 text-white
-                            transition-all duration-200
-                            ${isLoading ? 'cursor-not-allowed pr-8' : 'cursor-pointer'}
-                          `}
-                        >
-                          <option value="admin">Admin</option>
-                          <option value="hr">HR</option>
-                          <option value="candidate">Candidate</option>
-                        </select>
-                        {isLoading && (
-                          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-blue-400" />
-                        )}
-                      </div>
-                    </div>
+                    <UserRoleBadge role={user.role} />
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-3">

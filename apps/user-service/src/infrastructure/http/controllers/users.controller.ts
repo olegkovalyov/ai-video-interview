@@ -25,6 +25,9 @@ import { SuspendUserCommand } from '../../../application/commands/suspend-user/s
 import { ActivateUserCommand } from '../../../application/commands/activate-user/activate-user.command';
 import { DeleteUserCommand } from '../../../application/commands/delete-user/delete-user.command';
 import { UploadAvatarCommand } from '../../../application/commands/upload-avatar/upload-avatar.command';
+import { SelectRoleCommand } from '../../../application/commands/select-role';
+import { UpdateCandidateProfileCommand } from '../../../application/commands/update-candidate-profile';
+import { UpdateHRProfileCommand } from '../../../application/commands/update-hr-profile';
 
 // Queries
 import { GetUserQuery } from '../../../application/queries/get-user/get-user.query';
@@ -35,6 +38,9 @@ import { ListUsersQuery } from '../../../application/queries/list-users/list-use
 import { UpdateUserDto } from '../../../application/dto/requests/update-user.dto';
 import { ListUsersDto } from '../../../application/dto/requests/list-users.dto';
 import { SuspendUserDto } from '../../../application/dto/requests/suspend-user.dto';
+import { SelectRoleDto } from '../../../application/dto/requests/select-role.dto';
+import { UpdateCandidateProfileDto } from '../../../application/dto/requests/update-candidate-profile.dto';
+import { UpdateHRProfileDto } from '../../../application/dto/requests/update-hr-profile.dto';
 import { UserResponseDto } from '../../../application/dto/responses/user.response.dto';
 import { UserListResponseDto } from '../../../application/dto/responses/user-list.response.dto';
 
@@ -116,6 +122,57 @@ export class UsersController {
     const userId = await this.resolveUserId(userIdOrSub);
     const command = new UpdateUserCommand(userId, undefined, undefined, undefined, undefined);
     await this.commandBus.execute(command);
+  }
+
+  // ========================================
+  // ROLE & PROFILE ENDPOINTS
+  // ========================================
+
+  @Post('me/select-role')
+  @ApiOperation({ summary: 'Select user role (one-time only)' })
+  @ApiResponse({ status: 200, description: 'Role selected successfully' })
+  async selectRole(
+    @CurrentUser() userIdOrSub: string,
+    @Body() dto: SelectRoleDto,
+  ): Promise<{ message: string }> {
+    const userId = await this.resolveUserId(userIdOrSub);
+    const command = new SelectRoleCommand(userId, dto.role as 'candidate' | 'hr' | 'admin');
+    await this.commandBus.execute(command);
+    return { message: `Role ${dto.role} selected successfully` };
+  }
+
+  @Put('me/candidate-profile')
+  @ApiOperation({ summary: 'Update candidate profile' })
+  @ApiResponse({ status: 200, description: 'Candidate profile updated successfully' })
+  async updateCandidateProfile(
+    @CurrentUser() userIdOrSub: string,
+    @Body() dto: UpdateCandidateProfileDto,
+  ): Promise<{ message: string }> {
+    const userId = await this.resolveUserId(userIdOrSub);
+    const command = new UpdateCandidateProfileCommand(
+      userId,
+      dto.skills,
+      dto.experienceLevel,
+    );
+    await this.commandBus.execute(command);
+    return { message: 'Candidate profile updated successfully' };
+  }
+
+  @Put('me/hr-profile')
+  @ApiOperation({ summary: 'Update HR profile' })
+  @ApiResponse({ status: 200, description: 'HR profile updated successfully' })
+  async updateHRProfile(
+    @CurrentUser() userIdOrSub: string,
+    @Body() dto: UpdateHRProfileDto,
+  ): Promise<{ message: string }> {
+    const userId = await this.resolveUserId(userIdOrSub);
+    const command = new UpdateHRProfileCommand(
+      userId,
+      dto.companyName,
+      dto.position,
+    );
+    await this.commandBus.execute(command);
+    return { message: 'HR profile updated successfully' };
   }
 
   // ========================================

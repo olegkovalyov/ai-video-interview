@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { UserServiceClient } from '../../../modules/user-service/clients/user-service.client';
-import { KeycloakUserService } from '../../../modules/user-service/admin/keycloak';
+import { KeycloakUserService, KeycloakRoleService } from '../../../modules/user-service/admin/keycloak';
 import { LoggerService } from '../../logging/logger.service';
 
 export interface EnsureUserExistsDto {
@@ -35,6 +35,7 @@ export class RegistrationSaga {
   constructor(
     private readonly userServiceClient: UserServiceClient,
     private readonly keycloakUserService: KeycloakUserService,
+    private readonly keycloakRoleService: KeycloakRoleService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -105,45 +106,28 @@ export class RegistrationSaga {
         isFirstLogin: true,
       });
 
-      // STEP 2.2: Auto-assign 'candidate' role for new users
+      // Assign pending role in Keycloak (will be in JWT token)
       try {
-        this.logger.info('RegistrationSaga: Assigning candidate role', {
+        this.logger.info('RegistrationSaga: Assigning pending role in Keycloak', {
           operationId,
           userId,
+          keycloakId: dto.keycloakId,
         });
 
-        await this.userServiceClient.assignRoleInternal(userId, 'candidate');
+        await this.keycloakRoleService.assignRole(dto.keycloakId, 'pending');
 
-        this.logger.info('RegistrationSaga: Candidate role assigned', {
+        this.logger.info('RegistrationSaga: Pending role assigned in Keycloak', {
           operationId,
           userId,
         });
       } catch (roleError) {
-        // If role assignment fails, we need to rollback user creation
-        this.logger.error('RegistrationSaga: Failed to assign candidate role', {
+        this.logger.error('RegistrationSaga: Failed to assign pending role', {
           errorMessage: roleError.message,
-          errorStack: roleError.stack,
-          errorResponse: roleError.response?.data,
           operationId,
           userId,
         });
-
-        // Compensation: Delete user from User Service
-        try {
-          await this.userServiceClient.deleteUserInternal(userId);
-          this.logger.info('RegistrationSaga: User deleted from User Service (role assignment failed)', {
-            operationId,
-            userId,
-          });
-        } catch (deleteError) {
-          this.logger.error('RegistrationSaga: Failed to delete user after role assignment failure', {
-            errorMessage: deleteError.message,
-            operationId,
-            userId,
-          });
-        }
-
-        throw roleError; // Re-throw to trigger Keycloak compensation
+        // Don't fail registration if pending role assignment fails
+        // User will be redirected to /select-role anyway
       }
 
       return {

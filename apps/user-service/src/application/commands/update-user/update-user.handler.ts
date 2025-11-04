@@ -60,6 +60,7 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
           email: user.email.value,
           firstName: user.fullName.firstName,
           lastName: user.fullName.lastName,
+          role: user.role.toString(),
           updatedAt: user.updatedAt.toISOString(),
         },
       },

@@ -43,6 +43,9 @@ export class UserResponseDto {
   status: string;
 
   @ApiProperty()
+  role: string;
+
+  @ApiProperty()
   isActive: boolean;
 
   @ApiProperty()
@@ -77,6 +80,7 @@ export class UserResponseDto {
     dto.language = user.language;
     dto.emailVerified = user.emailVerified;
     dto.status = user.status.value;
+    dto.role = user.role.toString();
     dto.isActive = user.isActive;
     dto.isSuspended = user.isSuspended;
     dto.isDeleted = user.isDeleted;

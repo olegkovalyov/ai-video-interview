@@ -343,22 +343,23 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   /**
-   * Assign role (internal)
-   * Route: POST /internal/users/:id/roles
+   * Select role (internal)
+   * Route: POST /internal/users/:userId/select-role
    * Uses: Internal service token
    * Used by: UserOrchestrationSaga
+   * NEW: Replaces old assignRoleInternal - uses new role selection system
    */
   async assignRoleInternal(userId: string, roleName: string): Promise<any> {
     try {
-      this.loggerService.info('UserServiceClient: Assigning role (internal)', {
+      this.loggerService.info('UserServiceClient: Selecting role (internal)', {
         userId,
-        roleName,
+        role: roleName,
       });
 
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.baseUrl}/internal/users/${userId}/roles`,
-          { roleName },
+          `${this.baseUrl}/internal/users/${userId}/select-role`,
+          { role: roleName },
           {
             headers: this.getInternalHeaders(),
             timeout: this.timeout,
@@ -367,15 +368,15 @@ export class UserServiceClient extends BaseServiceProxy {
       );
 
       this.loggerService.info(
-        'UserServiceClient: Role assigned successfully (internal)',
-        { userId, roleName },
+        'UserServiceClient: Role selected successfully (internal)',
+        { userId, role: roleName },
       );
 
       return response.data;
     } catch (error) {
-      return this.handleInternalError(error, 'assign role', {
+      return this.handleInternalError(error, 'select role', {
         userId,
-        roleName,
+        role: roleName,
       });
     }
   }

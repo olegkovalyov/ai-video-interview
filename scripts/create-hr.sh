@@ -46,6 +46,7 @@ CREATE_RESPONSE=$(curl -s -X POST "${API_GATEWAY}/api/admin/users" \
 echo "$CREATE_RESPONSE" | jq .
 
 KEYCLOAK_ID=$(echo "$CREATE_RESPONSE" | jq -r '.data.keycloakId')
+USER_ID=$(echo "$CREATE_RESPONSE" | jq -r '.data.userId')
 
 if [ "$KEYCLOAK_ID" == "null" ] || [ -z "$KEYCLOAK_ID" ]; then
   echo -e "${RED}❌ Failed to create HR user${NC}"
@@ -53,17 +54,24 @@ if [ "$KEYCLOAK_ID" == "null" ] || [ -z "$KEYCLOAK_ID" ]; then
 fi
 
 echo ""
-echo -e "${GREEN}✅ HR user created with Keycloak ID: ${KEYCLOAK_ID}${NC}"
+echo -e "${GREEN}✅ HR user created${NC}"
+echo "  Keycloak ID: ${KEYCLOAK_ID}"
+echo "  User ID: ${USER_ID}"
 echo ""
 
-# Assign HR role
-echo -e "${YELLOW}→ Assigning HR role...${NC}"
+# Assign HR role via API Gateway
+echo -e "${YELLOW}→ Assigning HR role via API Gateway...${NC}"
 
 ROLE_RESPONSE=$(curl -s -X POST "${API_GATEWAY}/api/admin/users/${KEYCLOAK_ID}/roles" \
   -H "Content-Type: application/json" \
   -d '{"roleName": "hr"}')
 
 echo "$ROLE_RESPONSE" | jq .
+
+if [ "$(echo "$ROLE_RESPONSE" | jq -r '.success')" != "true" ]; then
+  echo -e "${RED}❌ Failed to assign HR role${NC}"
+  exit 1
+fi
 
 echo -e "${GREEN}✅ HR role assigned${NC}"
 echo ""
