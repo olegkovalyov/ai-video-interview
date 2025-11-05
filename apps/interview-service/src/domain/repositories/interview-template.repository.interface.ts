@@ -31,19 +31,14 @@ export interface IInterviewTemplateRepository {
   ): Promise<InterviewTemplate[]>;
 
   /**
-   * Find all templates with pagination
+   * Find all templates with filters and pagination
    */
   findAll(
-    page: number,
-    limit: number,
-  ): Promise<{ templates: InterviewTemplate[]; total: number }>;
-
-  /**
-   * Find templates by creator with pagination
-   */
-  findByCreatedByPaginated(
-    userId: string,
-    page: number,
+    filters: {
+      createdBy?: string;
+      status?: string;
+    },
+    skip: number,
     limit: number,
   ): Promise<{ templates: InterviewTemplate[]; total: number }>;
 
