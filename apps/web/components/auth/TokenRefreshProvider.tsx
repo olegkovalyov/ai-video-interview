@@ -22,21 +22,16 @@ export function TokenRefreshProvider({ children }: { children: React.ReactNode }
   const isRefreshingRef = useRef(false);
   
   useEffect(() => {
-    console.log('[TokenRefreshProvider] 🔄 Starting proactive token refresh service...');
-    
     const performRefresh = async () => {
       // Prevent concurrent refreshes
       if (isRefreshingRef.current) {
-        console.log('[TokenRefreshProvider] ⏳ Refresh already in progress, skipping...');
         return;
       }
       
       isRefreshingRef.current = true;
       
       try {
-        console.log('[TokenRefreshProvider] 🔄 Proactive refresh starting...');
         await apiPost('/auth/refresh');
-        console.log('[TokenRefreshProvider] ✅ Tokens refreshed successfully');
       } catch (error) {
         console.error('[TokenRefreshProvider] ❌ Refresh failed:', error);
         // If refresh fails, user will be redirected to login on next API request
@@ -53,13 +48,10 @@ export function TokenRefreshProvider({ children }: { children: React.ReactNode }
     // Start interval
     refreshIntervalRef.current = setInterval(performRefresh, REFRESH_INTERVAL);
     
-    console.log('[TokenRefreshProvider] ✅ Proactive refresh scheduled (every 4 minutes)');
-    
     // Cleanup on unmount
     return () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
-        console.log('[TokenRefreshProvider] 🛑 Proactive refresh stopped');
       }
     };
   }, []);

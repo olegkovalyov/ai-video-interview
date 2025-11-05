@@ -17,20 +17,15 @@ import { NextResponse } from 'next/server';
  */
 export async function POST() {
   try {
-    console.log('[Server Refresh] Starting server-side token refresh...');
-    
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get('refresh_token')?.value;
     
     if (!refreshToken) {
-      console.log('[Server Refresh] ❌ No refresh token found');
       return NextResponse.json(
         { success: false, error: 'No refresh token' }, 
         { status: 401 }
       );
     }
-    
-    console.log('[Server Refresh] Calling API Gateway /auth/refresh...');
     
     // Call API Gateway refresh endpoint with refresh token
     const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001';
@@ -44,7 +39,6 @@ export async function POST() {
     });
     
     if (!response.ok) {
-      console.log('[Server Refresh] ❌ API Gateway refresh failed:', response.status);
       return NextResponse.json(
         { success: false, error: 'Refresh failed' }, 
         { status: 401 }
@@ -52,7 +46,6 @@ export async function POST() {
     }
     
     const data = await response.json();
-    console.log('[Server Refresh] ✅ Refresh successful');
     
     // Extract Set-Cookie headers from API Gateway response
     const setCookieHeaders = response.headers.get('set-cookie');
@@ -61,12 +54,8 @@ export async function POST() {
     const res = NextResponse.json({ success: true, ...data });
     
     // Forward Set-Cookie headers to client
-    if (setCookieHeaders) {
-      // API Gateway returns cookies, we need to forward them
-      // Note: In production, cookies are set automatically by API Gateway
-      // This is just for transparency
-      console.log('[Server Refresh] Forwarding cookies to client');
-    }
+    // Note: In production, cookies are set automatically by API Gateway
+    // This is just for transparency
     
     return res;
   } catch (error) {

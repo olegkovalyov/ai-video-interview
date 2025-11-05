@@ -18,12 +18,8 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  console.log('[App Layout] Checking user roles...');
-  
   // Читаем роли из JWT на сервере (с auto-refresh если expired)
   const userRoles = await getUserRoles();
-  
-  console.log('[App Layout] User roles:', userRoles);
 
   // Проверяем наличие реальной роли (не только pending)
   const hasRealRole = userRoles.some(role => ['admin', 'hr', 'candidate'].includes(role));
@@ -31,11 +27,8 @@ export default async function AppLayout({
   
   // Если ТОЛЬКО pending (нет реальной роли) - редиректим на страницу выбора роли
   if (!hasRealRole && (userRoles.length === 0 || hasPendingRole)) {
-    console.log('[App Layout] User has pending role - redirecting to /select-role');
     redirect('/select-role');
   }
-
-  console.log('[App Layout] ✅ User has valid role - rendering app layout');
 
   return (
     <>

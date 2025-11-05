@@ -34,11 +34,8 @@ export async function getUserRoles(): Promise<string[]> {
     
     // If token is expired or missing, try to refresh
     if (!token || isTokenExpired(token)) {
-      console.log('[getUserRoles] Token expired or missing, attempting server-side refresh...');
-      
       const refreshToken = cookieStore.get('refresh_token')?.value;
       if (!refreshToken) {
-        console.log('[getUserRoles] No refresh token available');
         return [];
       }
       
@@ -53,12 +50,10 @@ export async function getUserRoles(): Promise<string[]> {
         });
         
         if (refreshResponse.ok) {
-          console.log('[getUserRoles] ✅ Server-side refresh successful');
           // Re-read cookies after refresh (cookies are updated by API Gateway)
           const newCookieStore = await cookies();
           token = newCookieStore.get('access_token')?.value;
         } else {
-          console.log('[getUserRoles] ❌ Server-side refresh failed:', refreshResponse.status);
           return [];
         }
       } catch (refreshError) {

@@ -17,8 +17,6 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  console.log('[Middleware] 🛡️ Guard check:', pathname);
-  
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/register', '/about', '/pricing', '/auth/callback'];
   const isPublicRoute = pathname === '/' || publicRoutes.some(route => {
@@ -45,17 +43,12 @@ export function middleware(request: NextRequest) {
         const exp = payload.exp;
         const now = Math.floor(Date.now() / 1000);
         
-        console.log('[Middleware] 🔍 Token check for', pathname);
-        console.log('[Middleware] Roles:', roles);
-        console.log('[Middleware] Expired:', exp ? (exp < now ? 'YES' : 'NO') : 'UNKNOWN');
-        
         // ВСЕГДА проверяем pending (даже если токен expired)
         const hasRealRole = roles.some(role => ['admin', 'hr', 'candidate'].includes(role));
         const hasPendingOnly = roles.includes('pending') && !hasRealRole;
         
         // Pending пользователи могут быть ТОЛЬКО на /select-role и /auth/callback
         if (hasPendingOnly && !isSelectRolePage && pathname !== '/auth/callback') {
-          console.log('[Middleware] ⚠️ PENDING user (expired:', exp && exp < now, ') trying to access', pathname, '- BLOCKING and redirecting to /select-role');
           const selectRoleUrl = new URL('/select-role', request.url);
           return NextResponse.redirect(selectRoleUrl);
         }
@@ -67,7 +60,6 @@ export function middleware(request: NextRequest) {
   
   // Public routes pass (for non-authenticated users or users with real roles)
   if (isPublicRoute) {
-    console.log('[Middleware] ✅ Public route - allowing');
     return NextResponse.next();
   }
   
@@ -81,15 +73,12 @@ export function middleware(request: NextRequest) {
           const payload = JSON.parse(atob(parts[1]));
           const roles: string[] = payload.realm_access?.roles || [];
           
-          console.log('[Middleware] User roles:', roles);
-          
           // Проверяем наличие реальной роли
           const hasRealRole = roles.some(role => ['admin', 'hr', 'candidate'].includes(role));
           
           // /select-role - только для pending пользователей
           // Если у пользователя уже есть реальная роль, редиректим на dashboard
           if (isSelectRolePage && hasRealRole) {
-            console.log('[Middleware] ❌ User with real role trying to access /select-role - redirecting to /dashboard');
             const dashboardUrl = new URL('/dashboard', request.url);
             return NextResponse.redirect(dashboardUrl);
           }
@@ -98,21 +87,18 @@ export function middleware(request: NextRequest) {
           
           // Защита admin роутов - ТОЛЬКО для admin
           if (pathname.startsWith('/admin') && !roles.includes('admin')) {
-            console.log('[Middleware] ❌ Non-admin trying to access admin route - redirecting to /dashboard');
             const dashboardUrl = new URL('/dashboard', request.url);
             return NextResponse.redirect(dashboardUrl);
           }
           
           // Защита HR роутов - ТОЛЬКО для HR
           if (pathname.startsWith('/hr') && !roles.includes('hr')) {
-            console.log('[Middleware] ❌ Non-HR trying to access HR route - redirecting to /dashboard');
             const dashboardUrl = new URL('/dashboard', request.url);
             return NextResponse.redirect(dashboardUrl);
           }
           
           // Защита candidate роутов - ТОЛЬКО для candidate
           if (pathname.startsWith('/candidate') && !roles.includes('candidate')) {
-            console.log('[Middleware] ❌ Non-candidate trying to access candidate route - redirecting to /dashboard');
             const dashboardUrl = new URL('/dashboard', request.url);
             return NextResponse.redirect(dashboardUrl);
           }
@@ -123,12 +109,10 @@ export function middleware(request: NextRequest) {
       }
     }
     
-    console.log('[Middleware] ✅ Token exists (access:', !!accessToken, 'refresh:', !!refreshToken, ') - allowing');
     return NextResponse.next();
   }
   
   // No tokens at all - redirect to login
-  console.log('[Middleware] ❌ No tokens found - redirect to login');
   const loginUrl = new URL('/login', request.url);
   loginUrl.searchParams.set('from', pathname);
   return NextResponse.redirect(loginUrl);

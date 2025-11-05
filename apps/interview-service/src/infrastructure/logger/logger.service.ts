@@ -1,6 +1,7 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import * as path from 'path';
+import DailyRotateFile = require('winston-daily-rotate-file');
 import { prettyConsoleFormat, shouldEnableConsole } from './console.formatter';
 import LokiTransport = require('winston-loki');
 
@@ -25,10 +26,10 @@ export class LoggerService implements NestLoggerService {
   constructor() {
     const fs = require('fs');
     
-    // Логи в папке сервиса: apps/interview-service/logs/
-    const baseLogsDir = path.join(__dirname, '../../logs');
+    // Логи в папке сервиса: apps/user-service/logs/
+    const baseLogsDir = path.join(__dirname, '../../../logs');
     
-    // Папка по дате: logs/2025-10-28/
+    // Папка по дате: logs/2025-10-02/
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const logsDir = path.join(baseLogsDir, today);
     
@@ -53,10 +54,10 @@ export class LoggerService implements NestLoggerService {
     );
 
     this.logger = winston.createLogger({
-      level: process.env.LOG_LEVEL || 'debug',
+      level: process.env.LOG_LEVEL || 'info',
       defaultMeta: {
         service: 'interview-service',
-        version: process.env.npm_package_version || '1.0.0',
+        version: process.env.npm_package_version || '0.0.1',
         environment: process.env.NODE_ENV || 'development'
       },
       transports: [
@@ -77,7 +78,7 @@ export class LoggerService implements NestLoggerService {
           level: 'debug', // Отправляем все логи включая debug
           onConnectionError: (err) => console.error('Loki connection error:', err)
         }),
-        // Файл в папке по дате: logs/2025-10-28/interview-service.log (fallback)
+        // Файл в папке по дате: logs/2025-10-02/interview-service.log (fallback)
         new winston.transports.File({
           filename: path.join(logsDir, 'interview-service.log'),
           level: 'debug',
