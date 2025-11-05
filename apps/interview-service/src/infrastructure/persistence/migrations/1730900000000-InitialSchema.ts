@@ -2,8 +2,8 @@ import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } f
 
 export class InitialSchema1730900000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Enable UUID extension
-    await queryRunner.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+    // Enable pgcrypto extension for gen_random_uuid()
+    // Note: PostgreSQL 13+ has gen_random_uuid() built-in, but pgcrypto works for all versions
     await queryRunner.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto"');
 
     // ========================================
@@ -17,7 +17,7 @@ export class InitialSchema1730900000000 implements MigrationInterface {
             name: 'id',
             type: 'uuid',
             isPrimary: true,
-            default: 'uuid_generate_v4()',
+            default: 'gen_random_uuid()',
           },
           {
             name: 'event_id',

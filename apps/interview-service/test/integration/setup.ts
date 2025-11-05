@@ -62,10 +62,10 @@ async function dropAllTables(dataSource: DataSource): Promise<void> {
 /**
  * Create required PostgreSQL extensions
  * Called after schema creation, before migrations
+ * Using gen_random_uuid() from pgcrypto (works with all PostgreSQL versions)
  */
 async function createExtensions(dataSource: DataSource): Promise<void> {
   await dataSource.query(`
-    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
     CREATE EXTENSION IF NOT EXISTS "pgcrypto";
   `);
 }

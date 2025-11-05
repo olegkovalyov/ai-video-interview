@@ -28,6 +28,11 @@ import { KafkaModule } from '../kafka/kafka.module';
   ],
   controllers: [HealthController],
   providers: [JwtAuthGuard, RolesGuard, InternalServiceGuard],
-  exports: [JwtAuthGuard, RolesGuard, InternalServiceGuard],
+  exports: [
+    JwtModule, // Export JwtModule so JwtService is available
+    JwtAuthGuard,
+    RolesGuard,
+    InternalServiceGuard,
+  ],
 })
 export class HttpModule {}

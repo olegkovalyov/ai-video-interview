@@ -38,7 +38,7 @@ export class InterviewTemplateEntity {
   };
 
   @OneToMany(() => QuestionEntity, (question) => question.template, {
-    cascade: true,
+    cascade: ['insert', 'update'],
     eager: false,
   })
   questions: QuestionEntity[];

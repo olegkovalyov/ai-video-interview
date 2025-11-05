@@ -6,6 +6,7 @@ import { InterviewTemplateEntity } from './entities/interview-template.entity';
 import { QuestionEntity } from './entities/question.entity';
 import { TypeOrmInterviewTemplateRepository } from './repositories/typeorm-interview-template.repository';
 import { InterviewTemplateReadRepository } from './repositories/interview-template-read.repository';
+import { TypeOrmQuestionRepository } from './repositories/typeorm-question.repository';
 
 @Module({
   imports: [
@@ -39,12 +40,17 @@ import { InterviewTemplateReadRepository } from './repositories/interview-templa
       provide: 'IInterviewTemplateRepository',
       useClass: TypeOrmInterviewTemplateRepository,
     },
+    {
+      provide: 'IQuestionRepository',
+      useClass: TypeOrmQuestionRepository,
+    },
     // Read Repository (для Queries)
     InterviewTemplateReadRepository,
   ],
   exports: [
     TypeOrmModule,
     'IInterviewTemplateRepository',
+    'IQuestionRepository',
     InterviewTemplateReadRepository,
   ],
 })

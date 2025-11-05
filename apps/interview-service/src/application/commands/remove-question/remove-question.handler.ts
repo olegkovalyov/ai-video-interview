@@ -2,6 +2,7 @@ import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger, NotFoundException } from '@nestjs/common';
 import { RemoveQuestionCommand } from './remove-question.command';
 import type { IInterviewTemplateRepository } from '../../../domain/repositories/interview-template.repository.interface';
+import type { IQuestionRepository } from '../../../domain/repositories/question.repository.interface';
 
 @CommandHandler(RemoveQuestionCommand)
 export class RemoveQuestionHandler
@@ -12,6 +13,8 @@ export class RemoveQuestionHandler
   constructor(
     @Inject('IInterviewTemplateRepository')
     private readonly templateRepository: IInterviewTemplateRepository,
+    @Inject('IQuestionRepository')
+    private readonly questionRepository: IQuestionRepository,
     private readonly eventBus: EventBus,
   ) {}
 
@@ -28,10 +31,13 @@ export class RemoveQuestionHandler
       );
     }
 
-    // Remove question (domain logic with reordering)
+    // Remove question from aggregate (domain logic with reordering)
     template.removeQuestion(command.questionId);
 
-    // Save aggregate
+    // Explicitly delete question from database
+    await this.questionRepository.delete(command.questionId);
+
+    // Save aggregate (without the removed question)
     await this.templateRepository.save(template);
 
     // Publish domain events

@@ -7,6 +7,7 @@ import { LoggerModule } from './infrastructure/logger/logger.module';
 import { MessagingModule } from './infrastructure/messaging/messaging.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
 import { ApplicationModule } from './application/application.module';
+import { TemplatesModule } from './infrastructure/http/modules/templates.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ApplicationModule } from './application/application.module';
     
     // HTTP (Controllers)
     HttpModule,
+    TemplatesModule, // Templates REST API
     
     // Metrics (Prometheus)
     MetricsModule,
