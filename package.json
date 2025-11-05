@@ -22,10 +22,14 @@
     "kafka:down": "docker-compose --profile kafka down",
     "kafka:logs": "docker-compose --profile kafka logs -f",
     "kafka:reset": "docker-compose --profile kafka down -v && docker-compose --profile kafka up -d",
+    "generate:types:interview": "openapi-typescript http://localhost:8003/api/docs-json -o packages/shared/src/contracts/interview-service/interview-service.generated.ts",
+    "generate:types:user": "openapi-typescript http://localhost:8002/api/docs-json -o packages/shared/src/contracts/user-service/user-service.generated.ts",
+    "generate:types": "npm run generate:types:interview && npm run generate:types:user",
     "setup": "npm install && npm run infra:up && echo 'Setup complete! Run npm run dev:all to start all services'"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
+    "openapi-typescript": "^7.10.1",
     "prettier": "^3.6.2",
     "turbo": "^2.5.5",
     "typescript": "5.8.3"

@@ -2,14 +2,15 @@
  * @repo/shared
  * 
  * Shared package for event-driven communication between microservices
- * Contains only Kafka-related code: events, topics, and Kafka services
+ * Contains:
+ * - Kafka events, topics, and services
+ * - API type contracts (generated from OpenAPI/Swagger)
+ * - Tracing utilities
  * 
  * Each service manages its own:
- * - DTOs (domain-specific)
- * - Types (domain-specific)
- * - Constants (service-specific)
- * - Utils (service-specific)
- * - RBAC/Permissions (user-service responsibility)
+ * - Internal business logic
+ * - Infrastructure concerns
+ * - Service-specific utilities
  */
 
 // Export Kafka events and event types
@@ -54,3 +55,10 @@ export {
   withKafkaTracing,
   getTraceInfo,
 } from './tracing/kafka-propagation';
+
+// ============================================================================
+// API Type Contracts (Generated from OpenAPI/Swagger)
+// ============================================================================
+
+export * from './contracts/interview-service';
+export * from './contracts/user-service';
