@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OutboxEntity } from './entities/outbox.entity';
+import { InterviewTemplateEntity } from './entities/interview-template.entity';
+import { QuestionEntity } from './entities/question.entity';
+import { TypeOrmInterviewTemplateRepository } from './repositories/typeorm-interview-template.repository';
+import { InterviewTemplateReadRepository } from './repositories/interview-template-read.repository';
 
 @Module({
   imports: [
@@ -14,7 +18,7 @@ import { OutboxEntity } from './entities/outbox.entity';
         username: configService.get('DATABASE_USER', 'postgres'),
         password: configService.get('DATABASE_PASSWORD', 'postgres'),
         database: configService.get('DATABASE_NAME', 'ai_video_interview_interview'),
-        entities: [OutboxEntity], // Interview entities will be added later
+        entities: [OutboxEntity, InterviewTemplateEntity, QuestionEntity],
         synchronize: false, // Always use migrations
         logging: false, // Disable SQL logging (too verbose)
         ssl: configService.get('DATABASE_SSL', 'false') === 'true'
@@ -23,9 +27,25 @@ import { OutboxEntity } from './entities/outbox.entity';
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([OutboxEntity]),
+    TypeOrmModule.forFeature([
+      OutboxEntity,
+      InterviewTemplateEntity,
+      QuestionEntity,
+    ]),
   ],
-  providers: [],
-  exports: [TypeOrmModule],
+  providers: [
+    // Write Repository (для Commands)
+    {
+      provide: 'IInterviewTemplateRepository',
+      useClass: TypeOrmInterviewTemplateRepository,
+    },
+    // Read Repository (для Queries)
+    InterviewTemplateReadRepository,
+  ],
+  exports: [
+    TypeOrmModule,
+    'IInterviewTemplateRepository',
+    InterviewTemplateReadRepository,
+  ],
 })
 export class DatabaseModule {}

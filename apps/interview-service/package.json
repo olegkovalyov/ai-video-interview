@@ -19,11 +19,17 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:integration": "jest --config jest.integration.config.js",
+    "test:integration:watch": "jest --config jest.integration.config.js --watch",
+    "test:integration:cov": "jest --config jest.integration.config.js --coverage",
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "npm run typeorm -- migration:generate -d src/infrastructure/persistence/typeorm.config.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/infrastructure/persistence/typeorm.config.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/infrastructure/persistence/typeorm.config.ts",
-    "migration:show": "npm run typeorm -- migration:show -d src/infrastructure/persistence/typeorm.config.ts"
+    "migration:show": "npm run typeorm -- migration:show -d src/infrastructure/persistence/typeorm.config.ts",
+    "migration:test:run": "DATABASE_NAME=ai_video_interview_interview_test npm run typeorm -- migration:run -d src/infrastructure/persistence/typeorm.config.ts",
+    "migration:test:revert": "DATABASE_NAME=ai_video_interview_interview_test npm run typeorm -- migration:revert -d src/infrastructure/persistence/typeorm.config.ts",
+    "migration:test:show": "DATABASE_NAME=ai_video_interview_interview_test npm run typeorm -- migration:show -d src/infrastructure/persistence/typeorm.config.ts"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.4",
@@ -51,7 +57,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.26",
-    "uuid": "^11.0.3",
+    "uuid": "^11.1.0",
     "winston": "^3.18.3",
     "winston-daily-rotate-file": "^5.0.0",
     "winston-loki": "^6.1.3"
@@ -67,6 +73,7 @@
     "@types/node": "^22.10.7",
     "@types/pg": "^8.12.0",
     "@types/supertest": "^6.0.2",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

@@ -1,11 +1,8 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ListTemplatesQuery } from './list-templates.query';
-import type { IInterviewTemplateRepository } from '../../../domain/repositories/interview-template.repository.interface';
-import { 
-  PaginatedTemplatesResponseDto, 
-  TemplateListItemDto 
-} from '../../dto/template.response.dto';
+import { PaginatedTemplatesResponseDto } from '../../dto/template.response.dto';
+import { InterviewTemplateReadRepository } from '../../../infrastructure/persistence/repositories/interview-template-read.repository';
 
 @QueryHandler(ListTemplatesQuery)
 export class ListTemplatesHandler
@@ -14,8 +11,7 @@ export class ListTemplatesHandler
   private readonly logger = new Logger(ListTemplatesHandler.name);
 
   constructor(
-    @Inject('IInterviewTemplateRepository')
-    private readonly templateRepository: IInterviewTemplateRepository,
+    private readonly readRepository: InterviewTemplateReadRepository,
   ) {}
 
   async execute(
@@ -41,33 +37,7 @@ export class ListTemplatesHandler
     // Pagination
     const skip = (query.page - 1) * query.limit;
 
-    // Load templates with pagination
-    const { templates, total } = await this.templateRepository.findAll(
-      filters,
-      skip,
-      query.limit,
-    );
-
-    // Map to DTOs
-    const items: TemplateListItemDto[] = templates.map((template) => ({
-      id: template.id,
-      title: template.title,
-      description: template.description,
-      status: template.status.toString(),
-      createdBy: template.createdBy,
-      questionsCount: template.getQuestionsCount(),
-      createdAt: template.createdAt,
-      updatedAt: template.updatedAt,
-    }));
-
-    const totalPages = Math.ceil(total / query.limit);
-
-    return {
-      items,
-      total,
-      page: query.page,
-      limit: query.limit,
-      totalPages,
-    };
+    // Load templates with pagination (no aggregates!)
+    return this.readRepository.findAll(filters, skip, query.limit);
   }
 }

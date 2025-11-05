@@ -1,5 +1,6 @@
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
 import { CreateTemplateCommand } from './create-template.command';
 import { InterviewTemplate } from '../../../domain/aggregates/interview-template.aggregate';
 import type { IInterviewTemplateRepository } from '../../../domain/repositories/interview-template.repository.interface';
@@ -19,9 +20,12 @@ export class CreateTemplateHandler
   async execute(command: CreateTemplateCommand): Promise<string> {
     this.logger.log(`Creating template: ${command.title}`);
 
+    // Generate UUID for template
+    const templateId = uuidv4();
+
     // Create aggregate using factory method
     const template = InterviewTemplate.create(
-      command.id,
+      templateId,
       command.title,
       command.description,
       command.createdBy,

@@ -3,7 +3,6 @@ import { InterviewSettings } from '../../../domain/value-objects/interview-setti
 
 export class CreateTemplateCommand implements ICommand {
   constructor(
-    public readonly id: string,
     public readonly title: string,
     public readonly description: string,
     public readonly createdBy: string,

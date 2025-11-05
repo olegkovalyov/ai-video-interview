@@ -76,10 +76,19 @@ export class InterviewTemplate extends AggregateRoot {
     createdBy: string,
     settings?: InterviewSettings,
   ): InterviewTemplate {
+    // Domain validation
+    if (!title || title.trim().length === 0) {
+      throw new Error('Template title cannot be empty');
+    }
+
+    if (!description || description.trim().length === 0) {
+      throw new Error('Template description cannot be empty');
+    }
+
     const template = new InterviewTemplate({
       id,
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       createdBy,
       status: TemplateStatus.draft(),
       questions: [],
@@ -90,7 +99,7 @@ export class InterviewTemplate extends AggregateRoot {
 
     // Raise domain event
     template.apply(
-      new TemplateCreatedEvent(id, title, description, createdBy),
+      new TemplateCreatedEvent(id, title.trim(), description.trim(), createdBy),
     );
 
     return template;
@@ -221,14 +230,17 @@ export class InterviewTemplate extends AggregateRoot {
       if (title.length > 200) {
         throw new Error('Title cannot exceed 200 characters');
       }
-      this.props.title = title;
+      this.props.title = title.trim();
     }
 
     if (description !== undefined) {
+      if (description.trim().length === 0) {
+        throw new Error('Description cannot be empty');
+      }
       if (description.length > 1000) {
         throw new Error('Description cannot exceed 1000 characters');
       }
-      this.props.description = description;
+      this.props.description = description.trim();
     }
 
     this.props.updatedAt = new Date();

@@ -1,5 +1,7 @@
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+import { OptimisticLockVersionMismatchError } from 'typeorm';
 import { AddQuestionCommand } from './add-question.command';
 import type { IInterviewTemplateRepository } from '../../../domain/repositories/interview-template.repository.interface';
 import { Question } from '../../../domain/entities/question.entity';
@@ -17,7 +19,7 @@ export class AddQuestionHandler
     private readonly eventBus: EventBus,
   ) {}
 
-  async execute(command: AddQuestionCommand): Promise<void> {
+  async execute(command: AddQuestionCommand): Promise<string> {
     this.logger.log(
       `Adding question to template: ${command.templateId}`,
     );
@@ -30,10 +32,14 @@ export class AddQuestionHandler
       );
     }
 
+    // Generate UUID for question
+    const questionId = uuidv4();
+
     // Create Question entity
-    const question = Question.create(command.questionId, {
+    const questionType = QuestionType.create(command.type);
+    const question = Question.create(questionId, {
       text: command.text,
-      type: QuestionType.create(command.type),
+      type: questionType,
       order: command.order,
       timeLimit: command.timeLimit,
       required: command.required,
@@ -43,8 +49,20 @@ export class AddQuestionHandler
     // Add question to template (domain logic)
     template.addQuestion(question);
 
-    // Save aggregate
-    await this.templateRepository.save(template);
+    // Save aggregate (with optimistic lock protection)
+    try {
+      await this.templateRepository.save(template);
+    } catch (error) {
+      if (error instanceof OptimisticLockVersionMismatchError) {
+        this.logger.warn(
+          `Optimistic lock conflict for template ${command.templateId}`,
+        );
+        throw new ConflictException(
+          'Template was modified by another user. Please refresh and try again.',
+        );
+      }
+      throw error;
+    }
 
     // Publish domain events
     const events = template.getUncommittedEvents();
@@ -52,7 +70,9 @@ export class AddQuestionHandler
     template.commit();
 
     this.logger.log(
-      `Question ${command.questionId} added to template ${command.templateId}`,
+      `Question ${questionId} added to template ${command.templateId}`,
     );
+    
+    return questionId;
   }
 }
