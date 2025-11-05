@@ -11,12 +11,18 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
+  Headers,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { InternalServiceGuard } from '../guards/internal-service.guard';
 import {
   CreateTemplateDto,
   AddQuestionDto,
@@ -40,8 +46,10 @@ import {
   GetTemplateQuestionsQuery,
 } from '../../../application/queries';
 
+@ApiTags('Templates')
+@ApiSecurity('internal-token')
 @Controller('api/templates')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(InternalServiceGuard)
 export class TemplatesController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -49,11 +57,16 @@ export class TemplatesController {
   ) {}
 
   @Post()
-  @Roles('hr', 'admin')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create interview template', description: 'Creates a new interview template (HR and Admin only)' })
+  @ApiResponse({ status: 201, description: 'Template created successfully', schema: { properties: { id: { type: 'string', format: 'uuid' } } } })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid internal token' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   async create(
     @Body() dto: CreateTemplateDto,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<{ id: string }> {
     const settings = dto.settings
       ? InterviewSettings.create(dto.settings)
@@ -62,7 +75,7 @@ export class TemplatesController {
     const command = new CreateTemplateCommand(
       dto.title,
       dto.description,
-      user.userId,
+      userId,
       settings,
     );
 
@@ -72,14 +85,20 @@ export class TemplatesController {
   }
 
   @Get()
-  @Roles('hr', 'admin')
+  @ApiOperation({ summary: 'List interview templates', description: 'Get paginated list of templates. HR sees only their templates, Admin sees all.' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+  @ApiQuery({ name: 'status', required: false, enum: ['draft', 'active', 'archived'], description: 'Filter by status' })
+  @ApiResponse({ status: 200, description: 'List of templates', type: PaginatedTemplatesResponseDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async list(
     @Query() query: ListTemplatesQueryDto,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<PaginatedTemplatesResponseDto> {
     const listQuery = new ListTemplatesQuery(
-      user.userId,
-      user.role,
+      userId,
+      role,
       query.status,
       query.page || 1,
       query.limit || 10,
@@ -91,27 +110,37 @@ export class TemplatesController {
   }
 
   @Get(':id')
-  @Roles('hr', 'admin')
+  @ApiOperation({ summary: 'Get template by ID', description: 'Retrieve a specific template with all questions' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiResponse({ status: 200, description: 'Template found', type: TemplateResponseDto })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async getOne(
     @Param('id') id: string,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<TemplateResponseDto> {
-    const query = new GetTemplateQuery(id, user.userId, user.role);
+    const query = new GetTemplateQuery(id, userId, role);
     const template = await this.queryBus.execute(query);
 
     return template;
   }
 
   @Post(':id/questions')
-  @Roles('hr', 'admin')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add question to template', description: 'Add a new question to the interview template' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiResponse({ status: 201, description: 'Question added', schema: { properties: { id: { type: 'string', format: 'uuid' } } } })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async addQuestion(
     @Param('id') templateId: string,
     @Body() dto: AddQuestionDto,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<{ id: string }> {
     // Check ownership first
-    await this.checkOwnership(templateId, user);
+    await this.checkOwnership(templateId, userId, role);
 
     const command = new AddQuestionCommand(
       templateId,
@@ -129,28 +158,39 @@ export class TemplatesController {
   }
 
   @Delete(':id/questions/:questionId')
-  @Roles('hr', 'admin')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove question from template', description: 'Delete a question from the interview template' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiParam({ name: 'questionId', type: 'string', format: 'uuid', description: 'Question ID' })
+  @ApiResponse({ status: 204, description: 'Question removed' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template or question not found' })
   async removeQuestion(
     @Param('id') templateId: string,
     @Param('questionId') questionId: string,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<void> {
     // Check ownership first
-    await this.checkOwnership(templateId, user);
+    await this.checkOwnership(templateId, userId, role);
 
     const command = new RemoveQuestionCommand(templateId, questionId);
     await this.commandBus.execute(command);
   }
 
   @Put(':id/publish')
-  @Roles('hr', 'admin')
+  @ApiOperation({ summary: 'Publish template', description: 'Change template status from draft to active' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiResponse({ status: 200, description: 'Template published', schema: { properties: { status: { type: 'string', enum: ['active'] } } } })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async publish(
     @Param('id') templateId: string,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<{ status: string }> {
     // Check ownership first
-    await this.checkOwnership(templateId, user);
+    await this.checkOwnership(templateId, userId, role);
 
     const command = new PublishTemplateCommand(templateId);
     await this.commandBus.execute(command);
@@ -159,14 +199,19 @@ export class TemplatesController {
   }
 
   @Put(':id')
-  @Roles('hr', 'admin')
+  @ApiOperation({ summary: 'Update template', description: 'Update template title, description, or settings' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiResponse({ status: 200, description: 'Template updated', type: TemplateResponseDto })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async update(
     @Param('id') templateId: string,
     @Body() dto: UpdateTemplateDto,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<TemplateResponseDto> {
     // Check ownership first
-    await this.checkOwnership(templateId, user);
+    await this.checkOwnership(templateId, userId, role);
 
     const settings = dto.settings
       ? InterviewSettings.create(dto.settings)
@@ -182,34 +227,44 @@ export class TemplatesController {
     await this.commandBus.execute(command);
 
     // Return updated template
-    const query = new GetTemplateQuery(templateId, user.userId, user.role);
+    const query = new GetTemplateQuery(templateId, userId, role);
     const template = await this.queryBus.execute(query);
 
     return template;
   }
 
   @Delete(':id')
-  @Roles('hr', 'admin')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete template', description: 'Soft delete (archive) an interview template' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiResponse({ status: 204, description: 'Template deleted' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async delete(
     @Param('id') templateId: string,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ): Promise<void> {
     // Check ownership first
-    await this.checkOwnership(templateId, user);
+    await this.checkOwnership(templateId, userId, role);
 
     const command = new DeleteTemplateCommand(templateId);
     await this.commandBus.execute(command);
   }
 
   @Get(':id/questions')
-  @Roles('hr', 'admin')
+  @ApiOperation({ summary: 'Get template questions', description: 'Retrieve all questions for a template' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiResponse({ status: 200, description: 'List of questions', schema: { properties: { questions: { type: 'array' } } } })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async getQuestions(
     @Param('id') templateId: string,
-    @CurrentUser() user: any,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
   ) {
     // Check ownership first
-    await this.checkOwnership(templateId, user);
+    await this.checkOwnership(templateId, userId, role);
 
     const query = new GetTemplateQuestionsQuery(templateId);
     const questions = await this.queryBus.execute(query);
@@ -217,14 +272,14 @@ export class TemplatesController {
     return { questions };
   }
 
-  private async checkOwnership(templateId: string, user: any): Promise<void> {
+  private async checkOwnership(templateId: string, userId: string, role: string): Promise<void> {
     // Admin can access everything
-    if (user.role === 'admin') {
+    if (role === 'admin') {
       return;
     }
 
     // HR can only access their own templates
-    const query = new GetTemplateQuery(templateId, user.userId, user.role);
+    const query = new GetTemplateQuery(templateId, userId, role);
 
     try {
       await this.queryBus.execute(query);

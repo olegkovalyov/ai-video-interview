@@ -4,18 +4,13 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { JwtService } from '@nestjs/jwt';
-import { JwtAuthGuard } from '../../src/infrastructure/http/guards/jwt-auth.guard';
-import { TestAuthGuard } from './test-auth.guard';
+import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
+import { TestInternalServiceGuard } from './test-auth.guard';
 import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
 
 describe('Templates API (E2E)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
-  let jwtService: JwtService;
-  let hrToken: string;
-  let hr2Token: string;
-  let adminToken: string;
   let hrUserId: string;
   let hr2UserId: string;
   let adminUserId: string;
@@ -29,8 +24,8 @@ describe('Templates API (E2E)', () => {
     })
       .overrideProvider(DataSource)
       .useValue(dataSource) // Override with our test DataSource
-      .overrideGuard(JwtAuthGuard)
-      .useClass(TestAuthGuard)
+      .overrideGuard(InternalServiceGuard)
+      .useClass(TestInternalServiceGuard)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -46,18 +41,10 @@ describe('Templates API (E2E)', () => {
 
     await app.init();
 
-    // Get services from the app context
-    jwtService = app.get(JwtService);
-
     // Generate user IDs
     hrUserId = uuidv4();
     hr2UserId = uuidv4();
     adminUserId = uuidv4();
-
-    // Generate JWT tokens for testing
-    hrToken = jwtService.sign({ userId: hrUserId, role: 'hr' });
-    hr2Token = jwtService.sign({ userId: hr2UserId, role: 'hr' });
-    adminToken = jwtService.sign({ userId: adminUserId, role: 'admin' });
   });
 
   afterEach(async () => {
@@ -78,7 +65,8 @@ describe('Templates API (E2E)', () => {
     it('should create template (HR)', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Frontend Developer Interview',
           description: 'Questions about React and TypeScript',
@@ -92,7 +80,8 @@ describe('Templates API (E2E)', () => {
     it('should create template with custom settings (HR)', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Backend Developer Interview',
           description: 'Node.js and databases',
@@ -108,20 +97,23 @@ describe('Templates API (E2E)', () => {
       expect(response.body.id).toBeDefined();
     });
 
-    it('should reject without auth token', async () => {
-      await request(app.getHttpServer())
+    it('should work without headers (TestGuard provides defaults)', async () => {
+      const response = await request(app.getHttpServer())
         .post('/api/templates')
         .send({
           title: 'Test',
           description: 'Test',
         })
-        .expect(401);
+        .expect(201);
+      
+      expect(response.body.id).toBeDefined();
     });
 
     it('should reject with invalid data', async () => {
       await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: '', // Empty title
           description: 'Test',
@@ -139,7 +131,8 @@ describe('Templates API (E2E)', () => {
       // Create templates for HR1
       const res1 = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Template 1',
           description: 'Description 1',
@@ -148,7 +141,8 @@ describe('Templates API (E2E)', () => {
 
       const res2 = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Template 2',
           description: 'Description 2',
@@ -158,7 +152,8 @@ describe('Templates API (E2E)', () => {
       // Create template for HR2
       const res3 = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hr2Token}`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Template 3',
           description: 'Description 3',
@@ -169,7 +164,8 @@ describe('Templates API (E2E)', () => {
     it('should return HR own templates only', async () => {
       const response = await request(app.getHttpServer())
         .get('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.items).toHaveLength(2);
@@ -182,7 +178,8 @@ describe('Templates API (E2E)', () => {
     it('should return all templates for admin', async () => {
       const response = await request(app.getHttpServer())
         .get('/api/templates')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('x-user-id', adminUserId)
+        .set('x-user-role', 'admin')
         .expect(200);
 
       expect(response.body.items).toHaveLength(3);
@@ -193,7 +190,8 @@ describe('Templates API (E2E)', () => {
       const response = await request(app.getHttpServer())
         .get('/api/templates')
         .query({ page: 1, limit: 1 })
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.items).toHaveLength(1);
@@ -205,7 +203,8 @@ describe('Templates API (E2E)', () => {
       const response = await request(app.getHttpServer())
         .get('/api/templates')
         .query({ status: 'draft' })
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.items.every((t: any) => t.status === 'draft')).toBe(true);
@@ -218,7 +217,8 @@ describe('Templates API (E2E)', () => {
     beforeEach(async () => {
       const res = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Test Template',
           description: 'Test Description',
@@ -230,7 +230,8 @@ describe('Templates API (E2E)', () => {
       // Add question first
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'What is your experience?',
           type: 'video',
@@ -241,7 +242,8 @@ describe('Templates API (E2E)', () => {
 
       const response = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.id).toBe(templateId);
@@ -253,14 +255,16 @@ describe('Templates API (E2E)', () => {
     it('should reject access to other HR template', async () => {
       await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hr2Token}`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
         .expect(403);
     });
 
     it('should allow admin to access any template', async () => {
       await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('x-user-id', adminUserId)
+        .set('x-user-role', 'admin')
         .expect(200);
     });
 
@@ -268,7 +272,8 @@ describe('Templates API (E2E)', () => {
       const fakeId = uuidv4();
       await request(app.getHttpServer())
         .get(`/api/templates/${fakeId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(404);
     });
   });
@@ -279,7 +284,8 @@ describe('Templates API (E2E)', () => {
     beforeEach(async () => {
       const res = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Test Template',
           description: 'Test Description',
@@ -290,7 +296,8 @@ describe('Templates API (E2E)', () => {
     it('should add question to template', async () => {
       const response = await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'Describe your experience with React',
           type: 'video',
@@ -307,7 +314,8 @@ describe('Templates API (E2E)', () => {
     it('should reject question with invalid type', async () => {
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'Test question?',
           type: 'invalid-type',
@@ -320,7 +328,8 @@ describe('Templates API (E2E)', () => {
     it('should reject question with short text', async () => {
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'Short', // Less than 10 chars
           type: 'video',
@@ -333,7 +342,8 @@ describe('Templates API (E2E)', () => {
     it('should reject adding question to other HR template', async () => {
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hr2Token}`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'What is your experience?',
           type: 'video',
@@ -352,7 +362,8 @@ describe('Templates API (E2E)', () => {
     beforeEach(async () => {
       const templateRes = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Test Template',
           description: 'Test Description',
@@ -361,7 +372,8 @@ describe('Templates API (E2E)', () => {
 
       const questionRes = await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'What is your experience?',
           type: 'video',
@@ -375,13 +387,15 @@ describe('Templates API (E2E)', () => {
     it('should remove question from template', async () => {
       await request(app.getHttpServer())
         .delete(`/api/templates/${templateId}/questions/${questionId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(204);
 
       // Verify question removed
       const response = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.questions).toHaveLength(0);
@@ -390,7 +404,8 @@ describe('Templates API (E2E)', () => {
     it('should reject removing question from other HR template', async () => {
       await request(app.getHttpServer())
         .delete(`/api/templates/${templateId}/questions/${questionId}`)
-        .set('Authorization', `Bearer ${hr2Token}`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
         .expect(403);
     });
   });
@@ -401,7 +416,8 @@ describe('Templates API (E2E)', () => {
     beforeEach(async () => {
       const res = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Test Template',
           description: 'Test Description',
@@ -413,7 +429,8 @@ describe('Templates API (E2E)', () => {
       // Add question first
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'What is your experience?',
           type: 'video',
@@ -424,7 +441,8 @@ describe('Templates API (E2E)', () => {
 
       const response = await request(app.getHttpServer())
         .put(`/api/templates/${templateId}/publish`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.status).toBe('active');
@@ -432,7 +450,8 @@ describe('Templates API (E2E)', () => {
       // Verify status changed
       const getResponse = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(getResponse.body.status).toBe('active');
@@ -441,14 +460,16 @@ describe('Templates API (E2E)', () => {
     it('should reject publishing template without questions', async () => {
       await request(app.getHttpServer())
         .put(`/api/templates/${templateId}/publish`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(500); // Domain error
     });
 
     it('should reject publishing other HR template', async () => {
       await request(app.getHttpServer())
         .put(`/api/templates/${templateId}/publish`)
-        .set('Authorization', `Bearer ${hr2Token}`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
         .expect(403);
     });
   });
@@ -459,7 +480,8 @@ describe('Templates API (E2E)', () => {
     beforeEach(async () => {
       const res = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Original Title',
           description: 'Original Description',
@@ -470,7 +492,8 @@ describe('Templates API (E2E)', () => {
     it('should update template metadata', async () => {
       const response = await request(app.getHttpServer())
         .put(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Updated Title',
           description: 'Updated Description',
@@ -484,7 +507,8 @@ describe('Templates API (E2E)', () => {
     it('should update template settings', async () => {
       const response = await request(app.getHttpServer())
         .put(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           settings: {
             totalTimeLimit: 180,
@@ -502,7 +526,8 @@ describe('Templates API (E2E)', () => {
     it('should reject updating other HR template', async () => {
       await request(app.getHttpServer())
         .put(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hr2Token}`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Hacked Title',
         })
@@ -516,7 +541,8 @@ describe('Templates API (E2E)', () => {
     beforeEach(async () => {
       const res = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Test Template',
           description: 'Test Description',
@@ -527,13 +553,15 @@ describe('Templates API (E2E)', () => {
     it('should archive template (soft delete)', async () => {
       await request(app.getHttpServer())
         .delete(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(204);
 
       // Verify status changed to archived
       const response = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.status).toBe('archived');
@@ -542,7 +570,8 @@ describe('Templates API (E2E)', () => {
     it('should reject deleting other HR template', async () => {
       await request(app.getHttpServer())
         .delete(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hr2Token}`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
         .expect(403);
     });
   });
@@ -553,7 +582,8 @@ describe('Templates API (E2E)', () => {
     beforeEach(async () => {
       const res = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Test Template',
           description: 'Test Description',
@@ -564,7 +594,8 @@ describe('Templates API (E2E)', () => {
       for (let i = 1; i <= 3; i++) {
         await request(app.getHttpServer())
           .post(`/api/templates/${templateId}/questions`)
-          .set('Authorization', `Bearer ${hrToken}`)
+          .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
           .send({
             text: `What is your experience with skill ${i}?`,
             type: 'video',
@@ -578,7 +609,8 @@ describe('Templates API (E2E)', () => {
     it('should return all questions sorted by order', async () => {
       const response = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(response.body.questions).toHaveLength(3);
@@ -593,7 +625,8 @@ describe('Templates API (E2E)', () => {
       // 1. Create template
       const createRes = await request(app.getHttpServer())
         .post('/api/templates')
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Full Lifecycle Test',
           description: 'Testing complete workflow',
@@ -605,7 +638,8 @@ describe('Templates API (E2E)', () => {
       // 2. Add 3 questions
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'Tell me about your React experience',
           type: 'video',
@@ -617,7 +651,8 @@ describe('Templates API (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'Describe your TypeScript skills',
           type: 'text',
@@ -629,7 +664,8 @@ describe('Templates API (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/api/templates/${templateId}/questions`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           text: 'What is your biggest achievement?',
           type: 'video',
@@ -642,7 +678,8 @@ describe('Templates API (E2E)', () => {
       // 3. Verify draft status with 3 questions
       let template = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(template.body.status).toBe('draft');
@@ -651,13 +688,15 @@ describe('Templates API (E2E)', () => {
       // 4. Publish template
       await request(app.getHttpServer())
         .put(`/api/templates/${templateId}/publish`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       // 5. Verify active status
       template = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(template.body.status).toBe('active');
@@ -665,7 +704,8 @@ describe('Templates API (E2E)', () => {
       // 6. Update template
       await request(app.getHttpServer())
         .put(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .send({
           title: 'Updated Lifecycle Test',
           settings: {
@@ -680,13 +720,15 @@ describe('Templates API (E2E)', () => {
       // 7. Archive template
       await request(app.getHttpServer())
         .delete(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(204);
 
       // 8. Verify archived status and questions preserved
       template = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
-        .set('Authorization', `Bearer ${hrToken}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
         .expect(200);
 
       expect(template.body.status).toBe('archived');

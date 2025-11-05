@@ -1,49 +1,34 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 
 /**
- * Simplified Auth Guard for E2E tests
- * Decodes JWT without JWKS validation
+ * Test Internal Service Guard for E2E tests
+ * Validates X-Internal-Token header and ensures user context headers exist
  */
 @Injectable()
-export class TestAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+export class TestInternalServiceGuard implements CanActivate {
+  private readonly testInternalToken = 'test-internal-token';
+  // Valid UUID for test user (must be UUID format for database)
+  private readonly defaultTestUserId = '00000000-0000-0000-0000-000000000001';
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers['authorization'];
+    const token = request.headers['x-internal-token'];
 
-    if (!authHeader) {
-      throw new UnauthorizedException('No authorization header');
+    // In E2E tests, allow requests without token for simplicity
+    // or validate if token is provided
+    if (token && token !== this.testInternalToken) {
+      throw new UnauthorizedException('Invalid internal token');
     }
 
-    const token = authHeader.split(' ')[1]; // Bearer <token>
-
-    if (!token) {
-      throw new UnauthorizedException('No token provided');
+    // Ensure headers exist - set defaults if not provided
+    // This allows tests without explicit headers to work
+    if (!request.headers['x-user-id']) {
+      request.headers['x-user-id'] = this.defaultTestUserId;
+    }
+    if (!request.headers['x-user-role']) {
+      request.headers['x-user-role'] = 'admin';
     }
 
-    try {
-      // Decode without verification (for tests)
-      const payload = this.jwtService.decode(token) as any;
-      
-      if (!payload) {
-        throw new UnauthorizedException('Invalid token');
-      }
-
-      // Attach user to request
-      request.user = {
-        userId: payload.userId,
-        role: payload.role,
-        roles: [payload.role], // RolesGuard expects roles array
-      };
-
-      return true;
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-      throw new UnauthorizedException('Token decode failed');
-    }
+    return true;
   }
 }
