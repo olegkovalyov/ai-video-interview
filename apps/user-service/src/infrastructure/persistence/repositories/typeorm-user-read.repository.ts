@@ -48,9 +48,7 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     limit: number,
     filters?: UserListFilters,
   ): Promise<PaginatedResult<User>> {
-    const queryBuilder = this.repository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.roles', 'role');
+    const queryBuilder = this.repository.createQueryBuilder('user');
 
     // Apply filters
     if (filters?.search) {
@@ -65,7 +63,7 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     }
 
     if (filters?.role) {
-      queryBuilder.andWhere('role.name = :roleName', { roleName: filters.role });
+      queryBuilder.andWhere('user.role = :role', { role: filters.role });
     }
 
     // Pagination

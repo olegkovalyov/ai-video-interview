@@ -13,6 +13,8 @@ export function UsersList() {
   const [loading, setLoading] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr' | 'user'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
 
   // Fetch users with their roles
   const fetchUsers = async () => {
@@ -103,17 +105,29 @@ export function UsersList() {
   };
 
   // Convert KeycloakUser to User format for table
-  const mappedUsers = users.map(u => ({
-    id: u.id,
-    email: u.email,
-    firstName: u.firstName,
-    lastName: u.lastName,
-    role: (userRoles.get(u.id) || 'candidate') as any,
-    status: u.enabled ? 'active' as const : 'suspended' as const,
-    lastLogin: u.lastLoginAt || undefined,
-    phone: undefined,
-    createdAt: u.createdTimestamp ? new Date(u.createdTimestamp).toISOString() : new Date().toISOString(),
-  }));
+  const mappedUsers = users
+    .map(u => ({
+      id: u.id,
+      email: u.email,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      role: (userRoles.get(u.id) || 'candidate') as any,
+      status: u.enabled ? 'active' as const : 'suspended' as const,
+      lastLogin: u.lastLoginAt || undefined,
+      phone: undefined,
+      createdAt: u.createdTimestamp ? new Date(u.createdTimestamp).toISOString() : new Date().toISOString(),
+    }))
+    // Apply role filter
+    .filter(user => {
+      if (roleFilter === 'all') return true;
+      if (roleFilter === 'user') return user.role === 'candidate';
+      return user.role === roleFilter;
+    })
+    // Apply status filter
+    .filter(user => {
+      if (statusFilter === 'all') return true;
+      return user.status === statusFilter;
+    });
 
   // Calculate stats
   const stats = {
@@ -137,15 +151,20 @@ export function UsersList() {
       <UserStatsCards stats={stats} />
 
       <UserFilters
-        filters={{ search: searchQuery, role: 'all', status: 'all' }}
+        filters={{ search: searchQuery, role: roleFilter, status: statusFilter }}
         onSearchChange={setSearchQuery}
-        onRoleChange={() => {}} // TODO: implement
-        onStatusChange={() => {}} // TODO: implement
+        onRoleChange={(role) => setRoleFilter(role)}
+        onStatusChange={(status) => setStatusFilter(status)}
       />
 
       {/* Results Count */}
       <div className="mb-4 text-white/80">
-        Found {users.length} user{users.length !== 1 ? 's' : ''}
+        Found {mappedUsers.length} user{mappedUsers.length !== 1 ? 's' : ''}
+        {(roleFilter !== 'all' || statusFilter !== 'all') && (
+          <span className="ml-2 text-white/60">
+            (filtered from {users.length} total)
+          </span>
+        )}
       </div>
 
       <UsersTable

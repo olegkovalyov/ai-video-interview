@@ -23,7 +23,7 @@ export interface UserResult {
  * Registration Saga
  * Ensures user exists in User Service on first login
  * Uses synchronous HTTP calls for strong consistency
- * 
+ *
  * Flow:
  * 1. User logs in via Keycloak (OAuth2)
  * 2. Check if user exists in User Service
@@ -87,17 +87,13 @@ export class RegistrationSaga {
       const userId = uuid();
 
       // STEP 2.1: Create user in User Service
-      const newUser = await this.userServiceClient.createUserInternal({
+      await this.userServiceClient.createUser({
         userId,
         externalAuthId: dto.keycloakId,
         email: dto.email,
         firstName: dto.firstName || 'Unknown',
         lastName: dto.lastName || 'User',
       });
-
-      if (!newUser || !newUser.data || !newUser.data.userId) {
-        throw new Error('User Service returned empty response after user creation');
-      }
 
       this.logger.info('RegistrationSaga: User created successfully', {
         operationId,
@@ -130,11 +126,14 @@ export class RegistrationSaga {
         // User will be redirected to /select-role anyway
       }
 
+      // Get full user details after creation
+      const fullUser = await this.userServiceClient.getUserById(userId);
+
       return {
-        userId: newUser.data.userId,
-        email: newUser.data.email,
-        firstName: newUser.data.firstName,
-        lastName: newUser.data.lastName,
+        userId: fullUser.id,
+        email: fullUser.email,
+        firstName: fullUser.firstName,
+        lastName: fullUser.lastName,
         isNew: true, // First login - can show onboarding!
       };
     } catch (error) {

@@ -48,7 +48,7 @@ export class UsersController {
 
     try {
       // Internal call to User Service using userId
-      const user = await this.userServiceClient.getUserByIdInternal(userId);
+      const user = await this.userServiceClient.getUserById(userId);
       
       this.loggerService.log(`✅ [API Gateway] Received from User Service: userId=${user.id}, email=${user.email}`);
       
@@ -80,7 +80,7 @@ export class UsersController {
 
     try {
       // Internal call to User Service using userId
-      const user = await this.userServiceClient.updateUserProfileInternal(userId, updates);
+      const user = await this.userServiceClient.updateUser(userId, updates);
       
       this.loggerService.log(`✅ [API Gateway] User profile updated: userId=${user.id}`);
       
@@ -135,7 +135,7 @@ export class UsersController {
 
       // STEP 3: Assign role in User Service (updates internal DB)
       this.loggerService.info(`Step 3: Assigning role in User Service - ${body.role}`);
-      const result = await this.userServiceClient.assignRoleInternal(userId, body.role);
+      const result = await this.userServiceClient.assignRole(userId, { role: body.role as 'candidate' | 'hr' | 'admin' });
       
       this.loggerService.log(`✅ [API Gateway] Role selected successfully: userId=${userId}, keycloakId=${keycloakId}, role=${body.role}`);
       

@@ -101,22 +101,26 @@ export class AdminRolesController {
   }
 
   /**
-   * DELETE /api/admin/users/:id/roles/:roleName
-   * Удалить роль у пользователя
+   * @deprecated DELETE /api/admin/users/:id/roles/:roleName
+   * Remove role operation is NOT SUPPORTED
    * 
-   * curl -X DELETE http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/roles/admin
+   * User Service does not provide role removal endpoint.
+   * To change a user's role, use POST /api/admin/users/:id/roles with the new role.
+   * 
+   * This endpoint is kept for backward compatibility but returns 501 Not Implemented.
    */
   @Delete('users/:id/roles/:roleName')
   async removeRole(
     @Param('id') id: string,
     @Param('roleName') roleName: string,
   ) {
-    this.loggerService.info('Admin: Removing role via Saga', {
+    this.loggerService.warn('Admin: Role removal not supported', {
       userId: id,
       roleName,
     });
 
-    // Execute Saga orchestration
+    // Role removal is not supported by User Service
+    // Use role assignment to change roles instead
     const result = await this.userOrchestrationSaga.executeRemoveRole(id, roleName);
 
     return result;

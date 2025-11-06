@@ -9,11 +9,12 @@ import { UserServiceClient } from '../../clients/user-service.client';
  * Handles user CRUD operations via Saga Orchestration
  * 
  * Endpoints:
- * - POST   /api/admin/users          - Create user
- * - GET    /api/admin/users          - List users
- * - GET    /api/admin/users/:id      - Get user
- * - PUT    /api/admin/users/:id      - Update user
- * - DELETE /api/admin/users/:id      - Delete user
+ * - POST   /api/admin/users          - Create user (Saga)
+ * - GET    /api/admin/users          - List users (Keycloak + User Service enrichment)
+ * - GET    /api/admin/users/stats    - Get user statistics (User Service)
+ * - GET    /api/admin/users/:id      - Get user (Keycloak)
+ * - PUT    /api/admin/users/:id      - Update user (Saga)
+ * - DELETE /api/admin/users/:id      - Delete user (Saga)
  */
 @Controller('api/admin/users')
 export class AdminUsersController {
@@ -118,6 +119,33 @@ export class AdminUsersController {
       };
     } catch (error) {
       this.loggerService.error('Admin: Failed to list users', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/admin/users/stats
+   * Получить статистику пользователей из User Service
+   * 
+   * curl http://localhost:8001/api/admin/users/stats
+   */
+  @Get('stats')
+  async getUserStats() {
+    this.loggerService.info('Admin: Getting user statistics from User Service');
+
+    try {
+      const stats = await this.userServiceClient.getUserStats();
+
+      this.loggerService.info('Admin: User statistics retrieved successfully', {
+        totalUsers: stats.totalUsers,
+      });
+
+      return {
+        success: true,
+        data: stats,
+      };
+    } catch (error) {
+      this.loggerService.error('Admin: Failed to get user statistics', error);
       throw error;
     }
   }

@@ -109,7 +109,7 @@ export class UserOrchestrationSaga {
       });
 
       try {
-        await this.userServiceClient.createUserInternal({
+        await this.userServiceClient.createUser({
           userId,
           externalAuthId: keycloakId,
           email: dto.email,
@@ -207,7 +207,7 @@ export class UserOrchestrationSaga {
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
         keycloakId,
       );
-      
+
       if (!userServiceUser) {
         throw new HttpException(
           {
@@ -218,7 +218,7 @@ export class UserOrchestrationSaga {
           HttpStatus.NOT_FOUND,
         );
       }
-      
+
       const userId = userServiceUser.id;
 
       // STEP 4: Update in User Service
@@ -227,7 +227,7 @@ export class UserOrchestrationSaga {
         userId,
       });
 
-      await this.userServiceClient.updateUserInternal(userId, dto);
+      await this.userServiceClient.updateUser(userId, dto);
 
       this.logger.info('Saga: User update completed successfully', {
         operationId,
@@ -291,7 +291,7 @@ export class UserOrchestrationSaga {
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
         keycloakId,
       );
-      
+
       if (!userServiceUser) {
         throw new HttpException(
           {
@@ -302,7 +302,7 @@ export class UserOrchestrationSaga {
           HttpStatus.NOT_FOUND,
         );
       }
-      
+
       const userId = userServiceUser.id;
 
       // STEP 2: Delete from User Service first (we can restore if Keycloak fails)
@@ -311,7 +311,7 @@ export class UserOrchestrationSaga {
         userId,
       });
 
-      await this.userServiceClient.deleteUserInternal(userId);
+      await this.userServiceClient.deleteUser(userId);
 
       // STEP 3: Delete from Keycloak
       this.logger.info('Saga Step 2: Deleting user from Keycloak', {
@@ -380,7 +380,7 @@ export class UserOrchestrationSaga {
       const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
         keycloakId,
       );
-      
+
       if (!userServiceUser) {
         throw new HttpException(
           {
@@ -391,7 +391,7 @@ export class UserOrchestrationSaga {
           HttpStatus.NOT_FOUND,
         );
       }
-      
+
       const userId = userServiceUser.id;
 
       // STEP 3: Assign in User Service
@@ -401,7 +401,7 @@ export class UserOrchestrationSaga {
         roleName,
       });
 
-      await this.userServiceClient.assignRoleInternal(userId, roleName);
+      await this.userServiceClient.assignRole(userId, { role: roleName as 'candidate' | 'hr' | 'admin' });
 
       this.logger.info('Saga: Role assignment completed successfully', {
         operationId,
@@ -450,82 +450,23 @@ export class UserOrchestrationSaga {
   }
 
   /**
-   * Remove Role Saga
+   * @deprecated Remove Role Saga - ENDPOINT DOES NOT EXIST
+   * 
+   * User Service does not support role removal.
+   * To change a role, use executeAssignRole() instead.
+   * 
+   * This method is kept for backward compatibility but will throw an error.
    */
   async executeRemoveRole(keycloakId: string, roleName: string): Promise<any> {
-    const operationId = uuid();
-
-    this.logger.info('Saga: Starting role removal', {
-      operationId,
-      keycloakId,
-      roleName,
-    });
-
-    try {
-      // STEP 1: Get userId from User Service
-      const userServiceUser = await this.userServiceClient.getUserByExternalAuthId(
-        keycloakId,
-      );
-      
-      if (!userServiceUser) {
-        throw new HttpException(
-          {
-            success: false,
-            error: 'User not found in User Service',
-            code: 'USER_NOT_FOUND_IN_USER_SERVICE',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      
-      const userId = userServiceUser.id;
-
-      // STEP 2: Remove from User Service first
-      this.logger.info('Saga Step 1: Removing role from User Service', {
-        operationId,
-        userId,
-        roleName,
-      });
-
-      await this.userServiceClient.removeRoleInternal(userId, roleName);
-
-      // STEP 3: Remove from Keycloak
-      this.logger.info('Saga Step 2: Removing role from Keycloak', {
-        operationId,
-        keycloakId,
-        roleName,
-      });
-
-      await this.keycloakRoleService.removeRole(keycloakId, roleName);
-
-      this.logger.info('Saga: Role removal completed successfully', {
-        operationId,
-        userId,
-        keycloakId,
-        roleName,
-      });
-
-      return {
-        success: true,
-        message: `Role ${roleName} removed successfully`,
-      };
-    } catch (error) {
-      this.logger.error('Saga: Role removal failed', error, {
-        operationId,
-        keycloakId,
-        roleName,
-      });
-
-      throw new HttpException(
-        {
-          success: false,
-          error: 'Failed to remove role',
-          details: error.message,
-          operationId,
-        },
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    throw new HttpException(
+      {
+        success: false,
+        error: 'Role removal is not supported',
+        details: 'Use role assignment to change user role instead',
+        code: 'OPERATION_NOT_SUPPORTED',
+      },
+      HttpStatus.NOT_IMPLEMENTED,
+    );
   }
 
   /**

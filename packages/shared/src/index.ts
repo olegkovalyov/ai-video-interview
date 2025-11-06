@@ -59,6 +59,7 @@ export {
 // ============================================================================
 // API Type Contracts (Generated from OpenAPI/Swagger)
 // ============================================================================
-
-export * from './contracts/interview-service';
-export * from './contracts/user-service';
+// 
+// Import contracts explicitly:
+//   import { CreateTemplateDto } from '@shared/contracts/interview-service';
+//   import { UserResponseDto } from '@shared/contracts/user-service';

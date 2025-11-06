@@ -6,49 +6,22 @@ import { BaseServiceProxy } from '../../../proxies/base/base-service-proxy';
 import { LoggerService } from '../../../core/logging/logger.service';
 import { MetricsService } from '../../../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
-import { CreateUserInternalDto, CreateUserInternalResponse } from '../admin/dto/create-user-internal.dto';
+import type { components } from '@repo/shared/dist/contracts/user-service';
 
 // ============================================================================
-// DTOs
+// Type Aliases from Generated Contracts
 // ============================================================================
 
-export interface UserDTO {
-  id: string;
-  externalAuthId: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  avatarUrl?: string;
-  lastLoginAt?: Date;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UserProfileDTO {
-  userId: string;
-  bio?: string;
-  phone?: string;
-  company?: string;
-  position?: string;
-  location?: string;
-}
-
-export interface QuotaReservationDTO {
-  reservationId: string;
-  userId: string;
-  resourceType: string;
-  expiresAt: string;
-}
-
-export interface UserStatsDTO {
-  userId: string;
-  interviewsCount: number;
-  storageUsedMB: number;
-  quotaRemaining: {
-    interviews: number;
-    storageMB: number;
-  };
-}
+export type CreateUserDto = components['schemas']['CreateUserInternalDto'];
+export type UpdateUserDto = components['schemas']['UpdateUserInternalDto'];
+export type UserResponseDto = components['schemas']['UserResponseDto'];
+export type UserListResponseDto = components['schemas']['UserListResponseDto'];
+export type UserStatsResponseDto = components['schemas']['UserStatsResponseDto'];
+export type SuspendUserDto = components['schemas']['SuspendUserDto'];
+export type SelectRoleDto = components['schemas']['SelectRoleDto'];
+export type UserPermissionsResponseDto = components['schemas']['UserPermissionsResponseDto'];
+export type UpdateCandidateProfileDto = components['schemas']['UpdateCandidateProfileDto'];
+export type UpdateHRProfileDto = components['schemas']['UpdateHRProfileDto'];
 
 // ============================================================================
 // Unified User Service Client
@@ -56,14 +29,13 @@ export interface UserStatsDTO {
 
 /**
  * Unified User Service Client
- * 
- * Supports two modes:
- * 1. Proxy mode (with circuit breaker) - for user-facing requests via /users/*
- * 2. Internal mode (with internal token) - for Saga orchestration via /internal/*
- * 
- * Replaces:
- * - UserServiceProxy (proxies/user-service.proxy.ts)
- * - UserServiceHttpClient (admin/user-service-http.client.ts)
+ *
+ * Communicates with User Service using:
+ * - Internal service token (X-Internal-Token header)
+ * - Type-safe DTOs from generated OpenAPI contracts
+ * - Updated endpoints: /users/* (no /internal prefix)
+ *
+ * All methods use internal authentication and direct HTTP calls.
  */
 @Injectable()
 export class UserServiceClient extends BaseServiceProxy {
@@ -88,11 +60,11 @@ export class UserServiceClient extends BaseServiceProxy {
     private readonly configService: ConfigService,
   ) {
     super(httpService, loggerService, metricsService, circuitBreakerRegistry);
-    
+
     this.baseUrl =
       this.configService.get<string>('USER_SERVICE_URL') ||
       'http://localhost:8002';
-    
+
     this.internalToken = this.configService.get<string>(
       'INTERNAL_SERVICE_TOKEN',
       'internal-secret',
@@ -103,342 +75,56 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   // ==========================================================================
-  // PROXY METHODS (with circuit breaker, for user-facing requests)
+  // USER CRUD OPERATIONS
   // ==========================================================================
 
   /**
-   * Get current user profile
-   * Route: GET /users/me
-   * Uses: JWT token from user
+   * Create user
+   * Route: POST /users
+   * Body: CreateUserInternalDto
+   * Response: 201 Created
    */
-  async getCurrentUserProfile(authHeader?: string): Promise<UserDTO> {
-    return this.get<UserDTO>(`/users/me`, {
-      timeout: 3000,
-      headers: authHeader ? { Authorization: authHeader } : {},
-    });
-  }
-
-  /**
-   * Update current user profile
-   * Route: PUT /users/me
-   * Uses: JWT token from user
-   */
-  async updateCurrentUserProfile(
-    authHeader?: string,
-    updates?: any,
-  ): Promise<UserDTO> {
-    return this.put<UserDTO>(`/users/me`, updates, {
-      timeout: 5000,
-      headers: authHeader ? { Authorization: authHeader } : {},
-    });
-  }
-
-  /**
-   * Reserve interview quota
-   * Route: POST /users/:userId/quota/reserve
-   */
-  async reserveInterviewQuota(userId: string): Promise<QuotaReservationDTO> {
-    return this.post<QuotaReservationDTO>(
-      `/users/${userId}/quota/reserve`,
-      { resourceType: 'interview' },
-      {
-        timeout: 3000,
-        retries: 2,
-      },
-    );
-  }
-
-  /**
-   * Release reserved quota
-   * Route: DELETE /users/:userId/quota/reservations/:reservationId
-   */
-  async releaseQuota(userId: string, reservationId: string): Promise<void> {
-    return this.delete<void>(
-      `/users/${userId}/quota/reservations/${reservationId}`,
-      { timeout: 3000 },
-    );
-  }
-
-  /**
-   * Get user statistics
-   * Route: GET /users/:userId/stats
-   */
-  async getUserStats(userId: string): Promise<UserStatsDTO> {
-    return this.get<UserStatsDTO>(`/users/${userId}/stats`, {
-      timeout: 5000,
-    });
-  }
-
-  /**
-   * Check if user exists by email
-   * Route: GET /users/check?email=...
-   */
-  async checkUserExists(email: string): Promise<{ exists: boolean }> {
-    return this.get<{ exists: boolean }>(`/users/check?email=${email}`, {
-      timeout: 2000,
-    });
-  }
-
-  /**
-   * List users (admin)
-   * Route: GET /users?page=...&limit=...&search=...
-   */
-  async listUsers(params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-  }): Promise<{ users: UserDTO[]; total: number; page: number }> {
-    const query = new URLSearchParams({
-      page: String(params.page || 1),
-      limit: String(params.limit || 20),
-      ...(params.search && { search: params.search }),
-    });
-
-    return this.get<{ users: UserDTO[]; total: number; page: number }>(
-      `/users?${query}`,
-      { timeout: 5000 },
-    );
-  }
-
-  // ==========================================================================
-  // INTERNAL METHODS (direct HTTP, for Saga orchestration)
-  // ==========================================================================
-
-  /**
-   * Create user (internal)
-   * Route: POST /internal/users
-   * Uses: Internal service token
-   * Used by: UserOrchestrationSaga, RegistrationSaga
-   */
-  async createUserInternal(
-    dto: CreateUserInternalDto,
-  ): Promise<CreateUserInternalResponse> {
+  async createUser(dto: CreateUserDto): Promise<{ success: boolean; userId: string }> {
     try {
-      const url = `${this.baseUrl}/internal/users`;
-      const headers = this.getInternalHeaders();
-      
-      this.loggerService.info('UserServiceClient: Creating user (internal) - REQUEST', {
-        url,
-        method: 'POST',
-        dto,
-        headers: { ...headers, 'X-Internal-Token': '***' }, // Hide token in logs
-        timeout: this.timeout,
+      this.loggerService.info('UserServiceClient: Creating user', {
+        userId: dto.userId,
+        email: dto.email,
       });
 
-      const response = await firstValueFrom(
-        this.httpService.post<CreateUserInternalResponse>(
-          url,
-          dto,
-          {
-            headers,
-            timeout: this.timeout,
-          },
-        ),
-      );
-      
-      this.loggerService.info('UserServiceClient: Creating user (internal) - RESPONSE', {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-      });
-
-      this.loggerService.info(
-        'UserServiceClient: User created successfully (internal)',
-        { userId: dto.userId },
-      );
-
-      return response.data;
-    } catch (error) {
-      return this.handleInternalError(
-        error,
-        'create user',
-        { userId: dto.userId, email: dto.email },
-      );
-    }
-  }
-
-  /**
-   * Update user profile (internal)
-   * Route: PUT /internal/users/:id
-   * Uses: Internal service token
-   * Used by: UsersController (for updating user profile)
-   */
-  async updateUserProfileInternal(
-    userId: string,
-    dto: {
-      firstName?: string;
-      lastName?: string;
-      bio?: string;
-      phone?: string;
-      timezone?: string;
-      language?: string;
-    },
-  ): Promise<UserDTO> {
-    try {
-      this.loggerService.info('UserServiceClient: Updating user profile (internal)', {
-        userId,
-      });
-
-      const response = await firstValueFrom(
-        this.httpService.put(
-          `${this.baseUrl}/internal/users/${userId}`,
-          dto,
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info(
-        'UserServiceClient: User profile updated successfully (internal)',
-        { userId },
-      );
-
-      return response.data;
-    } catch (error) {
-      return this.handleInternalError(error, 'update user profile', { userId });
-    }
-  }
-
-  /**
-   * @deprecated Use updateUserProfileInternal() instead
-   * Update user (internal) - kept for backward compatibility
-   */
-  async updateUserInternal(
-    userId: string,
-    dto: { firstName?: string; lastName?: string },
-  ): Promise<any> {
-    return this.updateUserProfileInternal(userId, dto);
-  }
-
-  /**
-   * Delete user (internal)
-   * Route: DELETE /internal/users/:id
-   * Uses: Internal service token
-   * Used by: UserOrchestrationSaga
-   */
-  async deleteUserInternal(userId: string): Promise<any> {
-    try {
-      this.loggerService.info('UserServiceClient: Deleting user (internal)', {
-        userId,
-      });
-
-      const response = await firstValueFrom(
-        this.httpService.delete(`${this.baseUrl}/internal/users/${userId}`, {
+      await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/users`, dto, {
           headers: this.getInternalHeaders(),
           timeout: this.timeout,
         }),
       );
 
-      this.loggerService.info(
-        'UserServiceClient: User deleted successfully (internal)',
-        { userId },
-      );
-
-      return response.data;
-    } catch (error) {
-      return this.handleInternalError(error, 'delete user', { userId });
-    }
-  }
-
-  /**
-   * Select role (internal)
-   * Route: POST /internal/users/:userId/select-role
-   * Uses: Internal service token
-   * Used by: UserOrchestrationSaga
-   * NEW: Replaces old assignRoleInternal - uses new role selection system
-   */
-  async assignRoleInternal(userId: string, roleName: string): Promise<any> {
-    try {
-      this.loggerService.info('UserServiceClient: Selecting role (internal)', {
-        userId,
-        role: roleName,
+      this.loggerService.info('UserServiceClient: User created successfully', {
+        userId: dto.userId,
       });
 
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.baseUrl}/internal/users/${userId}/select-role`,
-          { role: roleName },
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info(
-        'UserServiceClient: Role selected successfully (internal)',
-        { userId, role: roleName },
-      );
-
-      return response.data;
+      return { success: true, userId: dto.userId };
     } catch (error) {
-      return this.handleInternalError(error, 'select role', {
-        userId,
-        role: roleName,
+      return this.handleInternalError(error, 'create user', {
+        userId: dto.userId,
+        email: dto.email,
       });
     }
   }
 
   /**
-   * Remove role (internal)
-   * Route: DELETE /internal/users/:id/roles/:roleName
-   * Uses: Internal service token
-   * Used by: UserOrchestrationSaga
+   * Get user by ID
+   * Route: GET /users/:userId
+   * Response: UserResponseDto
    */
-  async removeRoleInternal(userId: string, roleName: string): Promise<any> {
+  async getUserById(userId: string): Promise<UserResponseDto> {
     try {
-      this.loggerService.info('UserServiceClient: Removing role (internal)', {
-        userId,
-        roleName,
-      });
+      this.loggerService.info('UserServiceClient: Getting user by ID', { userId });
 
       const response = await firstValueFrom(
-        this.httpService.delete(
-          `${this.baseUrl}/internal/users/${userId}/roles/${roleName}`,
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info(
-        'UserServiceClient: Role removed successfully (internal)',
-        { userId, roleName },
-      );
-
-      return response.data;
-    } catch (error) {
-      return this.handleInternalError(error, 'remove role', {
-        userId,
-        roleName,
-      });
-    }
-  }
-
-  /**
-   * Get user by ID (internal)
-   * Route: GET /internal/users/:userId
-   * Uses: Internal service token
-   * Used by: UsersController (for getting user profile)
-   */
-  async getUserByIdInternal(userId: string): Promise<UserDTO> {
-    try {
-      this.loggerService.info(
-        'UserServiceClient: Getting user by ID (internal)',
-        { userId },
-      );
-
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.baseUrl}/internal/users/${userId}`,
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
+        this.httpService.get<UserResponseDto>(`${this.baseUrl}/users/${userId}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
       );
 
       return response.data;
@@ -448,21 +134,19 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   /**
-   * Get user by external auth ID (internal)
-   * Route: GET /internal/users/by-external-auth/:externalAuthId
-   * Uses: Internal service token
-   * Used by: RegistrationSaga (for checking if user exists)
+   * Get user by external auth ID (Keycloak ID)
+   * Route: GET /users/by-external-auth/:externalAuthId
+   * Response: UserResponseDto | null (404)
    */
-  async getUserByExternalAuthId(externalAuthId: string): Promise<UserDTO | null> {
+  async getUserByExternalAuthId(externalAuthId: string): Promise<UserResponseDto | null> {
     try {
-      this.loggerService.info(
-        'UserServiceClient: Getting user by external auth ID (internal)',
-        { externalAuthId },
-      );
+      this.loggerService.info('UserServiceClient: Getting user by external auth ID', {
+        externalAuthId,
+      });
 
       const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.baseUrl}/internal/users/by-external-auth/${externalAuthId}`,
+        this.httpService.get<UserResponseDto>(
+          `${this.baseUrl}/users/by-external-auth/${externalAuthId}`,
           {
             headers: this.getInternalHeaders(),
             timeout: this.timeout,
@@ -472,7 +156,7 @@ export class UserServiceClient extends BaseServiceProxy {
 
       return response.data;
     } catch (error) {
-      // Return null if not found (404) - this is expected during login flow
+      // Return null if not found (404) - expected during first login
       if (error.response?.status === 404) {
         return null;
       }
@@ -480,6 +164,308 @@ export class UserServiceClient extends BaseServiceProxy {
       return this.handleInternalError(error, 'get user by external auth ID', {
         externalAuthId,
       });
+    }
+  }
+
+  /**
+   * Update user profile
+   * Route: PUT /users/:userId
+   * Body: UpdateUserInternalDto
+   * Response: UserResponseDto
+   */
+  async updateUser(userId: string, dto: UpdateUserDto): Promise<UserResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating user', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.put<UserResponseDto>(`${this.baseUrl}/users/${userId}`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: User updated successfully', { userId });
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'update user', { userId });
+    }
+  }
+
+  /**
+   * Delete user
+   * Route: DELETE /users/:userId
+   * Response: 200 OK
+   */
+  async deleteUser(userId: string): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('UserServiceClient: Deleting user', { userId });
+
+      await firstValueFrom(
+        this.httpService.delete(`${this.baseUrl}/users/${userId}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: User deleted successfully', { userId });
+
+      return { success: true };
+    } catch (error) {
+      return this.handleInternalError(error, 'delete user', { userId });
+    }
+  }
+
+  // ==========================================================================
+  // USER QUERY METHODS
+  // ==========================================================================
+
+  /**
+   * List users with pagination and filters
+   * Route: GET /users
+   * Response: UserListResponseDto
+   */
+  async listUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'active' | 'suspended' | 'deleted';
+    role?: string;
+  }): Promise<UserListResponseDto> {
+    try {
+      const query = new URLSearchParams();
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.limit) query.append('limit', String(params.limit));
+      if (params?.search) query.append('search', params.search);
+      if (params?.status) query.append('status', params.status);
+      if (params?.role) query.append('role', params.role);
+
+      const url = `${this.baseUrl}/users${query.toString() ? '?' + query.toString() : ''}`;
+
+      this.loggerService.info('UserServiceClient: Listing users', { params });
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserListResponseDto>(url, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'list users', { params });
+    }
+  }
+
+  /**
+   * Get user statistics
+   * Route: GET /users/stats
+   * Response: UserStatsResponseDto
+   */
+  async getUserStats(): Promise<UserStatsResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user statistics');
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserStatsResponseDto>(`${this.baseUrl}/users/stats`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'get user statistics', {});
+    }
+  }
+
+  // ==========================================================================
+  // ADMIN OPERATIONS
+  // ==========================================================================
+
+  /**
+   * Suspend user (admin operation)
+   * Route: POST /users/:userId/suspend
+   * Body: SuspendUserDto { reason: string }
+   * Response: UserResponseDto
+   */
+  async suspendUser(userId: string, dto: SuspendUserDto): Promise<UserResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Suspending user', {
+        userId,
+        reason: dto.reason,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post<UserResponseDto>(
+          `${this.baseUrl}/users/${userId}/suspend`,
+          dto,
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      this.loggerService.info('UserServiceClient: User suspended successfully', { userId });
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'suspend user', { userId });
+    }
+  }
+
+  /**
+   * Activate user (admin operation)
+   * Route: POST /users/:userId/activate
+   * Response: UserResponseDto
+   */
+  async activateUser(userId: string): Promise<UserResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Activating user', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.post<UserResponseDto>(
+          `${this.baseUrl}/users/${userId}/activate`,
+          {},
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      this.loggerService.info('UserServiceClient: User activated successfully', { userId });
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'activate user', { userId });
+    }
+  }
+
+  // ==========================================================================
+  // ROLES & PERMISSIONS
+  // ==========================================================================
+
+  /**
+   * Assign role to user
+   * Route: POST /users/:userId/roles
+   * Body: SelectRoleDto { role: 'candidate' | 'hr' | 'admin' }
+   * Response: 200 OK
+   */
+  async assignRole(
+    userId: string,
+    dto: SelectRoleDto,
+  ): Promise<{ success: boolean; message: string; role: string }> {
+    try {
+      this.loggerService.info('UserServiceClient: Assigning role', {
+        userId,
+        role: dto.role,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/users/${userId}/roles`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Role assigned successfully', {
+        userId,
+        role: dto.role,
+      });
+
+      return response.data || { success: true, message: 'Role assigned', role: dto.role };
+    } catch (error) {
+      return this.handleInternalError(error, 'assign role', {
+        userId,
+        role: dto.role,
+      });
+    }
+  }
+
+  /**
+   * Get user permissions
+   * Route: GET /users/:userId/permissions
+   * Response: UserPermissionsResponseDto
+   */
+  async getUserPermissions(userId: string): Promise<UserPermissionsResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user permissions', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserPermissionsResponseDto>(
+          `${this.baseUrl}/users/${userId}/permissions`,
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'get user permissions', { userId });
+    }
+  }
+
+  // ==========================================================================
+  // PROFILE MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Update candidate profile
+   * Route: PUT /users/:userId/profiles/candidate
+   * Body: UpdateCandidateProfileDto
+   * Response: 200 OK
+   */
+  async updateCandidateProfile(
+    userId: string,
+    dto: UpdateCandidateProfileDto,
+  ): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating candidate profile', { userId });
+
+      await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/users/${userId}/profiles/candidate`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Candidate profile updated', { userId });
+
+      return { success: true };
+    } catch (error) {
+      return this.handleInternalError(error, 'update candidate profile', { userId });
+    }
+  }
+
+  /**
+   * Update HR profile
+   * Route: PUT /users/:userId/profiles/hr
+   * Body: UpdateHRProfileDto
+   * Response: 200 OK
+   */
+  async updateHRProfile(
+    userId: string,
+    dto: UpdateHRProfileDto,
+  ): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating HR profile', { userId });
+
+      await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/users/${userId}/profiles/hr`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: HR profile updated', { userId });
+
+      return { success: true };
+    } catch (error) {
+      return this.handleInternalError(error, 'update HR profile', { userId });
     }
   }
 
@@ -505,21 +491,17 @@ export class UserServiceClient extends BaseServiceProxy {
     operation: string,
     context: Record<string, any>,
   ): never {
-    this.loggerService.error(
-      `UserServiceClient: Failed to ${operation}`,
-      error,
-      {
-        errorResponse: error.response?.data,
-        errorStatus: error.response?.status,
-        errorStatusText: error.response?.statusText,
-        errorCode: error.code,
-        errorUrl: error.config?.url,
-        errorMethod: error.config?.method,
-        baseUrl: this.baseUrl,
-        timeout: this.timeout,
-        ...context,
-      },
-    );
+    this.loggerService.error(`UserServiceClient: Failed to ${operation}`, error, {
+      errorResponse: error.response?.data,
+      errorStatus: error.response?.status,
+      errorStatusText: error.response?.statusText,
+      errorCode: error.code,
+      errorUrl: error.config?.url,
+      errorMethod: error.config?.method,
+      baseUrl: this.baseUrl,
+      timeout: this.timeout,
+      ...context,
+    });
 
     // Handle specific HTTP errors
     if (error.response?.status === 409) {
