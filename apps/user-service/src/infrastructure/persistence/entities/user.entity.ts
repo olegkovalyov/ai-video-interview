@@ -6,10 +6,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
-  ManyToMany,
-  JoinTable,
 } from 'typeorm';
-import { RoleEntity } from './role.entity';
 
 /**
  * User TypeORM Entity
@@ -64,6 +61,14 @@ export class UserEntity {
   @Index()
   status: 'active' | 'suspended' | 'deleted';
 
+  @Column({
+    type: 'varchar',
+    length: 50,
+    default: 'pending',
+  })
+  @Index()
+  role: 'pending' | 'candidate' | 'hr' | 'admin';
+
   @Column({ nullable: true, type: 'timestamp', name: 'last_login_at' })
   lastLoginAt: Date | null;
 
@@ -79,13 +84,4 @@ export class UserEntity {
 
   @Column({ type: 'jsonb', default: {} })
   metadata: Record<string, any>;
-
-  // Relations
-  @ManyToMany(() => RoleEntity, role => role.users)
-  @JoinTable({
-    name: 'user_roles',
-    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
-  })
-  roles: RoleEntity[];
 }

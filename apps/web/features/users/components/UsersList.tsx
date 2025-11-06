@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { UserStatsCards } from './UserStatsCards';
 import { UserFilters } from './UserFilters';
 import { UsersTable } from './UsersTable';
-import { listUsers, assignRole, removeRole, suspendUser, activateUser, deleteUser, getUserRoles, type KeycloakUser } from '@/lib/api/users';
+import { listUsers, suspendUser, activateUser, deleteUser, getUserRoles, type KeycloakUser } from '@/lib/api/users';
 import { toast } from 'sonner';
 
 export function UsersList() {
@@ -13,6 +13,8 @@ export function UsersList() {
   const [loading, setLoading] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr' | 'user'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
 
   // Fetch users with their roles
   const fetchUsers = async () => {
@@ -74,40 +76,6 @@ export function UsersList() {
     }
   };
 
-  // Handle role change
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-
-    const currentRole = userRoles.get(userId) || 'candidate';
-    if (currentRole === newRole) {
-      return; // No change needed
-    }
-
-    await withUserLock(userId, async () => {
-      // Remove old role if exists
-      if (currentRole) {
-        try {
-          await removeRole(userId, currentRole);
-        } catch (error) {
-          console.error('Failed to remove old role:', error);
-        }
-      }
-
-      // Assign new role
-      await assignRole(userId, newRole);
-
-      // Update local state immediately
-      setUserRoles(prev => {
-        const next = new Map(prev);
-        next.set(userId, newRole);
-        return next;
-      });
-
-      toast.success(`Role updated to ${newRole}`);
-    });
-  };
-
   // Handle status toggle
   const handleStatusToggle = async (userId: string) => {
     const user = users.find(u => u.id === userId);
@@ -137,17 +105,29 @@ export function UsersList() {
   };
 
   // Convert KeycloakUser to User format for table
-  const mappedUsers = users.map(u => ({
-    id: u.id,
-    email: u.email,
-    firstName: u.firstName,
-    lastName: u.lastName,
-    role: (userRoles.get(u.id) || 'candidate') as any,
-    status: u.enabled ? 'active' as const : 'suspended' as const,
-    lastLogin: u.lastLoginAt || undefined,
-    phone: undefined,
-    createdAt: u.createdTimestamp ? new Date(u.createdTimestamp).toISOString() : new Date().toISOString(),
-  }));
+  const mappedUsers = users
+    .map(u => ({
+      id: u.id,
+      email: u.email,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      role: (userRoles.get(u.id) || 'candidate') as any,
+      status: u.enabled ? 'active' as const : 'suspended' as const,
+      lastLogin: u.lastLoginAt || undefined,
+      phone: undefined,
+      createdAt: u.createdTimestamp ? new Date(u.createdTimestamp).toISOString() : new Date().toISOString(),
+    }))
+    // Apply role filter
+    .filter(user => {
+      if (roleFilter === 'all') return true;
+      if (roleFilter === 'user') return user.role === 'candidate';
+      return user.role === roleFilter;
+    })
+    // Apply status filter
+    .filter(user => {
+      if (statusFilter === 'all') return true;
+      return user.status === statusFilter;
+    });
 
   // Calculate stats
   const stats = {
@@ -171,20 +151,24 @@ export function UsersList() {
       <UserStatsCards stats={stats} />
 
       <UserFilters
-        filters={{ search: searchQuery, role: 'all', status: 'all' }}
+        filters={{ search: searchQuery, role: roleFilter, status: statusFilter }}
         onSearchChange={setSearchQuery}
-        onRoleChange={() => {}} // TODO: implement
-        onStatusChange={() => {}} // TODO: implement
+        onRoleChange={(role) => setRoleFilter(role)}
+        onStatusChange={(status) => setStatusFilter(status)}
       />
 
       {/* Results Count */}
       <div className="mb-4 text-white/80">
-        Found {users.length} user{users.length !== 1 ? 's' : ''}
+        Found {mappedUsers.length} user{mappedUsers.length !== 1 ? 's' : ''}
+        {(roleFilter !== 'all' || statusFilter !== 'all') && (
+          <span className="ml-2 text-white/60">
+            (filtered from {users.length} total)
+          </span>
+        )}
       </div>
 
       <UsersTable
         users={mappedUsers}
-        onRoleChange={handleRoleChange}
         onStatusToggle={handleStatusToggle}
         onDelete={handleDelete}
         loadingUsers={loadingUsers}

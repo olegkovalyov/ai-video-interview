@@ -1,0 +1,560 @@
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
+import { BaseServiceProxy } from '../../../proxies/base/base-service-proxy';
+import { LoggerService } from '../../../core/logging/logger.service';
+import { MetricsService } from '../../../core/metrics/metrics.service';
+import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
+import type { components } from '@repo/shared/dist/contracts/user-service';
+
+// ============================================================================
+// Type Aliases from Generated Contracts
+// ============================================================================
+
+export type CreateUserDto = components['schemas']['CreateUserInternalDto'];
+export type UpdateUserDto = components['schemas']['UpdateUserInternalDto'];
+export type UserResponseDto = components['schemas']['UserResponseDto'];
+export type UserListResponseDto = components['schemas']['UserListResponseDto'];
+export type UserStatsResponseDto = components['schemas']['UserStatsResponseDto'];
+export type SuspendUserDto = components['schemas']['SuspendUserDto'];
+export type SelectRoleDto = components['schemas']['SelectRoleDto'];
+export type UserPermissionsResponseDto = components['schemas']['UserPermissionsResponseDto'];
+export type UpdateCandidateProfileDto = components['schemas']['UpdateCandidateProfileDto'];
+export type UpdateHRProfileDto = components['schemas']['UpdateHRProfileDto'];
+
+// ============================================================================
+// Unified User Service Client
+// ============================================================================
+
+/**
+ * Unified User Service Client
+ *
+ * Communicates with User Service using:
+ * - Internal service token (X-Internal-Token header)
+ * - Type-safe DTOs from generated OpenAPI contracts
+ * - Updated endpoints: /users/* (no /internal prefix)
+ *
+ * All methods use internal authentication and direct HTTP calls.
+ */
+@Injectable()
+export class UserServiceClient extends BaseServiceProxy {
+  protected readonly serviceName = 'user-service';
+  protected readonly baseUrl: string;
+  private readonly timeout: number = 5000;
+  private readonly internalToken: string;
+
+  // Circuit breaker configuration
+  protected circuitBreakerOptions = {
+    failureThreshold: 5,
+    successThreshold: 2,
+    timeout: 3000,
+    resetTimeout: 30000,
+  };
+
+  constructor(
+    httpService: HttpService,
+    loggerService: LoggerService,
+    metricsService: MetricsService,
+    circuitBreakerRegistry: CircuitBreakerRegistry,
+    private readonly configService: ConfigService,
+  ) {
+    super(httpService, loggerService, metricsService, circuitBreakerRegistry);
+
+    this.baseUrl =
+      this.configService.get<string>('USER_SERVICE_URL') ||
+      'http://localhost:8002';
+
+    this.internalToken = this.configService.get<string>(
+      'INTERNAL_SERVICE_TOKEN',
+      'internal-secret',
+    );
+
+    // Initialize circuit breaker
+    this.initCircuitBreaker();
+  }
+
+  // ==========================================================================
+  // USER CRUD OPERATIONS
+  // ==========================================================================
+
+  /**
+   * Create user
+   * Route: POST /users
+   * Body: CreateUserInternalDto
+   * Response: 201 Created
+   */
+  async createUser(dto: CreateUserDto): Promise<{ success: boolean; userId: string }> {
+    try {
+      this.loggerService.info('UserServiceClient: Creating user', {
+        userId: dto.userId,
+        email: dto.email,
+      });
+
+      await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/users`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: User created successfully', {
+        userId: dto.userId,
+      });
+
+      return { success: true, userId: dto.userId };
+    } catch (error) {
+      return this.handleInternalError(error, 'create user', {
+        userId: dto.userId,
+        email: dto.email,
+      });
+    }
+  }
+
+  /**
+   * Get user by ID
+   * Route: GET /users/:userId
+   * Response: UserResponseDto
+   */
+  async getUserById(userId: string): Promise<UserResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user by ID', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserResponseDto>(`${this.baseUrl}/users/${userId}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'get user by ID', { userId });
+    }
+  }
+
+  /**
+   * Get user by external auth ID (Keycloak ID)
+   * Route: GET /users/by-external-auth/:externalAuthId
+   * Response: UserResponseDto | null (404)
+   */
+  async getUserByExternalAuthId(externalAuthId: string): Promise<UserResponseDto | null> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user by external auth ID', {
+        externalAuthId,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserResponseDto>(
+          `${this.baseUrl}/users/by-external-auth/${externalAuthId}`,
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error) {
+      // Return null if not found (404) - expected during first login
+      if (error.response?.status === 404) {
+        return null;
+      }
+
+      return this.handleInternalError(error, 'get user by external auth ID', {
+        externalAuthId,
+      });
+    }
+  }
+
+  /**
+   * Update user profile
+   * Route: PUT /users/:userId
+   * Body: UpdateUserInternalDto
+   * Response: UserResponseDto
+   */
+  async updateUser(userId: string, dto: UpdateUserDto): Promise<UserResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating user', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.put<UserResponseDto>(`${this.baseUrl}/users/${userId}`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: User updated successfully', { userId });
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'update user', { userId });
+    }
+  }
+
+  /**
+   * Delete user
+   * Route: DELETE /users/:userId
+   * Response: 200 OK
+   */
+  async deleteUser(userId: string): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('UserServiceClient: Deleting user', { userId });
+
+      await firstValueFrom(
+        this.httpService.delete(`${this.baseUrl}/users/${userId}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: User deleted successfully', { userId });
+
+      return { success: true };
+    } catch (error) {
+      return this.handleInternalError(error, 'delete user', { userId });
+    }
+  }
+
+  // ==========================================================================
+  // USER QUERY METHODS
+  // ==========================================================================
+
+  /**
+   * List users with pagination and filters
+   * Route: GET /users
+   * Response: UserListResponseDto
+   */
+  async listUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'active' | 'suspended' | 'deleted';
+    role?: string;
+  }): Promise<UserListResponseDto> {
+    try {
+      const query = new URLSearchParams();
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.limit) query.append('limit', String(params.limit));
+      if (params?.search) query.append('search', params.search);
+      if (params?.status) query.append('status', params.status);
+      if (params?.role) query.append('role', params.role);
+
+      const url = `${this.baseUrl}/users${query.toString() ? '?' + query.toString() : ''}`;
+
+      this.loggerService.info('UserServiceClient: Listing users', { params });
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserListResponseDto>(url, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'list users', { params });
+    }
+  }
+
+  /**
+   * Get user statistics
+   * Route: GET /users/stats
+   * Response: UserStatsResponseDto
+   */
+  async getUserStats(): Promise<UserStatsResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user statistics');
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserStatsResponseDto>(`${this.baseUrl}/users/stats`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'get user statistics', {});
+    }
+  }
+
+  // ==========================================================================
+  // ADMIN OPERATIONS
+  // ==========================================================================
+
+  /**
+   * Suspend user (admin operation)
+   * Route: POST /users/:userId/suspend
+   * Body: SuspendUserDto { reason: string }
+   * Response: UserResponseDto
+   */
+  async suspendUser(userId: string, dto: SuspendUserDto): Promise<UserResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Suspending user', {
+        userId,
+        reason: dto.reason,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post<UserResponseDto>(
+          `${this.baseUrl}/users/${userId}/suspend`,
+          dto,
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      this.loggerService.info('UserServiceClient: User suspended successfully', { userId });
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'suspend user', { userId });
+    }
+  }
+
+  /**
+   * Activate user (admin operation)
+   * Route: POST /users/:userId/activate
+   * Response: UserResponseDto
+   */
+  async activateUser(userId: string): Promise<UserResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Activating user', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.post<UserResponseDto>(
+          `${this.baseUrl}/users/${userId}/activate`,
+          {},
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      this.loggerService.info('UserServiceClient: User activated successfully', { userId });
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'activate user', { userId });
+    }
+  }
+
+  // ==========================================================================
+  // ROLES & PERMISSIONS
+  // ==========================================================================
+
+  /**
+   * Assign role to user
+   * Route: POST /users/:userId/roles
+   * Body: SelectRoleDto { role: 'candidate' | 'hr' | 'admin' }
+   * Response: 200 OK
+   */
+  async assignRole(
+    userId: string,
+    dto: SelectRoleDto,
+  ): Promise<{ success: boolean; message: string; role: string }> {
+    try {
+      this.loggerService.info('UserServiceClient: Assigning role', {
+        userId,
+        role: dto.role,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/users/${userId}/roles`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Role assigned successfully', {
+        userId,
+        role: dto.role,
+      });
+
+      return response.data || { success: true, message: 'Role assigned', role: dto.role };
+    } catch (error) {
+      return this.handleInternalError(error, 'assign role', {
+        userId,
+        role: dto.role,
+      });
+    }
+  }
+
+  /**
+   * Get user permissions
+   * Route: GET /users/:userId/permissions
+   * Response: UserPermissionsResponseDto
+   */
+  async getUserPermissions(userId: string): Promise<UserPermissionsResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user permissions', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.get<UserPermissionsResponseDto>(
+          `${this.baseUrl}/users/${userId}/permissions`,
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error) {
+      return this.handleInternalError(error, 'get user permissions', { userId });
+    }
+  }
+
+  // ==========================================================================
+  // PROFILE MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Update candidate profile
+   * Route: PUT /users/:userId/profiles/candidate
+   * Body: UpdateCandidateProfileDto
+   * Response: 200 OK
+   */
+  async updateCandidateProfile(
+    userId: string,
+    dto: UpdateCandidateProfileDto,
+  ): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating candidate profile', { userId });
+
+      await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/users/${userId}/profiles/candidate`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Candidate profile updated', { userId });
+
+      return { success: true };
+    } catch (error) {
+      return this.handleInternalError(error, 'update candidate profile', { userId });
+    }
+  }
+
+  /**
+   * Update HR profile
+   * Route: PUT /users/:userId/profiles/hr
+   * Body: UpdateHRProfileDto
+   * Response: 200 OK
+   */
+  async updateHRProfile(
+    userId: string,
+    dto: UpdateHRProfileDto,
+  ): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating HR profile', { userId });
+
+      await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/users/${userId}/profiles/hr`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: HR profile updated', { userId });
+
+      return { success: true };
+    } catch (error) {
+      return this.handleInternalError(error, 'update HR profile', { userId });
+    }
+  }
+
+  // ==========================================================================
+  // PRIVATE HELPERS
+  // ==========================================================================
+
+  /**
+   * Get headers for internal service communication
+   */
+  private getInternalHeaders(): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      'X-Internal-Token': this.internalToken,
+    };
+  }
+
+  /**
+   * Handle errors for internal methods
+   */
+  private handleInternalError(
+    error: any,
+    operation: string,
+    context: Record<string, any>,
+  ): never {
+    this.loggerService.error(`UserServiceClient: Failed to ${operation}`, error, {
+      errorResponse: error.response?.data,
+      errorStatus: error.response?.status,
+      errorStatusText: error.response?.statusText,
+      errorCode: error.code,
+      errorUrl: error.config?.url,
+      errorMethod: error.config?.method,
+      baseUrl: this.baseUrl,
+      timeout: this.timeout,
+      ...context,
+    });
+
+    // Handle specific HTTP errors
+    if (error.response?.status === 409) {
+      throw new HttpException(
+        {
+          success: false,
+          error: `User already exists in User Service`,
+          code: 'USER_ALREADY_EXISTS',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    if (error.response?.status === 404) {
+      throw new HttpException(
+        {
+          success: false,
+          error: 'User not found in User Service',
+          code: 'USER_NOT_FOUND',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      throw new HttpException(
+        {
+          success: false,
+          error: 'User Service timeout',
+          code: 'USER_SERVICE_TIMEOUT',
+        },
+        HttpStatus.REQUEST_TIMEOUT,
+      );
+    }
+
+    if (error.code === 'ECONNREFUSED') {
+      throw new HttpException(
+        {
+          success: false,
+          error: 'User Service unavailable',
+          code: 'USER_SERVICE_UNAVAILABLE',
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    throw new HttpException(
+      {
+        success: false,
+        error: `Failed to ${operation} in User Service`,
+        details: error.message,
+      },
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+}

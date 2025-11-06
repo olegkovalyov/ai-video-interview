@@ -4,6 +4,7 @@ import { UserEntity } from '../entities/user.entity';
 import { Email } from '../../../domain/value-objects/email.vo';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserStatus } from '../../../domain/value-objects/user-status.vo';
+import { UserRole } from '../../../domain/value-objects/user-role.vo';
 
 /**
  * User Mapper
@@ -24,6 +25,7 @@ export class UserMapper {
     entity.firstName = user.fullName.firstName;
     entity.lastName = user.fullName.lastName;
     entity.status = user.status.value;
+    entity.role = user.role.toString() as any;
     entity.emailVerified = user.emailVerified;
     entity.avatarUrl = user.avatarUrl || null;
     entity.bio = user.bio || null;
@@ -44,6 +46,7 @@ export class UserMapper {
     const email = Email.create(entity.email);
     const fullName = FullName.create(entity.firstName, entity.lastName);
     const status = UserStatus.fromString(entity.status);
+    const role = UserRole.fromString(entity.role);
 
     return User.reconstitute(
       entity.id,
@@ -51,6 +54,7 @@ export class UserMapper {
       email,
       fullName,
       status,
+      role,
       entity.avatarUrl || undefined,
       entity.bio || undefined,
       entity.phone || undefined,

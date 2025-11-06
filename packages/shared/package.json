@@ -4,6 +4,20 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./contracts/interview-service": {
+      "types": "./dist/contracts/interview-service/index.d.ts",
+      "default": "./dist/contracts/interview-service/index.js"
+    },
+    "./contracts/user-service": {
+      "types": "./dist/contracts/user-service/index.d.ts",
+      "default": "./dist/contracts/user-service/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",

@@ -7,6 +7,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
 import { HttpModule } from './infrastructure/http/http.module';
 import { LoggerModule } from './infrastructure/logger/logger.module';
 import { MessagingModule } from './infrastructure/messaging/messaging.module';
+import { MetricsModule } from './infrastructure/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -30,6 +31,9 @@ import { MessagingModule } from './infrastructure/messaging/messaging.module';
     
     // HTTP (Controllers)
     HttpModule,
+    
+    // Metrics (Prometheus)
+    MetricsModule,
   ],
 })
 export class AppModule {}

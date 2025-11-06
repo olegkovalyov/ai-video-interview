@@ -1,19 +1,15 @@
-import { HeaderWithRoles } from '@/components/layout/header-with-roles';
 export const dynamic = 'force-dynamic';
 
 /**
- * Server Component Layout для /dashboard
- * Рендерит Header с ролями, полученными на сервере
+ * Dashboard Layout
+ * 
+ * Header уже рендерится в родительском (app)/layout.tsx
+ * Этот layout только для вложенной структуры, если понадобится
  */
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <HeaderWithRoles />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

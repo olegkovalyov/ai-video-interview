@@ -4,13 +4,13 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToMany,
 } from 'typeorm';
-import { UserEntity } from './user.entity';
 
 /**
  * Role TypeORM Entity
  * Maps to 'roles' table in database
+ * NOTE: This table is kept for backwards compatibility with old role system
+ * New role system uses a simple 'role' column on users table
  */
 @Entity('roles')
 export class RoleEntity {
@@ -34,8 +34,4 @@ export class RoleEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-  // Relations
-  @ManyToMany(() => UserEntity, user => user.roles)
-  users: UserEntity[];
 }

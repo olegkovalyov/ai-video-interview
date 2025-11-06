@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
-import { JwtRefreshGuard } from './auth/jwt-refresh.guard';
+import { JwtRefreshGuard } from './core/auth/guards/jwt-refresh.guard';
 import { Request } from 'express';
 
 @Controller()

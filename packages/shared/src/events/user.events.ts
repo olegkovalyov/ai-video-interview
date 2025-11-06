@@ -122,11 +122,12 @@ export interface UserCreatedEvent extends BaseEvent {
   source: 'user-service';
   payload: {
     userId: string;
-    keycloakId: string;
+    externalAuthId: string;
     email: string;
     firstName: string;
     lastName: string;
     status: string;
+    role: string;
     createdAt: string;
   };
 }
@@ -139,10 +140,11 @@ export interface UserUpdatedEvent extends BaseEvent {
   source: 'user-service';
   payload: {
     userId: string;
-    keycloakId: string;
+    externalAuthId: string;
     email: string;
     firstName: string;
     lastName: string;
+    role: string;
     updatedAt: string;
   };
 }
@@ -155,7 +157,7 @@ export interface UserDeletedEvent extends BaseEvent {
   source: 'user-service';
   payload: {
     userId: string;
-    keycloakId: string;
+    externalAuthId: string;
     deletedBy: 'admin' | 'user' | 'system';
     deletedAt: string;
   };
@@ -169,7 +171,7 @@ export interface UserSuspendedEvent extends BaseEvent {
   source: 'user-service';
   payload: {
     userId: string;
-    keycloakId: string;
+    externalAuthId: string;
     suspendedAt: string;
   };
 }
@@ -182,7 +184,7 @@ export interface UserActivatedEvent extends BaseEvent {
   source: 'user-service';
   payload: {
     userId: string;
-    keycloakId: string;
+    externalAuthId: string;
     activatedAt: string;
   };
 }
@@ -195,7 +197,7 @@ export interface UserRoleAssignedEvent extends BaseEvent {
   source: 'user-service';
   payload: {
     userId: string;
-    keycloakId: string;
+    externalAuthId: string;
     roleName: string;
     assignedAt: string;
   };
@@ -209,9 +211,25 @@ export interface UserRoleRemovedEvent extends BaseEvent {
   source: 'user-service';
   payload: {
     userId: string;
-    keycloakId: string;
+    externalAuthId: string;
     roleName: string;
     removedAt: string;
+  };
+}
+
+/**
+ * User selected their role (integration event)
+ * This is a one-time event when user chooses candidate or HR
+ */
+export interface UserRoleSelectedEvent extends BaseEvent {
+  eventType: 'user.role-selected';
+  source: 'user-service';
+  payload: {
+    userId: string;
+    externalAuthId: string;
+    email: string;
+    role: 'candidate' | 'hr';
+    selectedAt: string;
   };
 }
 
@@ -250,7 +268,8 @@ export type UserIntegrationEvent =
   | UserSuspendedEvent
   | UserActivatedEvent
   | UserRoleAssignedEvent
-  | UserRoleRemovedEvent;
+  | UserRoleRemovedEvent
+  | UserRoleSelectedEvent;
 
 // Union type for auth events
 export type UserAuthEvent =

@@ -28,8 +28,11 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
     }
 
     // 2. Update profile
-    if (command.firstName && command.lastName) {
-      const fullName = FullName.create(command.firstName, command.lastName);
+    if (command.firstName !== undefined || command.lastName !== undefined) {
+      // Name update (one or both fields) - validate and update
+      const firstName = command.firstName !== undefined ? command.firstName : user.fullName.firstName;
+      const lastName = command.lastName !== undefined ? command.lastName : user.fullName.lastName;
+      const fullName = FullName.create(firstName, lastName);
       user.updateProfile(fullName, command.bio, command.phone, command.timezone, command.language);
     } else if (command.bio !== undefined || command.phone !== undefined || command.timezone !== undefined || command.language !== undefined) {
       // Only bio/phone/timezone/language update, keep existing name
@@ -60,6 +63,7 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
           email: user.email.value,
           firstName: user.fullName.firstName,
           lastName: user.fullName.lastName,
+          role: user.role.toString(),
           updatedAt: user.updatedAt.toISOString(),
         },
       },

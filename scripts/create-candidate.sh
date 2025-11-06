@@ -46,6 +46,7 @@ CREATE_RESPONSE=$(curl -s -X POST "${API_GATEWAY}/api/admin/users" \
 echo "$CREATE_RESPONSE" | jq .
 
 KEYCLOAK_ID=$(echo "$CREATE_RESPONSE" | jq -r '.data.keycloakId')
+USER_ID=$(echo "$CREATE_RESPONSE" | jq -r '.data.userId')
 
 if [ "$KEYCLOAK_ID" == "null" ] || [ -z "$KEYCLOAK_ID" ]; then
   echo -e "${RED}❌ Failed to create candidate user${NC}"
@@ -53,17 +54,24 @@ if [ "$KEYCLOAK_ID" == "null" ] || [ -z "$KEYCLOAK_ID" ]; then
 fi
 
 echo ""
-echo -e "${GREEN}✅ Candidate user created with Keycloak ID: ${KEYCLOAK_ID}${NC}"
+echo -e "${GREEN}✅ Candidate user created${NC}"
+echo "  Keycloak ID: ${KEYCLOAK_ID}"
+echo "  User ID: ${USER_ID}"
 echo ""
 
-# Assign candidate role (admin creation doesn't auto-assign)
-echo -e "${YELLOW}→ Assigning candidate role...${NC}"
+# Assign candidate role via API Gateway
+echo -e "${YELLOW}→ Assigning candidate role via API Gateway...${NC}"
 
 ROLE_RESPONSE=$(curl -s -X POST "${API_GATEWAY}/api/admin/users/${KEYCLOAK_ID}/roles" \
   -H "Content-Type: application/json" \
   -d '{"roleName": "candidate"}')
 
 echo "$ROLE_RESPONSE" | jq .
+
+if [ "$(echo "$ROLE_RESPONSE" | jq -r '.success')" != "true" ]; then
+  echo -e "${RED}❌ Failed to assign candidate role${NC}"
+  exit 1
+fi
 
 echo -e "${GREEN}✅ Candidate role assigned${NC}"
 echo ""

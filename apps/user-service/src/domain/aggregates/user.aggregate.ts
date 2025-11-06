@@ -2,12 +2,11 @@ import { AggregateRoot } from '../base/base.aggregate-root';
 import { Email } from '../value-objects/email.vo';
 import { FullName } from '../value-objects/full-name.vo';
 import { UserStatus } from '../value-objects/user-status.vo';
+import { UserRole } from '../value-objects/user-role.vo';
 import { UserCreatedEvent } from '../events/user-created.event';
 import { UserUpdatedEvent } from '../events/user-updated.event';
 import { UserSuspendedEvent } from '../events/user-suspended.event';
 import { UserDeletedEvent } from '../events/user-deleted.event';
-import { RoleAssignedEvent } from '../events/role-assigned.event';
-import { RoleRemovedEvent } from '../events/role-removed.event';
 import { DomainException } from '../exceptions/domain.exception';
 import {
   UserDeletedException,
@@ -27,6 +26,7 @@ export class User extends AggregateRoot {
     private _email: Email,
     private _fullName: FullName,
     private _status: UserStatus,
+    private _role: UserRole,
     private _avatarUrl?: string,
     private _bio?: string,
     private _phone?: string,
@@ -60,6 +60,7 @@ export class User extends AggregateRoot {
       email,
       fullName,
       UserStatus.active(),
+      UserRole.pending(), // New users start with pending role
       undefined,
       undefined,
       undefined,
@@ -94,6 +95,7 @@ export class User extends AggregateRoot {
     email: Email,
     fullName: FullName,
     status: UserStatus,
+    role: UserRole,
     avatarUrl?: string,
     bio?: string,
     phone?: string,
@@ -110,6 +112,7 @@ export class User extends AggregateRoot {
       email,
       fullName,
       status,
+      role,
       avatarUrl,
       bio,
       phone,
@@ -318,51 +321,33 @@ export class User extends AggregateRoot {
   }
 
   /**
-   * Assign role to user
-   * Emits RoleAssignedEvent
+   * Select user role (can only be done once!)
+   * Validates that role is pending before selection
+   * Role is immutable after selection
    */
-  public assignRole(roleName: string, assignedBy: string): void {
+  public selectRole(role: UserRole): void {
     this.ensureNotDeleted();
 
-    if (!roleName || roleName.trim().length === 0) {
-      throw new DomainException('Role name cannot be empty');
+    // Can only select role if currently pending
+    if (!this._role.isPending()) {
+      throw new InvalidUserOperationException(
+        'Role has already been selected and cannot be changed'
+      );
     }
 
-    // Generate a simple role ID (in production, this would come from a roles service)
-    const roleId = `role-${roleName}-${Date.now()}`;
-
-    this._updatedAt = new Date();
-
-    this.apply(new RoleAssignedEvent(
-      this._id,
-      roleId,
-      roleName,
-      assignedBy,
-    ));
-  }
-
-  /**
-   * Remove role from user
-   * Emits RoleRemovedEvent
-   */
-  public removeRole(roleName: string, removedBy: string): void {
-    this.ensureNotDeleted();
-
-    if (!roleName || roleName.trim().length === 0) {
-      throw new DomainException('Role name cannot be empty');
+    // Cannot select pending as a role
+    if (role.isPending()) {
+      throw new DomainException('Cannot explicitly select pending role');
     }
 
-    // Generate a simple role ID (in production, this would come from a roles service)
-    const roleId = `role-${roleName}`;
-
+    this._role = role;
     this._updatedAt = new Date();
 
-    this.apply(new RoleRemovedEvent(
-      this._id,
-      roleId,
-      roleName,
-      removedBy,
-    ));
+    this.apply(
+      new UserUpdatedEvent(this._id, {
+        role: role.toString(),
+      }),
+    );
   }
 
   // ========================================
@@ -452,5 +437,26 @@ export class User extends AggregateRoot {
 
   public get isDeleted(): boolean {
     return this._status.isDeleted();
+  }
+
+  public get role(): UserRole {
+    return this._role;
+  }
+
+  // Role type guards
+  public get isPendingRole(): boolean {
+    return this._role.isPending();
+  }
+
+  public get isCandidateRole(): boolean {
+    return this._role.isCandidate();
+  }
+
+  public get isHRRole(): boolean {
+    return this._role.isHR();
+  }
+
+  public get isAdminRole(): boolean {
+    return this._role.isAdmin();
   }
 }

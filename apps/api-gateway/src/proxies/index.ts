@@ -1,2 +1,4 @@
-export * from './base/base-service-proxy';
-export * from './interview-service.proxy';
+/**
+ * Service Proxies - HTTP clients for microservices
+ */
+export * from './base';

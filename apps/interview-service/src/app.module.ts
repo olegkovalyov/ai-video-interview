@@ -1,24 +1,39 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { LoggerModule } from './logger/logger.module';
-import { HealthController } from './health/health.controller';
+import { DatabaseModule } from './infrastructure/persistence/database.module';
+import { KafkaModule } from './infrastructure/kafka/kafka.module';
+import { HttpModule } from './infrastructure/http/http.module';
+import { LoggerModule } from './infrastructure/logger/logger.module';
+import { MessagingModule } from './infrastructure/messaging/messaging.module';
+import { MetricsModule } from './infrastructure/metrics/metrics.module';
+import { ApplicationModule } from './application/application.module';
+import { TemplatesModule } from './infrastructure/http/modules/templates.module';
 
-/**
- * Interview Service - Main Module
- * 
- * Минимальная конфигурация без лишних зависимостей
- * - Логирование в консоль и Grafana (Winston + Loki)
- * - Health checks
- * - Готов к добавлению бизнес-логики
- */
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    
+    // Logging (Global)
     LoggerModule,
+    
+    // Infrastructure
+    DatabaseModule,
+    KafkaModule,
+    MessagingModule, // INBOX/OUTBOX pattern with BullMQ
+    
+    // Application Layer (CQRS)
+    ApplicationModule,
+    
+    // HTTP (Controllers)
+    HttpModule,
+    TemplatesModule, // Templates REST API
+    
+    // Metrics (Prometheus)
+    MetricsModule,
   ],
-  controllers: [AppController, HealthController],
-  providers: [AppService],
 })
 export class AppModule {}

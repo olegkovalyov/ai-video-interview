@@ -4,34 +4,18 @@ import { HttpModule } from '@nestjs/axios';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth.service';
-import { TokenService } from './auth/token.service';
-import { CookieService } from './auth/cookie.service';
-import { OidcService } from './auth/oidc.service';
-import { KeycloakService } from './auth/keycloak.service';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
-import { JwtRefreshGuard } from './auth/jwt-refresh.guard';
-import { AuthErrorInterceptor } from './auth/auth-error.interceptor';
+import { AuthModule } from './core/auth/auth.module';
+import { AuthErrorInterceptor } from './core/auth/interceptors/auth-error.interceptor';
 import { MetricsModule } from './core/metrics/metrics.module';
 import { MetricsController } from './core/metrics/metrics.controller';
 import { MetricsInterceptor } from './core/metrics/metrics.interceptor';
 import { KafkaModule } from './kafka/kafka.module';
 import { HealthModule } from './core/health/health.module';
-import { UsersController } from './users/users.controller';
 import { LoggingModule } from './core/logging/logging.module';
 import { TracingModule } from './core/tracing/tracing.module';
-import {
-  AuthOrchestrator,
-  SessionManager,
-  AuthEventPublisher,
-  RedirectUriHelper,
-} from './auth/services';
-import { RegistrationSaga } from './auth/registration.saga';
-import { UserServiceClient } from './clients';
-import { InterviewServiceProxy } from './proxies';
 import { CircuitBreakerModule } from './core/circuit-breaker/circuit-breaker.module';
-import { AdminModule } from './admin/admin.module';
+import { UserServiceModule } from './modules/user-service/user-service.module';
+import { InterviewServiceModule } from './modules/interview-service/interview-service.module';
 
 @Module({
   imports: [
@@ -51,37 +35,20 @@ import { AdminModule } from './admin/admin.module';
     TracingModule,
     CircuitBreakerModule,
     HealthModule,
+    AuthModule,
     
     KafkaModule,
-    AdminModule,
+    
+    // Microservice modules
+    UserServiceModule,
+    InterviewServiceModule,
   ],
   controllers: [
     AppController,
-    AuthController,
     MetricsController,
-    UsersController,
   ],
   providers: [
-    AppService, 
-    AuthService, // Deprecated - for backward compatibility
-    TokenService,
-    CookieService,
- 
-    OidcService,
-    KeycloakService,
-    JwtAuthGuard,
-    JwtRefreshGuard,
-    
-    // New auth services (refactored)
-    AuthOrchestrator,
-    SessionManager,
-    AuthEventPublisher,
-    RedirectUriHelper,
-    RegistrationSaga, // Saga for ensuring user exists on login
-    
-    // Service Clients
-    UserServiceClient,
-    InterviewServiceProxy,
+    AppService,
     {
       provide: APP_INTERCEPTOR,
       useClass: AuthErrorInterceptor,

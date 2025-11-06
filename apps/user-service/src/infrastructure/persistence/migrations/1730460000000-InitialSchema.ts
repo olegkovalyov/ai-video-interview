@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey } f
 
 /**
  * Initial Schema Migration
- * Creates all tables for User Service with clean architecture
+ * Creates all tables for User Service with role-based profiles
  */
 export class InitialSchema1730460000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -89,6 +89,14 @@ export class InitialSchema1730460000000 implements MigrationInterface {
             default: false,
           },
           {
+            name: 'role',
+            type: 'varchar',
+            length: '50',
+            default: "'pending'",
+            isNullable: false,
+            comment: 'User role: pending, candidate, hr, admin (immutable after selection)',
+          },
+          {
             name: 'status',
             type: 'enum',
             enum: ['active', 'suspended', 'deleted'],
@@ -144,6 +152,14 @@ export class InitialSchema1730460000000 implements MigrationInterface {
     await queryRunner.createIndex(
       'users',
       new TableIndex({
+        name: 'idx_users_role',
+        columnNames: ['role'],
+      }),
+    );
+
+    await queryRunner.createIndex(
+      'users',
+      new TableIndex({
         name: 'idx_users_status',
         columnNames: ['status'],
       }),
@@ -158,40 +174,36 @@ export class InitialSchema1730460000000 implements MigrationInterface {
     );
 
     // ============================================
-    // 2. ROLES TABLE
+    // 2. CANDIDATE_PROFILES TABLE
     // ============================================
     await queryRunner.createTable(
       new Table({
-        name: 'roles',
+        name: 'candidate_profiles',
         columns: [
           {
-            name: 'id',
+            name: 'user_id',
             type: 'uuid',
             isPrimary: true,
-            default: 'uuid_generate_v4()',
           },
           {
-            name: 'name',
+            name: 'skills',
+            type: 'text[]',
+            default: "'{}'",
+            isNullable: false,
+            comment: 'Array of candidate skills (e.g., JavaScript, React)',
+          },
+          {
+            name: 'experience_level',
             type: 'varchar',
             length: '50',
-            isUnique: true,
-            isNullable: false,
-          },
-          {
-            name: 'display_name',
-            type: 'varchar',
-            length: '100',
-            isNullable: false,
-          },
-          {
-            name: 'description',
-            type: 'text',
             isNullable: true,
+            comment: 'junior, mid, senior, lead',
           },
           {
-            name: 'permissions',
-            type: 'jsonb',
-            default: "'[]'",
+            name: 'is_profile_complete',
+            type: 'boolean',
+            default: false,
+            comment: 'True if skills and experience are filled',
           },
           {
             name: 'created_at',
@@ -208,56 +220,9 @@ export class InitialSchema1730460000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndex(
-      'roles',
-      new TableIndex({
-        name: 'idx_roles_name',
-        columnNames: ['name'],
-      }),
-    );
-
-    // ============================================
-    // 3. USER_ROLES TABLE (Many-to-Many)
-    // ============================================
-    await queryRunner.createTable(
-      new Table({
-        name: 'user_roles',
-        columns: [
-          {
-            name: 'id',
-            type: 'uuid',
-            isPrimary: true,
-            default: 'uuid_generate_v4()',
-          },
-          {
-            name: 'user_id',
-            type: 'uuid',
-            isNullable: false,
-          },
-          {
-            name: 'role_id',
-            type: 'uuid',
-            isNullable: false,
-          },
-          {
-            name: 'assigned_by',
-            type: 'varchar',
-            length: '255',
-            isNullable: true,
-          },
-          {
-            name: 'assigned_at',
-            type: 'timestamp',
-            default: 'CURRENT_TIMESTAMP',
-          },
-        ],
-      }),
-      true,
-    );
-
-    // Foreign keys
+    // Foreign key to users
     await queryRunner.createForeignKey(
-      'user_roles',
+      'candidate_profiles',
       new TableForeignKey({
         columnNames: ['user_id'],
         referencedColumnNames: ['id'],
@@ -266,23 +231,82 @@ export class InitialSchema1730460000000 implements MigrationInterface {
       }),
     );
 
-    await queryRunner.createForeignKey(
-      'user_roles',
-      new TableForeignKey({
-        columnNames: ['role_id'],
-        referencedColumnNames: ['id'],
-        referencedTableName: 'roles',
-        onDelete: 'CASCADE',
+    // GIN index for skills array search
+    await queryRunner.query(`
+      CREATE INDEX idx_candidate_profiles_skills 
+      ON candidate_profiles USING GIN(skills);
+    `);
+
+    await queryRunner.createIndex(
+      'candidate_profiles',
+      new TableIndex({
+        name: 'idx_candidate_profiles_experience',
+        columnNames: ['experience_level'],
       }),
     );
 
-    // Unique constraint to prevent duplicate assignments
     await queryRunner.createIndex(
-      'user_roles',
+      'candidate_profiles',
       new TableIndex({
-        name: 'idx_user_roles_unique',
-        columnNames: ['user_id', 'role_id'],
-        isUnique: true,
+        name: 'idx_candidate_profiles_complete',
+        columnNames: ['is_profile_complete'],
+      }),
+    );
+
+    // ============================================
+    // 3. HR_PROFILES TABLE
+    // ============================================
+    await queryRunner.createTable(
+      new Table({
+        name: 'hr_profiles',
+        columns: [
+          {
+            name: 'user_id',
+            type: 'uuid',
+            isPrimary: true,
+          },
+          {
+            name: 'company_name',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+          },
+          {
+            name: 'position',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+            comment: 'e.g., HR Manager, Recruiter',
+          },
+          {
+            name: 'is_profile_complete',
+            type: 'boolean',
+            default: false,
+            comment: 'True if company and position are filled',
+          },
+          {
+            name: 'created_at',
+            type: 'timestamp',
+            default: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'updated_at',
+            type: 'timestamp',
+            default: 'CURRENT_TIMESTAMP',
+          },
+        ],
+      }),
+      true,
+    );
+
+    // Foreign key to users
+    await queryRunner.createForeignKey(
+      'hr_profiles',
+      new TableForeignKey({
+        columnNames: ['user_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'users',
+        onDelete: 'CASCADE',
       }),
     );
 
@@ -376,13 +400,17 @@ export class InitialSchema1730460000000 implements MigrationInterface {
         columnNames: ['aggregate_id'],
       }),
     );
+
+    console.log('✅ Created all tables: users, candidate_profiles, hr_profiles, outbox');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop all tables in reverse order
     await queryRunner.dropTable('outbox', true);
-    await queryRunner.dropTable('user_roles', true);
-    await queryRunner.dropTable('roles', true);
+    await queryRunner.dropTable('hr_profiles', true);
+    await queryRunner.dropTable('candidate_profiles', true);
     await queryRunner.dropTable('users', true);
+
+    console.log('✅ Dropped all tables');
   }
 }

@@ -43,7 +43,7 @@ export function UserFilters({
             <option value="all">All Roles</option>
             <option value="admin">Admin</option>
             <option value="hr">HR</option>
-            <option value="user">User</option>
+            <option value="user">Candidate</option>
           </select>
 
           {/* Status Filter */}
