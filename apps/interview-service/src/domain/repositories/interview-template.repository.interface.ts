@@ -61,4 +61,10 @@ export interface IInterviewTemplateRepository {
    * Count templates by status
    */
   countByStatus(status: TemplateStatus): Promise<number>;
+
+  /**
+   * Reorder questions in template (batch update)
+   * Uses single SQL query with CASE WHEN for performance
+   */
+  reorderQuestions(templateId: string, questionIds: string[]): Promise<void>;
 }

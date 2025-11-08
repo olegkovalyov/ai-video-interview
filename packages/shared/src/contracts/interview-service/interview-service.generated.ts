@@ -168,6 +168,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/templates/{id}/questions/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Reorder questions in template
+         * @description Reorder all questions by providing question IDs in desired order. Uses batch UPDATE for performance.
+         */
+        patch: operations["TemplatesController_reorderQuestions"];
+        trace?: never;
+    };
     "/api/templates/{id}/publish": {
         parameters: {
             query?: never;
@@ -335,6 +355,23 @@ export interface components {
              */
             randomizeQuestions: boolean;
         };
+        QuestionOptionResponseDto: {
+            /**
+             * @description Option ID
+             * @example opt-123e4567-e89b-12d3-a456-426614174000
+             */
+            id: string;
+            /**
+             * @description Answer option text
+             * @example Paris
+             */
+            text: string;
+            /**
+             * @description Whether this option is correct
+             * @example true
+             */
+            isCorrect: boolean;
+        };
         QuestionResponseDto: {
             /**
              * @description Question UUID
@@ -372,6 +409,22 @@ export interface components {
              * @example Focus on real-world examples
              */
             hints?: string;
+            /**
+             * @description Answer options for multiple choice questions
+             * @example [
+             *       {
+             *         "id": "opt-1",
+             *         "text": "Paris",
+             *         "isCorrect": true
+             *       },
+             *       {
+             *         "id": "opt-2",
+             *         "text": "London",
+             *         "isCorrect": false
+             *       }
+             *     ]
+             */
+            options?: components["schemas"]["QuestionOptionResponseDto"][];
             /**
              * Format: date-time
              * @description Creation timestamp
@@ -428,6 +481,18 @@ export interface components {
              */
             updatedAt: string;
         };
+        QuestionOptionDto: {
+            /**
+             * @description Answer option text
+             * @example Paris
+             */
+            text: string;
+            /**
+             * @description Whether this option is a correct answer
+             * @example true
+             */
+            isCorrect: boolean;
+        };
         AddQuestionDto: {
             /**
              * @description Question text
@@ -460,6 +525,35 @@ export interface components {
              * @example Focus on real-world examples from your previous projects
              */
             hints?: string;
+            /**
+             * @description Answer options for multiple choice questions (required for multiple_choice type)
+             * @example [
+             *       {
+             *         "text": "Paris",
+             *         "isCorrect": true
+             *       },
+             *       {
+             *         "text": "London",
+             *         "isCorrect": false
+             *       },
+             *       {
+             *         "text": "Berlin",
+             *         "isCorrect": false
+             *       }
+             *     ]
+             */
+            options?: components["schemas"]["QuestionOptionDto"][];
+        };
+        ReorderQuestionsDto: {
+            /**
+             * @description Array of question IDs in desired order. Must include all questions.
+             * @example [
+             *       "q3-uuid-here",
+             *       "q1-uuid-here",
+             *       "q2-uuid-here"
+             *     ]
+             */
+            questionIds: string[];
         };
         UpdateTemplateDto: {
             /**
@@ -887,6 +981,55 @@ export interface operations {
                 content?: never;
             };
             /** @description Template or question not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TemplatesController_reorderQuestions: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-user-id": string;
+                "x-user-role": string;
+            };
+            path: {
+                /** @description Template ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderQuestionsDto"];
+            };
+        };
+        responses: {
+            /** @description Questions reordered successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad request - Invalid question IDs or count mismatch */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden - Not the owner */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Template not found */
             404: {
                 headers: {
                     [name: string]: unknown;

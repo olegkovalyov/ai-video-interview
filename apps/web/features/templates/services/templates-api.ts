@@ -1,13 +1,8 @@
 /**
  * Templates API Service
  * 
- * TODO: Replace mock implementation with real API calls to API Gateway
- * 
- * Real implementation will use:
- * - apiGet('/api/templates', ...)
- * - apiPost('/api/templates', ...)
- * - apiPut('/api/templates/:id', ...)
- * - apiDelete('/api/templates/:id')
+ * Real API implementation with API Gateway integration
+ * All endpoints: http://localhost:8001/api/templates
  */
 
 import {
@@ -16,194 +11,200 @@ import {
   CreateTemplateDto,
   UpdateTemplateDto,
   AddQuestionDto,
+  ReorderQuestionsDto,
   Question,
   TemplateStats,
   TemplateFilters,
 } from '../types/template.types';
-import { MOCK_TEMPLATES, MOCK_QUESTIONS, MOCK_STATS, delay } from './mock-data';
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete, ApiError } from '@/lib/api';
+
+/**
+ * Get user-friendly error message
+ */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'An unexpected error occurred';
+}
 
 /**
  * Get paginated list of templates
- * 
- * TODO: Replace with:
- * return apiGet<PaginatedTemplates>('/api/templates', { params: { page, limit, status } });
  */
 export async function listTemplates(
   page: number = 1,
   limit: number = 10,
   filters?: TemplateFilters,
 ): Promise<PaginatedTemplates> {
-  await delay(500); // Simulate network delay
-
-  let filtered = [...MOCK_TEMPLATES];
-
-  // Apply status filter
+  // Build query params
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
   if (filters?.status && filters.status !== 'all') {
-    filtered = filtered.filter(t => t.status === filters.status);
+    params.append('status', filters.status);
   }
+  
+  const url = `/api/templates?${params.toString()}`;
+  
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📡 API CALL: GET', url);
+  console.log('╠════════════════════════════════════════════════════════');
+  console.log('║ Request Params:', { page, limit, status: filters?.status || 'all' });
+  console.log('╚════════════════════════════════════════════════════════');
 
-  // Apply search filter
+  const result = await apiGet<PaginatedTemplates>(url);
+  
+  // Apply client-side search filter if needed (API doesn't support search yet)
+  let items = result.items;
   if (filters?.search) {
     const query = filters.search.toLowerCase();
-    filtered = filtered.filter(
+    items = items.filter(
       t =>
         t.title.toLowerCase().includes(query) ||
         t.description.toLowerCase().includes(query),
     );
   }
-
-  const total = filtered.length;
-  const totalPages = Math.ceil(total / limit);
-  const start = (page - 1) * limit;
-  const items = filtered.slice(start, start + limit);
-
-  return {
-    items,
-    total,
-    page,
-    limit,
-    totalPages,
-  };
+  
+  console.log('✅ Response received:', {
+    total: result.total,
+    itemsCount: items.length,
+    page: result.page,
+    totalPages: result.totalPages,
+  });
+  
+  return { ...result, items };
 }
 
 /**
  * Get single template by ID
- * 
- * TODO: Replace with:
- * return apiGet<Template>(`/api/templates/${id}`);
  */
 export async function getTemplate(id: string): Promise<Template> {
-  await delay(300);
+  const url = `/api/templates/${id}`;
+  
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📡 API CALL: GET', url);
+  console.log('╠════════════════════════════════════════════════════════');
+  console.log('║ Template ID:', id);
+  console.log('╚════════════════════════════════════════════════════════');
 
-  const template = MOCK_TEMPLATES.find(t => t.id === id);
-  if (!template) {
-    throw new Error('Template not found');
-  }
-
-  // Add questions to detail view
-  return {
-    ...template,
-    questions: MOCK_QUESTIONS,
-  };
+  const result = await apiGet<Template>(url);
+  
+  console.log('✅ Response received:', {
+    id: result.id,
+    title: result.title,
+    status: result.status,
+    questionsCount: result.questionsCount,
+  });
+  
+  return result;
 }
 
 /**
  * Create new template
- * 
- * TODO: Replace with:
- * return apiPost<{ id: string }>('/api/templates', dto);
  */
 export async function createTemplate(dto: CreateTemplateDto): Promise<{ id: string }> {
-  await delay(800);
+  const url = '/api/templates';
+  
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📡 API CALL: POST', url);
+  console.log('╠════════════════════════════════════════════════════════');
+  console.log('║ Request Body:');
+  console.log(JSON.stringify(dto, null, 2));
+  console.log('╚════════════════════════════════════════════════════════');
 
-  const newTemplate: Template = {
-    id: `tpl-${Date.now()}`,
-    ...dto,
-    status: 'draft',
-    createdBy: 'current-user-id', // Will come from auth context
-    questionsCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  MOCK_TEMPLATES.unshift(newTemplate);
-
-  return { id: newTemplate.id };
+  const result = await apiPost<{ id: string }>(url, dto);
+  
+  console.log('✅ Response received:', result);
+  
+  return result;
 }
 
 /**
  * Update template
- * 
- * TODO: Replace with:
- * return apiPut<Template>(`/api/templates/${id}`, dto);
  */
 export async function updateTemplate(id: string, dto: UpdateTemplateDto): Promise<Template> {
-  await delay(500);
+  const url = `/api/templates/${id}`;
+  
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📡 API CALL: PUT', url);
+  console.log('╠════════════════════════════════════════════════════════');
+  console.log('║ Request Body:');
+  console.log(JSON.stringify(dto, null, 2));
+  console.log('╚════════════════════════════════════════════════════════');
 
-  const index = MOCK_TEMPLATES.findIndex(t => t.id === id);
-  if (index === -1) {
-    throw new Error('Template not found');
-  }
-
-  MOCK_TEMPLATES[index] = {
-    ...MOCK_TEMPLATES[index],
-    ...dto,
-    updatedAt: new Date().toISOString(),
-  };
-
-  return MOCK_TEMPLATES[index];
+  const result = await apiPut<Template>(url, dto);
+  
+  console.log('✅ Response received:', {
+    id: result.id,
+    title: result.title,
+    status: result.status,
+  });
+  
+  return result;
 }
 
 /**
  * Delete (archive) template
- * 
- * TODO: Replace with:
- * return apiDelete(`/api/templates/${id}`);
  */
 export async function deleteTemplate(id: string): Promise<void> {
-  await delay(400);
+  const url = `/api/templates/${id}`;
+  
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📡 API CALL: DELETE', url);
+  console.log('╠════════════════════════════════════════════════════════');
+  console.log('║ Template ID:', id);
+  console.log('╚════════════════════════════════════════════════════════');
 
-  const index = MOCK_TEMPLATES.findIndex(t => t.id === id);
-  if (index === -1) {
-    throw new Error('Template not found');
-  }
-
-  // Soft delete - change status to archived
-  MOCK_TEMPLATES[index].status = 'archived';
-  MOCK_TEMPLATES[index].updatedAt = new Date().toISOString();
+  await apiDelete<void>(url);
+  
+  console.log('✅ Template deleted (archived)');
 }
 
 /**
  * Publish template (draft → active)
- * 
- * TODO: Replace with:
- * return apiPut<{ status: string }>(`/api/templates/${id}/publish`, {});
  */
 export async function publishTemplate(id: string): Promise<{ status: string }> {
-  await delay(500);
+  const url = `/api/templates/${id}/publish`;
+  
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📡 API CALL: PUT', url);
+  console.log('╠════════════════════════════════════════════════════════');
+  console.log('║ Template ID:', id);
+  console.log('╚════════════════════════════════════════════════════════');
 
-  const index = MOCK_TEMPLATES.findIndex(t => t.id === id);
-  if (index === -1) {
-    throw new Error('Template not found');
-  }
-
-  if (MOCK_TEMPLATES[index].status !== 'draft') {
-    throw new Error('Only draft templates can be published');
-  }
-
-  MOCK_TEMPLATES[index].status = 'active';
-  MOCK_TEMPLATES[index].updatedAt = new Date().toISOString();
-
-  return { status: 'active' };
+  const result = await apiPut<{ status: string }>(url, {});
+  
+  console.log('✅ Response received:', result);
+  
+  return result;
 }
 
 /**
  * Duplicate template
- * 
- * TODO: Replace with:
- * const original = await apiGet<Template>(`/api/templates/${id}`);
- * return apiPost<{ id: string }>('/api/templates', { ...original, title: `${original.title} (Copy)` });
  */
 export async function duplicateTemplate(id: string): Promise<{ id: string }> {
-  await delay(700);
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 🔄 Duplicating template:', id);
+  console.log('╚════════════════════════════════════════════════════════');
 
-  const original = MOCK_TEMPLATES.find(t => t.id === id);
-  if (!original) {
-    throw new Error('Template not found');
-  }
-
-  const duplicate: Template = {
-    ...original,
-    id: `tpl-${Date.now()}`,
+  // Get original template
+  const original = await getTemplate(id);
+  
+  // Create duplicate with new title
+  const dto: CreateTemplateDto = {
     title: `${original.title} (Copy)`,
-    status: 'draft',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    description: original.description,
+    settings: original.settings,
   };
-
-  MOCK_TEMPLATES.unshift(duplicate);
-
-  return { id: duplicate.id };
+  
+  const result = await createTemplate(dto);
+  
+  console.log('✅ Template duplicated:', result.id);
+  
+  return result;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -212,65 +213,53 @@ export async function duplicateTemplate(id: string): Promise<{ id: string }> {
 
 /**
  * Get questions for template
- * 
- * TODO: Replace with:
- * return apiGet<{ questions: Question[] }>(`/api/templates/${templateId}/questions`);
  */
 export async function getQuestions(templateId: string): Promise<{ questions: Question[] }> {
-  await delay(300);
-  return { questions: MOCK_QUESTIONS };
+  const url = `/api/templates/${templateId}/questions`;
+  
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📡 API CALL: GET', url);
+  console.log('╠════════════════════════════════════════════════════════');
+  console.log('║ Template ID:', templateId);
+  console.log('╚════════════════════════════════════════════════════════');
+
+  const result = await apiGet<{ questions: Question[] }>(url);
+  
+  console.log('✅ Response received:', {
+    questionsCount: result.questions.length,
+  });
+  
+  return result;
 }
 
 /**
  * Add question to template
- * 
- * TODO: Replace with:
- * return apiPost<{ id: string }>(`/api/templates/${templateId}/questions`, dto);
  */
 export async function addQuestion(
   templateId: string,
   dto: AddQuestionDto,
 ): Promise<{ id: string }> {
-  await delay(500);
-
-  const newQuestion: Question = {
-    id: `q-${Date.now()}`,
-    ...dto,
-    createdAt: new Date().toISOString(),
-  };
-
-  MOCK_QUESTIONS.push(newQuestion);
-
-  // Update questions count
-  const template = MOCK_TEMPLATES.find(t => t.id === templateId);
-  if (template) {
-    template.questionsCount++;
-    template.updatedAt = new Date().toISOString();
-  }
-
-  return { id: newQuestion.id };
+  const url = `/api/templates/${templateId}/questions`;
+  return await apiPost<{ id: string }>(url, dto);
 }
 
 /**
  * Remove question from template
- * 
- * TODO: Replace with:
- * return apiDelete(`/api/templates/${templateId}/questions/${questionId}`);
  */
 export async function removeQuestion(templateId: string, questionId: string): Promise<void> {
-  await delay(400);
+  const url = `/api/templates/${templateId}/questions/${questionId}`;
+  await apiDelete<void>(url);
+}
 
-  const index = MOCK_QUESTIONS.findIndex(q => q.id === questionId);
-  if (index !== -1) {
-    MOCK_QUESTIONS.splice(index, 1);
-  }
-
-  // Update questions count
-  const template = MOCK_TEMPLATES.find(t => t.id === templateId);
-  if (template) {
-    template.questionsCount = Math.max(0, template.questionsCount - 1);
-    template.updatedAt = new Date().toISOString();
-  }
+/**
+ * Reorder questions in template
+ */
+export async function reorderQuestions(
+  templateId: string,
+  dto: ReorderQuestionsDto,
+): Promise<void> {
+  const url = `/api/templates/${templateId}/questions/reorder`;
+  await apiPatch<void>(url, dto);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -279,17 +268,25 @@ export async function removeQuestion(templateId: string, questionId: string): Pr
 
 /**
  * Get template statistics
- * 
- * TODO: Replace with:
- * return apiGet<TemplateStats>('/api/templates/stats');
+ * Note: API doesn't have this endpoint yet, calculating client-side
  */
 export async function getTemplateStats(): Promise<TemplateStats> {
-  await delay(200);
+  console.log('╔════════════════════════════════════════════════════════');
+  console.log('║ 📊 Calculating template stats (client-side)');
+  console.log('╚════════════════════════════════════════════════════════');
 
-  return {
-    total: MOCK_TEMPLATES.length,
-    active: MOCK_TEMPLATES.filter(t => t.status === 'active').length,
-    draft: MOCK_TEMPLATES.filter(t => t.status === 'draft').length,
-    archived: MOCK_TEMPLATES.filter(t => t.status === 'archived').length,
+  // Get all templates and calculate stats
+  const allTemplates = await listTemplates(1, 1000);
+  const templates = allTemplates.items;
+  
+  const result = {
+    total: templates.length,
+    active: templates.filter(t => t.status === 'active').length,
+    draft: templates.filter(t => t.status === 'draft').length,
+    archived: templates.filter(t => t.status === 'archived').length,
   };
+  
+  console.log('✅ Stats calculated:', result);
+  
+  return result;
 }

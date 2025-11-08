@@ -42,6 +42,13 @@ export class QuestionEntity {
   @Column({ type: 'text', nullable: true })
   hints: string | null;
 
+  @Column({ type: 'jsonb', nullable: true })
+  options: Array<{
+    id: string;
+    text: string;
+    isCorrect: boolean;
+  }> | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 }

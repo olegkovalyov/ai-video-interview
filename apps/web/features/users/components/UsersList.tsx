@@ -13,8 +13,8 @@ export function UsersList() {
   const [loading, setLoading] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr' | 'user'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr' | 'candidate'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended' | 'deleted'>('all');
 
   // Fetch users with their roles
   const fetchUsers = async () => {
@@ -120,7 +120,6 @@ export function UsersList() {
     // Apply role filter
     .filter(user => {
       if (roleFilter === 'all') return true;
-      if (roleFilter === 'user') return user.role === 'candidate';
       return user.role === roleFilter;
     })
     // Apply status filter

@@ -1,5 +1,6 @@
 import { Question } from '../question.entity';
 import { QuestionType } from '../../value-objects/question-type.vo';
+import { QuestionOption } from '../../value-objects/question-option.vo';
 
 describe('Question Entity', () => {
   const validQuestionProps = {
@@ -319,8 +320,202 @@ describe('Question Entity', () => {
         timeLimit: 300,
         required: true,
         hints: 'Mention specific projects',
+        options: undefined,
         createdAt: question.createdAt.toISOString(),
       });
+    });
+
+    it('should serialize multiple choice question with options', () => {
+      const options = [
+        QuestionOption.create({ id: 'opt-1', text: 'Paris', isCorrect: true }),
+        QuestionOption.create({ id: 'opt-2', text: 'London', isCorrect: false }),
+      ];
+
+      const mcQuestion = Question.create('test-id', {
+        ...validQuestionProps,
+        type: QuestionType.multipleChoice(),
+        options,
+      });
+
+      const json = mcQuestion.toJSON();
+
+      expect(json.options).toEqual([
+        { id: 'opt-1', text: 'Paris', isCorrect: true },
+        { id: 'opt-2', text: 'London', isCorrect: false },
+      ]);
+    });
+  });
+
+  describe('Multiple Choice Validation', () => {
+    const validOptions = [
+      QuestionOption.create({ id: 'opt-1', text: 'Paris', isCorrect: true }),
+      QuestionOption.create({ id: 'opt-2', text: 'London', isCorrect: false }),
+      QuestionOption.create({ id: 'opt-3', text: 'Berlin', isCorrect: false }),
+    ];
+
+    it('should create multiple choice question with valid options', () => {
+      const question = Question.create('id', {
+        ...validQuestionProps,
+        type: QuestionType.multipleChoice(),
+        options: validOptions,
+      });
+
+      expect(question.type.value).toBe('multiple_choice');
+      expect(question.options).toHaveLength(3);
+      expect(question.options![0].text).toBe('Paris');
+    });
+
+    it('should throw error if multiple choice has less than 2 options', () => {
+      expect(() =>
+        Question.create('id', {
+          ...validQuestionProps,
+          type: QuestionType.multipleChoice(),
+          options: [QuestionOption.create({ id: 'opt-1', text: 'Paris', isCorrect: true })],
+        }),
+      ).toThrow('Multiple choice questions must have at least 2 options');
+    });
+
+    it('should throw error if multiple choice has no options', () => {
+      expect(() =>
+        Question.create('id', {
+          ...validQuestionProps,
+          type: QuestionType.multipleChoice(),
+          options: [],
+        }),
+      ).toThrow('Multiple choice questions must have at least 2 options');
+    });
+
+    it('should throw error if multiple choice has undefined options', () => {
+      expect(() =>
+        Question.create('id', {
+          ...validQuestionProps,
+          type: QuestionType.multipleChoice(),
+          options: undefined,
+        }),
+      ).toThrow('Multiple choice questions must have at least 2 options');
+    });
+
+    it('should throw error if multiple choice has more than 10 options', () => {
+      const tooManyOptions = Array.from({ length: 11 }, (_, i) =>
+        QuestionOption.create({
+          id: `opt-${i}`,
+          text: `Option ${i}`,
+          isCorrect: i === 0,
+        }),
+      );
+
+      expect(() =>
+        Question.create('id', {
+          ...validQuestionProps,
+          type: QuestionType.multipleChoice(),
+          options: tooManyOptions,
+        }),
+      ).toThrow('Multiple choice questions cannot have more than 10 options');
+    });
+
+    it('should accept multiple choice with exactly 2 options (minimum)', () => {
+      const minOptions = [
+        QuestionOption.create({ id: 'opt-1', text: 'Yes', isCorrect: true }),
+        QuestionOption.create({ id: 'opt-2', text: 'No', isCorrect: false }),
+      ];
+
+      const question = Question.create('id', {
+        ...validQuestionProps,
+        type: QuestionType.multipleChoice(),
+        options: minOptions,
+      });
+
+      expect(question.options).toHaveLength(2);
+    });
+
+    it('should accept multiple choice with exactly 10 options (maximum)', () => {
+      const maxOptions = Array.from({ length: 10 }, (_, i) =>
+        QuestionOption.create({
+          id: `opt-${i}`,
+          text: `Option ${i}`,
+          isCorrect: i === 0,
+        }),
+      );
+
+      const question = Question.create('id', {
+        ...validQuestionProps,
+        type: QuestionType.multipleChoice(),
+        options: maxOptions,
+      });
+
+      expect(question.options).toHaveLength(10);
+    });
+
+    it('should throw error if multiple choice has no correct answer', () => {
+      const noCorrectOptions = [
+        QuestionOption.create({ id: 'opt-1', text: 'Paris', isCorrect: false }),
+        QuestionOption.create({ id: 'opt-2', text: 'London', isCorrect: false }),
+      ];
+
+      expect(() =>
+        Question.create('id', {
+          ...validQuestionProps,
+          type: QuestionType.multipleChoice(),
+          options: noCorrectOptions,
+        }),
+      ).toThrow('Multiple choice questions must have at least one correct answer');
+    });
+
+    it('should accept multiple choice with multiple correct answers', () => {
+      const multipleCorrect = [
+        QuestionOption.create({ id: 'opt-1', text: 'Paris', isCorrect: true }),
+        QuestionOption.create({ id: 'opt-2', text: 'London', isCorrect: true }),
+        QuestionOption.create({ id: 'opt-3', text: 'Berlin', isCorrect: false }),
+      ];
+
+      const question = Question.create('id', {
+        ...validQuestionProps,
+        type: QuestionType.multipleChoice(),
+        options: multipleCorrect,
+      });
+
+      const correctCount = question.options!.filter((o) => o.isCorrect).length;
+      expect(correctCount).toBe(2);
+    });
+
+    it('should throw error if video question has options', () => {
+      expect(() =>
+        Question.create('id', {
+          ...validQuestionProps,
+          type: QuestionType.video(),
+          options: validOptions,
+        }),
+      ).toThrow('Only multiple choice questions can have options');
+    });
+
+    it('should throw error if text question has options', () => {
+      expect(() =>
+        Question.create('id', {
+          ...validQuestionProps,
+          type: QuestionType.text(),
+          options: validOptions,
+        }),
+      ).toThrow('Only multiple choice questions can have options');
+    });
+
+    it('should accept video question without options', () => {
+      const question = Question.create('id', {
+        ...validQuestionProps,
+        type: QuestionType.video(),
+        options: undefined,
+      });
+
+      expect(question.options).toBeUndefined();
+    });
+
+    it('should accept text question without options', () => {
+      const question = Question.create('id', {
+        ...validQuestionProps,
+        type: QuestionType.text(),
+        options: undefined,
+      });
+
+      expect(question.options).toBeUndefined();
     });
   });
 });

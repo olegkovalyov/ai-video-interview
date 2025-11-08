@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { InterviewServiceProxy } from './clients/interview-service.proxy';
 import { InterviewServiceClient } from './clients/interview-service.client';
 import { TemplatesController } from './controllers/templates.controller';
 import { LoggerService } from '../../core/logging/logger.service';
@@ -10,7 +9,6 @@ import { LoggerService } from '../../core/logging/logger.service';
  * Aggregates all interview-service related functionality
  * 
  * Structure:
- * - InterviewServiceProxy: HTTP client for interview-service communication (legacy)
  * - InterviewServiceClient: Typed HTTP client for templates API
  * - TemplatesController: REST API endpoints for templates management
  * 
@@ -26,12 +24,10 @@ import { LoggerService } from '../../core/logging/logger.service';
     TemplatesController,
   ],
   providers: [
-    InterviewServiceProxy,
     InterviewServiceClient,
     LoggerService,
   ],
   exports: [
-    InterviewServiceProxy,
     InterviewServiceClient,
   ],
 })

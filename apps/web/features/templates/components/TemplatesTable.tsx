@@ -113,7 +113,7 @@ export function TemplatesTable({
                           <DropdownMenuTrigger asChild>
                             <button
                               disabled={isLoading}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               <MoreVertical className="w-5 h-5 text-white/70" />
                             </button>

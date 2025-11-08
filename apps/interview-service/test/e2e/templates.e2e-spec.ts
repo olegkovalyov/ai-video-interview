@@ -353,6 +353,113 @@ describe('Templates API (E2E)', () => {
         })
         .expect(403);
     });
+
+    it('should add multiple choice question with options', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'What is the capital of France?',
+          type: 'multiple_choice',
+          order: 1,
+          timeLimit: 60,
+          required: true,
+          options: [
+            { text: 'Paris', isCorrect: true },
+            { text: 'London', isCorrect: false },
+            { text: 'Berlin', isCorrect: false },
+          ],
+        })
+        .expect(201);
+
+      expect(response.body.id).toBeDefined();
+
+      // Verify options were saved by fetching template
+      const templateResponse = await request(app.getHttpServer())
+        .get(`/api/templates/${templateId}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .expect(200);
+
+      const question = templateResponse.body.questions[0];
+      expect(question.type).toBe('multiple_choice');
+      expect(question.options).toHaveLength(3);
+      expect(question.options[0].text).toBe('Paris');
+      expect(question.options[0].isCorrect).toBe(true);
+      expect(question.options[1].isCorrect).toBe(false);
+    });
+
+    it('should reject multiple choice with less than 2 options', async () => {
+      await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'What is the answer?',
+          type: 'multiple_choice',
+          order: 1,
+          timeLimit: 60,
+          options: [{ text: 'Only one', isCorrect: true }],
+        })
+        .expect(400);
+    });
+
+    it('should reject multiple choice with more than 10 options', async () => {
+      const tooManyOptions = Array.from({ length: 11 }, (_, i) => ({
+        text: `Option ${i + 1}`,
+        isCorrect: i === 0,
+      }));
+
+      await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'Too many options?',
+          type: 'multiple_choice',
+          order: 1,
+          timeLimit: 60,
+          options: tooManyOptions,
+        })
+        .expect(400);
+    });
+
+    it('should reject multiple choice with no correct answer', async () => {
+      await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'What is the answer?',
+          type: 'multiple_choice',
+          order: 1,
+          timeLimit: 60,
+          options: [
+            { text: 'Option A', isCorrect: false },
+            { text: 'Option B', isCorrect: false },
+          ],
+        })
+        .expect(400);
+    });
+
+    it('should reject video question with options', async () => {
+      await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'Tell me about yourself',
+          type: 'video',
+          order: 1,
+          timeLimit: 120,
+          options: [
+            { text: 'Option A', isCorrect: true },
+            { text: 'Option B', isCorrect: false },
+          ],
+        })
+        .expect(400);
+    });
   });
 
   describe('DELETE /api/templates/:id/questions/:questionId', () => {
@@ -407,6 +514,158 @@ describe('Templates API (E2E)', () => {
         .set('x-user-id', hr2UserId)
         .set('x-user-role', 'hr')
         .expect(403);
+    });
+  });
+
+  describe('PATCH /api/templates/:id/questions/reorder', () => {
+    let templateId: string;
+    let q1Id: string;
+    let q2Id: string;
+    let q3Id: string;
+
+    beforeEach(async () => {
+      // Create template
+      const templateRes = await request(app.getHttpServer())
+        .post('/api/templates')
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          title: 'Reorder Test Template',
+          description: 'Test Description',
+        });
+      templateId = templateRes.body.id;
+
+      // Add 3 questions
+      const q1Res = await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'Question 1: What is your experience?',
+          type: 'text',
+          order: 1,
+          timeLimit: 300,
+          required: true,
+        });
+      q1Id = q1Res.body.id;
+
+      const q2Res = await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'Question 2: Describe your skills',
+          type: 'text',
+          order: 2,
+          timeLimit: 300,
+          required: true,
+        });
+      q2Id = q2Res.body.id;
+
+      const q3Res = await request(app.getHttpServer())
+        .post(`/api/templates/${templateId}/questions`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          text: 'Question 3: What are your goals?',
+          type: 'text',
+          order: 3,
+          timeLimit: 300,
+          required: true,
+        });
+      q3Id = q3Res.body.id;
+    });
+
+    it('should reorder questions successfully', async () => {
+      // Reorder: q3, q1, q2
+      await request(app.getHttpServer())
+        .patch(`/api/templates/${templateId}/questions/reorder`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          questionIds: [q3Id, q1Id, q2Id],
+        })
+        .expect(204);
+
+      // Verify new order
+      const response = await request(app.getHttpServer())
+        .get(`/api/templates/${templateId}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .expect(200);
+
+      const questions = response.body.questions;
+      expect(questions).toHaveLength(3);
+      expect(questions[0].id).toBe(q3Id);
+      expect(questions[0].order).toBe(1);
+      expect(questions[1].id).toBe(q1Id);
+      expect(questions[1].order).toBe(2);
+      expect(questions[2].id).toBe(q2Id);
+      expect(questions[2].order).toBe(3);
+    });
+
+    it('should reject if not all question IDs provided', async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/templates/${templateId}/questions/reorder`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          questionIds: [q1Id, q2Id], // Missing q3
+        })
+        .expect(400);
+    });
+
+    it('should reject if invalid question ID provided', async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/templates/${templateId}/questions/reorder`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          questionIds: [q1Id, q2Id, 'invalid-uuid'],
+        })
+        .expect(400);
+    });
+
+    it('should reject if duplicate IDs provided', async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/templates/${templateId}/questions/reorder`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .send({
+          questionIds: [q1Id, q1Id, q2Id], // Duplicate q1Id
+        })
+        .expect(400);
+    });
+
+    it('should reject reordering other HR template', async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/templates/${templateId}/questions/reorder`)
+        .set('x-user-id', hr2UserId)
+        .set('x-user-role', 'hr')
+        .send({
+          questionIds: [q3Id, q1Id, q2Id],
+        })
+        .expect(403);
+    });
+
+    it('should allow admin to reorder any template', async () => {
+      await request(app.getHttpServer())
+        .patch(`/api/templates/${templateId}/questions/reorder`)
+        .set('x-user-id', adminUserId)
+        .set('x-user-role', 'admin')
+        .send({
+          questionIds: [q2Id, q3Id, q1Id],
+        })
+        .expect(204);
+
+      // Verify order changed
+      const response = await request(app.getHttpServer())
+        .get(`/api/templates/${templateId}`)
+        .set('x-user-id', hrUserId)
+        .set('x-user-role', 'hr')
+        .expect(200);
+
+      expect(response.body.questions[0].id).toBe(q2Id);
     });
   });
 

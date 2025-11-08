@@ -7,6 +7,7 @@ import {
   TemplateCreatedEvent,
   QuestionAddedEvent,
   QuestionRemovedEvent,
+  QuestionsReorderedEvent,
   TemplatePublishedEvent,
   TemplateArchivedEvent,
 } from '../events';
@@ -257,6 +258,54 @@ export class InterviewTemplate extends AggregateRoot {
 
     this.props.settings = settings;
     this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Reorder questions by providing IDs in desired order
+   * Business Rule: Cannot modify archived template
+   * Business Rule: Must provide all question IDs
+   * Business Rule: All IDs must exist
+   */
+  reorderQuestionsByIds(questionIds: string[]): void {
+    if (this.status.isArchived()) {
+      throw new Error('Cannot reorder questions in archived template');
+    }
+
+    // Validate that all question IDs exist
+    const existingIds = this.props.questions.map((q) => q.id);
+    const allIdsValid = questionIds.every((id) => existingIds.includes(id));
+    
+    if (!allIdsValid) {
+      throw new Error('One or more question IDs do not exist');
+    }
+
+    // Validate that all questions are provided
+    if (questionIds.length !== this.props.questions.length) {
+      throw new Error(
+        `Must provide all question IDs. Expected ${this.props.questions.length}, got ${questionIds.length}`,
+      );
+    }
+
+    // Check for duplicates
+    const uniqueIds = new Set(questionIds);
+    if (uniqueIds.size !== questionIds.length) {
+      throw new Error('Duplicate question IDs are not allowed');
+    }
+
+    // Reorder questions based on provided IDs
+    questionIds.forEach((id, index) => {
+      const question = this.props.questions.find((q) => q.id === id);
+      const updatedQuestion = question!.updateOrder(index + 1);
+
+      // Replace in array (immutability)
+      const idx = this.props.questions.findIndex((q) => q.id === id);
+      this.props.questions[idx] = updatedQuestion;
+    });
+
+    this.props.updatedAt = new Date();
+
+    // Raise domain event
+    this.apply(new QuestionsReorderedEvent(this.id, questionIds));
   }
 
   /**

@@ -18,7 +18,7 @@ import { apiPost } from '@/lib/api';
  * - Reactive: обновляет при 401 (если proactive не сработал)
  */
 export function TokenRefreshProvider({ children }: { children: React.ReactNode }) {
-  const refreshIntervalRef = useRef<NodeJS.Timeout>();
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isRefreshingRef = useRef(false);
   
   useEffect(() => {

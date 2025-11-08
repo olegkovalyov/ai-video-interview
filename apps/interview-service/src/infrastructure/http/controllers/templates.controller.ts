@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -26,6 +27,7 @@ import { InternalServiceGuard } from '../guards/internal-service.guard';
 import {
   CreateTemplateDto,
   AddQuestionDto,
+  ReorderQuestionsDto,
   UpdateTemplateDto,
   ListTemplatesQueryDto,
   TemplateResponseDto,
@@ -36,6 +38,7 @@ import {
   CreateTemplateCommand,
   AddQuestionCommand,
   RemoveQuestionCommand,
+  ReorderQuestionsCommand,
   PublishTemplateCommand,
   UpdateTemplateCommand,
   DeleteTemplateCommand,
@@ -150,6 +153,7 @@ export class TemplatesController {
       dto.timeLimit,
       dto.required,
       dto.hints,
+      dto.options, // Pass options to command
     );
 
     const questionId = await this.commandBus.execute(command);
@@ -175,6 +179,30 @@ export class TemplatesController {
     await this.checkOwnership(templateId, userId, role);
 
     const command = new RemoveQuestionCommand(templateId, questionId);
+    await this.commandBus.execute(command);
+  }
+
+  @Patch(':id/questions/reorder')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ 
+    summary: 'Reorder questions in template', 
+    description: 'Reorder all questions by providing question IDs in desired order. Uses batch UPDATE for performance.' 
+  })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
+  @ApiResponse({ status: 204, description: 'Questions reordered successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid question IDs or count mismatch' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
+  async reorderQuestions(
+    @Param('id') templateId: string,
+    @Body() dto: ReorderQuestionsDto,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-role') role: string,
+  ): Promise<void> {
+    // Check ownership first
+    await this.checkOwnership(templateId, userId, role);
+
+    const command = new ReorderQuestionsCommand(templateId, dto.questionIds);
     await this.commandBus.execute(command);
   }
 

@@ -7,6 +7,7 @@ import {
   TemplateCreatedEvent,
   QuestionAddedEvent,
   QuestionRemovedEvent,
+  QuestionsReorderedEvent,
   TemplatePublishedEvent,
   TemplateArchivedEvent,
 } from '../../events';
@@ -1028,6 +1029,202 @@ describe('InterviewTemplate Aggregate', () => {
       });
 
       expect(template.getUncommittedEvents()).toHaveLength(0);
+    });
+  });
+
+  describe('Reorder Questions', () => {
+    it('should reorder questions successfully', () => {
+      const template = InterviewTemplate.create(
+        'template-1',
+        'Test Template',
+        'Description',
+        'hr-user-1',
+      );
+
+      const q1 = createValidQuestion('q1', 1);
+      const q2 = createValidQuestion('q2', 2);
+      const q3 = createValidQuestion('q3', 3);
+
+      template.addQuestion(q1);
+      template.addQuestion(q2);
+      template.addQuestion(q3);
+
+      // Reorder: q3, q1, q2
+      template.reorderQuestionsByIds(['q3', 'q1', 'q2']);
+
+      const sorted = template.getSortedQuestions();
+      expect(sorted[0].id).toBe('q3');
+      expect(sorted[0].order).toBe(1);
+      expect(sorted[1].id).toBe('q1');
+      expect(sorted[1].order).toBe(2);
+      expect(sorted[2].id).toBe('q2');
+      expect(sorted[2].order).toBe(3);
+    });
+
+    it('should emit QuestionsReorderedEvent', () => {
+      const template = InterviewTemplate.create(
+        'template-1',
+        'Test',
+        'Desc',
+        'user-1',
+      );
+
+      template.addQuestion(createValidQuestion('q1', 1));
+      template.addQuestion(createValidQuestion('q2', 2));
+      template.commit(); // Clear previous events
+
+      template.reorderQuestionsByIds(['q2', 'q1']);
+
+      const events = template.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(QuestionsReorderedEvent);
+      expect((events[0] as QuestionsReorderedEvent).questionIds).toEqual([
+        'q2',
+        'q1',
+      ]);
+    });
+
+    it('should throw error if template is archived', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+      template.addQuestion(createValidQuestion('q1', 1));
+      template.addQuestion(createValidQuestion('q2', 2));
+      template.publish();
+      template.archive();
+
+      expect(() => {
+        template.reorderQuestionsByIds(['q2', 'q1']);
+      }).toThrow('Cannot reorder questions in archived template');
+    });
+
+    it('should throw error if question ID does not exist', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+      template.addQuestion(createValidQuestion('q1', 1));
+      template.addQuestion(createValidQuestion('q2', 2));
+
+      expect(() => {
+        template.reorderQuestionsByIds(['q1', 'q-invalid']);
+      }).toThrow('One or more question IDs do not exist');
+    });
+
+    it('should throw error if not all question IDs provided', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+      template.addQuestion(createValidQuestion('q1', 1));
+      template.addQuestion(createValidQuestion('q2', 2));
+      template.addQuestion(createValidQuestion('q3', 3));
+
+      expect(() => {
+        template.reorderQuestionsByIds(['q1', 'q2']); // Missing q3
+      }).toThrow('Must provide all question IDs. Expected 3, got 2');
+    });
+
+    it('should throw error if too many IDs provided', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+      template.addQuestion(createValidQuestion('q1', 1));
+      template.addQuestion(createValidQuestion('q2', 2));
+
+      expect(() => {
+        template.reorderQuestionsByIds(['q1', 'q2', 'q3']); // Extra q3
+      }).toThrow('One or more question IDs do not exist');
+    });
+
+    it('should throw error if duplicate IDs provided', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+      template.addQuestion(createValidQuestion('q1', 1));
+      template.addQuestion(createValidQuestion('q2', 2));
+
+      expect(() => {
+        template.reorderQuestionsByIds(['q1', 'q1']); // Duplicate
+      }).toThrow('Duplicate question IDs are not allowed');
+    });
+
+    it('should work with single question', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+      template.addQuestion(createValidQuestion('q1', 1));
+
+      template.reorderQuestionsByIds(['q1']);
+
+      const sorted = template.getSortedQuestions();
+      expect(sorted).toHaveLength(1);
+      expect(sorted[0].order).toBe(1);
+    });
+
+    it('should reorder 10 questions correctly', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+
+      const questions = Array.from({ length: 10 }, (_, i) =>
+        createValidQuestion(`q${i + 1}`, i + 1),
+      );
+      questions.forEach((q) => template.addQuestion(q));
+
+      // Reverse order
+      const reversedIds = questions.map((q) => q.id).reverse();
+      template.reorderQuestionsByIds(reversedIds);
+
+      const sorted = template.getSortedQuestions();
+      expect(sorted[0].id).toBe('q10');
+      expect(sorted[9].id).toBe('q1');
+    });
+
+    it('should maintain immutability (create new Question instances)', () => {
+      const template = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+
+      const q1 = createValidQuestion('q1', 1);
+      const q2 = createValidQuestion('q2', 2);
+
+      template.addQuestion(q1);
+      template.addQuestion(q2);
+
+      const originalQ1 = template.getQuestion('q1')!;
+      const originalOrder1 = originalQ1.order;
+
+      template.reorderQuestionsByIds(['q2', 'q1']);
+
+      const reorderedQ1 = template.getQuestion('q1')!;
+
+      // New instance created (immutability)
+      expect(reorderedQ1).not.toBe(originalQ1);
+      expect(reorderedQ1.order).toBe(2);
+      expect(originalOrder1).toBe(1); // Original unchanged
     });
   });
 });

@@ -2,33 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { WizardProgress } from './WizardProgress';
 import { Step1BasicInfo } from './Step1BasicInfo';
 import { Step2Questions } from './Step2Questions';
 import { Step3SettingsReview } from './Step3SettingsReview';
-import { createTemplate, addQuestion } from '../../services/templates-api';
-import { InterviewSettings, QuestionType } from '../../types/template.types';
-
-const STEPS = [
-  { number: 1, title: 'Basic Info', description: 'Title & Description' },
-  { number: 2, title: 'Questions', description: 'Add interview questions' },
-  { number: 3, title: 'Settings', description: 'Configure & Review' },
-];
-
-interface Question {
-  id: string;
-  text: string;
-  type: QuestionType;
-  order: number;
-  timeLimit: number;
-  required: boolean;
-  hints?: string;
-}
+import { createTemplate, updateTemplate, publishTemplate } from '../../services/templates-api';
 
 export function CreateTemplateWizard() {
   const router = useRouter();
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepValidation, setStepValidation] = useState({
@@ -40,88 +24,139 @@ export function CreateTemplateWizard() {
   const [wizardData, setWizardData] = useState({
     title: '',
     description: '',
-    questions: [] as Question[],
+    questions: [] as any[],
     settings: {
-      totalTimeLimit: 45,
-      allowRetakes: false,
+      totalTimeLimit: 30,
+      allowRetakes: true,
       showTimer: true,
       randomizeQuestions: false,
-    } as InterviewSettings,
+    },
   });
 
-  const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+  // ═══════════════════════════════════════════════════════════
+  // STEP 1: Create Template (только создание!)
+  // ═══════════════════════════════════════════════════════════
+
+  const handleStep1Next = async () => {
+    setIsSubmitting(true);
+    try {
+      // ✅ REAL API: Create template
+      const response = await createTemplate({
+        title: wizardData.title,
+        description: wizardData.description,
+        settings: wizardData.settings
+      });
+      
+      setTemplateId(response.id);
+      setCurrentStep(2);
+      
+      toast.success('Template created as draft');
+      
+    } catch (error: any) {
+      console.error('🔴 Error creating template:', error);
+      const errorMessage = error?.message || 'Failed to create template. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+  // ═══════════════════════════════════════════════════════════
+  // STEP 2: Just navigate (questions handled in Step2Questions)
+  // ═══════════════════════════════════════════════════════════
+
+  const handleStep2Next = () => {
+    console.log('╔════════════════════════════════════════════════════════');
+    console.log('║ ℹ️  Step 2 → Step 3: No API call');
+    console.log('║ Questions already added via Step2Questions component');
+    console.log('╚════════════════════════════════════════════════════════');
+    setCurrentStep(3);
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // STEP 3: Publish or Save Draft
+  // ═══════════════════════════════════════════════════════════
+
+  const handlePublish = async () => {
+    if (!templateId) return;
+    
+    setIsSubmitting(true);
+    try {
+      // 1. Update settings
+      await updateTemplate(templateId, {
+        settings: wizardData.settings
+      });
+      
+      // 2. Publish
+      await publishTemplate(templateId);
+      
+      toast.success('Template published!');
+      
+      console.log('✅ Template published successfully!');
+      console.log('   Template ID:', templateId);
+      console.log('   Total questions:', wizardData.questions.length);
+      
+      router.push('/hr/interviews');
+      
+    } catch (error: any) {
+      console.error('🔴 Error publishing template:', error);
+      const errorMessage = error?.message || 'Failed to publish template. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSaveDraft = async () => {
+    if (!templateId) return;
+    
     setIsSubmitting(true);
     try {
-      const { id } = await createTemplate({
-        title: wizardData.title,
-        description: wizardData.description,
-        settings: wizardData.settings,
+      // Update settings
+      await updateTemplate(templateId, {
+        settings: wizardData.settings
       });
-
-      // Add questions
-      for (const question of wizardData.questions) {
-        await addQuestion(id, {
-          text: question.text,
-          type: question.type,
-          order: question.order,
-          timeLimit: question.timeLimit,
-          required: question.required,
-          hints: question.hints,
-        });
-      }
-
-      toast.success('Template saved as draft');
-      router.push(`/hr/interviews/${id}`);
+      
+      toast.success('Draft saved');
+      
+      console.log('✅ Draft saved successfully!');
+      console.log('   Template ID:', templateId);
+      console.log('   Status: draft');
+      
+      router.push('/hr/interviews');
+      
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save template');
+      console.error('🔴 Error saving draft:', error);
+      const errorMessage = error?.message || 'Failed to save draft. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePublish = async () => {
-    setIsSubmitting(true);
-    try {
-      // Create template
-      const { id } = await createTemplate({
-        title: wizardData.title,
-        description: wizardData.description,
-        settings: wizardData.settings,
-      });
+  // ═══════════════════════════════════════════════════════════
+  // Cancel
+  // ═══════════════════════════════════════════════════════════
 
-      // Add questions
-      for (const question of wizardData.questions) {
-        await addQuestion(id, {
-          text: question.text,
-          type: question.type,
-          order: question.order,
-          timeLimit: question.timeLimit,
-          required: question.required,
-          hints: question.hints,
-        });
-      }
+  const handleCancel = () => {
+    if (templateId) {
+      console.log('ℹ️  Cancelling wizard. Draft saved (ID:', templateId, ')');
+      toast.info('Draft saved. You can edit it later.');
+    } else {
+      console.log('ℹ️  Cancelling wizard. No template created.');
+    }
+    router.push('/hr/interviews');
+  };
 
-      // TODO: Publish template (when we connect real API)
-      // await publishTemplate(id);
+  // ═══════════════════════════════════════════════════════════
+  // Navigation
+  // ═══════════════════════════════════════════════════════════
 
-      toast.success('Template created and published!');
-      router.push('/hr/interviews');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to publish template');
-    } finally {
-      setIsSubmitting(false);
+  const handleNext = () => {
+    if (currentStep === 1) {
+      handleStep1Next();
+    } else if (currentStep === 2) {
+      handleStep2Next();
     }
   };
 
@@ -131,12 +166,13 @@ export function CreateTemplateWizard() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Progress */}
-      <WizardProgress currentStep={currentStep} steps={STEPS} />
+      <WizardProgress currentStep={currentStep} />
 
       {/* Step Content */}
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-8 mb-6">
         {currentStep === 1 && (
           <Step1BasicInfo
+            templateId={templateId}
             data={{ title: wizardData.title, description: wizardData.description }}
             onDataChange={(data) => setWizardData({ ...wizardData, ...data })}
             onValidationChange={(isValid) =>
@@ -147,6 +183,7 @@ export function CreateTemplateWizard() {
 
         {currentStep === 2 && (
           <Step2Questions
+            templateId={templateId}
             data={{ questions: wizardData.questions }}
             onDataChange={(data) => setWizardData({ ...wizardData, ...data })}
             onValidationChange={(isValid) =>
@@ -166,16 +203,15 @@ export function CreateTemplateWizard() {
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <div>
-          {currentStep > 1 && (
-            <button
-              onClick={handleBack}
-              disabled={isSubmitting}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-          )}
+          {/* Cancel button */}
+          <button
+            onClick={handleCancel}
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+            Cancel
+          </button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -183,16 +219,15 @@ export function CreateTemplateWizard() {
             <>
               <button
                 onClick={handleSaveDraft}
-                disabled={isSubmitting}
-                className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                disabled={isSubmitting || !templateId}
+                className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
               >
-                <Save className="w-4 h-4" />
                 {isSubmitting ? 'Saving...' : 'Save as Draft'}
               </button>
               <button
                 onClick={handlePublish}
-                disabled={isSubmitting}
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg"
+                disabled={isSubmitting || !templateId}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg cursor-pointer"
               >
                 {isSubmitting ? 'Publishing...' : 'Publish Template'}
               </button>
@@ -201,7 +236,7 @@ export function CreateTemplateWizard() {
             <button
               onClick={handleNext}
               disabled={!canProceed || isSubmitting}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2 shadow-lg"
             >
               Next Step
               <ArrowRight className="w-4 h-4" />

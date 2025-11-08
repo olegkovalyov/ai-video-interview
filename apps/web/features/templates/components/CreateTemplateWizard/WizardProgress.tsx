@@ -8,10 +8,16 @@ interface Step {
 
 interface WizardProgressProps {
   currentStep: number;
-  steps: Step[];
+  steps?: Step[];
 }
 
-export function WizardProgress({ currentStep, steps }: WizardProgressProps) {
+const DEFAULT_STEPS: Step[] = [
+  { number: 1, title: 'Basic Info', description: 'Title and description' },
+  { number: 2, title: 'Questions', description: 'Add interview questions' },
+  { number: 3, title: 'Settings', description: 'Configure and review' },
+];
+
+export function WizardProgress({ currentStep, steps = DEFAULT_STEPS }: WizardProgressProps) {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between">

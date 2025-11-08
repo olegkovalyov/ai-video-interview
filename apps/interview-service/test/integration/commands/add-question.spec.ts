@@ -407,4 +407,337 @@ describe('AddQuestionCommand Integration', () => {
       expect(questions[1].order).toBe(2);
     });
   });
+
+  describe('Multiple Choice Questions', () => {
+    it('should add multiple choice question with options', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Quiz Template',
+        description: 'Test quiz',
+      });
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'What is the capital of France?',
+        'multiple_choice',
+        1,
+        60,
+        true,
+        'Think carefully',
+        [
+          { text: 'Paris', isCorrect: true },
+          { text: 'London', isCorrect: false },
+          { text: 'Berlin', isCorrect: false },
+        ],
+      );
+
+      // Act
+      const questionId = await commandBus.execute(command);
+
+      // Assert
+      const entity = await dataSource
+        .getRepository(QuestionEntity)
+        .findOne({ where: { id: questionId } });
+
+      expect(entity).toBeDefined();
+      expect(entity!.type).toBe('multiple_choice');
+      expect(entity!.options).toBeDefined();
+      expect(Array.isArray(entity!.options)).toBe(true);
+      expect(entity!.options).toHaveLength(3);
+      expect(entity!.options![0].text).toBe('Paris');
+      expect(entity!.options![0].isCorrect).toBe(true);
+      expect(entity!.options![1].text).toBe('London');
+      expect(entity!.options![1].isCorrect).toBe(false);
+      expect(entity!.options![2].text).toBe('Berlin');
+      expect(entity!.options![2].isCorrect).toBe(false);
+      
+      // Verify each option has unique ID
+      const optionIds = entity!.options!.map(o => o.id);
+      const uniqueIds = new Set(optionIds);
+      expect(uniqueIds.size).toBe(3);
+    });
+
+    it('should add multiple choice with multiple correct answers', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Quiz Template',
+        description: 'Test quiz',
+      });
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'Which are programming languages?',
+        'multiple_choice',
+        1,
+        60,
+        true,
+        undefined,
+        [
+          { text: 'JavaScript', isCorrect: true },
+          { text: 'Python', isCorrect: true },
+          { text: 'HTML', isCorrect: false },
+          { text: 'TypeScript', isCorrect: true },
+        ],
+      );
+
+      // Act
+      const questionId = await commandBus.execute(command);
+
+      // Assert
+      const entity = await dataSource
+        .getRepository(QuestionEntity)
+        .findOne({ where: { id: questionId } });
+
+      expect(entity!.options).toHaveLength(4);
+      const correctCount = entity!.options!.filter(o => o.isCorrect).length;
+      expect(correctCount).toBe(3);
+    });
+
+    it('should add multiple choice with exactly 2 options (minimum)', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Quiz Template',
+        description: 'Test quiz',
+      });
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'Is this correct?',
+        'multiple_choice',
+        1,
+        60,
+        true,
+        undefined,
+        [
+          { text: 'Yes', isCorrect: true },
+          { text: 'No', isCorrect: false },
+        ],
+      );
+
+      // Act
+      const questionId = await commandBus.execute(command);
+
+      // Assert
+      const entity = await dataSource
+        .getRepository(QuestionEntity)
+        .findOne({ where: { id: questionId } });
+
+      expect(entity!.options).toHaveLength(2);
+    });
+
+    it('should add multiple choice with 10 options (maximum)', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Quiz Template',
+        description: 'Test quiz',
+      });
+
+      const options = Array.from({ length: 10 }, (_, i) => ({
+        text: `Option ${i + 1}`,
+        isCorrect: i === 0,
+      }));
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'Select the correct option',
+        'multiple_choice',
+        1,
+        60,
+        true,
+        undefined,
+        options,
+      );
+
+      // Act
+      const questionId = await commandBus.execute(command);
+
+      // Assert
+      const entity = await dataSource
+        .getRepository(QuestionEntity)
+        .findOne({ where: { id: questionId } });
+
+      expect(entity!.options).toHaveLength(10);
+    });
+
+    it('should throw error if multiple choice has less than 2 options', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Quiz Template',
+        description: 'Test quiz',
+      });
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'What is the answer?',
+        'multiple_choice',
+        1,
+        60,
+        true,
+        undefined,
+        [{ text: 'Only one option', isCorrect: true }],
+      );
+
+      // Act & Assert
+      await expect(commandBus.execute(command)).rejects.toThrow(
+        /at least 2 options/i,
+      );
+    });
+
+    it('should throw error if multiple choice has more than 10 options', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Quiz Template',
+        description: 'Test quiz',
+      });
+
+      const options = Array.from({ length: 11 }, (_, i) => ({
+        text: `Option ${i + 1}`,
+        isCorrect: i === 0,
+      }));
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'Too many options',
+        'multiple_choice',
+        1,
+        60,
+        true,
+        undefined,
+        options,
+      );
+
+      // Act & Assert
+      await expect(commandBus.execute(command)).rejects.toThrow(
+        /cannot have more than 10 options/i,
+      );
+    });
+
+    it('should throw error if multiple choice has no correct answer', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Quiz Template',
+        description: 'Test quiz',
+      });
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'What is the answer?',
+        'multiple_choice',
+        1,
+        60,
+        true,
+        undefined,
+        [
+          { text: 'Option A', isCorrect: false },
+          { text: 'Option B', isCorrect: false },
+        ],
+      );
+
+      // Act & Assert
+      await expect(commandBus.execute(command)).rejects.toThrow(
+        /at least one correct answer/i,
+      );
+    });
+
+    it('should throw error if video question has options', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Interview Template',
+        description: 'Test',
+      });
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'Tell me about yourself',
+        'video',
+        1,
+        60,
+        true,
+        undefined,
+        [
+          { text: 'Option A', isCorrect: true },
+          { text: 'Option B', isCorrect: false },
+        ],
+      );
+
+      // Act & Assert
+      await expect(commandBus.execute(command)).rejects.toThrow(
+        /only multiple choice questions can have options/i,
+      );
+    });
+
+    it('should throw error if text question has options', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Interview Template',
+        description: 'Test',
+      });
+
+      const command = new AddQuestionCommand(
+        templateId,
+        'Describe your experience',
+        'text',
+        1,
+        60,
+        true,
+        undefined,
+        [
+          { text: 'Option A', isCorrect: true },
+          { text: 'Option B', isCorrect: false },
+        ],
+      );
+
+      // Act & Assert
+      await expect(commandBus.execute(command)).rejects.toThrow(
+        /only multiple choice questions can have options/i,
+      );
+    });
+
+    it('should allow video and text questions without options', async () => {
+      // Arrange
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Interview Template',
+        description: 'Test',
+      });
+
+      // Act
+      const videoId = await commandBus.execute(
+        new AddQuestionCommand(
+          templateId,
+          'Tell me about yourself',
+          'video',
+          1,
+          60,
+          true,
+          undefined,
+          undefined, // No options
+        ),
+      );
+
+      const textId = await commandBus.execute(
+        new AddQuestionCommand(
+          templateId,
+          'Describe your experience',
+          'text',
+          2,
+          60,
+          true,
+          undefined,
+          undefined, // No options
+        ),
+      );
+
+      // Assert
+      const videoEntity = await dataSource
+        .getRepository(QuestionEntity)
+        .findOne({ where: { id: videoId } });
+
+      const textEntity = await dataSource
+        .getRepository(QuestionEntity)
+        .findOne({ where: { id: textId } });
+
+      expect(videoEntity!.options).toBeNull();
+      expect(textEntity!.options).toBeNull();
+    });
+  });
 });

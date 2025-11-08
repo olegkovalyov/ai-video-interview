@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function HRDashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
@@ -32,21 +34,21 @@ export default function HRDashboardPage() {
         <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20">
           <h2 className="text-2xl font-bold text-white mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a
+            <Link
               href="/hr/interviews"
               className="block p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
             >
               <h3 className="text-white font-semibold mb-1">Manage Interviews</h3>
               <p className="text-white/70 text-sm">Create and manage interview templates</p>
-            </a>
+            </Link>
             
-            <a
+            <Link
               href="/hr/candidates"
               className="block p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
             >
               <h3 className="text-white font-semibold mb-1">Review Candidates</h3>
               <p className="text-white/70 text-sm">View and evaluate candidate responses</p>
-            </a>
+            </Link>
           </div>
         </div>
       </main>

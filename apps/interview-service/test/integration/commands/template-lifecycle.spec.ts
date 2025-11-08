@@ -101,6 +101,12 @@ describe('Template Lifecycle Integration', () => {
           30,
           false,
           'Redux, MobX, Zustand, or Context API',
+          [
+            { text: 'Redux', isCorrect: true },
+            { text: 'MobX', isCorrect: true },
+            { text: 'Zustand', isCorrect: true },
+            { text: 'Context API', isCorrect: false },
+          ],
         ),
       );
 

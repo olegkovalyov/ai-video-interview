@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -22,6 +23,7 @@ import type {
   CreateTemplateDto,
   UpdateTemplateDto,
   AddQuestionDto,
+  ReorderQuestionsDto,
   ListTemplatesQuery,
 } from '../clients/interview-service.client';
 
@@ -213,5 +215,27 @@ export class TemplatesController {
   ): Promise<void> {
     const role = extractPrimaryRole(user);
     await this.interviewService.removeQuestion(templateId, questionId, user.userId, role);
+  }
+
+  /**
+   * PATCH /api/templates/:id/questions/reorder
+   * Reorder questions in template
+   * 
+   * curl -X PATCH http://localhost:8001/api/templates/<uuid>/questions/reorder \
+   *   -H "Authorization: Bearer <jwt>" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{
+   *     "questionIds": ["q3-uuid", "q1-uuid", "q2-uuid"]
+   *   }'
+   */
+  @Patch(':id/questions/reorder')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async reorderQuestions(
+    @Param('id') templateId: string,
+    @Body() dto: ReorderQuestionsDto,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<void> {
+    const role = extractPrimaryRole(user);
+    await this.interviewService.reorderQuestions(templateId, dto, user.userId, role);
   }
 }

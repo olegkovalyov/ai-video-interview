@@ -1,5 +1,10 @@
 import { ICommand } from '@nestjs/cqrs';
 
+export interface QuestionOptionCommand {
+  text: string;
+  isCorrect: boolean;
+}
+
 export class AddQuestionCommand implements ICommand {
   constructor(
     public readonly templateId: string,
@@ -9,5 +14,6 @@ export class AddQuestionCommand implements ICommand {
     public readonly timeLimit: number,
     public readonly required: boolean = true,
     public readonly hints?: string,
+    public readonly options?: QuestionOptionCommand[], // For multiple_choice questions
   ) {}
 }

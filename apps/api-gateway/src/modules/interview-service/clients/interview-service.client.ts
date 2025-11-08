@@ -7,6 +7,7 @@ import type {
   CreateTemplateDto,
   UpdateTemplateDto,
   AddQuestionDto,
+  ReorderQuestionsDto,
   TemplateResponseDto,
   TemplateListItemDto,
   PaginatedTemplatesResponseDto,
@@ -22,6 +23,7 @@ export type {
   CreateTemplateDto,
   UpdateTemplateDto,
   AddQuestionDto,
+  ReorderQuestionsDto,
   TemplateResponseDto,
   TemplateListItemDto,
   PaginatedTemplatesResponseDto,
@@ -77,7 +79,7 @@ export class InterviewServiceClient {
       const response = await firstValueFrom(
         this.httpService.post<{ id: string }>(`${this.baseUrl}/api/templates`, dto, {
           headers: {
-            Authorization: `Bearer ${this.internalToken}`,
+            'x-internal-token': this.internalToken,
             'x-user-id': userId,
             'x-user-role': role,
           },
@@ -118,7 +120,7 @@ export class InterviewServiceClient {
       const response = await firstValueFrom(
         this.httpService.get<PaginatedTemplatesResponseDto>(url, {
           headers: {
-            Authorization: `Bearer ${this.internalToken}`,
+            'x-internal-token': this.internalToken,
             'x-user-id': userId,
             'x-user-role': role,
           },
@@ -154,7 +156,7 @@ export class InterviewServiceClient {
           `${this.baseUrl}/api/templates/${templateId}`,
           {
             headers: {
-              Authorization: `Bearer ${this.internalToken}`,
+              'x-internal-token': this.internalToken,
               'x-user-id': userId,
               'x-user-role': role,
             },
@@ -194,7 +196,7 @@ export class InterviewServiceClient {
           dto,
           {
             headers: {
-              Authorization: `Bearer ${this.internalToken}`,
+              'x-internal-token': this.internalToken,
               'x-user-id': userId,
               'x-user-role': role,
             },
@@ -226,7 +228,7 @@ export class InterviewServiceClient {
       await firstValueFrom(
         this.httpService.delete(`${this.baseUrl}/api/templates/${templateId}`, {
           headers: {
-            Authorization: `Bearer ${this.internalToken}`,
+            'x-internal-token': this.internalToken,
             'x-user-id': userId,
             'x-user-role': role,
           },
@@ -262,7 +264,7 @@ export class InterviewServiceClient {
           {},
           {
             headers: {
-              Authorization: `Bearer ${this.internalToken}`,
+              'x-internal-token': this.internalToken,
               'x-user-id': userId,
               'x-user-role': role,
             },
@@ -306,7 +308,7 @@ export class InterviewServiceClient {
           dto,
           {
             headers: {
-              Authorization: `Bearer ${this.internalToken}`,
+              'x-internal-token': this.internalToken,
               'x-user-id': userId,
               'x-user-role': role,
             },
@@ -344,7 +346,7 @@ export class InterviewServiceClient {
           `${this.baseUrl}/api/templates/${templateId}/questions`,
           {
             headers: {
-              Authorization: `Bearer ${this.internalToken}`,
+              'x-internal-token': this.internalToken,
               'x-user-id': userId,
               'x-user-role': role,
             },
@@ -384,7 +386,7 @@ export class InterviewServiceClient {
           `${this.baseUrl}/api/templates/${templateId}/questions/${questionId}`,
           {
             headers: {
-              Authorization: `Bearer ${this.internalToken}`,
+              'x-internal-token': this.internalToken,
               'x-user-id': userId,
               'x-user-role': role,
             },
@@ -395,6 +397,45 @@ export class InterviewServiceClient {
       this.loggerService.error('InterviewServiceClient: Failed to remove question', error, {
         templateId,
         questionId,
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * PATCH /api/templates/:id/questions/reorder
+   * Reorder questions in template
+   */
+  async reorderQuestions(
+    templateId: string,
+    dto: ReorderQuestionsDto,
+    userId: string,
+    role: string,
+  ): Promise<void> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Reordering questions in template', {
+        templateId,
+        userId,
+        questionCount: dto.questionIds.length,
+      });
+
+      await firstValueFrom(
+        this.httpService.patch(
+          `${this.baseUrl}/api/templates/${templateId}/questions/reorder`,
+          dto,
+          {
+            headers: {
+              'x-internal-token': this.internalToken,
+              'x-user-id': userId,
+              'x-user-role': role,
+            },
+          },
+        ),
+      );
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to reorder questions', error, {
+        templateId,
         userId,
       });
       throw this.handleError(error);

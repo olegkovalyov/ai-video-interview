@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { apiPost } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { LogOut, ChevronDown } from "lucide-react";
 import { LogoWithText } from "@/components/ui/logo";
 import {

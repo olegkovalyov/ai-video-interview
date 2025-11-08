@@ -12,7 +12,11 @@ import { cookies } from 'next/headers';
  */
 function isTokenExpired(token: string): boolean {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    if (parts.length !== 3 || !parts[1]) {
+      return true; // Invalid token format
+    }
+    const payload = JSON.parse(atob(parts[1]));
     const exp = payload.exp * 1000; // Convert to milliseconds
     const now = Date.now();
     const buffer = 60000; // 1 minute buffer - refresh before expiration

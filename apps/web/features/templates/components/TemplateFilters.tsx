@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { TemplateStatus } from '../types/template.types';
 
 interface TemplateFiltersProps {
@@ -46,7 +46,7 @@ export function TemplateFilters({
       {/* Create button */}
       <button
         onClick={onCreateClick}
-        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap"
+        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap cursor-pointer"
       >
         + Create Template
       </button>
