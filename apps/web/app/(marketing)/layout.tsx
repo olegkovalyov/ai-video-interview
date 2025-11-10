@@ -18,7 +18,7 @@ export default async function MarketingLayout({
   let userRoles: string[] = [];
   try {
     userRoles = await getUserRoles();
-  } catch (error) {
+  } catch {
     // Если не authenticated - просто пустой массив
     userRoles = [];
   }

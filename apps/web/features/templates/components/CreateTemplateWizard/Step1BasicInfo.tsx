@@ -2,15 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { validateTitle, validateDescription } from '../../utils/template-helpers';
 
 interface Step1BasicInfoProps {
+  templateId: string | null;
   data: {
     title: string;
     description: string;
   };
-  onDataChange: (data: { title: string; description: string }) => void;
+  onDataChange: (data: any) => void;
   onValidationChange: (isValid: boolean) => void;
 }
 
 export function Step1BasicInfo({
+  templateId,
   data,
   onDataChange,
   onValidationChange,
@@ -41,6 +43,24 @@ export function Step1BasicInfo({
 
   return (
     <div className="space-y-6">
+      {/* Template ID Indicator */}
+      {templateId && (
+        <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="text-green-400 text-xl">✅</div>
+            <div className="flex-1">
+              <p className="text-green-300 font-semibold">Template Draft Created</p>
+              <p className="text-sm text-white/70 mt-1">
+                Template ID: <code className="text-green-400">{templateId}</code>
+              </p>
+              <p className="text-xs text-white/50 mt-1">
+                Your template is saved. Continue adding questions or cancel to edit later.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Title */}
       <div>
         <label htmlFor="title" className="block text-white font-semibold mb-2">

@@ -90,7 +90,6 @@ export function Header({ userRoles = [] }: HeaderProps) {
               const isAdmin = userRoles.includes('admin');
               const isHR = userRoles.includes('hr');
               const isCandidate = userRoles.includes('candidate');
-              const isAuthenticated = isAdmin || isHR || isCandidate;
               
               // ADMIN MENU
               if (isAdmin) {

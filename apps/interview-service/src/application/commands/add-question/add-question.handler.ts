@@ -6,6 +6,7 @@ import { AddQuestionCommand } from './add-question.command';
 import type { IInterviewTemplateRepository } from '../../../domain/repositories/interview-template.repository.interface';
 import { Question } from '../../../domain/entities/question.entity';
 import { QuestionType } from '../../../domain/value-objects/question-type.vo';
+import { QuestionOption } from '../../../domain/value-objects/question-option.vo';
 
 @CommandHandler(AddQuestionCommand)
 export class AddQuestionHandler
@@ -37,6 +38,16 @@ export class AddQuestionHandler
 
     // Create Question entity
     const questionType = QuestionType.create(command.type);
+    
+    // Map options if present (for multiple_choice questions)
+    const questionOptions = command.options?.map((opt) =>
+      QuestionOption.create({
+        id: uuidv4(), // Generate unique ID for each option
+        text: opt.text,
+        isCorrect: opt.isCorrect,
+      }),
+    );
+
     const question = Question.create(questionId, {
       text: command.text,
       type: questionType,
@@ -44,6 +55,7 @@ export class AddQuestionHandler
       timeLimit: command.timeLimit,
       required: command.required,
       hints: command.hints,
+      options: questionOptions,
     });
 
     // Add question to template (domain logic)

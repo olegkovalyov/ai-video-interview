@@ -7,6 +7,21 @@ interface RequestOptions {
   credentials: 'include';
 }
 
+/**
+ * Custom API Error with structured error details
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code?: string,
+    public details?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function makeRequest<T>(path: string, options: RequestOptions): Promise<T> {
   // Первая попытка
   let res = await fetch(`${API_BASE}${path}`, options);
@@ -28,7 +43,54 @@ async function makeRequest<T>(path: string, options: RequestOptions): Promise<T>
   
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `Request failed: ${res.status}`);
+    let errorMessage = `Request failed with status ${res.status}`;
+    let errorCode = 'UNKNOWN_ERROR';
+    let errorDetails = null;
+
+    // Try to parse JSON error response
+    try {
+      const errorData = JSON.parse(text);
+      errorMessage = errorData.error || errorData.message || errorMessage;
+      errorCode = errorData.code || errorCode;
+      errorDetails = errorData;
+    } catch {
+      // If not JSON, use text as message
+      errorMessage = text || errorMessage;
+    }
+
+    console.error('🔴 API Error:', {
+      status: res.status,
+      code: errorCode,
+      message: errorMessage,
+      url: path,
+      details: errorDetails,
+    });
+
+    throw new ApiError(errorMessage, res.status, errorCode, errorDetails);
+  }
+  
+  // Проверяем есть ли тело ответа
+  const contentType = res.headers.get('content-type');
+  const contentLength = res.headers.get('content-length');
+  
+  // Если нет контента (204 No Content или пустое тело)
+  if (res.status === 204 || contentLength === '0') {
+    return {} as T;
+  }
+  
+  // Если контент не JSON, возвращаем пустой объект
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text();
+    if (!text || text.trim() === '') {
+      return {} as T;
+    }
+    // Пытаемся распарсить если есть текст
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.warn('⚠️ Response is not JSON:', text);
+      return {} as T;
+    }
   }
   
   return res.json();
@@ -65,7 +127,7 @@ async function performRefresh(): Promise<boolean> {
       return data.success === true;
     }
     return false;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -89,6 +151,15 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
   return makeRequest<T>(path, {
     method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  return makeRequest<T>(path, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: body !== undefined ? JSON.stringify(body) : undefined,

@@ -1,6 +1,7 @@
 import { InterviewTemplate } from '../../../domain/aggregates/interview-template.aggregate';
 import { Question } from '../../../domain/entities/question.entity';
 import { QuestionType } from '../../../domain/value-objects/question-type.vo';
+import { QuestionOption } from '../../../domain/value-objects/question-option.vo';
 import { TemplateStatus } from '../../../domain/value-objects/template-status.vo';
 import { InterviewSettings } from '../../../domain/value-objects/interview-settings.vo';
 import { InterviewTemplateEntity } from '../entities/interview-template.entity';
@@ -73,6 +74,15 @@ export class InterviewTemplateMapper {
   private static questionEntityToDomain(entity: QuestionEntity): Question {
     const type = QuestionType.create(entity.type);
 
+    // Map options if present (for multiple_choice questions)
+    const options = entity.options?.map((opt) =>
+      QuestionOption.create({
+        id: opt.id,
+        text: opt.text,
+        isCorrect: opt.isCorrect,
+      }),
+    );
+
     return Question.reconstitute(entity.id, {
       text: entity.text,
       type,
@@ -80,6 +90,7 @@ export class InterviewTemplateMapper {
       timeLimit: entity.timeLimit,
       required: entity.required,
       hints: entity.hints || undefined,
+      options,
       createdAt: entity.createdAt,
     });
   }
@@ -102,6 +113,13 @@ export class InterviewTemplateMapper {
     entity.required = question.required;
     entity.hints = question.hints || null;
     entity.createdAt = question.createdAt;
+
+    // Map options to JSONB (for multiple_choice questions)
+    entity.options = question.options?.map((opt) => ({
+      id: opt.id,
+      text: opt.text,
+      isCorrect: opt.isCorrect,
+    })) || null;
 
     return entity;
   }

@@ -5,6 +5,7 @@ import { IInterviewTemplateRepository } from '../../../domain/repositories/inter
 import { InterviewTemplate } from '../../../domain/aggregates/interview-template.aggregate';
 import { TemplateStatus } from '../../../domain/value-objects/template-status.vo';
 import { InterviewTemplateEntity } from '../entities/interview-template.entity';
+import { QuestionEntity } from '../entities/question.entity';
 import { InterviewTemplateMapper } from '../mappers/interview-template.mapper';
 
 @Injectable()
@@ -14,6 +15,8 @@ export class TypeOrmInterviewTemplateRepository
   constructor(
     @InjectRepository(InterviewTemplateEntity)
     private readonly repository: Repository<InterviewTemplateEntity>,
+    @InjectRepository(QuestionEntity)
+    private readonly questionRepository: Repository<QuestionEntity>,
   ) {}
 
   async save(template: InterviewTemplate): Promise<void> {
@@ -118,5 +121,46 @@ export class TypeOrmInterviewTemplateRepository
 
   async countByStatus(status: TemplateStatus): Promise<number> {
     return this.repository.count({ where: { status: status.toString() } });
+  }
+
+  /**
+   * Reorder questions using batch UPDATE with CASE WHEN
+   * Uses transaction to avoid unique constraint violations
+   */
+  async reorderQuestions(
+    templateId: string,
+    questionIds: string[],
+  ): Promise<void> {
+    await this.questionRepository.manager.transaction(async (manager) => {
+      // Step 1: Set all to negative values to avoid unique constraint conflicts
+      let negativeCase = 'CASE ';
+      questionIds.forEach((questionId, index) => {
+        const tempOrder = -(index + 1);
+        negativeCase += `WHEN id = '${questionId}' THEN ${tempOrder} `;
+      });
+      negativeCase += 'END';
+
+      await manager
+        .createQueryBuilder()
+        .update(QuestionEntity)
+        .set({ order: () => negativeCase })
+        .where('template_id = :templateId', { templateId })
+        .execute();
+
+      // Step 2: Set to final positive values
+      let positiveCase = 'CASE ';
+      questionIds.forEach((questionId, index) => {
+        const newOrder = index + 1;
+        positiveCase += `WHEN id = '${questionId}' THEN ${newOrder} `;
+      });
+      positiveCase += 'END';
+
+      await manager
+        .createQueryBuilder()
+        .update(QuestionEntity)
+        .set({ order: () => positiveCase })
+        .where('template_id = :templateId', { templateId })
+        .execute();
+    });
   }
 }

@@ -13,6 +13,12 @@ export interface InterviewSettings {
   randomizeQuestions: boolean;
 }
 
+export interface QuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
 export interface Question {
   id: string;
   text: string;
@@ -22,6 +28,7 @@ export interface Question {
   required: boolean;
   hints?: string;
   createdAt: string;
+  options?: QuestionOption[];  // For multiple_choice questions
 }
 
 export interface Template {
@@ -64,6 +71,11 @@ export interface AddQuestionDto {
   timeLimit: number;
   required: boolean;
   hints?: string;
+  options?: QuestionOption[];  // For multiple_choice questions
+}
+
+export interface ReorderQuestionsDto {
+  questionIds: string[];
 }
 
 export interface TemplateFilters {

@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, Edit2, GripVertical, Plus, Video, FileText, CheckSquare } from 'lucide-react';
-import { QuestionType } from '../../types/template.types';
+import { QuestionType, QuestionOption } from '../../types/template.types';
+import { MultipleChoiceOptions } from './MultipleChoiceOptions';
+import { addQuestion, removeQuestion } from '../../services/templates-api';
+import { toast } from 'sonner';
 
 interface Question {
   id: string;
@@ -10,9 +13,11 @@ interface Question {
   timeLimit: number;
   required: boolean;
   hints?: string;
+  options?: QuestionOption[];
 }
 
 interface Step2QuestionsProps {
+  templateId: string | null;
   data: {
     questions: Question[];
   };
@@ -21,6 +26,7 @@ interface Step2QuestionsProps {
 }
 
 export function Step2Questions({
+  templateId,
   data,
   onDataChange,
   onValidationChange,
@@ -29,12 +35,14 @@ export function Step2Questions({
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [formData, setFormData] = useState<Partial<Question>>({
     text: '',
-    type: 'video',
+    type: 'text',
     timeLimit: 180,
     required: true,
     hints: '',
+    options: [],
   });
   const prevValidRef = useRef<boolean | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // Validate questions count on change
   useEffect(() => {
@@ -45,38 +53,130 @@ export function Step2Questions({
     }
   }, [data.questions.length, onValidationChange]);
 
-  const handleAddQuestion = () => {
+  const handleAddQuestion = async () => {
     if (!formData.text || formData.text.trim().length < 10) {
-      alert('Question text must be at least 10 characters');
+      toast.error('Question text must be at least 10 characters');
       return;
     }
 
-    const newQuestion: Question = {
-      id: `q-${Date.now()}`,
-      text: formData.text,
-      type: formData.type || 'video',
-      order: data.questions.length + 1,
-      timeLimit: formData.timeLimit || 180,
-      required: formData.required ?? true,
-      hints: formData.hints,
-    };
+    if (!templateId) {
+      toast.error('Template ID is missing');
+      return;
+    }
 
-    onDataChange({ questions: [...data.questions, newQuestion] });
+    // Validate multiple choice questions
+    if (formData.type === 'multiple_choice') {
+      if (!formData.options || formData.options.length < 2) {
+        toast.error('Multiple choice questions must have at least 2 answer options');
+        return;
+      }
+      const hasCorrectAnswer = formData.options.some(opt => opt.isCorrect);
+      if (!hasCorrectAnswer) {
+        toast.error('Please mark at least one answer as correct');
+        return;
+      }
+    }
 
-    // Reset form
-    setFormData({
-      text: '',
-      type: 'video',
-      timeLimit: 180,
-      required: true,
-      hints: '',
-    });
-    setShowAddForm(false);
+    try {
+      // ✅ REAL API: Add question
+      const response = await addQuestion(templateId, {
+        text: formData.text,
+        type: formData.type || 'video',
+        order: data.questions.length + 1,
+        timeLimit: formData.timeLimit || 180,
+        required: formData.required ?? true,
+        hints: formData.hints,
+        // ⚠️ options НЕ отправляем - API не поддерживает!
+      });
+
+      // Update local state with server-generated ID
+      const newQuestion: Question = {
+        id: response.id, // ✅ Real UUID from server!
+        text: formData.text,
+        type: formData.type || 'video',
+        order: data.questions.length + 1,
+        timeLimit: formData.timeLimit || 180,
+        required: formData.required ?? true,
+        hints: formData.hints,
+        options: formData.type === 'multiple_choice' ? formData.options : undefined,
+      };
+
+      onDataChange({ questions: [...data.questions, newQuestion] });
+
+      console.log('✅ Question added (ID:', response.id, ')');
+      toast.success('Question added');
+
+      // Reset form
+      setFormData({
+        text: '',
+        type: 'text',
+        timeLimit: 180,
+        required: true,
+        hints: '',
+        options: [],
+      });
+      setShowAddForm(false);
+
+    } catch (error: any) {
+      console.error('🔴 Error adding question:', error);
+      const errorMessage = error?.message || 'Failed to add question. Please try again.';
+      toast.error(errorMessage);
+    }
   };
 
-  const handleRemoveQuestion = (id: string) => {
-    const updated = data.questions.filter((q) => q.id !== id);
-    onDataChange({ questions: updated });
+  const handleRemoveQuestion = async (id: string) => {
+    if (!templateId) {
+      toast.error('Template ID is missing');
+      return;
+    }
+
+    try {
+      // ✅ REAL API: Remove question
+      await removeQuestion(templateId, id);
+
+      // Update local state
+      const updated = data.questions.filter((q) => q.id !== id);
+      onDataChange({ questions: updated });
+
+      console.log('✅ Question removed (ID:', id, ')');
+      toast.success('Question removed');
+
+    } catch (error: any) {
+      console.error('🔴 Error removing question:', error);
+      const errorMessage = error?.message || 'Failed to remove question. Please try again.';
+      toast.error(errorMessage);
+    }
+  };
+
+  // Drag & Drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newQuestions = [...data.questions];
+    const draggedItem = newQuestions[draggedIndex];
+    
+    if (!draggedItem) return; // Safety check
+    
+    newQuestions.splice(draggedIndex, 1);
+    newQuestions.splice(index, 0, draggedItem);
+    
+    // Update order numbers
+    const reordered = newQuestions.map((q, idx) => ({
+      ...q,
+      order: idx + 1,
+    }));
+    
+    onDataChange({ questions: reordered });
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   const getQuestionTypeIcon = (type: QuestionType) => {
@@ -101,7 +201,14 @@ export function Step2Questions({
           {data.questions.map((question, index) => (
             <div
               key={question.id}
-              className="bg-white/5 backdrop-blur-md border border-white/20 rounded-lg p-4 hover:bg-white/10 transition-all"
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              className={`
+                bg-white/5 backdrop-blur-md border border-white/20 rounded-lg p-4 hover:bg-white/10 transition-all
+                ${draggedIndex === index ? 'opacity-50 scale-95' : ''}
+              `}
             >
               <div className="flex items-start gap-3">
                 {/* Drag Handle */}
@@ -119,7 +226,7 @@ export function Step2Questions({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleRemoveQuestion(question.id)}
-                        className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                        className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -140,6 +247,19 @@ export function Step2Questions({
 
                   {question.hints && (
                     <p className="mt-2 text-sm text-white/50 italic">💡 {question.hints}</p>
+                  )}
+                  
+                  {question.type === 'multiple_choice' && question.options && (
+                    <div className="mt-3 space-y-1">
+                      {question.options.map((opt, idx) => (
+                        <div key={opt.id} className="flex items-center gap-2 text-sm">
+                          <span className={opt.isCorrect ? 'text-green-400' : 'text-white/50'}>
+                            {String.fromCharCode(65 + idx)}) {opt.text}
+                            {opt.isCorrect && ' ✓'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -178,9 +298,9 @@ export function Step2Questions({
                 }
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
-                <option value="video">Video Response</option>
                 <option value="text">Text Response</option>
                 <option value="multiple_choice">Multiple Choice</option>
+                <option value="video" disabled className="text-white/30">Video Response (Coming Soon)</option>
               </select>
             </div>
 
@@ -214,6 +334,14 @@ export function Step2Questions({
             />
           </div>
 
+          {/* Multiple Choice Options */}
+          {formData.type === 'multiple_choice' && (
+            <MultipleChoiceOptions
+              options={formData.options || []}
+              onChange={(options) => setFormData({ ...formData, options })}
+            />
+          )}
+
           {/* Required Checkbox */}
           <div className="flex items-center gap-2">
             <input
@@ -232,13 +360,13 @@ export function Step2Questions({
           <div className="flex gap-3 pt-4">
             <button
               onClick={handleAddQuestion}
-              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors cursor-pointer"
             >
               Add Question
             </button>
             <button
               onClick={() => setShowAddForm(false)}
-              className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors"
+              className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -247,7 +375,7 @@ export function Step2Questions({
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          className="w-full px-6 py-4 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/20 hover:border-blue-500/50 rounded-lg text-white font-semibold transition-all flex items-center justify-center gap-2"
+          className="w-full px-6 py-4 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/20 hover:border-blue-500/50 rounded-lg text-white font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           Add Question

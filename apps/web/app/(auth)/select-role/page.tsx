@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiPost } from '@/lib/api';
 import { toast } from 'sonner';
 import { Briefcase, UserCheck } from 'lucide-react';
@@ -10,7 +9,6 @@ import { Card, CardContent } from '@/components/ui/card';
 type Role = 'candidate' | 'hr';
 
 export default function SelectRolePage() {
-  const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,14 +39,9 @@ export default function SelectRolePage() {
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [SELECT-ROLE] Error:', error);
-      console.error('❌ [SELECT-ROLE] Error details:', {
-        message: error.message,
-        response: error.response,
-        stack: error.stack,
-      });
-      toast.error(error.message || 'Failed to select role');
+      toast.error(error instanceof Error ? error.message : 'Failed to select role');
       setIsSubmitting(false);
     }
   };
@@ -91,7 +84,7 @@ export default function SelectRolePage() {
             Welcome! 👋
           </h1>
           <p className="text-xl text-white/90 mb-2">
-            Let's get you started
+            Let&apos;s get you started
           </p>
           <p className="text-white/70">
             Choose your role to personalize your experience
@@ -134,8 +127,8 @@ export default function SelectRolePage() {
                   </div>
 
                   {/* Description */}
-                  <p className="text-white/80 mb-6 leading-relaxed">
-                    {role.description}
+                  <p className="text-sm text-muted-foreground">
+                    I&apos;m looking for candidates
                   </p>
 
                   {/* Features */}

@@ -47,9 +47,6 @@ export async function POST() {
     
     const data = await response.json();
     
-    // Extract Set-Cookie headers from API Gateway response
-    const setCookieHeaders = response.headers.get('set-cookie');
-    
     // Create response with new cookies
     const res = NextResponse.json({ success: true, ...data });
     

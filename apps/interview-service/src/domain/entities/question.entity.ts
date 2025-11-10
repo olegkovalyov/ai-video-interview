@@ -1,5 +1,6 @@
 import { Entity } from '../base/base.entity';
 import { QuestionType } from '../value-objects/question-type.vo';
+import { QuestionOption } from '../value-objects/question-option.vo';
 
 export interface QuestionProps {
   text: string;
@@ -8,6 +9,7 @@ export interface QuestionProps {
   timeLimit: number; // seconds
   required: boolean;
   hints?: string;
+  options?: QuestionOption[]; // For multiple_choice questions
   createdAt: Date;
 }
 
@@ -39,6 +41,10 @@ export class Question extends Entity<QuestionProps> {
 
   get hints(): string | undefined {
     return this.props.hints;
+  }
+
+  get options(): QuestionOption[] | undefined {
+    return this.props.options;
   }
 
   get createdAt(): Date {
@@ -76,6 +82,27 @@ export class Question extends Entity<QuestionProps> {
     // Hints validation
     if (this.props.hints && this.props.hints.length > 200) {
       throw new Error('Hints cannot exceed 200 characters');
+    }
+
+    // Multiple choice validation
+    if (this.props.type.value === 'multiple_choice') {
+      if (!this.props.options || this.props.options.length < 2) {
+        throw new Error('Multiple choice questions must have at least 2 options');
+      }
+
+      if (this.props.options.length > 10) {
+        throw new Error('Multiple choice questions cannot have more than 10 options');
+      }
+
+      const hasCorrectAnswer = this.props.options.some((opt) => opt.isCorrect);
+      if (!hasCorrectAnswer) {
+        throw new Error('Multiple choice questions must have at least one correct answer');
+      }
+    } else {
+      // Video and text questions should not have options
+      if (this.props.options && this.props.options.length > 0) {
+        throw new Error('Only multiple choice questions can have options');
+      }
     }
   }
 
@@ -134,6 +161,7 @@ export class Question extends Entity<QuestionProps> {
       timeLimit: this.timeLimit,
       required: this.required,
       hints: this.hints,
+      options: this.options?.map((opt) => opt.toJSON()),
       createdAt: this.createdAt.toISOString(),
     };
   }

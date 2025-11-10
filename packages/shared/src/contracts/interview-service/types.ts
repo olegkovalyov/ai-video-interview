@@ -32,6 +32,16 @@ export type UpdateTemplateDto = components['schemas']['UpdateTemplateDto'];
 export type AddQuestionDto = components['schemas']['AddQuestionDto'];
 
 /**
+ * DTO for reordering questions in a template
+ */
+export type ReorderQuestionsDto = components['schemas']['ReorderQuestionsDto'];
+
+/**
+ * DTO for question option (multiple choice answer option)
+ */
+export type QuestionOptionDto = components['schemas']['QuestionOptionDto'];
+
+/**
  * DTO for interview settings
  */
 export type InterviewSettingsDto = components['schemas']['InterviewSettingsDto'];
@@ -59,6 +69,11 @@ export type PaginatedTemplatesResponseDto = components['schemas']['PaginatedTemp
  * Question response DTO
  */
 export type QuestionResponseDto = components['schemas']['QuestionResponseDto'];
+
+/**
+ * Question option response DTO (for multiple choice questions)
+ */
+export type QuestionOptionResponseDto = components['schemas']['QuestionOptionResponseDto'];
 
 /**
  * Interview settings response DTO

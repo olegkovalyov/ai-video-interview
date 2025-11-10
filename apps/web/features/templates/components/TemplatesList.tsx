@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { TemplateStatsCards } from './TemplateStatsCards';
 import { TemplateFilters } from './TemplateFilters';
 import { TemplatesTable } from './TemplatesTable';
+import { EmptyState } from './EmptyState';
 import {
   listTemplates,
   getTemplateStats,
@@ -28,10 +29,18 @@ export function TemplatesList() {
   const [loadingTemplates, setLoadingTemplates] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TemplateStatus | 'all'>('all');
+  const isFetchingRef = useRef(false);
 
   // Fetch templates and stats
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    // Prevent duplicate requests
+    if (isFetchingRef.current) {
+      console.log('⏭️ Skipping duplicate fetch request');
+      return;
+    }
+
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       const [templatesData, statsData] = await Promise.all([
         listTemplates(1, 100, {
@@ -42,17 +51,24 @@ export function TemplatesList() {
       ]);
       setTemplates(templatesData.items);
       setStats(statsData);
-    } catch (error) {
-      console.error('Failed to fetch templates:', error);
-      toast.error('Failed to load templates');
+    } catch (error: any) {
+      console.error('🔴 Failed to fetch templates:', error);
+      
+      // Show user-friendly message
+      const errorMessage = error?.message || 'Failed to load templates. Please try again.';
+      toast.error(errorMessage);
+      
+      // Set empty state gracefully
+      setTemplates([]);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  };
+  }, [searchQuery, statusFilter]);
 
   useEffect(() => {
     fetchData();
-  }, [searchQuery, statusFilter]);
+  }, [fetchData]);
 
   // Row-level locking helper
   const withTemplateLock = async <T,>(
@@ -152,6 +168,15 @@ export function TemplatesList() {
         <div className="flex items-center justify-center p-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
+      ) : templates.length === 0 ? (
+        <EmptyState
+          title={searchQuery || statusFilter !== 'all' ? 'No templates found' : 'No templates yet'}
+          description={
+            searchQuery || statusFilter !== 'all'
+              ? 'Try adjusting your filters or search query'
+              : 'Create your first interview template to get started'
+          }
+        />
       ) : (
         <TemplatesTable
           templates={templates}

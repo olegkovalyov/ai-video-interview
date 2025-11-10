@@ -9,13 +9,39 @@ import {
   Max,
   IsBoolean,
   IsOptional,
+  ValidateNested,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum QuestionTypeDto {
   VIDEO = 'video',
   TEXT = 'text',
   MULTIPLE_CHOICE = 'multiple_choice',
+}
+
+export class QuestionOptionDto {
+  @ApiProperty({
+    description: 'Answer option text',
+    minLength: 1,
+    maxLength: 200,
+    example: 'Paris',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(200)
+  text: string;
+
+  @ApiProperty({
+    description: 'Whether this option is a correct answer',
+    example: true,
+  })
+  @IsBoolean()
+  isCorrect: boolean;
 }
 
 export class AddQuestionDto {
@@ -75,4 +101,23 @@ export class AddQuestionDto {
   @IsString()
   @MaxLength(200)
   hints?: string;
+
+  @ApiPropertyOptional({
+    description: 'Answer options for multiple choice questions (required for multiple_choice type)',
+    type: [QuestionOptionDto],
+    minItems: 2,
+    maxItems: 10,
+    example: [
+      { text: 'Paris', isCorrect: true },
+      { text: 'London', isCorrect: false },
+      { text: 'Berlin', isCorrect: false },
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(2)
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => QuestionOptionDto)
+  options?: QuestionOptionDto[];
 }

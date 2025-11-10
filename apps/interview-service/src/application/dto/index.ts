@@ -1,6 +1,7 @@
 // Request DTOs
 export * from './create-template.dto';
 export * from './add-question.dto';
+export * from './reorder-questions.dto';
 export * from './update-template.dto';
 export * from './list-templates-query.dto';
 

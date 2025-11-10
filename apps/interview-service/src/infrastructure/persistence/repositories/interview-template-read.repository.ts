@@ -157,6 +157,7 @@ export class InterviewTemplateReadRepository {
       timeLimit: entity.timeLimit,
       required: entity.required,
       hints: entity.hints || undefined,
+      options: entity.options || undefined,
       createdAt: entity.createdAt,
     };
   }
