@@ -3,10 +3,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { SelectRoleCommand } from './select-role.command';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
 import type { ICandidateProfileRepository } from '../../../domain/repositories/candidate-profile.repository.interface';
-import type { IHRProfileRepository } from '../../../domain/repositories/hr-profile.repository.interface';
 import { UserRole } from '../../../domain/value-objects/user-role.vo';
 import { CandidateProfile } from '../../../domain/aggregates/candidate-profile.aggregate';
-import { HRProfile } from '../../../domain/aggregates/hr-profile.aggregate';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
@@ -24,8 +22,6 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
     private readonly userRepository: IUserRepository,
     @Inject('ICandidateProfileRepository')
     private readonly candidateProfileRepository: ICandidateProfileRepository,
-    @Inject('IHRProfileRepository')
-    private readonly hrProfileRepository: IHRProfileRepository,
     private readonly outboxService: OutboxService,
     private readonly logger: LoggerService,
   ) {}
@@ -58,15 +54,14 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
     
     user.selectRole(userRole);
 
-    // 3. Create corresponding profile (admin doesn't have a profile)
+    // 3. Create corresponding profile
+    // - Candidate: create candidate_profile
+    // - HR: no profile (HR will create companies later)
+    // - Admin: no profile
     if (role === 'candidate') {
       const profile = CandidateProfile.create(userId);
       await this.candidateProfileRepository.save(profile);
-    } else if (role === 'hr') {
-      const profile = HRProfile.create(userId);
-      await this.hrProfileRepository.save(profile);
     }
-    // Admin role doesn't create a profile
 
     // 4. Save user (updates role field)
     await this.userRepository.save(user);

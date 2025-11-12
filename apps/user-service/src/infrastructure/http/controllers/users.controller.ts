@@ -21,7 +21,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 
 // Commands
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
@@ -80,6 +80,11 @@ export class UsersController {
    */
   @Get()
   @ApiOperation({ summary: 'List users with pagination and filters' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by email, first name, or last name' })
+  @ApiQuery({ name: 'role', required: false, enum: ['candidate', 'hr', 'admin'], description: 'Filter by user role' })
+  @ApiQuery({ name: 'status', required: false, enum: ['active', 'suspended'], description: 'Filter by user status' })
   @ApiResponse({ status: 200, type: UserListResponseDto, description: 'Users list retrieved successfully' })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
   @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })

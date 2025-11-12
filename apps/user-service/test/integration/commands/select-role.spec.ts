@@ -10,8 +10,6 @@ import {
 } from '../setup';
 import { SelectRoleCommand } from '../../../src/application/commands/select-role/select-role.command';
 import { UserEntity } from '../../../src/infrastructure/persistence/entities/user.entity';
-import { CandidateProfileEntity } from '../../../src/infrastructure/persistence/entities/candidate-profile.entity';
-import { HRProfileEntity } from '../../../src/infrastructure/persistence/entities/hr-profile.entity';
 
 describe('SelectRoleCommand Integration', () => {
   let app: INestApplication;
@@ -61,12 +59,13 @@ describe('SelectRoleCommand Integration', () => {
       expect(userEntity!.role).toBe('candidate');
 
       // Assert - CandidateProfile created
-      const profile = await dataSource
-        .getRepository(CandidateProfileEntity)
-        .findOne({ where: { userId } });
+      const profiles = await dataSource.query(
+        'SELECT * FROM candidate_profiles WHERE user_id = $1',
+        [userId],
+      );
 
-      expect(profile).toBeDefined();
-      expect(profile!.userId).toBe(userId);
+      expect(profiles.length).toBe(1);
+      expect(profiles[0].user_id).toBe(userId);
     });
 
     it('should create empty candidate profile with default values', async () => {
@@ -82,13 +81,13 @@ describe('SelectRoleCommand Integration', () => {
       await commandBus.execute(new SelectRoleCommand(userId, 'candidate'));
 
       // Assert
-      const profile = await dataSource
-        .getRepository(CandidateProfileEntity)
-        .findOne({ where: { userId } });
+      const profiles = await dataSource.query(
+        'SELECT * FROM candidate_profiles WHERE user_id = $1',
+        [userId],
+      );
 
-      expect(profile).toBeDefined();
-      expect(profile!.skills).toEqual([]);
-      expect(profile!.experienceLevel).toBeNull();
+      expect(profiles.length).toBe(1);
+      expect(profiles[0].experience_level).toBeNull();
     });
   });
 
@@ -115,13 +114,9 @@ describe('SelectRoleCommand Integration', () => {
 
       expect(userEntity!.role).toBe('hr');
 
-      // Assert - HRProfile created
-      const profile = await dataSource
-        .getRepository(HRProfileEntity)
-        .findOne({ where: { userId } });
-
-      expect(profile).toBeDefined();
-      expect(profile!.userId).toBe(userId);
+      // Assert - No HR profile entity anymore (HR uses companies now)
+      // Just verify user role updated
+      expect(userEntity!.role).toBe('hr');
     });
 
     it('should create empty hr profile with default values', async () => {
@@ -136,14 +131,12 @@ describe('SelectRoleCommand Integration', () => {
       // Act
       await commandBus.execute(new SelectRoleCommand(userId, 'hr'));
 
-      // Assert
-      const profile = await dataSource
-        .getRepository(HRProfileEntity)
-        .findOne({ where: { userId } });
-
-      expect(profile).toBeDefined();
-      expect(profile!.companyName).toBeNull();
-      expect(profile!.position).toBeNull();
+      // Assert - No HR profile entity anymore (HR uses companies now)
+      const userEntity = await dataSource
+        .getRepository(UserEntity)
+        .findOne({ where: { id: userId } });
+      
+      expect(userEntity!.role).toBe('hr');
     });
   });
 
@@ -171,15 +164,12 @@ describe('SelectRoleCommand Integration', () => {
       expect(userEntity!.role).toBe('admin');
 
       // Assert - NO profile created for admin
-      const candidateProfile = await dataSource
-        .getRepository(CandidateProfileEntity)
-        .findOne({ where: { userId } });
-      const hrProfile = await dataSource
-        .getRepository(HRProfileEntity)
-        .findOne({ where: { userId } });
+      const profiles = await dataSource.query(
+        'SELECT * FROM candidate_profiles WHERE user_id = $1',
+        [userId],
+      );
 
-      expect(candidateProfile).toBeNull();
-      expect(hrProfile).toBeNull();
+      expect(profiles.length).toBe(0);
     });
   });
 
@@ -386,14 +376,13 @@ describe('SelectRoleCommand Integration', () => {
       expect(hrUser!.role).toBe('hr');
       expect(adminUser!.role).toBe('admin');
 
-      // Check profiles
-      const candidateProfile = await dataSource
-        .getRepository(CandidateProfileEntity)
-        .count();
-      const hrProfile = await dataSource.getRepository(HRProfileEntity).count();
+      // Check profiles - only candidate has profile now
+      const profiles = await dataSource.query(
+        'SELECT * FROM candidate_profiles',
+      );
 
-      expect(candidateProfile).toBe(1);
-      expect(hrProfile).toBe(1);
+      expect(profiles.length).toBe(1);
+      expect(profiles[0].user_id).toBe(candidateUserId);
     });
   });
 });

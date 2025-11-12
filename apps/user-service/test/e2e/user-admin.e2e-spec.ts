@@ -58,7 +58,7 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -69,6 +69,7 @@ describe('User Admin API (E2E)', () => {
       // Suspend user
       const response = await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({
           reason: 'Violation of terms of service',
         })
@@ -83,6 +84,7 @@ describe('User Admin API (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/users/${nonExistentId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({
           reason: 'Test reason',
         })
@@ -93,7 +95,7 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -104,6 +106,7 @@ describe('User Admin API (E2E)', () => {
       // Try to suspend without reason
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({})
         .expect(400);
     });
@@ -112,7 +115,7 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -123,6 +126,7 @@ describe('User Admin API (E2E)', () => {
       // Try to suspend with empty reason
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({
           reason: '',
         })
@@ -133,7 +137,7 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -144,6 +148,7 @@ describe('User Admin API (E2E)', () => {
       // Suspend user
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({
           reason: 'First suspension',
         })
@@ -152,6 +157,7 @@ describe('User Admin API (E2E)', () => {
       // Try to suspend again
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({
           reason: 'Second suspension',
         })
@@ -164,7 +170,7 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create and suspend user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -174,6 +180,7 @@ describe('User Admin API (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({
           reason: 'Test suspension',
         });
@@ -181,6 +188,7 @@ describe('User Admin API (E2E)', () => {
       // Activate user
       const response = await request(app.getHttpServer())
         .post(`/users/${userId}/activate`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.status).toBe('active');
@@ -192,6 +200,7 @@ describe('User Admin API (E2E)', () => {
 
       await request(app.getHttpServer())
         .post(`/users/${nonExistentId}/activate`)
+        .set('x-internal-token', 'test-token')
         .expect(404);
     });
 
@@ -199,7 +208,7 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create active user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -210,6 +219,7 @@ describe('User Admin API (E2E)', () => {
       // Try to activate already active user
       const response = await request(app.getHttpServer())
         .post(`/users/${userId}/activate`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.status).toBe('active');
@@ -219,7 +229,7 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -230,23 +240,27 @@ describe('User Admin API (E2E)', () => {
       // Suspend
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({ reason: 'Test' })
         .expect(200);
 
       // Activate
       await request(app.getHttpServer())
         .post(`/users/${userId}/activate`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       // Suspend again
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({ reason: 'Test again' })
         .expect(200);
 
       // Activate again
       const response = await request(app.getHttpServer())
         .post(`/users/${userId}/activate`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.status).toBe('active');
@@ -261,7 +275,7 @@ describe('User Admin API (E2E)', () => {
       const lastName = 'Data';
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email,
@@ -272,11 +286,13 @@ describe('User Admin API (E2E)', () => {
       // Suspend
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
+        .set('x-internal-token', 'test-token')
         .send({ reason: 'Test' });
 
       // Activate
       const response = await request(app.getHttpServer())
         .post(`/users/${userId}/activate`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       // Verify data is preserved

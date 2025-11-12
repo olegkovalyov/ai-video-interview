@@ -86,7 +86,10 @@ export function Step2Questions({
         timeLimit: formData.timeLimit || 180,
         required: formData.required ?? true,
         hints: formData.hints,
-        // ⚠️ options НЕ отправляем - API не поддерживает!
+        // ✅ Send options for multiple_choice questions (remove 'id' field)
+        options: formData.type === 'multiple_choice' 
+          ? formData.options?.map(({ text, isCorrect }) => ({ text, isCorrect }))
+          : undefined,
       });
 
       // Update local state with server-generated ID
@@ -98,7 +101,14 @@ export function Step2Questions({
         timeLimit: formData.timeLimit || 180,
         required: formData.required ?? true,
         hints: formData.hints,
-        options: formData.type === 'multiple_choice' ? formData.options : undefined,
+        // ✅ Generate temporary IDs for options on client-side
+        options: formData.type === 'multiple_choice' 
+          ? formData.options?.map((opt, idx) => ({
+              id: `${response.id}-opt-${idx}`, // Temporary ID
+              text: opt.text,
+              isCorrect: opt.isCorrect,
+            }))
+          : undefined,
       };
 
       onDataChange({ questions: [...data.questions, newQuestion] });

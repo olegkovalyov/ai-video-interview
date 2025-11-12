@@ -11,7 +11,7 @@ import {
  */
 @Injectable()
 export class TestInternalServiceGuard implements CanActivate {
-  private readonly testInternalToken = 'test-internal-token';
+  private readonly validTokens = ['test-internal-token', 'test-token'];
   // Valid UUID for test user (must be UUID format for database)
   private readonly defaultTestUserId = '00000000-0000-0000-0000-000000000001';
 
@@ -19,10 +19,14 @@ export class TestInternalServiceGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = request.headers['x-internal-token'];
 
-    // In E2E tests, allow requests without token for simplicity
-    // or validate if token is provided
-    if (token && token !== this.testInternalToken) {
+    // In E2E tests, validate token if provided
+    if (token && !this.validTokens.includes(token)) {
       throw new UnauthorizedException('Invalid internal token');
+    }
+    
+    // Require token for proper testing
+    if (!token) {
+      throw new UnauthorizedException('Missing internal token');
     }
 
     // Ensure headers exist - set defaults if not provided

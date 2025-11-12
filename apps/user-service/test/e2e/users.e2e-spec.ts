@@ -82,6 +82,7 @@ describe('Users API (E2E)', () => {
 
       const response = await request(app.getHttpServer())
         .post('/users')
+        .set('x-internal-token', 'test-token')
         .send({
           userId,
           externalAuthId,
@@ -105,17 +106,21 @@ describe('Users API (E2E)', () => {
       const email = 'duplicate@example.com';
 
       // Create first user
-      await request(app.getHttpServer()).post('/users').send({
-        userId: userId1,
-        externalAuthId: 'auth-1',
-        email,
-        firstName: 'User',
-        lastName: 'One',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId: userId1,
+          externalAuthId: 'auth-1',
+          email,
+          firstName: 'User',
+          lastName: 'One',
+        });
 
       // Try to create second user with same email
       const response = await request(app.getHttpServer())
         .post('/users')
+        .set('x-internal-token', 'test-token')
         .send({
           userId: userId2,
           externalAuthId: 'auth-2',
@@ -132,6 +137,7 @@ describe('Users API (E2E)', () => {
     it('should validate email format', async () => {
       const response = await request(app.getHttpServer())
         .post('/users')
+        .set('x-internal-token', 'test-token')
         .send({
           userId: uuidv4(),
           externalAuthId: 'auth-123',
@@ -151,6 +157,7 @@ describe('Users API (E2E)', () => {
     it('should validate required fields', async () => {
       await request(app.getHttpServer())
         .post('/users')
+        .set('x-internal-token', 'test-token')
         .send({
           userId: uuidv4(),
           // Missing required fields
@@ -163,7 +170,7 @@ describe('Users API (E2E)', () => {
     it('should get user by ID', async () => {
       // Create user first
       const userId = uuidv4();
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -174,6 +181,7 @@ describe('Users API (E2E)', () => {
       // Get user
       const response = await request(app.getHttpServer())
         .get(`/users/${userId}`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.id).toBe(userId);
@@ -187,6 +195,7 @@ describe('Users API (E2E)', () => {
 
       const response = await request(app.getHttpServer())
         .get(`/users/${nonExistentId}`)
+        .set('x-internal-token', 'test-token')
         .expect(404);
 
       expect(response.body.code).toBe('USER_NOT_FOUND');
@@ -199,7 +208,7 @@ describe('Users API (E2E)', () => {
       const externalAuthId = 'keycloak-123';
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId,
         email: 'test@example.com',
@@ -210,6 +219,7 @@ describe('Users API (E2E)', () => {
       // Get by external auth ID
       const response = await request(app.getHttpServer())
         .get(`/users/by-external-auth/${externalAuthId}`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.id).toBe(userId);
@@ -219,6 +229,7 @@ describe('Users API (E2E)', () => {
     it('should return 404 for non-existent external auth ID', async () => {
       const response = await request(app.getHttpServer())
         .get('/users/by-external-auth/non-existent-auth-id')
+        .set('x-internal-token', 'test-token')
         .expect(404);
 
       expect(response.body.code).toBe('USER_NOT_FOUND');
@@ -231,6 +242,7 @@ describe('Users API (E2E)', () => {
       for (let i = 1; i <= 5; i++) {
         await request(app.getHttpServer())
           .post('/users')
+          .set('x-internal-token', 'test-token')
           .send({
             userId: uuidv4(),
             externalAuthId: `auth-${i}`,
@@ -244,6 +256,7 @@ describe('Users API (E2E)', () => {
     it('should list users with pagination', async () => {
       const response = await request(app.getHttpServer())
         .get('/users')
+        .set('x-internal-token', 'test-token')
         .query({ page: 1, limit: 3 })
         .expect(200);
 
@@ -257,6 +270,7 @@ describe('Users API (E2E)', () => {
     it('should filter users by search', async () => {
       const response = await request(app.getHttpServer())
         .get('/users')
+        .set('x-internal-token', 'test-token')
         .query({ search: 'user1@example.com' })
         .expect(200);
 
@@ -269,6 +283,7 @@ describe('Users API (E2E)', () => {
     it('should use default pagination', async () => {
       const response = await request(app.getHttpServer())
         .get('/users')
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.pagination.page).toBe(1);
@@ -279,7 +294,7 @@ describe('Users API (E2E)', () => {
   describe('GET /users/stats', () => {
     it('should get user statistics', async () => {
       // Create users with different statuses
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId: uuidv4(),
         externalAuthId: 'auth-1',
         email: 'user1@example.com',
@@ -287,7 +302,7 @@ describe('Users API (E2E)', () => {
         lastName: 'One',
       });
 
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId: uuidv4(),
         externalAuthId: 'auth-2',
         email: 'user2@example.com',
@@ -297,6 +312,7 @@ describe('Users API (E2E)', () => {
 
       const response = await request(app.getHttpServer())
         .get('/users/stats')
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.totalUsers).toBeGreaterThanOrEqual(2);
@@ -311,7 +327,7 @@ describe('Users API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -322,6 +338,7 @@ describe('Users API (E2E)', () => {
       // Update user
       const response = await request(app.getHttpServer())
         .put(`/users/${userId}`)
+        .set('x-internal-token', 'test-token')
         .send({
           firstName: 'Jane',
           lastName: 'Smith',
@@ -339,6 +356,7 @@ describe('Users API (E2E)', () => {
 
       await request(app.getHttpServer())
         .put(`/users/${nonExistentId}`)
+        .set('x-internal-token', 'test-token')
         .send({
           firstName: 'Jane',
         })
@@ -349,7 +367,7 @@ describe('Users API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -360,6 +378,7 @@ describe('Users API (E2E)', () => {
       // Try to update with invalid data
       await request(app.getHttpServer())
         .put(`/users/${userId}`)
+        .set('x-internal-token', 'test-token')
         .send({
           firstName: '', // Empty string
         })
@@ -372,7 +391,7 @@ describe('Users API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -383,12 +402,13 @@ describe('Users API (E2E)', () => {
       // Delete user
       const response = await request(app.getHttpServer())
         .delete(`/users/${userId}`)
+        .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.success).toBe(true);
 
       // Verify user is deleted
-      await request(app.getHttpServer()).get(`/users/${userId}`).expect(404);
+      await request(app.getHttpServer()).get(`/users/${userId}`).set('x-internal-token', 'test-token').expect(404);
     });
 
     it('should return 404 for non-existent user', async () => {
@@ -396,6 +416,7 @@ describe('Users API (E2E)', () => {
 
       await request(app.getHttpServer())
         .delete(`/users/${nonExistentId}`)
+        .set('x-internal-token', 'test-token')
         .expect(404);
     });
   });
@@ -440,7 +461,7 @@ describe('Users API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').send({
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
         userId,
         externalAuthId: 'auth-123',
         email: 'test@example.com',
@@ -451,6 +472,7 @@ describe('Users API (E2E)', () => {
       // Delete avatar
       await request(app.getHttpServer())
         .delete(`/users/${userId}/avatar`)
+        .set('x-internal-token', 'test-token')
         .expect(204);
     });
 
@@ -459,6 +481,7 @@ describe('Users API (E2E)', () => {
 
       await request(app.getHttpServer())
         .delete(`/users/${nonExistentId}/avatar`)
+        .set('x-internal-token', 'test-token')
         .expect(404);
     });
   });

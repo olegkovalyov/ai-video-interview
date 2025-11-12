@@ -1,0 +1,12 @@
+/**
+ * Domain Event: Company Created
+ * Published when a new company is created by an HR user
+ */
+export class CompanyCreatedEvent {
+  constructor(
+    public readonly companyId: string,
+    public readonly name: string,
+    public readonly createdBy: string,
+    public readonly occurredAt: Date = new Date(),
+  ) {}
+}
