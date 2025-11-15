@@ -1,0 +1,2147 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_healthCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy"
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_readinessCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is ready"
+          }
+        },
+        "summary": "Readiness check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_livenessCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is alive"
+          }
+        },
+        "summary": "Liveness check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/kafka": {
+      "get": {
+        "operationId": "HealthController_kafkaHealthCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Kafka connection status"
+          }
+        },
+        "summary": "Kafka health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/users/{userId}/suspend": {
+      "post": {
+        "operationId": "UserAdminController_suspendUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User suspended successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or user is already suspended"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Suspend user (Admin action)",
+        "tags": [
+          "user-admin"
+        ]
+      }
+    },
+    "/users/{userId}/activate": {
+      "post": {
+        "operationId": "UserAdminController_activateUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "User is already active"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Activate user (Admin action)",
+        "tags": [
+          "user-admin"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "UsersController_listUsers",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by email, first name, or last name",
+            "schema": {
+              "example": "john",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by user status",
+            "schema": {
+              "enum": [
+                "active",
+                "suspended"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by user role",
+            "schema": {
+              "enum": [
+                "candidate",
+                "hr",
+                "admin"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users list retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "List users with pagination and filters",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "operationId": "UsersController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserInternalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully"
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "409": {
+            "description": "User already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Create user (Saga operation)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/stats": {
+      "get": {
+        "operationId": "UsersController_getUserStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserStatsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get user statistics",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "operationId": "UsersController_getUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get user by ID",
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_updateUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserInternalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Update user profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_deleteUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Delete user (Saga operation)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/by-external-auth/{externalAuthId}": {
+      "get": {
+        "operationId": "UsersController_getUserByExternalAuth",
+        "parameters": [
+          {
+            "name": "externalAuthId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get user by external auth ID",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{userId}/avatar": {
+      "post": {
+        "operationId": "UsersController_uploadAvatar",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Avatar uploaded successfully"
+          },
+          "400": {
+            "description": "Invalid file format or size"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "413": {
+            "description": "File too large (max 5MB)"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Upload user avatar",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_deleteAvatar",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Avatar deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Delete user avatar",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{userId}/roles": {
+      "post": {
+        "operationId": "UsersController_assignRole",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role assigned successfully"
+          },
+          "400": {
+            "description": "Invalid role or role already assigned"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Assign role to user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/skills": {
+      "post": {
+        "operationId": "SkillsController_createSkill",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Skill created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "409": {
+            "description": "Skill already exists"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Create new skill",
+        "tags": [
+          "skills"
+        ]
+      },
+      "get": {
+        "operationId": "SkillsController_listSkills",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by skill name",
+            "schema": {
+              "example": "Type",
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by skill category ID",
+            "schema": {
+              "example": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skills list retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "List skills with filters and pagination",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/skills/{id}": {
+      "put": {
+        "operationId": "SkillsController_updateSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Skill updated successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Update skill",
+        "tags": [
+          "skills"
+        ]
+      },
+      "delete": {
+        "operationId": "SkillsController_deleteSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "adminId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Skill deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Delete skill",
+        "tags": [
+          "skills"
+        ]
+      },
+      "get": {
+        "operationId": "SkillsController_getSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get skill by ID",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/skills/categories": {
+      "get": {
+        "operationId": "SkillsController_listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Categories list retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "List all skill categories",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/companies": {
+      "post": {
+        "operationId": "CompaniesController_createCompany",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Company created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "409": {
+            "description": "Company already exists"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Create new company",
+        "tags": [
+          "companies"
+        ]
+      },
+      "get": {
+        "operationId": "CompaniesController_listCompanies",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by company name",
+            "schema": {
+              "example": "Tech",
+              "type": "string"
+            }
+          },
+          {
+            "name": "industry",
+            "required": false,
+            "in": "query",
+            "description": "Filter by industry",
+            "schema": {
+              "example": "Software Development",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdBy",
+            "required": false,
+            "in": "query",
+            "description": "Filter by creator user ID",
+            "schema": {
+              "example": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentUserId",
+            "required": false,
+            "in": "query",
+            "description": "Current user ID for permissions",
+            "schema": {
+              "example": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "isAdmin",
+            "required": false,
+            "in": "query",
+            "description": "Is admin flag (default: false)",
+            "schema": {
+              "example": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Companies list retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "List companies with filters",
+        "tags": [
+          "companies"
+        ]
+      }
+    },
+    "/companies/{id}": {
+      "put": {
+        "operationId": "CompaniesController_updateCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Company updated successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "403": {
+            "description": "Forbidden - not authorized to update this company"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Update company",
+        "tags": [
+          "companies"
+        ]
+      },
+      "delete": {
+        "operationId": "CompaniesController_deleteCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Company deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "403": {
+            "description": "Forbidden - not authorized to delete this company"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Delete company",
+        "tags": [
+          "companies"
+        ]
+      },
+      "get": {
+        "operationId": "CompaniesController_getCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isAdmin",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "403": {
+            "description": "Forbidden - not authorized to view this company"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get company by ID",
+        "tags": [
+          "companies"
+        ]
+      }
+    },
+    "/candidates/search": {
+      "get": {
+        "description": "Search candidates with filters: skills, proficiency, experience level. Returns paginated results with match scores.",
+        "operationId": "CandidatesController_searchCandidates",
+        "parameters": [
+          {
+            "name": "skillIds",
+            "required": false,
+            "in": "query",
+            "description": "Array of skill IDs to search for",
+            "schema": {
+              "example": [
+                "uuid1",
+                "uuid2"
+              ],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "minProficiency",
+            "required": false,
+            "in": "query",
+            "description": "Minimum proficiency level",
+            "schema": {
+              "enum": [
+                "beginner",
+                "intermediate",
+                "advanced",
+                "expert"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "minYears",
+            "required": false,
+            "in": "query",
+            "description": "Minimum years of experience",
+            "schema": {
+              "minimum": 0,
+              "example": 2,
+              "type": "number"
+            }
+          },
+          {
+            "name": "experienceLevel",
+            "required": false,
+            "in": "query",
+            "description": "Candidate experience level",
+            "schema": {
+              "enum": [
+                "junior",
+                "mid",
+                "senior",
+                "lead"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results with pagination",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "data": [
+                      {
+                        "userId": "uuid",
+                        "fullName": "John Doe",
+                        "email": "john@example.com",
+                        "experienceLevel": "senior",
+                        "skills": [
+                          {
+                            "skillId": "uuid",
+                            "skillName": "React",
+                            "proficiencyLevel": "expert",
+                            "yearsOfExperience": 5
+                          }
+                        ],
+                        "matchScore": 95
+                      }
+                    ],
+                    "pagination": {
+                      "total": 42,
+                      "page": 1,
+                      "limit": 20,
+                      "totalPages": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Search candidates by skills (HR)",
+        "tags": [
+          "candidates"
+        ]
+      }
+    },
+    "/candidates/{userId}/profile": {
+      "get": {
+        "description": "Get candidate profile with user info. Access control: own profile, HR, or Admin.",
+        "operationId": "CandidatesController_getCandidateProfile",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentUserId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isHR",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "isAdmin",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "403": {
+            "description": "Forbidden - not authorized to view this profile"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get candidate profile",
+        "tags": [
+          "candidates"
+        ]
+      }
+    },
+    "/candidates/{userId}/skills": {
+      "get": {
+        "description": "Returns all candidate skills organized by skill categories. Access control: own skills, HR, or Admin.",
+        "operationId": "CandidatesController_getCandidateSkills",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentUserId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isHR",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "isAdmin",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skills retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "data": [
+                      {
+                        "categoryId": "uuid",
+                        "categoryName": "Frontend",
+                        "skills": [
+                          {
+                            "skillId": "uuid",
+                            "skillName": "React",
+                            "description": "Building SPAs",
+                            "proficiencyLevel": "expert",
+                            "yearsOfExperience": 5
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "403": {
+            "description": "Forbidden - not authorized to view these skills"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get candidate skills grouped by category",
+        "tags": [
+          "candidates"
+        ]
+      },
+      "post": {
+        "description": "Add a new skill to candidate profile with proficiency level and years of experience.",
+        "operationId": "CandidatesController_addCandidateSkill",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCandidateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Skill added successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "Candidate or skill not found"
+          },
+          "409": {
+            "description": "Skill already added to candidate"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Add skill to candidate",
+        "tags": [
+          "candidates"
+        ]
+      }
+    },
+    "/candidates/{userId}/skills/{skillId}": {
+      "put": {
+        "description": "Update skill description, proficiency level, or years of experience.",
+        "operationId": "CandidatesController_updateCandidateSkill",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "skillId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Skill updated successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "Candidate or skill not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Update candidate skill",
+        "tags": [
+          "candidates"
+        ]
+      },
+      "delete": {
+        "description": "Remove a skill from candidate profile.",
+        "operationId": "CandidatesController_removeCandidateSkill",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "skillId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Skill removed successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token"
+          },
+          "404": {
+            "description": "Candidate or skill not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Remove skill from candidate",
+        "tags": [
+          "candidates"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "User Service API",
+    "description": "User management microservice",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      },
+      "internal-token": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-internal-token"
+      }
+    },
+    "schemas": {
+      "SuspendUserDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Policy violation: spam"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "externalAuthId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isSuspended": {
+            "type": "boolean"
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastLoginAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "externalAuthId",
+          "email",
+          "firstName",
+          "lastName",
+          "timezone",
+          "language",
+          "emailVerified",
+          "status",
+          "role",
+          "isActive",
+          "isSuspended",
+          "isDeleted",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginationDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "UserListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserResponseDto"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationDto"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ]
+      },
+      "UserStatsResponseDto": {
+        "type": "object",
+        "properties": {
+          "totalUsers": {
+            "type": "number"
+          },
+          "activeUsers": {
+            "type": "number"
+          },
+          "suspendedUsers": {
+            "type": "number"
+          },
+          "deletedUsers": {
+            "type": "number"
+          },
+          "usersByStatus": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "totalUsers",
+          "activeUsers",
+          "suspendedUsers",
+          "deletedUsers",
+          "usersByStatus"
+        ]
+      },
+      "CreateUserInternalDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Internal user ID (UUID)",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "externalAuthId": {
+            "type": "string",
+            "description": "External authentication provider ID (e.g., Keycloak sub)",
+            "example": "auth0|507f1f77bcf86cd799439011"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "john.doe@example.com"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
+          }
+        },
+        "required": [
+          "userId",
+          "externalAuthId",
+          "email",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "UpdateUserInternalDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
+          },
+          "bio": {
+            "type": "string",
+            "description": "User biography",
+            "example": "Experienced software engineer with 5+ years in backend development"
+          },
+          "phone": {
+            "type": "string",
+            "description": "User phone number",
+            "example": "+1234567890"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "User timezone",
+            "example": "Europe/Kiev"
+          },
+          "language": {
+            "type": "string",
+            "description": "Preferred language code",
+            "example": "en"
+          }
+        }
+      },
+      "SelectRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "User role to assign",
+            "enum": [
+              "candidate",
+              "hr",
+              "admin"
+            ],
+            "example": "candidate"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "CreateSkillDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Skill name",
+            "example": "TypeScript"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Skill slug (URL-friendly)",
+            "example": "typescript"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Skill category ID",
+            "example": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description",
+            "example": "JavaScript superset with static typing"
+          },
+          "adminId": {
+            "type": "string",
+            "description": "Admin ID performing the action",
+            "example": "uuid"
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "UpdateSkillDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Skill name",
+            "example": "TypeScript"
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description",
+            "example": "JavaScript superset with static typing"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Skill category ID",
+            "example": "uuid"
+          },
+          "adminId": {
+            "type": "string",
+            "description": "Admin ID performing the action",
+            "example": "uuid"
+          }
+        }
+      },
+      "CreateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "industry": {
+            "type": "string",
+            "description": "Company industry",
+            "example": "Software Development"
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees"
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company"
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "HR user ID creating the company",
+            "example": "uuid"
+          }
+        },
+        "required": [
+          "name",
+          "industry",
+          "size",
+          "createdBy"
+        ]
+      },
+      "UpdateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "industry": {
+            "type": "string",
+            "description": "Company industry",
+            "example": "Software Development"
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees"
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company"
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "HR user ID updating the company",
+            "example": "uuid"
+          }
+        },
+        "required": [
+          "updatedBy"
+        ]
+      },
+      "AddCandidateSkillDto": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string",
+            "description": "Skill ID to add",
+            "example": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description or notes",
+            "example": "Used in production for 2 years"
+          },
+          "proficiencyLevel": {
+            "type": "string",
+            "description": "Proficiency level",
+            "example": "intermediate",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced",
+              "expert"
+            ]
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "description": "Years of experience with this skill",
+            "example": 2,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "skillId"
+        ]
+      },
+      "UpdateCandidateSkillDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Skill description or notes",
+            "example": "Updated: used in 5 major projects"
+          },
+          "proficiencyLevel": {
+            "type": "string",
+            "description": "Proficiency level",
+            "example": "advanced",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced",
+              "expert"
+            ]
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "description": "Years of experience with this skill",
+            "example": 3,
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

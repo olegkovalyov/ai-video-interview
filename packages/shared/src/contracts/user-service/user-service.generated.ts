@@ -195,32 +195,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/users/{userId}/roles": {
+    "/skills": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List skills with filters and pagination */
+        get: operations["SkillsController_listSkills"];
         put?: never;
-        /** Assign role to user */
-        post: operations["UserProfilesController_assignRole"];
+        /** Create new skill */
+        post: operations["SkillsController_createSkill"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/users/{userId}/permissions": {
+    "/skills/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get user permissions */
-        get: operations["UserProfilesController_getUserPermissions"];
+        /** Get skill by ID */
+        get: operations["SkillsController_getSkill"];
+        /** Update skill */
+        put: operations["SkillsController_updateSkill"];
+        post?: never;
+        /** Delete skill */
+        delete: operations["SkillsController_deleteSkill"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all skill categories */
+        get: operations["SkillsController_listCategories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -229,16 +249,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/users/{userId}/profiles/candidate": {
+    "/companies": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        /** Update candidate profile */
-        put: operations["UserProfilesController_updateCandidateProfile"];
+        /** List companies with filters */
+        get: operations["CompaniesController_listCompanies"];
+        put?: never;
+        /** Create new company */
+        post: operations["CompaniesController_createCompany"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/companies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get company by ID */
+        get: operations["CompaniesController_getCompany"];
+        /** Update company */
+        put: operations["CompaniesController_updateCompany"];
+        post?: never;
+        /** Delete company */
+        delete: operations["CompaniesController_deleteCompany"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search candidates by skills (HR)
+         * @description Search candidates with filters: skills, proficiency, experience level. Returns paginated results with match scores.
+         */
+        get: operations["CandidatesController_searchCandidates"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -246,7 +306,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/users/{userId}/profiles/hr": {
+    "/candidates/{userId}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get candidate profile
+         * @description Get candidate profile with user info. Access control: own profile, HR, or Admin.
+         */
+        get: operations["CandidatesController_getCandidateProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{userId}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get candidate skills grouped by category
+         * @description Returns all candidate skills organized by skill categories. Access control: own skills, HR, or Admin.
+         */
+        get: operations["CandidatesController_getCandidateSkills"];
+        put?: never;
+        /**
+         * Add skill to candidate
+         * @description Add a new skill to candidate profile with proficiency level and years of experience.
+         */
+        post: operations["CandidatesController_addCandidateSkill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{userId}/skills/{skillId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -254,10 +358,17 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update HR profile */
-        put: operations["UserProfilesController_updateHRProfile"];
+        /**
+         * Update candidate skill
+         * @description Update skill description, proficiency level, or years of experience.
+         */
+        put: operations["CandidatesController_updateCandidateSkill"];
         post?: never;
-        delete?: never;
+        /**
+         * Remove skill from candidate
+         * @description Remove a skill from candidate profile.
+         */
+        delete: operations["CandidatesController_removeCandidateSkill"];
         options?: never;
         head?: never;
         patch?: never;
@@ -387,53 +498,169 @@ export interface components {
              */
             language?: string;
         };
-        SelectRoleDto: {
+        CreateSkillDto: {
             /**
-             * @description User role to assign
-             * @example candidate
-             * @enum {string}
+             * @description Skill name
+             * @example TypeScript
              */
-            role: "candidate" | "hr" | "admin";
-        };
-        RoleInfoDto: {
-            id: string;
             name: string;
-            displayName: string;
-        };
-        UserPermissionsResponseDto: {
-            userId: string;
-            roles: components["schemas"]["RoleInfoDto"][];
-            permissions: string[];
-        };
-        UpdateCandidateProfileDto: {
             /**
-             * @description List of candidate skills
-             * @example [
-             *       "JavaScript",
-             *       "TypeScript",
-             *       "Node.js",
-             *       "React"
-             *     ]
+             * @description Skill slug (URL-friendly)
+             * @example typescript
              */
-            skills?: string[];
+            slug: string;
             /**
-             * @description Candidate experience level
-             * @example mid
+             * @description Skill category ID
+             * @example uuid
+             */
+            categoryId?: string;
+            /**
+             * @description Skill description
+             * @example JavaScript superset with static typing
+             */
+            description?: string;
+            /**
+             * @description Admin ID performing the action
+             * @example uuid
+             */
+            adminId?: string;
+        };
+        UpdateSkillDto: {
+            /**
+             * @description Skill name
+             * @example TypeScript
+             */
+            name?: string;
+            /**
+             * @description Skill description
+             * @example JavaScript superset with static typing
+             */
+            description?: string;
+            /**
+             * @description Skill category ID
+             * @example uuid
+             */
+            categoryId?: string;
+            /**
+             * @description Admin ID performing the action
+             * @example uuid
+             */
+            adminId?: string;
+        };
+        CreateCompanyDto: {
+            /**
+             * @description Company name
+             * @example TechCorp Inc.
+             */
+            name: string;
+            /**
+             * @description Company industry
+             * @example Software Development
+             */
+            industry: string;
+            /**
+             * @description Company size
+             * @example 50-100 employees
+             */
+            size: string;
+            /**
+             * @description Company website URL
+             * @example https://techcorp.com
+             */
+            website?: string;
+            /**
+             * @description Company description
+             * @example Leading software development company
+             */
+            description?: string;
+            /**
+             * @description Company location
+             * @example San Francisco, CA
+             */
+            location?: string;
+            /**
+             * @description HR user ID creating the company
+             * @example uuid
+             */
+            createdBy: string;
+        };
+        UpdateCompanyDto: {
+            /**
+             * @description Company name
+             * @example TechCorp Inc.
+             */
+            name?: string;
+            /**
+             * @description Company industry
+             * @example Software Development
+             */
+            industry?: string;
+            /**
+             * @description Company size
+             * @example 50-100 employees
+             */
+            size?: string;
+            /**
+             * @description Company website URL
+             * @example https://techcorp.com
+             */
+            website?: string;
+            /**
+             * @description Company description
+             * @example Leading software development company
+             */
+            description?: string;
+            /**
+             * @description Company location
+             * @example San Francisco, CA
+             */
+            location?: string;
+            /**
+             * @description HR user ID updating the company
+             * @example uuid
+             */
+            updatedBy: string;
+        };
+        AddCandidateSkillDto: {
+            /**
+             * @description Skill ID to add
+             * @example uuid
+             */
+            skillId: string;
+            /**
+             * @description Skill description or notes
+             * @example Used in production for 2 years
+             */
+            description?: string;
+            /**
+             * @description Proficiency level
+             * @example intermediate
              * @enum {string}
              */
-            experienceLevel?: "junior" | "mid" | "senior" | "lead";
+            proficiencyLevel?: "beginner" | "intermediate" | "advanced" | "expert";
+            /**
+             * @description Years of experience with this skill
+             * @example 2
+             */
+            yearsOfExperience?: number;
         };
-        UpdateHRProfileDto: {
+        UpdateCandidateSkillDto: {
             /**
-             * @description Company name where HR works
-             * @example Tech Corp Inc.
+             * @description Skill description or notes
+             * @example Updated: used in 5 major projects
              */
-            companyName?: string;
+            description?: string;
             /**
-             * @description HR position/title
-             * @example Senior Recruiter
+             * @description Proficiency level
+             * @example advanced
+             * @enum {string}
              */
-            position?: string;
+            proficiencyLevel?: "beginner" | "intermediate" | "advanced" | "expert";
+            /**
+             * @description Years of experience with this skill
+             * @example 3
+             */
+            yearsOfExperience?: number;
         };
     };
     responses: never;
@@ -623,11 +850,16 @@ export interface operations {
     UsersController_listUsers: {
         parameters: {
             query?: {
+                /** @description Page number (default: 1) */
                 page?: number;
+                /** @description Items per page (default: 20) */
                 limit?: number;
+                /** @description Search by email, first name, or last name */
                 search?: string;
-                status?: "active" | "suspended" | "deleted";
-                role?: string;
+                /** @description Filter by user status */
+                status?: "active" | "suspended";
+                /** @description Filter by user role */
+                role?: "candidate" | "hr" | "admin";
             };
             header?: never;
             path?: never;
@@ -1028,29 +1260,63 @@ export interface operations {
             };
         };
     };
-    UserProfilesController_assignRole: {
+    SkillsController_listSkills: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: string;
+            query?: {
+                /** @description Page number (default: 1) */
+                page?: number;
+                /** @description Items per page (default: 20) */
+                limit?: number;
+                /** @description Search by skill name */
+                search?: string;
+                /** @description Filter by skill category ID */
+                categoryId?: string;
+                /** @description Filter by active status */
+                isActive?: boolean;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SelectRoleDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Role assigned successfully */
+            /** @description Skills list retrieved successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Invalid role or role already assigned */
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SkillsController_createSkill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSkillDto"];
+            };
+        };
+        responses: {
+            /** @description Skill created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input data */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1064,15 +1330,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Internal server error */
-            500: {
+            /** @description Skill already exists */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1080,9 +1339,424 @@ export interface operations {
             };
         };
     };
-    UserProfilesController_getUserPermissions: {
+    SkillsController_getSkill: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Skill retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Skill not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SkillsController_updateSkill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSkillDto"];
+            };
+        };
+        responses: {
+            /** @description Skill updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Skill not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SkillsController_deleteSkill: {
+        parameters: {
+            query: {
+                adminId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Skill deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Skill not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SkillsController_listCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Categories list retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CompaniesController_listCompanies: {
+        parameters: {
+            query?: {
+                /** @description Page number (default: 1) */
+                page?: number;
+                /** @description Items per page (default: 20) */
+                limit?: number;
+                /** @description Search by company name */
+                search?: string;
+                /** @description Filter by industry */
+                industry?: string;
+                /** @description Filter by creator user ID */
+                createdBy?: string;
+                /** @description Current user ID for permissions */
+                currentUserId?: string;
+                /** @description Is admin flag (default: false) */
+                isAdmin?: boolean;
+                /** @description Filter by active status */
+                isActive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Companies list retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CompaniesController_createCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCompanyDto"];
+            };
+        };
+        responses: {
+            /** @description Company created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Company already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CompaniesController_getCompany: {
+        parameters: {
+            query: {
+                userId: string;
+                isAdmin: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Company retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden - not authorized to view this company */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Company not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CompaniesController_updateCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCompanyDto"];
+            };
+        };
+        responses: {
+            /** @description Company updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden - not authorized to update this company */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Company not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CompaniesController_deleteCompany: {
+        parameters: {
+            query: {
+                userId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Company deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden - not authorized to delete this company */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Company not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CandidatesController_searchCandidates: {
+        parameters: {
+            query?: {
+                /** @description Array of skill IDs to search for */
+                skillIds?: string[];
+                /** @description Minimum proficiency level */
+                minProficiency?: "beginner" | "intermediate" | "advanced" | "expert";
+                /** @description Minimum years of experience */
+                minYears?: number;
+                /** @description Candidate experience level */
+                experienceLevel?: "junior" | "mid" | "senior" | "lead";
+                /** @description Page number (default: 1) */
+                page?: number;
+                /** @description Items per page (default: 20) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Search results with pagination */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Invalid query parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CandidatesController_getCandidateProfile: {
+        parameters: {
+            query: {
+                currentUserId: string;
+                isHR: boolean;
+                isAdmin: boolean;
+            };
             header?: never;
             path: {
                 userId: string;
@@ -1091,13 +1765,58 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description User permissions retrieved successfully */
+            /** @description Profile retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden - not authorized to view this profile */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CandidatesController_getCandidateSkills: {
+        parameters: {
+            query: {
+                currentUserId: string;
+                isHR: boolean;
+                isAdmin: boolean;
+            };
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Skills retrieved successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserPermissionsResponseDto"];
+                    "application/json": unknown;
                 };
             };
             /** @description Unauthorized - invalid or missing internal token */
@@ -1107,15 +1826,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Internal server error */
-            500: {
+            /** @description Forbidden - not authorized to view these skills */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1123,7 +1835,7 @@ export interface operations {
             };
         };
     };
-    UserProfilesController_updateCandidateProfile: {
+    CandidatesController_addCandidateSkill: {
         parameters: {
             query?: never;
             header?: never;
@@ -1134,18 +1846,18 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateCandidateProfileDto"];
+                "application/json": components["schemas"]["AddCandidateSkillDto"];
             };
         };
         responses: {
-            /** @description Candidate profile updated successfully */
-            200: {
+            /** @description Skill added successfully */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Invalid request body or user is not a candidate */
+            /** @description Invalid input data */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1159,15 +1871,15 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description User not found */
+            /** @description Candidate or skill not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Internal server error */
-            500: {
+            /** @description Skill already added to candidate */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1175,29 +1887,30 @@ export interface operations {
             };
         };
     };
-    UserProfilesController_updateHRProfile: {
+    CandidatesController_updateCandidateSkill: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 userId: string;
+                skillId: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateHRProfileDto"];
+                "application/json": components["schemas"]["UpdateCandidateSkillDto"];
             };
         };
         responses: {
-            /** @description HR profile updated successfully */
+            /** @description Skill updated successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Invalid request body or user is not an HR */
+            /** @description Invalid input data */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1211,15 +1924,43 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description User not found */
+            /** @description Candidate or skill not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Internal server error */
-            500: {
+        };
+    };
+    CandidatesController_removeCandidateSkill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+                skillId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Skill removed successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized - invalid or missing internal token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Candidate or skill not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

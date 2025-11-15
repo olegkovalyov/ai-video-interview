@@ -28,6 +28,7 @@ import { CreateUserCommand } from '../../../application/commands/create-user/cre
 import { UpdateUserCommand } from '../../../application/commands/update-user/update-user.command';
 import { DeleteUserCommand } from '../../../application/commands/delete-user/delete-user.command';
 import { UploadAvatarCommand } from '../../../application/commands/upload-avatar/upload-avatar.command';
+import { SelectRoleCommand } from '../../../application/commands/select-role/select-role.command';
 
 // Queries
 import { GetUserQuery } from '../../../application/queries/get-user/get-user.query';
@@ -39,6 +40,7 @@ import { GetUserStatsQuery } from '../../../application/queries/get-user-stats/g
 import { CreateUserInternalDto } from '../../../application/dto/requests/create-user-internal.dto';
 import { UpdateUserInternalDto } from '../../../application/dto/requests/update-user-internal.dto';
 import { ListUsersDto } from '../../../application/dto/requests/list-users.dto';
+import { SelectRoleDto } from '../../../application/dto/requests/select-role.dto';
 import { UserResponseDto } from '../../../application/dto/responses/user.response.dto';
 import { UserListResponseDto } from '../../../application/dto/responses/user-list.response.dto';
 import { UserStatsResponseDto } from '../../../application/dto/responses/user-stats.response.dto';
@@ -375,6 +377,56 @@ export class UsersController {
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to upload avatar',
+        details: error.message,
+      });
+    }
+  }
+
+  /**
+   * POST /users/:userId/roles
+   * Assign role to user (candidate, hr, admin)
+   */
+  @Post(':userId/roles')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Assign role to user' })
+  @ApiResponse({ status: 200, description: 'Role assigned successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid role or role already assigned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async assignRole(
+    @Param('userId') userId: string,
+    @Body() dto: SelectRoleDto,
+  ): Promise<{ message: string; role: string }> {
+    try {
+      await this.commandBus.execute(
+        new SelectRoleCommand(userId, dto.role as 'candidate' | 'hr' | 'admin'),
+      );
+
+      return {
+        message: `Role ${dto.role} assigned successfully`,
+        role: dto.role,
+      };
+    } catch (error) {
+      if (error instanceof UserNotFoundException) {
+        throw new NotFoundException({
+          success: false,
+          error: 'User not found',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      if (error instanceof DomainException) {
+        throw new BadRequestException({
+          success: false,
+          error: error.message,
+          code: 'VALIDATION_ERROR',
+        });
+      }
+
+      throw new InternalServerErrorException({
+        success: false,
+        error: 'Failed to assign role',
         details: error.message,
       });
     }

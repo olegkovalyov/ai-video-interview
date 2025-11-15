@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { User, Shield } from 'lucide-react';
+import { User, Shield, Star } from 'lucide-react';
 
 export function ProfileNav() {
   const pathname = usePathname();
@@ -19,6 +19,12 @@ export function ProfileNav() {
       href: '/profile/security',
       icon: Shield,
       active: pathname === '/profile/security',
+    },
+    {
+      name: 'Skills',
+      href: '/profile/skills',
+      icon: Star,
+      active: pathname === '/profile/skills',
     },
   ];
 
