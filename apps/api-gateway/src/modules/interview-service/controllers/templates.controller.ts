@@ -12,20 +12,28 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import {
   CurrentUser,
   CurrentUserData,
   extractPrimaryRole,
 } from '../../../core/auth/decorators/current-user.decorator';
-import { InterviewServiceClient } from '../clients/interview-service.client';
-import type {
+import { InterviewServiceClient, ListTemplatesQuery } from '../clients/interview-service.client';
+import {
   CreateTemplateDto,
   UpdateTemplateDto,
+  CreateTemplateResponseDto,
+  TemplateResponseDto,
+  PaginatedTemplatesResponseDto,
+  PublishTemplateResponseDto,
+} from '../dto/template.dto';
+import {
   AddQuestionDto,
+  AddQuestionResponseDto,
   ReorderQuestionsDto,
-  ListTemplatesQuery,
-} from '../clients/interview-service.client';
+  GetQuestionsResponseDto,
+} from '../dto/question.dto';
 
 /**
  * Templates Controller
@@ -37,6 +45,8 @@ import type {
  * - Forward requests to Interview Service with user context
  * - Interview Service handles RBAC and ownership checks
  */
+@ApiTags('Templates')
+@ApiBearerAuth()
 @Controller('api/templates')
 @UseGuards(JwtAuthGuard)
 export class TemplatesController {
@@ -62,6 +72,18 @@ export class TemplatesController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ 
+    summary: 'Create interview template',
+    description: 'Creates a new interview template (HR and Admin only). Template starts in draft status.'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Template created successfully',
+    type: CreateTemplateResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid JWT token' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions (requires HR or Admin role)' })
   async create(
     @Body() dto: CreateTemplateDto,
     @CurrentUser() user: CurrentUserData,
@@ -78,6 +100,19 @@ export class TemplatesController {
    *   -H "Authorization: Bearer <jwt>"
    */
   @Get()
+  @ApiOperation({ 
+    summary: 'List interview templates',
+    description: 'Get paginated list of templates. HR sees only their templates, Admin sees all.'
+  })
+  @ApiQuery({ name: 'status', required: false, enum: ['draft', 'active', 'archived'], description: 'Filter by status' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 1000)', example: 10 })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'List of templates',
+    type: PaginatedTemplatesResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async list(
     @Query('status') status?: 'draft' | 'active' | 'archived',
     @Query('page') page?: number,
@@ -101,6 +136,19 @@ export class TemplatesController {
    *   -H "Authorization: Bearer <jwt>"
    */
   @Get(':id')
+  @ApiOperation({ 
+    summary: 'Get template by ID',
+    description: 'Retrieve a specific template with all questions. HR can only access their own templates.'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Template found',
+    type: TemplateResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async getOne(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
     const role = extractPrimaryRole(user);
     return this.interviewService.getTemplate(id, user.userId, role);
@@ -119,6 +167,20 @@ export class TemplatesController {
    *   }'
    */
   @Put(':id')
+  @ApiOperation({ 
+    summary: 'Update template',
+    description: 'Update template title, description, or settings. Only the owner can update.'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Template updated',
+    type: TemplateResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateTemplateDto,
@@ -137,6 +199,18 @@ export class TemplatesController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ 
+    summary: 'Delete template',
+    description: 'Soft delete (archive) an interview template. Only the owner can delete.'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 204, 
+    description: 'Template deleted (archived)'
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async delete(@Param('id') id: string, @CurrentUser() user: CurrentUserData): Promise<void> {
     const role = extractPrimaryRole(user);
     await this.interviewService.deleteTemplate(id, user.userId, role);
@@ -150,6 +224,19 @@ export class TemplatesController {
    *   -H "Authorization: Bearer <jwt>"
    */
   @Put(':id/publish')
+  @ApiOperation({ 
+    summary: 'Publish template',
+    description: 'Change template status from draft to active. Only the owner can publish.'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Template published',
+    type: PublishTemplateResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async publish(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
     const role = extractPrimaryRole(user);
     return this.interviewService.publishTemplate(id, user.userId, role);
@@ -177,6 +264,20 @@ export class TemplatesController {
    */
   @Post(':id/questions')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ 
+    summary: 'Add question to template',
+    description: 'Add a new question to the interview template. Supports video, text, and multiple choice types.'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Question added',
+    type: AddQuestionResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async addQuestion(
     @Param('id') templateId: string,
     @Body() dto: AddQuestionDto,
@@ -194,6 +295,19 @@ export class TemplatesController {
    *   -H "Authorization: Bearer <jwt>"
    */
   @Get(':id/questions')
+  @ApiOperation({ 
+    summary: 'Get template questions',
+    description: 'Retrieve all questions for a template'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'List of questions',
+    type: GetQuestionsResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async getQuestions(@Param('id') templateId: string, @CurrentUser() user: CurrentUserData) {
     const role = extractPrimaryRole(user);
     return this.interviewService.getQuestions(templateId, user.userId, role);
@@ -208,6 +322,19 @@ export class TemplatesController {
    */
   @Delete(':id/questions/:questionId')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ 
+    summary: 'Remove question from template',
+    description: 'Delete a question from the interview template. Only the owner can remove questions.'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiParam({ name: 'questionId', description: 'Question ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 204, 
+    description: 'Question removed'
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template or question not found' })
   async removeQuestion(
     @Param('id') templateId: string,
     @Param('questionId') questionId: string,
@@ -230,6 +357,19 @@ export class TemplatesController {
    */
   @Patch(':id/questions/reorder')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ 
+    summary: 'Reorder questions in template',
+    description: 'Reorder all questions by providing question IDs in desired order. Must include all questions. Uses batch UPDATE for performance.'
+  })
+  @ApiParam({ name: 'id', description: 'Template ID (UUID)', format: 'uuid' })
+  @ApiResponse({ 
+    status: 204, 
+    description: 'Questions reordered successfully'
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid question IDs or count mismatch' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async reorderQuestions(
     @Param('id') templateId: string,
     @Body() dto: ReorderQuestionsDto,

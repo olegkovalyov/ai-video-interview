@@ -9,16 +9,20 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { UserServiceClient } from '../clients/user-service.client';
 import { LoggerService } from '../../../core/logging/logger.service';
 import { KeycloakRoleService } from '../admin/keycloak';
+import { UpdateProfileDto, SelectRoleDto, UserProfileResponseDto } from '../dto/user-profile.dto';
 
 /**
  * Users Controller
  * Proxies requests to User Service
  */
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('api/users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
@@ -34,6 +38,17 @@ export class UsersController {
    * Uses INTERNAL endpoint (not JWT proxy)
    */
   @Get('me')
+  @ApiOperation({ 
+    summary: 'Get current user profile',
+    description: 'Returns the profile of the currently authenticated user'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User profile retrieved successfully',
+    type: UserProfileResponseDto 
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getCurrentUser(@Req() req: Request & { user?: any }) {
     const userId = req.user?.userId;
     
@@ -66,7 +81,19 @@ export class UsersController {
    * Uses INTERNAL endpoint (not JWT proxy)
    */
   @Put('me')
-  async updateCurrentUser(@Req() req: Request & { user?: any }, @Body() updates: any) {
+  @ApiOperation({ 
+    summary: 'Update current user profile',
+    description: 'Updates the profile of the currently authenticated user'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profile updated successfully',
+    type: UserProfileResponseDto 
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updateCurrentUser(@Req() req: Request & { user?: any }, @Body() updates: UpdateProfileDto) {
     const userId = req.user?.userId;
     
     if (!userId) {
@@ -98,7 +125,17 @@ export class UsersController {
    * Updates role in both Keycloak and User Service
    */
   @Post('me/select-role')
-  async selectRole(@Req() req: Request & { user?: any }, @Body() body: { role: string }) {
+  @ApiOperation({ 
+    summary: 'Select user role',
+    description: 'User selects their role (candidate/hr/admin). One-time operation after registration. Updates both Keycloak and User Service.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Role selected successfully. User will receive new JWT on next login.'
+  })
+  @ApiResponse({ status: 400, description: 'Invalid role or role already selected' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async selectRole(@Req() req: Request & { user?: any }, @Body() body: SelectRoleDto) {
     const userId = req.user?.userId;
     const keycloakId = req.user?.sub; // Keycloak user ID from JWT
     

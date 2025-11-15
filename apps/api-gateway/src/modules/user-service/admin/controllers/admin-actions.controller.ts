@@ -1,7 +1,9 @@
 import { Controller, Post, Param, Body } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { KeycloakUserService, KeycloakEmailService } from '../keycloak';
 import { LoggerService } from '../../../../core/logging/logger.service';
 import { UserServiceClient } from '../../clients/user-service.client';
+import { SuspendUserDto, SuccessResponseDto } from '../../dto/admin-user.dto';
 
 /**
  * Admin Actions Controller
@@ -14,6 +16,8 @@ import { UserServiceClient } from '../../clients/user-service.client';
  * 
  * Note: Suspend/Activate are synchronized between Keycloak and User Service
  */
+@ApiTags('Admin - User Actions')
+@ApiBearerAuth()
 @Controller('api/admin/users')
 export class AdminActionsController {
   constructor(
@@ -32,9 +36,21 @@ export class AdminActionsController {
    *   -d '{"reason":"Policy violation"}'
    */
   @Post(':id/suspend')
+  @ApiOperation({ 
+    summary: 'Suspend user',
+    description: 'Suspends user in both Keycloak (disabled) and User Service (suspended status). User will not be able to login.'
+  })
+  @ApiParam({ name: 'id', description: 'Keycloak user ID (UUID)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User suspended successfully',
+    type: SuccessResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async suspendUser(
     @Param('id') keycloakId: string,
-    @Body() body: { reason: string },
+    @Body() body: SuspendUserDto,
   ) {
     this.loggerService.info('Admin: Suspending user', { keycloakId, reason: body.reason });
 
@@ -85,6 +101,18 @@ export class AdminActionsController {
    * curl -X POST http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/activate
    */
   @Post(':id/activate')
+  @ApiOperation({ 
+    summary: 'Activate user',
+    description: 'Activates user in both Keycloak (enabled) and User Service (active status). User will be able to login again.'
+  })
+  @ApiParam({ name: 'id', description: 'Keycloak user ID (UUID)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User activated successfully',
+    type: SuccessResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async activateUser(@Param('id') keycloakId: string) {
     this.loggerService.info('Admin: Activating user', { keycloakId });
 
@@ -133,6 +161,18 @@ export class AdminActionsController {
    * curl -X POST http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9/verify-email
    */
   @Post(':id/verify-email')
+  @ApiOperation({ 
+    summary: 'Verify user email',
+    description: 'Marks user email as verified in Keycloak'
+  })
+  @ApiParam({ name: 'id', description: 'Keycloak user ID (UUID)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Email verified successfully',
+    type: SuccessResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async verifyEmail(@Param('id') id: string) {
     this.loggerService.info('Admin: Verifying email for user', { userId: id });
 

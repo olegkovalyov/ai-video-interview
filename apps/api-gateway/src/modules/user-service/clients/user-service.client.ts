@@ -6,22 +6,30 @@ import { BaseServiceProxy } from '../../../proxies/base/base-service-proxy';
 import { LoggerService } from '../../../core/logging/logger.service';
 import { MetricsService } from '../../../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
-import type { components } from '@repo/shared/dist/contracts/user-service';
+import type {
+  CreateUserInternalDto,
+  UpdateUserInternalDto,
+  UserPermissionsResponseDto,
+  UpdateCandidateProfileDto,
+  UpdateHRProfileDto,
+} from '../dto/internal.dto';
+import type {
+  UserResponseDto,
+  UserListResponseDto,
+  UserStatsResponseDto,
+  SuspendUserDto,
+} from '../dto/admin-user.dto';
+import type { SelectRoleDto } from '../dto/user-profile.dto';
 
 // ============================================================================
-// Type Aliases from Generated Contracts
+// Type Aliases for Client Methods
 // ============================================================================
 
-export type CreateUserDto = components['schemas']['CreateUserInternalDto'];
-export type UpdateUserDto = components['schemas']['UpdateUserInternalDto'];
-export type UserResponseDto = components['schemas']['UserResponseDto'];
-export type UserListResponseDto = components['schemas']['UserListResponseDto'];
-export type UserStatsResponseDto = components['schemas']['UserStatsResponseDto'];
-export type SuspendUserDto = components['schemas']['SuspendUserDto'];
-export type SelectRoleDto = components['schemas']['SelectRoleDto'];
-export type UserPermissionsResponseDto = components['schemas']['UserPermissionsResponseDto'];
-export type UpdateCandidateProfileDto = components['schemas']['UpdateCandidateProfileDto'];
-export type UpdateHRProfileDto = components['schemas']['UpdateHRProfileDto'];
+export type CreateUserDto = CreateUserInternalDto;
+export type UpdateUserDto = UpdateUserInternalDto;
+export { UserResponseDto, UserListResponseDto, UserStatsResponseDto };
+export { SuspendUserDto, SelectRoleDto };
+export { UserPermissionsResponseDto, UpdateCandidateProfileDto, UpdateHRProfileDto };
 
 // ============================================================================
 // Unified User Service Client

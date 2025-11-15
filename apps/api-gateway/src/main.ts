@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import './core/tracing/tracing'; // Must be first import for OpenTelemetry
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { LoggerService } from './core/logging/logger.service';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -24,6 +25,68 @@ async function bootstrap() {
   // Enable graceful shutdown
   app.enableShutdownHooks();
 
+  // Swagger Documentation Setup
+  const config = new DocumentBuilder()
+    .setTitle('AI Video Interview - API Gateway')
+    .setDescription(`
+API Gateway for AI Video Interview Platform
+
+**Available Modules:**
+- Authentication & Authorization (OAuth2/OIDC via Keycloak)
+- User Management (Profiles, Admin operations)
+- Role Management (Candidate, HR, Admin)
+- User Actions (Suspend, Activate, Verify Email)
+- Interview Templates (Create, manage interview templates and questions)
+
+**Architecture:**
+- API Gateway handles all external requests
+- Microservices: user-service, interview-service
+- Event-driven architecture with Kafka
+- JWT-based authentication
+
+**Authentication:**
+All endpoints require JWT Bearer token in Authorization header.
+Obtain token via OAuth2 flow: POST /auth/login → GET /auth/callback
+
+**Admin Endpoints:**
+Admin endpoints require 'admin' role in JWT token.
+
+**HR Endpoints:**
+HR users can create and manage their own interview templates.
+    `)
+    .setVersion('1.0')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'Authorization',
+      description: 'Enter JWT token from /auth/login',
+      in: 'header',
+    })
+    .addTag('Users', 'Current user profile operations')
+    .addTag('Admin - Users', 'Admin user management operations')
+    .addTag('Admin - User Actions', 'Admin user action operations (suspend/activate)')
+    .addTag('Admin - Roles', 'Admin role management operations')
+    .addTag('Templates', 'Interview templates management (HR & Admin)')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  
+  // Setup Swagger UI at /api/docs
+  SwaggerModule.setup('api/docs', app, document, {
+    customSiteTitle: 'API Gateway Documentation',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+      persistAuthorization: true, // Save JWT token in browser
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+      docExpansion: 'none', // Collapse all by default
+      filter: true, // Enable search filter
+    },
+  });
+
+  logger.info('📚 Swagger documentation enabled at /api/docs');
+
   const port = process.env.PORT || 8001;
 
   logger.info('🚀 API Gateway starting up', {
@@ -41,10 +104,11 @@ async function bootstrap() {
     action: 'startup_complete',
     port,
     url: `http://localhost:${port}`,
-    features: ['authentication', 'tracing', 'metrics', 'kafka_events']
+    features: ['authentication', 'tracing', 'metrics', 'kafka_events', 'swagger_docs']
   });
 
   console.log(`🚀 API Gateway is running on http://localhost:${port}`);
+  console.log(`📚 Swagger documentation available at http://localhost:${port}/api/docs`);
 
   // Graceful shutdown handlers
   const gracefulShutdown = async (signal: string) => {

@@ -8,9 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true, // Буферизуем логи до подключения logger
   });
-  
+
   const logger = app.get(LoggerService);
-  
+
   // Используем наш Winston Logger для ВСЕХ NestJS логов
   app.useLogger(logger);
 
@@ -45,24 +45,28 @@ async function bootstrap() {
     .addBearerAuth()
     .addApiKey({ type: 'apiKey', name: 'x-internal-token', in: 'header' }, 'internal-token')
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
+
+  app.use('/api/docs-json', (req, res) => {
+    res.json(document);
+  });
 
   // Graceful shutdown
   app.enableShutdownHooks();
 
   const port = process.env.PORT || 8003;
-  
+
   logger.info('🚀 Interview Service starting up', {
     service: 'interview-service',
     action: 'startup',
     port,
     nodeEnv: process.env.NODE_ENV || 'development'
   });
-  
+
   await app.listen(port);
-  
+
   logger.info('✅ Interview Service successfully started', {
     service: 'interview-service',
     action: 'startup_complete',
@@ -70,7 +74,7 @@ async function bootstrap() {
     url: `http://localhost:${port}`,
     docsUrl: `http://localhost:${port}/api/docs`
   });
-  
+
   console.log(`🚀 Interview Service running on http://localhost:${port}`);
   console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
 
