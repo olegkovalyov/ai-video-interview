@@ -5,14 +5,21 @@ import {
   ICompanyReadRepository,
   PaginatedResult,
   CompanyListFilters,
-  CompanyWithUsers,
 } from '../../../domain/repositories/company-read.repository.interface';
-import { Company } from '../../../domain/aggregates/company.aggregate';
+import type {
+  CompanyReadModel,
+  CompanyWithUsersReadModel,
+  CompanyDetailReadModel,
+} from '../../../domain/read-models/company.read-model';
 import { CompanyEntity } from '../entities/company.entity';
 import { UserCompanyEntity } from '../entities/user-company.entity';
-import { CompanyMapper } from '../mappers/company.mapper';
-import { UserCompanyMapper } from '../mappers/user-company.mapper';
+import { UserEntity } from '../entities/user.entity';
 
+/**
+ * Company Read Repository Implementation
+ * Returns Read Models (plain objects) - no domain entities
+ * Maps TypeORM entities directly to Read Models
+ */
 @Injectable()
 export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
   constructor(
@@ -20,37 +27,59 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
     private readonly repository: Repository<CompanyEntity>,
     @InjectRepository(UserCompanyEntity)
     private readonly userCompanyRepository: Repository<UserCompanyEntity>,
-    private readonly mapper: CompanyMapper,
-    private readonly userCompanyMapper: UserCompanyMapper,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
   ) {}
 
-  async findById(id: string): Promise<Company | null> {
+  async findById(id: string): Promise<CompanyReadModel | null> {
+    const entity = await this.repository.findOne({ where: { id } });
+    return entity ? this.toReadModel(entity) : null;
+  }
+
+  async findByIdWithUsers(id: string): Promise<CompanyWithUsersReadModel | null> {
     const entity = await this.repository.findOne({ where: { id } });
     if (!entity) return null;
 
-    const userCompanyEntities = await this.userCompanyRepository.find({
+    const usersCount = await this.userCompanyRepository.count({
       where: { companyId: id },
     });
 
-    const userCompanies = this.userCompanyMapper.toDomainList(userCompanyEntities);
-    return this.mapper.toDomain(entity, userCompanies);
+    return {
+      ...this.toReadModel(entity),
+      usersCount,
+    };
   }
 
-  async findByIdWithUsers(id: string): Promise<CompanyWithUsers | null> {
-    const company = await this.findById(id);
-    if (!company) return null;
+  async findByIdWithDetails(id: string): Promise<CompanyDetailReadModel | null> {
+    const entity = await this.repository
+      .createQueryBuilder('company')
+      .leftJoinAndSelect('company.creator', 'creator')
+      .where('company.id = :id', { id })
+      .getOne();
+
+    if (!entity) return null;
+
+    const usersCount = await this.userCompanyRepository.count({
+      where: { companyId: id },
+    });
+
+    const creator = entity.createdBy
+      ? await this.userRepository.findOne({ where: { id: entity.createdBy } })
+      : null;
 
     return {
-      ...company,
-      usersCount: company.users.length,
-    } as CompanyWithUsers;
+      ...this.toReadModel(entity),
+      usersCount,
+      creatorName: creator ? `${creator.firstName} ${creator.lastName}` : null,
+      creatorEmail: creator?.email || null,
+    };
   }
 
   async list(
     page: number,
     limit: number,
     filters?: CompanyListFilters,
-  ): Promise<PaginatedResult<Company>> {
+  ): Promise<PaginatedResult<CompanyReadModel>> {
     const where: any = {};
 
     if (filters?.isActive !== undefined) {
@@ -62,7 +91,6 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
     }
 
     if (filters?.search) {
-      // Simple search - can be improved with OR conditions
       where.name = Like(`%${filters.search}%`);
     }
 
@@ -73,15 +101,7 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
       order: { name: 'ASC' },
     });
 
-    const companies = await Promise.all(
-      entities.map(async entity => {
-        const userCompanyEntities = await this.userCompanyRepository.find({
-          where: { companyId: entity.id },
-        });
-        const userCompanies = this.userCompanyMapper.toDomainList(userCompanyEntities);
-        return this.mapper.toDomain(entity, userCompanies);
-      }),
-    );
+    const companies = entities.map(entity => this.toReadModel(entity));
 
     return {
       data: companies,
@@ -92,26 +112,15 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
     };
   }
 
-  async listByUserId(userId: string): Promise<Company[]> {
+  async listByUserId(userId: string): Promise<CompanyReadModel[]> {
     const userCompanyEntities = await this.userCompanyRepository.find({
       where: { userId },
       relations: ['company'],
     });
 
-    const companies = await Promise.all(
-      userCompanyEntities.map(async uc => {
-        if (!uc.company) return null;
-
-        const allUserCompanies = await this.userCompanyRepository.find({
-          where: { companyId: uc.company.id },
-        });
-
-        const userCompanies = this.userCompanyMapper.toDomainList(allUserCompanies);
-        return this.mapper.toDomain(uc.company, userCompanies);
-      }),
-    );
-
-    return companies.filter((c): c is Company => c !== null);
+    return userCompanyEntities
+      .filter(uc => uc.company)
+      .map(uc => this.toReadModel(uc.company!));
   }
 
   async count(filters?: CompanyListFilters): Promise<number> {
@@ -137,5 +146,30 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
       where: { companyId, userId },
     });
     return count > 0;
+  }
+
+  // ==========================================================================
+  // PRIVATE MAPPING METHODS
+  // ==========================================================================
+
+  /**
+   * Map TypeORM CompanyEntity to CompanyReadModel
+   * Direct mapping - no domain logic
+   */
+  private toReadModel(entity: CompanyEntity): CompanyReadModel {
+    return {
+      id: entity.id,
+      name: entity.name,
+      description: entity.description,
+      website: entity.website,
+      logoUrl: entity.logoUrl,
+      industry: entity.industry,
+      size: entity.size,
+      location: entity.location,
+      isActive: entity.isActive,
+      createdBy: entity.createdBy,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
   }
 }

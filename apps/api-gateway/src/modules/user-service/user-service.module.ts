@@ -2,6 +2,8 @@ import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AdminModule } from './admin/admin.module';
 import { UsersController } from './controllers/users.controller';
+import { UserSkillsController } from './controllers/user-skills.controller';
+import { SkillsController } from './controllers/skills.controller';
 import { UserServiceClient } from './clients/user-service.client';
 import { AuthModule } from '../../core/auth/auth.module';
 
@@ -24,6 +26,8 @@ import { AuthModule } from '../../core/auth/auth.module';
   ],
   controllers: [
     UsersController,
+    UserSkillsController,
+    SkillsController,
   ],
   providers: [
     UserServiceClient,

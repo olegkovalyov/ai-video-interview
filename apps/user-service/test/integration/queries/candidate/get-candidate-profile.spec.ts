@@ -59,10 +59,11 @@ describe('GetCandidateProfileQuery Integration', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.profile).toBeDefined();
-      expect(result.profile._userId).toBe(candidateId);
+      expect(result.userId).toBe(candidateId);
       expect(result.fullName).toBe('John Doe');
       expect(result.email).toBe('candidate@test.com');
+      expect(result.experienceLevel).toBe('mid');
+      expect(result.isProfileComplete).toBe(false);
     });
 
     it('should get profile with skills', async () => {
@@ -80,10 +81,11 @@ describe('GetCandidateProfileQuery Integration', () => {
       );
 
       // Create skills
-      const skill1Command = new CreateSkillCommand('Node.js Test', 'nodejs-test', null, null);
+      const adminId = uuidv4();
+      const skill1Command = new CreateSkillCommand('Node.js Test', 'nodejs-test', null, null, adminId);
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('React Test', 'react-test', null, null);
+      const skill2Command = new CreateSkillCommand('React Test', 'react-test', null, null, adminId);
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
       // Add skills to candidate
@@ -108,17 +110,11 @@ describe('GetCandidateProfileQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert
-      expect(result.profile._userId).toBe(candidateId);
-      expect(result.profile._skills.length).toBe(2);
+      expect(result.userId).toBe(candidateId);
       expect(result.fullName).toBe('John Doe');
       expect(result.email).toBe('candidate@test.com');
-      
-      // Verify skill structure
-      const skill = result.profile._skills[0];
-      expect(skill).toHaveProperty('_skillId');
-      expect(skill).toHaveProperty('_description');
-      expect(skill).toHaveProperty('_proficiencyLevel');
-      expect(skill).toHaveProperty('_yearsOfExperience');
+      expect(result.experienceLevel).toBe('senior');
+      // Note: Skills are fetched separately via getCandidateSkillsGroupedByCategory query
     });
 
     it('should get profile with user info', async () => {
@@ -140,11 +136,12 @@ describe('GetCandidateProfileQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert - Verify profile with user info
-      expect(result.profile._userId).toBe(candidateId);
-      expect(result.profile).toHaveProperty('_createdAt');
-      expect(result.profile).toHaveProperty('_updatedAt');
+      expect(result.userId).toBe(candidateId);
+      expect(result.createdAt).toBeDefined();
+      expect(result.updatedAt).toBeDefined();
       expect(result.fullName).toBe('John Doe');
       expect(result.email).toBe('candidate@test.com');
+      expect(result.experienceLevel).toBe('senior');
     });
 
     it('should get profile without skills', async () => {
@@ -166,8 +163,9 @@ describe('GetCandidateProfileQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert
-      expect(result.profile._userId).toBe(candidateId);
-      expect(result.profile._skills).toEqual([]);
+      expect(result.userId).toBe(candidateId);
+      expect(result.experienceLevel).toBe('junior');
+      // Note: Skills are managed separately
     });
 
     it('should get profile with minimal data', async () => {
@@ -189,9 +187,9 @@ describe('GetCandidateProfileQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert - Optional fields should be null or undefined
-      expect(result.profile._userId).toBe(candidateId);
-      expect(result.profile._experienceLevel).toBeFalsy();
-      expect(result.profile._skills).toEqual([]);
+      expect(result.userId).toBe(candidateId);
+      expect(result.experienceLevel).toBeNull();
+      expect(result.isProfileComplete).toBe(false);
     });
   });
 

@@ -49,24 +49,25 @@ describe('GetSkillQuery Integration', () => {
       const query = new GetSkillQuery(skillId);
       const result = await queryBus.execute(query);
 
-      // Assert
+      // Assert - Read Model structure (plain object)
       expect(result).toBeDefined();
-      expect(result.skill).toBeDefined();
-      expect(result.skill._id).toBe(skillId);
-      expect(result.skill._name).toBe('JavaScript');
-      expect(result.skill._slug).toBe('javascript');
-      expect(result.skill._isActive).toBe(true);
-      expect(result.category).toBeDefined();
-      expect(result.category._name).toBe('Programming Languages');
+      expect(result.id).toBe(skillId);
+      expect(result.name).toBe('JavaScript');
+      expect(result.slug).toBe('javascript');
+      expect(result.isActive).toBe(true);
+      expect(result.categoryId).toBeDefined();
+      expect(result.categoryName).toBe('Programming Languages');
     });
 
     it('should get skill without category', async () => {
       // Arrange - Create skill without category
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Standalone Skill Test',
         'standalone-skill-test',
         null,
         'A skill without category',
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
 
@@ -74,22 +75,23 @@ describe('GetSkillQuery Integration', () => {
       const query = new GetSkillQuery(skillId);
       const result = await queryBus.execute(query);
 
-      // Assert
+      // Assert - Read Model without category
       expect(result).toBeDefined();
-      expect(result.skill).toBeDefined();
-      expect(result.skill._id).toBe(skillId);
-      expect(result.skill._name).toBe('Standalone Skill Test');
-      expect(result.skill._categoryId).toBeNull();
-      expect(result.category).toBeNull();
+      expect(result.id).toBe(skillId);
+      expect(result.name).toBe('Standalone Skill Test');
+      expect(result.categoryId).toBeNull();
+      expect(result.categoryName).toBeNull();
     });
 
     it('should get inactive skill', async () => {
       // Arrange - Create and deactivate skill
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Inactive Skill Test',
         'inactive-skill-test',
         null,
         null,
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
       
@@ -99,11 +101,10 @@ describe('GetSkillQuery Integration', () => {
       const query = new GetSkillQuery(skillId);
       const result = await queryBus.execute(query);
 
-      // Assert
+      // Assert - Read Model inactive skill
       expect(result).toBeDefined();
-      expect(result.skill).toBeDefined();
-      expect(result.skill._id).toBe(skillId);
-      expect(result.skill._isActive).toBe(false);
+      expect(result.id).toBe(skillId);
+      expect(result.isActive).toBe(false);
     });
 
     it('should get skill with all metadata', async () => {
@@ -113,11 +114,13 @@ describe('GetSkillQuery Integration', () => {
       );
       const categoryId = categories[0].id;
 
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Full Metadata Skill',
         'full-metadata-skill-test',
         categoryId,
         'Complete skill description',
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
 
@@ -125,17 +128,16 @@ describe('GetSkillQuery Integration', () => {
       const query = new GetSkillQuery(skillId);
       const result = await queryBus.execute(query);
 
-      // Assert
-      expect(result.skill._id).toBe(skillId);
-      expect(result.skill._name).toBe('Full Metadata Skill');
-      expect(result.skill._slug).toBe('full-metadata-skill-test');
-      expect(result.skill._description).toBe('Complete skill description');
-      expect(result.skill._categoryId).toBe(categoryId);
-      expect(result.skill._isActive).toBe(true);
-      expect(result.category).toBeDefined();
-      expect(result.category._id).toBe(categoryId);
-      expect(result.skill).toHaveProperty('_createdAt');
-      expect(result.skill).toHaveProperty('_updatedAt');
+      // Assert - Read Model with full metadata
+      expect(result.id).toBe(skillId);
+      expect(result.name).toBe('Full Metadata Skill');
+      expect(result.slug).toBe('full-metadata-skill-test');
+      expect(result.description).toBe('Complete skill description');
+      expect(result.isActive).toBe(true);
+      expect(result.createdAt).toBeInstanceOf(Date);
+      expect(result.updatedAt).toBeInstanceOf(Date);
+      expect(result.categoryId).toBe(categoryId);
+      expect(result.categoryName).toBe('Programming Languages');
     });
   });
 

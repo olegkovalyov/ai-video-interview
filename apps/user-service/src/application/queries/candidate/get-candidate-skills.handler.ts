@@ -2,14 +2,12 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject, ForbiddenException } from '@nestjs/common';
 import { GetCandidateSkillsQuery } from './get-candidate-skills.query';
 import type { ICandidateProfileReadRepository } from '../../../domain/repositories/candidate-profile-read.repository.interface';
-import { CandidateSkill } from '../../../domain/entities/candidate-skill.entity';
+import type { SkillsByCategoryReadModel } from '../../../domain/read-models/candidate-profile.read-model';
 
-export interface SkillsByCategory {
-  categoryId: string | null;
-  categoryName: string | null;
-  skills: CandidateSkill[];
-}
-
+/**
+ * Get Candidate Skills Query Handler
+ * Returns Read Models (plain objects) grouped by category
+ */
 @QueryHandler(GetCandidateSkillsQuery)
 export class GetCandidateSkillsHandler implements IQueryHandler<GetCandidateSkillsQuery> {
   constructor(
@@ -17,7 +15,7 @@ export class GetCandidateSkillsHandler implements IQueryHandler<GetCandidateSkil
     private readonly profileReadRepository: ICandidateProfileReadRepository,
   ) {}
 
-  async execute(query: GetCandidateSkillsQuery): Promise<SkillsByCategory[]> {
+  async execute(query: GetCandidateSkillsQuery): Promise<SkillsByCategoryReadModel[]> {
     // Check permissions: own profile, HR, or ADMIN
     const canView = 
       query.candidateId === query.currentUserId ||

@@ -38,11 +38,13 @@ describe('DeleteSkillCommand Integration', () => {
   describe('Success Cases', () => {
     it('should delete existing skill', async () => {
       // Arrange - Create skill
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Test Skill',
         'test-skill',
         null,
         'Test description',
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
 
@@ -54,7 +56,6 @@ describe('DeleteSkillCommand Integration', () => {
       expect(beforeDelete.length).toBe(1);
 
       // Act - Delete skill
-      const adminId = uuidv4();
       const deleteCommand = new DeleteSkillCommand(skillId, adminId);
       await commandBus.execute(deleteCommand);
 
@@ -68,11 +69,13 @@ describe('DeleteSkillCommand Integration', () => {
 
     it('should delete skill with cascade to candidate_skills', async () => {
       // Arrange - Create skill and user
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Test Skill',
         'test-skill',
         null,
         null,
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
 
@@ -104,7 +107,6 @@ describe('DeleteSkillCommand Integration', () => {
       expect(beforeDelete.length).toBe(1);
 
       // Act - Delete skill
-      const adminId = uuidv4();
       const deleteCommand = new DeleteSkillCommand(skillId, adminId);
       await commandBus.execute(deleteCommand);
 
@@ -131,16 +133,17 @@ describe('DeleteSkillCommand Integration', () => {
       );
       const categoryId = categories[0].id;
 
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Test Language',
         'test-language',
         categoryId,
         'A test programming language',
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act - Delete skill
-      const adminId = uuidv4();
       const deleteCommand = new DeleteSkillCommand(skillId, adminId);
       await commandBus.execute(deleteCommand);
 
@@ -154,17 +157,17 @@ describe('DeleteSkillCommand Integration', () => {
 
     it('should delete multiple skills in sequence', async () => {
       // Arrange - Create 3 skills
-      const command1 = new CreateSkillCommand('Skill 1', 'skill-1', null, null);
+      const adminId = uuidv4();
+      const command1 = new CreateSkillCommand('Skill 1', 'skill-1', null, null, adminId);
       const { skillId: id1 } = await commandBus.execute(command1);
 
-      const command2 = new CreateSkillCommand('Skill 2', 'skill-2', null, null);
+      const command2 = new CreateSkillCommand('Skill 2', 'skill-2', null, null, adminId);
       const { skillId: id2 } = await commandBus.execute(command2);
 
-      const command3 = new CreateSkillCommand('Skill 3', 'skill-3', null, null);
+      const command3 = new CreateSkillCommand('Skill 3', 'skill-3', null, null, adminId);
       const { skillId: id3 } = await commandBus.execute(command3);
 
       // Act - Delete all 3
-      const adminId = uuidv4();
       await commandBus.execute(new DeleteSkillCommand(id1, adminId));
       await commandBus.execute(new DeleteSkillCommand(id2, adminId));
       await commandBus.execute(new DeleteSkillCommand(id3, adminId));
@@ -191,15 +194,16 @@ describe('DeleteSkillCommand Integration', () => {
 
     it('should throw error when deleting already deleted skill', async () => {
       // Arrange - Create and delete skill
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Test Skill',
         'test-skill',
         null,
         null,
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
 
-      const adminId = uuidv4();
       const deleteCommand = new DeleteSkillCommand(skillId, adminId);
       await commandBus.execute(deleteCommand);
 

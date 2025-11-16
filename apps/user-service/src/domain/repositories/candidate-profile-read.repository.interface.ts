@@ -1,5 +1,15 @@
-import { CandidateProfile } from '../aggregates/candidate-profile.aggregate';
-import { CandidateSkill } from '../entities/candidate-skill.entity';
+import type {
+  CandidateProfileReadModel,
+  CandidateProfileWithUserReadModel,
+  CandidateSkillReadModel,
+  SkillsByCategoryReadModel,
+  CandidateSearchResultReadModel,
+} from '../read-models/candidate-profile.read-model';
+
+// Type aliases for backward compatibility
+export type CandidateProfileWithUser = CandidateProfileWithUserReadModel;
+export type SkillsByCategory = SkillsByCategoryReadModel;
+export type CandidateSearchResult = CandidateSearchResultReadModel;
 
 /**
  * Pagination result
@@ -23,41 +33,20 @@ export interface CandidateSearchFilters {
 }
 
 /**
- * Candidate search result with match score
- */
-export interface CandidateSearchResult {
-  userId: string;
-  fullName: string;
-  email: string;
-  experienceLevel: string | null;
-  matchedSkills: CandidateSkill[];
-  matchScore: number; // Calculated based on proficiency + years
-}
-
-/**
- * Candidate profile with user info
- */
-export interface CandidateProfileWithUser {
-  profile: CandidateProfile;
-  fullName: string;
-  email: string;
-  avatarUrl?: string;
-}
-
-/**
  * CandidateProfile Read Repository Interface (Query operations)
+ * Returns Read Models (plain objects) - no domain entities
  * Optimized for read operations (CQRS read side)
  */
 export interface ICandidateProfileReadRepository {
   /**
-   * Find candidate profile by user ID (with skills)
+   * Find candidate profile by user ID
    */
-  findByUserId(userId: string): Promise<CandidateProfile | null>;
+  findByUserId(userId: string): Promise<CandidateProfileReadModel | null>;
 
   /**
    * Find candidate profile with user info
    */
-  findByUserIdWithUser(userId: string): Promise<CandidateProfileWithUser | null>;
+  findByUserIdWithUser(userId: string): Promise<CandidateProfileWithUserReadModel | null>;
 
   /**
    * Search candidates by skills with filters
@@ -66,16 +55,12 @@ export interface ICandidateProfileReadRepository {
     filters: CandidateSearchFilters,
     page: number,
     limit: number,
-  ): Promise<PaginatedResult<CandidateSearchResult>>;
+  ): Promise<PaginatedResult<CandidateSearchResultReadModel>>;
 
   /**
    * Get candidate skills grouped by category
    */
-  getCandidateSkillsGroupedByCategory(userId: string): Promise<{
-    categoryId: string | null;
-    categoryName: string | null;
-    skills: CandidateSkill[];
-  }[]>;
+  getCandidateSkillsGroupedByCategory(userId: string): Promise<SkillsByCategoryReadModel[]>;
 
   /**
    * Count candidates with specific skill

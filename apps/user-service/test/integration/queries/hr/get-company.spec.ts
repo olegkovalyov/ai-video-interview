@@ -72,13 +72,13 @@ describe('GetCompanyQuery Integration', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result._id).toBe(companyId);
-      expect(result._name).toBe('Tech Corp');
-      expect(result._description).toBe('Leading tech company');
-      expect(result._website).toBe('https://techcorp.com');
-      expect(result._industry).toBe('Technology');
-      expect(result._size?._value).toBe('51-200');
-      expect(result._location).toBe('San Francisco, CA');
+      expect(result.id).toBe(companyId);
+      expect(result.name).toBe('Tech Corp');
+      expect(result.description).toBe('Leading tech company');
+      expect(result.website).toBe('https://techcorp.com');
+      expect(result.industry).toBe('Technology');
+      expect(result.size).toBe('51-200');
+      expect(result.location).toBe('San Francisco, CA');
     });
 
     it('should get company with all metadata', async () => {
@@ -114,16 +114,16 @@ describe('GetCompanyQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert - Verify all fields
-      expect(result._id).toBe(companyId);
-      expect(result._name).toBe('Complete Company');
-      expect(result._description).toBe('Full description here');
-      expect(result._website).toBe('https://complete.com');
-      expect(result._logoUrl).toBe('https://complete.com/logo.png');
-      expect(result._industry).toBe('Healthcare');
-      expect(result._size?._value).toBe('200+');
-      expect(result._location).toBe('Boston, MA');
-      expect(result).toHaveProperty('_createdAt');
-      expect(result).toHaveProperty('_updatedAt');
+      expect(result.id).toBe(companyId);
+      expect(result.name).toBe('Complete Company');
+      expect(result.description).toBe('Full description here');
+      expect(result.website).toBe('https://complete.com');
+      expect(result.logoUrl).toBe('https://complete.com/logo.png');
+      expect(result.industry).toBe('Healthcare');
+      expect(result.size).toBe('200+');
+      expect(result.location).toBe('Boston, MA');
+      expect(result).toHaveProperty('createdAt');
+      expect(result).toHaveProperty('updatedAt');
     });
 
     it('should get company with null optional fields', async () => {
@@ -159,14 +159,14 @@ describe('GetCompanyQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert - Optional fields should be null
-      expect(result._id).toBe(companyId);
-      expect(result._name).toBe('Minimal Company');
-      expect(result._description).toBeNull();
-      expect(result._website).toBeNull();
-      expect(result._logoUrl).toBeNull();
-      expect(result._industry).toBeNull();
-      expect(result._size).toBeNull();
-      expect(result._location).toBeNull();
+      expect(result.id).toBe(companyId);
+      expect(result.name).toBe('Minimal Company');
+      expect(result.description).toBeNull();
+      expect(result.website).toBeNull();
+      expect(result.logoUrl).toBeNull();
+      expect(result.industry).toBeNull();
+      expect(result.size).toBeNull();
+      expect(result.location).toBeNull();
     });
 
     it('should get company created by current HR', async () => {
@@ -210,8 +210,8 @@ describe('GetCompanyQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert
-      expect(result._id).toBe(companyId);
-      expect(result._name).toBe('My Company');
+      expect(result.id).toBe(companyId);
+      expect(result.name).toBe('My Company');
     });
   });
 

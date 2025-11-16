@@ -1,35 +1,42 @@
 import { CandidateProfileWithUser } from '../../../domain/repositories/candidate-profile-read.repository.interface';
 import { CandidateSkill } from '../../../domain/entities/candidate-skill.entity';
-import { SkillsByCategory } from '../../../application/queries/candidate/get-candidate-skills.handler';
+import type { SkillsByCategoryReadModel } from '../../../domain/read-models/candidate-profile.read-model';
+import { 
+  CandidateProfileResponseDto, 
+  CandidateSkillResponseDto, 
+  SkillsByCategoryResponseDto,
+  CandidateSearchResultItemDto 
+} from '../dto/candidates.response.dto';
 
 /**
  * Mapper for converting Candidate domain data to HTTP response DTOs
  * Used ONLY in controllers for API responses
  */
 export class CandidateResponseMapper {
-  static toProfileDto(data: CandidateProfileWithUser) {
+  static toProfileDto(data: CandidateProfileWithUser): CandidateProfileResponseDto {
     return {
-      userId: data.profile.userId,
+      userId: data.userId,
       fullName: data.fullName,
       email: data.email,
-      experienceLevel: data.profile.experienceLevel?.value || null,
-      createdAt: data.profile.createdAt,
-      updatedAt: data.profile.updatedAt,
+      experienceLevel: data.experienceLevel,
+      isProfileComplete: data.isProfileComplete,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
     };
   }
 
-  static toSkillDto(skill: any) {
+  static toSkillDto(skill: any): CandidateSkillResponseDto {
     return {
       skillId: skill.skillId,
       skillName: skill.skillName || null,
-      description: skill.description,
-      proficiencyLevel: skill.proficiencyLevel?.value || null,
-      yearsOfExperience: skill.yearsOfExperience?.value || null,
+      description: skill.description || null,
+      proficiencyLevel: skill.proficiencyLevel || null,
+      yearsOfExperience: skill.yearsOfExperience || null,
       addedAt: skill.createdAt || skill.addedAt,
     };
   }
 
-  static toSkillsByCategoryDto(data: SkillsByCategory[]) {
+  static toSkillsByCategoryDto(data: SkillsByCategoryReadModel[]): SkillsByCategoryResponseDto[] {
     return data.map(category => ({
       categoryId: category.categoryId,
       categoryName: category.categoryName,
@@ -37,7 +44,7 @@ export class CandidateResponseMapper {
     }));
   }
 
-  static toSearchResultDto(result: any) {
+  static toSearchResultDto(result: any): CandidateSearchResultItemDto {
     return {
       userId: result.userId,
       fullName: result.fullName,
@@ -48,7 +55,7 @@ export class CandidateResponseMapper {
     };
   }
 
-  static toSearchResultsDto(results: any[]) {
+  static toSearchResultsDto(results: any[]): CandidateSearchResultItemDto[] {
     return results.map(result => this.toSearchResultDto(result));
   }
 }

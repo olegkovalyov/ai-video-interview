@@ -96,16 +96,44 @@
             }
           },
           "400": {
-            "description": "Invalid request body or user is already suspended"
+            "description": "Invalid request body or user is already suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -144,16 +172,44 @@
             }
           },
           "400": {
-            "description": "User is already active"
+            "description": "User is already active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -186,7 +242,7 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Items per page (default: 20)",
+            "description": "Items per page (default: 10, max: 100)",
             "schema": {
               "minimum": 1,
               "maximum": 100,
@@ -245,13 +301,34 @@
             }
           },
           "400": {
-            "description": "Invalid query parameters"
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -282,16 +359,44 @@
             "description": "User created successfully"
           },
           "400": {
-            "description": "Invalid request body"
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "409": {
-            "description": "User already exists"
+            "description": "User already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -321,10 +426,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -363,13 +482,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -416,16 +556,44 @@
             }
           },
           "400": {
-            "description": "Invalid request body"
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -455,13 +623,34 @@
             "description": "User deleted successfully"
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -500,13 +689,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -533,24 +743,76 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "description": "Avatar file (jpg, jpeg, png, webp, max 5MB)",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Avatar uploaded successfully"
           },
           "400": {
-            "description": "Invalid file format or size"
+            "description": "Invalid file format or size",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "413": {
-            "description": "File too large (max 5MB)"
+            "description": "File too large (max 5MB)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -580,13 +842,34 @@
             "description": "Avatar deleted successfully"
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -628,16 +911,44 @@
             "description": "Role assigned successfully"
           },
           "400": {
-            "description": "Invalid role or role already assigned"
+            "description": "Invalid role or role already assigned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -667,16 +978,44 @@
         },
         "responses": {
           "201": {
-            "description": "Skill created successfully"
+            "description": "Skill created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillSuccessResponseDto"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Skill already exists"
+            "description": "Skill already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -731,7 +1070,7 @@
             "name": "categoryId",
             "required": false,
             "in": "query",
-            "description": "Filter by skill category ID",
+            "description": "Filter by category ID",
             "schema": {
               "example": "uuid",
               "type": "string"
@@ -750,10 +1089,24 @@
         ],
         "responses": {
           "200": {
-            "description": "Skills list retrieved successfully"
+            "description": "Skills list retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillListResponseDto"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -761,7 +1114,7 @@
             "internal-token": []
           }
         ],
-        "summary": "List skills with filters and pagination",
+        "summary": "List skills with filters",
         "tags": [
           "skills"
         ]
@@ -792,16 +1145,44 @@
         },
         "responses": {
           "200": {
-            "description": "Skill updated successfully"
+            "description": "Skill updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillSuccessResponseDto"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Skill not found"
+            "description": "Skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -839,10 +1220,24 @@
             "description": "Skill deleted successfully"
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Skill not found"
+            "description": "Skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -869,13 +1264,34 @@
         ],
         "responses": {
           "200": {
-            "description": "Skill retrieved successfully"
+            "description": "Skill retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillSuccessResponseDto"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Skill not found"
+            "description": "Skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -895,10 +1311,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Categories list retrieved successfully"
+            "description": "Categories retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillCategoriesResponseDto"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -928,16 +1358,44 @@
         },
         "responses": {
           "201": {
-            "description": "Company created successfully"
+            "description": "Company created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanySuccessResponseDto"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Company already exists"
+            "description": "Company already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1044,7 +1502,14 @@
             "description": "Companies list retrieved successfully"
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1083,19 +1548,54 @@
         },
         "responses": {
           "200": {
-            "description": "Company updated successfully"
+            "description": "Company updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanySuccessResponseDto"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden - not authorized to update this company"
+            "description": "Forbidden - not authorized to update this company",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Company not found"
+            "description": "Company not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1133,13 +1633,34 @@
             "description": "Company deleted successfully"
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden - not authorized to delete this company"
+            "description": "Forbidden - not authorized to delete this company",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Company not found"
+            "description": "Company not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1182,16 +1703,44 @@
         ],
         "responses": {
           "200": {
-            "description": "Company retrieved successfully"
+            "description": "Company retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanySuccessResponseDto"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden - not authorized to view this company"
+            "description": "Forbidden - not authorized to view this company",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Company not found"
+            "description": "Company not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1299,32 +1848,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "example": {
-                    "success": true,
-                    "data": [
-                      {
-                        "userId": "uuid",
-                        "fullName": "John Doe",
-                        "email": "john@example.com",
-                        "experienceLevel": "senior",
-                        "skills": [
-                          {
-                            "skillId": "uuid",
-                            "skillName": "React",
-                            "proficiencyLevel": "expert",
-                            "yearsOfExperience": 5
-                          }
-                        ],
-                        "matchScore": 95
-                      }
-                    ],
-                    "pagination": {
-                      "total": 42,
-                      "page": 1,
-                      "limit": 20,
-                      "totalPages": 3
-                    }
-                  }
+                  "$ref": "#/components/schemas/CandidateSearchResultsResponseDto"
                 }
               }
             }
@@ -1387,7 +1911,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Profile retrieved successfully"
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateProfileSuccessResponseDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized - invalid or missing internal token"
@@ -1454,24 +1985,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "example": {
-                    "success": true,
-                    "data": [
-                      {
-                        "categoryId": "uuid",
-                        "categoryName": "Frontend",
-                        "skills": [
-                          {
-                            "skillId": "uuid",
-                            "skillName": "React",
-                            "description": "Building SPAs",
-                            "proficiencyLevel": "expert",
-                            "yearsOfExperience": 5
-                          }
-                        ]
-                      }
-                    ]
-                  }
+                  "$ref": "#/components/schemas/CandidateSkillsSuccessResponseDto"
                 }
               }
             }
@@ -1521,13 +2035,34 @@
             "description": "Skill added successfully"
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Invalid input data or skill already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Candidate or skill not found"
+            "description": "User or skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           },
           "409": {
             "description": "Skill already added to candidate"
@@ -1581,13 +2116,34 @@
             "description": "Skill updated successfully"
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Candidate or skill not found"
+            "description": "User or candidate skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1626,10 +2182,24 @@
             "description": "Skill removed successfully"
           },
           "401": {
-            "description": "Unauthorized - invalid or missing internal token"
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Candidate or skill not found"
+            "description": "User or candidate skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1711,13 +2281,16 @@
             "type": "string"
           },
           "avatarUrl": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "bio": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "phone": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "timezone": {
             "type": "string"
@@ -1753,7 +2326,8 @@
           },
           "lastLoginAt": {
             "format": "date-time",
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -1772,6 +2346,102 @@
           "isDeleted",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "BadRequestErrorSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Invalid request data"
+          },
+          "code": {
+            "type": "string",
+            "example": "VALIDATION_ERROR"
+          },
+          "details": {
+            "type": "string",
+            "example": "firstName must be at least 2 characters long"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "code"
+        ]
+      },
+      "UnauthorizedErrorSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Unauthorized - invalid or missing internal token"
+          },
+          "code": {
+            "type": "string",
+            "example": "UNAUTHORIZED"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "code"
+        ]
+      },
+      "NotFoundErrorSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Resource not found"
+          },
+          "code": {
+            "type": "string",
+            "example": "USER_NOT_FOUND"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "code"
+        ]
+      },
+      "InternalServerErrorSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Internal server error"
+          },
+          "code": {
+            "type": "string",
+            "example": "INTERNAL_ERROR"
+          },
+          "details": {
+            "type": "string",
+            "example": "Database connection failed"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "code"
         ]
       },
       "PaginationDto": {
@@ -1813,6 +2483,35 @@
         "required": [
           "data",
           "pagination"
+        ]
+      },
+      "ValidationErrorSchema": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 400
+          },
+          "message": {
+            "example": [
+              "email must be an email",
+              "firstName should not be empty"
+            ],
+            "description": "Array of validation error messages",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad Request"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "error"
         ]
       },
       "UserStatsResponseDto": {
@@ -1877,6 +2576,32 @@
           "email",
           "firstName",
           "lastName"
+        ]
+      },
+      "ConflictErrorSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Resource already exists"
+          },
+          "code": {
+            "type": "string",
+            "example": "USER_ALREADY_EXISTS"
+          },
+          "details": {
+            "type": "string",
+            "example": "User with email user@example.com already exists"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "code"
         ]
       },
       "UpdateUserInternalDto": {
@@ -1966,6 +2691,91 @@
           "slug"
         ]
       },
+      "SkillResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Skill ID"
+          },
+          "name": {
+            "type": "string",
+            "example": "TypeScript",
+            "description": "Skill name"
+          },
+          "slug": {
+            "type": "string",
+            "example": "typescript",
+            "description": "Skill slug"
+          },
+          "description": {
+            "type": "string",
+            "example": "JavaScript superset with static typing",
+            "nullable": true,
+            "description": "Skill description"
+          },
+          "categoryId": {
+            "type": "string",
+            "example": "uuid",
+            "nullable": true,
+            "description": "Category ID"
+          },
+          "categoryName": {
+            "type": "string",
+            "example": "Frontend Development",
+            "nullable": true,
+            "description": "Category name"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the skill is active"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Creation date"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Last update date"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SkillSuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "Skill data",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SkillResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
       "UpdateSkillDto": {
         "type": "object",
         "properties": {
@@ -1990,6 +2800,175 @@
             "example": "uuid"
           }
         }
+      },
+      "SkillListItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Skill ID"
+          },
+          "name": {
+            "type": "string",
+            "example": "TypeScript",
+            "description": "Skill name"
+          },
+          "slug": {
+            "type": "string",
+            "example": "typescript",
+            "description": "Skill slug"
+          },
+          "categoryId": {
+            "type": "string",
+            "example": "uuid",
+            "nullable": true,
+            "description": "Category ID"
+          },
+          "categoryName": {
+            "type": "string",
+            "example": "Frontend Development",
+            "nullable": true,
+            "description": "Category name"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the skill is active"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isActive"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total number of items"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page number"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "SkillListResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "List of skills",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillListItemResponseDto"
+            }
+          },
+          "pagination": {
+            "description": "Pagination metadata",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaginationMetaDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "pagination"
+        ]
+      },
+      "SkillCategoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Category ID"
+          },
+          "name": {
+            "type": "string",
+            "example": "Frontend Development",
+            "description": "Category name"
+          },
+          "slug": {
+            "type": "string",
+            "example": "frontend-development",
+            "description": "Category slug"
+          },
+          "description": {
+            "type": "string",
+            "example": "Technologies and frameworks for building user interfaces",
+            "nullable": true,
+            "description": "Category description"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the category is active"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Creation date"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isActive",
+          "createdAt"
+        ]
+      },
+      "SkillCategoriesResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "List of skill categories",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillCategoryResponseDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
       },
       "CreateCompanyDto": {
         "type": "object",
@@ -2037,6 +3016,115 @@
           "createdBy"
         ]
       },
+      "CompanyResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Company ID"
+          },
+          "name": {
+            "type": "string",
+            "example": "TechCorp Inc.",
+            "description": "Company name"
+          },
+          "description": {
+            "type": "string",
+            "example": "Leading software development company",
+            "nullable": true,
+            "description": "Company description"
+          },
+          "website": {
+            "type": "string",
+            "example": "https://techcorp.com",
+            "nullable": true,
+            "description": "Company website URL"
+          },
+          "logoUrl": {
+            "type": "string",
+            "example": "https://cdn.example.com/logo.png",
+            "nullable": true,
+            "description": "Company logo URL"
+          },
+          "industry": {
+            "type": "string",
+            "example": "Software Development",
+            "nullable": true,
+            "description": "Company industry"
+          },
+          "size": {
+            "type": "string",
+            "example": "50-100 employees",
+            "nullable": true,
+            "description": "Company size"
+          },
+          "location": {
+            "type": "string",
+            "example": "San Francisco, CA",
+            "nullable": true,
+            "description": "Company location"
+          },
+          "position": {
+            "type": "string",
+            "example": "Senior Software Engineer",
+            "nullable": true,
+            "description": "HR position in the company"
+          },
+          "createdBy": {
+            "type": "string",
+            "example": "uuid",
+            "description": "HR user ID who created the company"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the company is active"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Creation date"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Last update date"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdBy",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CompanySuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "Company data",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
       "UpdateCompanyDto": {
         "type": "object",
         "properties": {
@@ -2078,6 +3166,287 @@
         },
         "required": [
           "updatedBy"
+        ]
+      },
+      "ForbiddenErrorSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Access denied - insufficient permissions"
+          },
+          "code": {
+            "type": "string",
+            "example": "FORBIDDEN"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "code"
+        ]
+      },
+      "CandidateSkillResponseDto": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Skill ID"
+          },
+          "skillName": {
+            "type": "string",
+            "example": "React",
+            "nullable": true,
+            "description": "Skill name"
+          },
+          "description": {
+            "type": "string",
+            "example": "Building SPAs and complex UIs",
+            "nullable": true,
+            "description": "Personal description or notes"
+          },
+          "proficiencyLevel": {
+            "type": "string",
+            "example": "expert",
+            "nullable": true,
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced",
+              "expert"
+            ],
+            "description": "Proficiency level"
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "example": 5,
+            "nullable": true,
+            "minimum": 0,
+            "description": "Years of experience"
+          },
+          "addedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Date when skill was added"
+          }
+        },
+        "required": [
+          "skillId",
+          "addedAt"
+        ]
+      },
+      "CandidateSearchResultItemDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "uuid",
+            "description": "User ID"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "Full name"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com",
+            "description": "Email address"
+          },
+          "experienceLevel": {
+            "type": "string",
+            "example": "senior",
+            "nullable": true,
+            "enum": [
+              "junior",
+              "mid",
+              "senior",
+              "lead"
+            ],
+            "description": "Experience level"
+          },
+          "matchedSkills": {
+            "description": "Matched skills",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSkillResponseDto"
+            }
+          },
+          "matchScore": {
+            "type": "number",
+            "example": 95,
+            "description": "Match score (0-100)"
+          }
+        },
+        "required": [
+          "userId",
+          "fullName",
+          "email",
+          "matchedSkills",
+          "matchScore"
+        ]
+      },
+      "CandidateSearchResultsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "Search results",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSearchResultItemDto"
+            }
+          },
+          "pagination": {
+            "description": "Pagination metadata",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaginationMetaDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "pagination"
+        ]
+      },
+      "CandidateProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "uuid",
+            "description": "User ID"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "Full name"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com",
+            "description": "Email address"
+          },
+          "experienceLevel": {
+            "type": "string",
+            "example": "senior",
+            "nullable": true,
+            "enum": [
+              "junior",
+              "mid",
+              "senior",
+              "lead"
+            ],
+            "description": "Experience level"
+          },
+          "isProfileComplete": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether profile is complete"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Profile creation date"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Last update date"
+          }
+        },
+        "required": [
+          "userId",
+          "fullName",
+          "email",
+          "isProfileComplete",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CandidateProfileSuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "Profile data",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CandidateProfileResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "SkillsByCategoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "example": "uuid",
+            "nullable": true,
+            "description": "Category ID"
+          },
+          "categoryName": {
+            "type": "string",
+            "example": "Frontend Development",
+            "nullable": true,
+            "description": "Category name"
+          },
+          "skills": {
+            "description": "List of skills in this category",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSkillResponseDto"
+            }
+          }
+        },
+        "required": [
+          "skills"
+        ]
+      },
+      "CandidateSkillsSuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "Skills grouped by category",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillsByCategoryResponseDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
         ]
       },
       "AddCandidateSkillDto": {

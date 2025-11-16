@@ -196,19 +196,19 @@ export async function seedUser(
   const userId = data.id || uuidv4();
   const externalAuthId = data.externalAuthId || uuidv4();
 
-  // Create user
-  const user = userRepo.create({
-    id: userId,
-    externalAuthId,
-    email: data.email,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    username: data.username || null,
-    status: data.status || 'active',
-    role: data.role || 'candidate',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  // Create user entity manually
+  const user = new UserEntity();
+  user.id = userId as any;
+  user.externalAuthId = externalAuthId;
+  user.email = data.email;
+  user.firstName = data.firstName;
+  user.lastName = data.lastName;
+  user.username = data.username as any;
+  user.status = (data.status || 'active') as any;
+  user.role = (data.role || 'candidate') as any;
+  user.createdAt = new Date();
+  user.updatedAt = new Date();
+  
   await userRepo.save(user);
 
   return userId;

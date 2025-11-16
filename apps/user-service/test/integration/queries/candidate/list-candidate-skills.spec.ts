@@ -54,13 +54,14 @@ describe('GetCandidateSkillsQuery Integration', () => {
       );
 
       // Create skills
-      const skill1Command = new CreateSkillCommand('Node.js Test', 'nodejs-test', null, null);
+      const adminId = uuidv4();
+      const skill1Command = new CreateSkillCommand('Node.js Test', 'nodejs-test', null, null, adminId);
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('React Test', 'react-test', null, null);
+      const skill2Command = new CreateSkillCommand('React Test', 'react-test', null, null, adminId);
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      const skill3Command = new CreateSkillCommand('TypeScript Test', 'typescript-test', null, null);
+      const skill3Command = new CreateSkillCommand('TypeScript Test', 'typescript-test', null, null, adminId);
       const { skillId: skill3Id } = await commandBus.execute(skill3Command);
 
       // Add skills
@@ -100,12 +101,15 @@ describe('GetCandidateSkillsQuery Integration', () => {
       const allSkills = result.flatMap(group => group.skills);
       expect(allSkills.length).toBe(3);
       
-      // Verify skill structure
+      // Verify skill structure (ReadModel)
       const skill = allSkills[0];
-      expect(skill).toHaveProperty('_skillId');
-      expect(skill).toHaveProperty('_description');
-      expect(skill).toHaveProperty('_proficiencyLevel');
-      expect(skill).toHaveProperty('_yearsOfExperience');
+      expect(skill).toHaveProperty('skillId');
+      expect(skill).toHaveProperty('skillName');
+      expect(skill).toHaveProperty('description');
+      expect(skill).toHaveProperty('proficiencyLevel');
+      expect(skill).toHaveProperty('yearsOfExperience');
+      expect(skill).toHaveProperty('createdAt');
+      expect(skill).toHaveProperty('updatedAt');
     });
 
     it('should list skills with full metadata including skill info', async () => {
@@ -123,11 +127,13 @@ describe('GetCandidateSkillsQuery Integration', () => {
       );
 
       // Create skill with category
+      const adminId = uuidv4();
       const skillCommand = new CreateSkillCommand(
         'Vue.js Test',
         'vuejs-test',
         null,
         null,
+        adminId,
       );
       const { skillId } = await commandBus.execute(skillCommand);
 
@@ -149,10 +155,10 @@ describe('GetCandidateSkillsQuery Integration', () => {
       expect(allSkills.length).toBe(1);
       const candidateSkill = allSkills[0];
       
-      expect(candidateSkill._skillId).toBe(skillId);
-      expect(candidateSkill._description).toBe('Building SPAs with Vue.js and Vuex');
-      expect(candidateSkill._proficiencyLevel?._value).toBe('advanced');
-      expect(candidateSkill._yearsOfExperience?._value).toBe(4);
+      expect(candidateSkill.skillId).toBe(skillId);
+      expect(candidateSkill.description).toBe('Building SPAs with Vue.js and Vuex');
+      expect(candidateSkill.proficiencyLevel).toBe('advanced');
+      expect(candidateSkill.yearsOfExperience).toBe(4);
     });
 
     it('should list skills with different proficiency levels', async () => {
@@ -170,13 +176,14 @@ describe('GetCandidateSkillsQuery Integration', () => {
       );
 
       // Create multiple skills with different proficiency
-      const skill1Command = new CreateSkillCommand('Skill Expert Test', 'skill-expert-test', null, null);
+      const adminId = uuidv4();
+      const skill1Command = new CreateSkillCommand('Skill Expert Test', 'skill-expert-test', null, null, adminId);
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('Skill Beginner Test', 'skill-beginner-test', null, null);
+      const skill2Command = new CreateSkillCommand('Skill Beginner Test', 'skill-beginner-test', null, null, adminId);
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      const skill3Command = new CreateSkillCommand('Skill Advanced Test', 'skill-advanced-test', null, null);
+      const skill3Command = new CreateSkillCommand('Skill Advanced Test', 'skill-advanced-test', null, null, adminId);
       const { skillId: skill3Id } = await commandBus.execute(skill3Command);
 
       await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill1Id, null, 'expert', 10));
@@ -191,7 +198,7 @@ describe('GetCandidateSkillsQuery Integration', () => {
       const allSkills = result.flatMap(group => group.skills);
       expect(allSkills.length).toBe(3);
       
-      const proficiencies = allSkills.map(s => s._proficiencyLevel?._value);
+      const proficiencies = allSkills.map(s => s.proficiencyLevel);
       expect(proficiencies).toContain('beginner');
       expect(proficiencies).toContain('advanced');
       expect(proficiencies).toContain('expert');
@@ -234,7 +241,8 @@ describe('GetCandidateSkillsQuery Integration', () => {
       );
 
       // Create and add skills with delay
-      const skill1Command = new CreateSkillCommand('First Skill Test', 'first-skill-test', null, null);
+      const adminId = uuidv4();
+      const skill1Command = new CreateSkillCommand('First Skill Test', 'first-skill-test', null, null, adminId);
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
       await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill1Id, 'First', 'beginner', 1));
@@ -242,7 +250,7 @@ describe('GetCandidateSkillsQuery Integration', () => {
       // Small delay
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const skill2Command = new CreateSkillCommand('Second Skill Test', 'second-skill-test', null, null);
+      const skill2Command = new CreateSkillCommand('Second Skill Test', 'second-skill-test', null, null, adminId);
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
       await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill2Id, 'Second', 'intermediate', 2));
@@ -293,7 +301,8 @@ describe('GetCandidateSkillsQuery Integration', () => {
       );
 
       // Add skill to candidate2
-      const skillCommand = new CreateSkillCommand('Private Skill Test', 'private-skill-test', null, null);
+      const adminId = uuidv4();
+      const skillCommand = new CreateSkillCommand('Private Skill Test', 'private-skill-test', null, null, adminId);
       const { skillId } = await commandBus.execute(skillCommand);
       await commandBus.execute(new AddCandidateSkillCommand(candidate2Id, skillId, null, 'intermediate', 3));
 

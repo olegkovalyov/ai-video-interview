@@ -16,7 +16,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery, ApiBody } from '@nestjs/swagger';
 
 // Guards
 import { InternalServiceGuard } from '../guards/internal-service.guard';
@@ -34,9 +34,25 @@ import { GetCandidateSkillsQuery } from '../../../application/queries/candidate/
 
 // DTOs
 import { SearchCandidatesDto, AddCandidateSkillDto, UpdateCandidateSkillDto } from '../dto/candidates.dto';
+import { 
+  CandidateProfileResponseDto, 
+  SkillsByCategoryResponseDto,
+  CandidateSearchResultsResponseDto,
+  CandidateProfileSuccessResponseDto,
+  CandidateSkillsSuccessResponseDto 
+} from '../dto/candidates.response.dto';
 
 // Mappers
 import { CandidateResponseMapper } from '../mappers/candidate.response.mapper';
+
+// Error Schemas
+import {
+  BadRequestErrorSchema,
+  UnauthorizedErrorSchema,
+  ForbiddenErrorSchema,
+  NotFoundErrorSchema,
+  ConflictErrorSchema,
+} from '../schemas/error.schemas';
 
 /**
  * Candidates Controller
@@ -80,35 +96,8 @@ export class CandidatesController {
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Search results with pagination',
-    schema: {
-      example: {
-        success: true,
-        data: [
-          {
-            userId: 'uuid',
-            fullName: 'John Doe',
-            email: 'john@example.com',
-            experienceLevel: 'senior',
-            skills: [
-              {
-                skillId: 'uuid',
-                skillName: 'React',
-                proficiencyLevel: 'expert',
-                yearsOfExperience: 5
-              }
-            ],
-            matchScore: 95
-          }
-        ],
-        pagination: {
-          total: 42,
-          page: 1,
-          limit: 20,
-          totalPages: 3
-        }
-      }
-    }
+    type: CandidateSearchResultsResponseDto,
+    description: 'Search results with pagination'
   })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
   @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
@@ -156,7 +145,7 @@ export class CandidatesController {
     summary: 'Get candidate profile',
     description: 'Get candidate profile with user info. Access control: own profile, HR, or Admin.'
   })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiResponse({ status: 200, type: CandidateProfileSuccessResponseDto, description: 'Profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
   @ApiResponse({ status: 403, description: 'Forbidden - not authorized to view this profile' })
   @ApiResponse({ status: 404, description: 'Profile not found' })
@@ -211,27 +200,8 @@ export class CandidatesController {
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Skills retrieved successfully',
-    schema: {
-      example: {
-        success: true,
-        data: [
-          {
-            categoryId: 'uuid',
-            categoryName: 'Frontend',
-            skills: [
-              {
-                skillId: 'uuid',
-                skillName: 'React',
-                description: 'Building SPAs',
-                proficiencyLevel: 'expert',
-                yearsOfExperience: 5
-              }
-            ]
-          }
-        ]
-      }
-    }
+    type: CandidateSkillsSuccessResponseDto,
+    description: 'Skills retrieved successfully'
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
   @ApiResponse({ status: 403, description: 'Forbidden - not authorized to view these skills' })
@@ -281,10 +251,11 @@ export class CandidatesController {
     summary: 'Add skill to candidate',
     description: 'Add a new skill to candidate profile with proficiency level and years of experience.'
   })
+  @ApiBody({ type: AddCandidateSkillDto })
   @ApiResponse({ status: 201, description: 'Skill added successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, description: 'Candidate or skill not found' })
+  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid input data or skill already exists' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User or skill not found' })
   @ApiResponse({ status: 409, description: 'Skill already added to candidate' })
   async addCandidateSkill(
     @Param('userId') candidateId: string,
@@ -334,10 +305,11 @@ export class CandidatesController {
     summary: 'Update candidate skill',
     description: 'Update skill description, proficiency level, or years of experience.'
   })
+  @ApiBody({ type: UpdateCandidateSkillDto })
   @ApiResponse({ status: 200, description: 'Skill updated successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, description: 'Candidate or skill not found' })
+  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User or candidate skill not found' })
   async updateCandidateSkill(
     @Param('userId') candidateId: string,
     @Param('skillId') skillId: string,
@@ -390,8 +362,8 @@ export class CandidatesController {
     description: 'Remove a skill from candidate profile.'
   })
   @ApiResponse({ status: 204, description: 'Skill removed successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, description: 'Candidate or skill not found' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User or candidate skill not found' })
   async removeCandidateSkill(
     @Param('userId') candidateId: string,
     @Param('skillId') skillId: string,

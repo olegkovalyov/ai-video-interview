@@ -35,7 +35,7 @@ export class GetUserPermissionsHandler implements IQueryHandler<GetUserPermissio
     }
 
     // 2. Get user role (new single role system)
-    const roleName = user.role.value;
+    const roleName = user.role;
     
     // 3. Map role to basic permissions
     // NOTE: In new system, we use simple role-based access
@@ -47,7 +47,7 @@ export class GetUserPermissionsHandler implements IQueryHandler<GetUserPermissio
       roles: [{
         id: roleName, // Use role name as ID in new system
         name: roleName,
-        displayName: user.role.getDisplayName(),
+        displayName: this.getRoleDisplayName(roleName),
       }],
       permissions,
     };
@@ -79,5 +79,15 @@ export class GetUserPermissionsHandler implements IQueryHandler<GetUserPermissio
     };
 
     return rolePermissions[role] || [];
+  }
+
+  private getRoleDisplayName(role: string): string {
+    const displayNames: Record<string, string> = {
+      'pending': 'Pending',
+      'candidate': 'Candidate',
+      'hr': 'HR Manager',
+      'admin': 'Administrator',
+    };
+    return displayNames[role] || role;
   }
 }

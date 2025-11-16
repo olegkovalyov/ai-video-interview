@@ -1,4 +1,8 @@
-import { User } from '../aggregates/user.aggregate';
+import type {
+  UserReadModel,
+  UserWithProfileReadModel,
+  UserSummaryReadModel,
+} from '../read-models/user.read-model';
 
 /**
  * Pagination result
@@ -22,24 +26,29 @@ export interface UserListFilters {
 
 /**
  * User Read Repository Interface (Query operations)
+ * Returns Read Models (plain objects) - no domain entities
  * Optimized for read operations (CQRS read side)
- * Can use different data models or even different databases
  */
 export interface IUserReadRepository {
   /**
    * Find user by ID
    */
-  findById(id: string): Promise<User | null>;
+  findById(id: string): Promise<UserReadModel | null>;
+
+  /**
+   * Find user by ID with profile info (candidate or HR)
+   */
+  findByIdWithProfile(id: string): Promise<UserWithProfileReadModel | null>;
 
   /**
    * Find user by external auth provider ID
    */
-  findByExternalAuthId(externalAuthId: string): Promise<User | null>;
+  findByExternalAuthId(externalAuthId: string): Promise<UserReadModel | null>;
 
   /**
    * Find user by email
    */
-  findByEmail(email: string): Promise<User | null>;
+  findByEmail(email: string): Promise<UserReadModel | null>;
 
   /**
    * List users with pagination and filters
@@ -48,7 +57,12 @@ export interface IUserReadRepository {
     page: number,
     limit: number,
     filters?: UserListFilters,
-  ): Promise<PaginatedResult<User>>;
+  ): Promise<PaginatedResult<UserReadModel>>;
+
+  /**
+   * Get user summary (for dropdowns, references)
+   */
+  getSummary(id: string): Promise<UserSummaryReadModel | null>;
 
   /**
    * Count users

@@ -42,11 +42,13 @@ describe('CreateSkillCommand Integration', () => {
       );
       const categoryId = categories[0].id;
 
+      const adminId = uuidv4();
       const command = new CreateSkillCommand(
         'Elixir',
         'elixir',
         categoryId,
         'Elixir is a functional programming language',
+        adminId,
       );
 
       // Act
@@ -80,11 +82,13 @@ describe('CreateSkillCommand Integration', () => {
       );
       const categoryId = categories[0].id;
 
+      const adminId = uuidv4();
       const command = new CreateSkillCommand(
         'Phoenix',
         'phoenix',
         categoryId,
         null,
+        adminId,
       );
 
       // Act
@@ -104,11 +108,13 @@ describe('CreateSkillCommand Integration', () => {
 
     it('should create skill without category', async () => {
       // Arrange
+      const adminId = uuidv4();
       const command = new CreateSkillCommand(
         'Custom Skill',
         'custom-skill',
         null,
         'A skill without category',
+        adminId,
       );
 
       // Act
@@ -127,11 +133,13 @@ describe('CreateSkillCommand Integration', () => {
 
     it('should create skill with is_active = true by default', async () => {
       // Arrange
+      const adminId = uuidv4();
       const command = new CreateSkillCommand(
         'Ember.js',
         'emberjs',
         null,
         null,
+        adminId,
       );
 
       // Act
@@ -150,11 +158,13 @@ describe('CreateSkillCommand Integration', () => {
   describe('Error Cases', () => {
     it('should throw error when slug already exists', async () => {
       // Arrange - Use seeded skill slug (JavaScript already exists in seed data)
+      const adminId = uuidv4();
       const command = new CreateSkillCommand(
         'JavaScript ES6',
         'javascript', // This slug already exists in seed data
         null,
         null,
+        adminId,
       );
 
       // Act & Assert
@@ -166,11 +176,13 @@ describe('CreateSkillCommand Integration', () => {
     it('should throw error when category does not exist', async () => {
       // Arrange
       const nonExistentCategoryId = uuidv4();
+      const adminId = uuidv4();
       const command = new CreateSkillCommand(
         'Elixir Test',
         'elixir-test',
         nonExistentCategoryId,
         null,
+        adminId,
       );
 
       // Act & Assert
@@ -187,9 +199,10 @@ describe('CreateSkillCommand Integration', () => {
       );
       const categoryId = categories[0].id;
 
-      const command1 = new CreateSkillCommand('Haskell', 'haskell', categoryId, null);
-      const command2 = new CreateSkillCommand('Scala', 'scala', categoryId, null);
-      const command3 = new CreateSkillCommand('F#', 'fsharp', categoryId, null);
+      const adminId = uuidv4();
+      const command1 = new CreateSkillCommand('Haskell', 'haskell', categoryId, null, adminId);
+      const command2 = new CreateSkillCommand('Scala', 'scala', categoryId, null, adminId);
+      const command3 = new CreateSkillCommand('F#', 'fsharp', categoryId, null, adminId);
 
       // Act
       await commandBus.execute(command1);

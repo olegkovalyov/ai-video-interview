@@ -49,30 +49,30 @@ describe('ListSkillCategoriesQuery Integration', () => {
       const query = new ListSkillCategoriesQuery();
       const result = await queryBus.execute(query);
 
-      // Assert - Categories should be sorted by sort_order
-      expect(result[0]._name).toBe('Programming Languages');
-      expect(result[0]._sortOrder).toBe(1);
+      // Assert - Read Models should be sorted by sort_order
+      expect(result[0].name).toBe('Programming Languages');
+      expect(result[0].sortOrder).toBe(1);
       
-      expect(result[1]._name).toBe('Frontend Frameworks');
-      expect(result[1]._sortOrder).toBe(2);
+      expect(result[1].name).toBe('Frontend Frameworks');
+      expect(result[1].sortOrder).toBe(2);
       
-      expect(result[2]._name).toBe('Backend Frameworks');
-      expect(result[2]._sortOrder).toBe(3);
+      expect(result[2].name).toBe('Backend Frameworks');
+      expect(result[2].sortOrder).toBe(3);
       
-      expect(result[3]._name).toBe('Databases');
-      expect(result[3]._sortOrder).toBe(4);
+      expect(result[3].name).toBe('Databases');
+      expect(result[3].sortOrder).toBe(4);
       
-      expect(result[4]._name).toBe('DevOps & Cloud');
-      expect(result[4]._sortOrder).toBe(5);
+      expect(result[4].name).toBe('DevOps & Cloud');
+      expect(result[4].sortOrder).toBe(5);
       
-      expect(result[5]._name).toBe('Mobile Development');
-      expect(result[5]._sortOrder).toBe(6);
+      expect(result[5].name).toBe('Mobile Development');
+      expect(result[5].sortOrder).toBe(6);
       
-      expect(result[6]._name).toBe('Testing & QA');
-      expect(result[6]._sortOrder).toBe(7);
+      expect(result[6].name).toBe('Testing & QA');
+      expect(result[6].sortOrder).toBe(7);
       
-      expect(result[7]._name).toBe('Tools & IDEs');
-      expect(result[7]._sortOrder).toBe(8);
+      expect(result[7].name).toBe('Tools & IDEs');
+      expect(result[7].sortOrder).toBe(8);
     });
 
     it('should return categories with all metadata', async () => {
@@ -80,19 +80,19 @@ describe('ListSkillCategoriesQuery Integration', () => {
       const query = new ListSkillCategoriesQuery();
       const result = await queryBus.execute(query);
 
-      // Assert - Check first category structure
+      // Assert - Read Model structure
       const category = result[0];
-      expect(category).toHaveProperty('_id');
-      expect(category).toHaveProperty('_name');
-      expect(category).toHaveProperty('_slug');
-      expect(category).toHaveProperty('_description');
-      expect(category).toHaveProperty('_sortOrder');
-      expect(category).toHaveProperty('_createdAt');
+      expect(category).toHaveProperty('id');
+      expect(category).toHaveProperty('name');
+      expect(category).toHaveProperty('slug');
+      expect(category).toHaveProperty('description');
+      expect(category).toHaveProperty('sortOrder');
+      expect(category).toHaveProperty('createdAt');
       
       // Verify data
-      expect(category._name).toBe('Programming Languages');
-      expect(category._slug).toBe('programming-languages');
-      expect(category._description).toBe('Core programming languages');
+      expect(category.name).toBe('Programming Languages');
+      expect(category.slug).toBe('programming-languages');
+      expect(category.description).toBe('Core programming languages');
     });
 
     it('should return categories with correct slugs', async () => {
@@ -100,8 +100,8 @@ describe('ListSkillCategoriesQuery Integration', () => {
       const query = new ListSkillCategoriesQuery();
       const result = await queryBus.execute(query);
 
-      // Assert - Verify all slugs
-      const slugs = result.map((c: any) => c._slug);
+      // Assert - Verify all slugs in Read Models
+      const slugs = result.map((c: any) => c.slug);
       expect(slugs).toEqual([
         'programming-languages',
         'frontend-frameworks',

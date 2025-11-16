@@ -47,13 +47,13 @@ describe('ListSkillsQuery Integration', () => {
       expect(result.data.length).toBeGreaterThan(50);
       expect(result.total).toBeGreaterThan(50);
       
-      // Verify structure
+      // Verify Read Model structure
       const skill = result.data[0];
-      expect(skill).toHaveProperty('_id');
-      expect(skill).toHaveProperty('_name');
-      expect(skill).toHaveProperty('_slug');
-      expect(skill).toHaveProperty('_isActive');
-      expect(skill).toHaveProperty('category');
+      expect(skill).toHaveProperty('id');
+      expect(skill).toHaveProperty('name');
+      expect(skill).toHaveProperty('slug');
+      expect(skill).toHaveProperty('isActive');
+      expect(skill).toHaveProperty('categoryId');
       expect(skill).toHaveProperty('categoryName');
     });
 
@@ -71,17 +71,19 @@ describe('ListSkillsQuery Integration', () => {
       // Assert - All skills should be from this category
       expect(result.data.length).toBeGreaterThan(0);
       result.data.forEach((skill: any) => {
-        expect(skill._categoryId).toBe(categoryId);
+        expect(skill.categoryId).toBe(categoryId);
       });
     });
 
     it('should filter by active status', async () => {
       // Arrange - Create and deactivate a skill
+      const adminId = uuidv4();
       const createCommand = new CreateSkillCommand(
         'Test Inactive Skill',
         'test-inactive-skill',
         null,
         null,
+        adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
       
@@ -92,7 +94,7 @@ describe('ListSkillsQuery Integration', () => {
       const activeResult = await queryBus.execute(activeQuery);
 
       // Assert - Should not contain inactive skill
-      const hasInactive = activeResult.data.some((s: any) => s._id === skillId);
+      const hasInactive = activeResult.data.some((s: any) => s.id === skillId);
       expect(hasInactive).toBe(false);
 
       // Act - Query only inactive skills
@@ -100,16 +102,17 @@ describe('ListSkillsQuery Integration', () => {
       const inactiveResult = await queryBus.execute(inactiveQuery);
 
       // Assert - Should contain our inactive skill
-      const foundInactive = inactiveResult.data.find((s: any) => s._id === skillId);
+      const foundInactive = inactiveResult.data.find((s: any) => s.id === skillId);
       expect(foundInactive).toBeDefined();
-      expect(foundInactive._isActive).toBe(false);
+      expect(foundInactive.isActive).toBe(false);
     });
 
     it('should search skills by name', async () => {
       // Arrange - Create skills with specific names
-      await commandBus.execute(new CreateSkillCommand('TypeScript Pro', 'typescript-pro', null, null));
-      await commandBus.execute(new CreateSkillCommand('JavaScript Advanced', 'javascript-advanced', null, null));
-      await commandBus.execute(new CreateSkillCommand('Python Expert', 'python-expert', null, null));
+      const adminId = uuidv4();
+      await commandBus.execute(new CreateSkillCommand('TypeScript Pro', 'typescript-pro', null, null, adminId));
+      await commandBus.execute(new CreateSkillCommand('JavaScript Advanced', 'javascript-advanced', null, null, adminId));
+      await commandBus.execute(new CreateSkillCommand('Python Expert', 'python-expert', null, null, adminId));
 
       // Act - Search for "Script"
       const query = new ListSkillsQuery(1, 100, undefined, undefined, 'Script');
@@ -117,7 +120,7 @@ describe('ListSkillsQuery Integration', () => {
 
       // Assert - Should find TypeScript and JavaScript
       expect(result.data.length).toBeGreaterThanOrEqual(2);
-      const names = result.data.map((s: any) => s._name);
+      const names = result.data.map((s: any) => s.name);
       expect(names.some((n: string) => n.includes('TypeScript'))).toBe(true);
       expect(names.some((n: string) => n.includes('JavaScript'))).toBe(true);
     });
@@ -140,8 +143,8 @@ describe('ListSkillsQuery Integration', () => {
       expect(page2.total).toBe(page1.total); // Same total
 
       // Assert pages are different
-      const page1Ids = page1.data.map((s: any) => s._id);
-      const page2Ids = page2.data.map((s: any) => s._id);
+      const page1Ids = page1.data.map((s: any) => s.id);
+      const page2Ids = page2.data.map((s: any) => s.id);
       const intersection = page1Ids.filter((id: string) => page2Ids.includes(id));
       expect(intersection.length).toBe(0); // No overlap
     });
@@ -159,9 +162,9 @@ describe('ListSkillsQuery Integration', () => {
 
       // Assert - All results match all filters
       result.data.forEach((skill: any) => {
-        expect(skill._categoryId).toBe(categoryId);
-        expect(skill._isActive).toBe(true);
-        expect(skill._name.toLowerCase()).toContain('java');
+        expect(skill.categoryId).toBe(categoryId);
+        expect(skill.isActive).toBe(true);
+        expect(skill.name.toLowerCase()).toContain('java');
       });
     });
 
@@ -180,10 +183,10 @@ describe('ListSkillsQuery Integration', () => {
       const query = new ListSkillsQuery(1, 10, undefined, undefined, undefined);
       const result = await queryBus.execute(query);
 
-      // Assert - Skills should have category info
-      const skillWithCategory = result.data.find((s: any) => s._categoryId !== null);
+      // Assert - Read Models should have category info
+      const skillWithCategory = result.data.find((s: any) => s.categoryId !== null);
       expect(skillWithCategory).toBeDefined();
-      expect(skillWithCategory).toHaveProperty('_categoryId');
+      expect(skillWithCategory).toHaveProperty('categoryId');
       expect(skillWithCategory).toHaveProperty('categoryName');
       expect(skillWithCategory.categoryName).toBeTruthy();
     });
@@ -233,7 +236,8 @@ describe('ListSkillsQuery Integration', () => {
 
     it('should be case-insensitive for search', async () => {
       // Arrange
-      await commandBus.execute(new CreateSkillCommand('CamelCase Skill', 'camelcase-skill', null, null));
+      const adminId = uuidv4();
+      await commandBus.execute(new CreateSkillCommand('CamelCase Skill', 'camelcase-skill', null, null, adminId));
 
       // Act - Search lowercase
       const lowerQuery = new ListSkillsQuery(1, 100, undefined, undefined, 'camelcase');

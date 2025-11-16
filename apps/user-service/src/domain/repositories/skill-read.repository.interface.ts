@@ -1,5 +1,8 @@
-import { Skill } from '../entities/skill.entity';
-import { SkillCategory } from '../entities/skill-category.entity';
+import { 
+  SkillReadModel, 
+  SkillCategoryReadModel, 
+  SkillWithCategoryReadModel 
+} from '../read-models/skill.read-model';
 
 /**
  * Pagination result
@@ -22,60 +25,60 @@ export interface SkillListFilters {
 }
 
 /**
- * Skill with category
- */
-export interface SkillWithCategory {
-  skill: Skill;
-  category: SkillCategory | null;
-}
-
-/**
  * Skill Read Repository Interface (Query operations)
- * Optimized for read operations (CQRS read side)
+ * Returns Read Models (plain objects) for CQRS read side
+ * NO domain entities - optimized for query performance
  */
 export interface ISkillReadRepository {
   /**
    * Find skill by ID
+   * Returns Read Model (plain object)
    */
-  findById(id: string): Promise<Skill | null>;
+  findById(id: string): Promise<SkillReadModel | null>;
 
   /**
    * Find skill by ID with category
+   * Returns Read Model with denormalized category data
    */
-  findByIdWithCategory(id: string): Promise<SkillWithCategory | null>;
+  findByIdWithCategory(id: string): Promise<SkillWithCategoryReadModel | null>;
 
   /**
    * Find skill by slug
+   * Returns Read Model (plain object)
    */
-  findBySlug(slug: string): Promise<Skill | null>;
+  findBySlug(slug: string): Promise<SkillReadModel | null>;
 
   /**
    * List skills with pagination and filters
+   * Returns Read Models (plain objects)
    */
   list(
     page: number,
     limit: number,
     filters?: SkillListFilters,
-  ): Promise<PaginatedResult<Skill>>;
+  ): Promise<PaginatedResult<SkillReadModel>>;
 
   /**
    * List skills with categories
+   * Returns Read Models with denormalized category data
    */
   listWithCategories(
     page: number,
     limit: number,
     filters?: SkillListFilters,
-  ): Promise<PaginatedResult<SkillWithCategory>>;
+  ): Promise<PaginatedResult<SkillWithCategoryReadModel>>;
 
   /**
    * List all skill categories
+   * Returns Read Models (plain objects)
    */
-  listCategories(): Promise<SkillCategory[]>;
+  listCategories(): Promise<SkillCategoryReadModel[]>;
 
   /**
    * Find skill category by ID
+   * Returns Read Model (plain object)
    */
-  findCategoryById(id: string): Promise<SkillCategory | null>;
+  findCategoryById(id: string): Promise<SkillCategoryReadModel | null>;
 
   /**
    * Count skills

@@ -51,7 +51,7 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Preact', 'preact-update-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Preact', 'preact-update-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const addCommand = new AddCandidateSkillCommand(
@@ -97,7 +97,7 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Aurelia', 'aurelia-update-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Aurelia', 'aurelia-update-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const addCommand = new AddCandidateSkillCommand(
@@ -142,7 +142,7 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Backbone', 'backbone-update-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Backbone', 'backbone-update-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const addCommand = new AddCandidateSkillCommand(
@@ -187,7 +187,7 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Bun', 'bun-update-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Bun', 'bun-update-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const addCommand = new AddCandidateSkillCommand(
@@ -234,7 +234,7 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Zig', 'zig-update-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Zig', 'zig-update-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const addCommand = new AddCandidateSkillCommand(
@@ -279,7 +279,7 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Nim', 'nim-update-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Nim', 'nim-update-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const addCommand = new AddCandidateSkillCommand(
@@ -345,7 +345,7 @@ describe('UpdateCandidateSkillCommand Integration', () => {
       );
 
       // Create skill but don't add to profile
-      const createSkillCommand = new CreateSkillCommand('Skill', 'skill-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Skill', 'skill-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const updateCommand = new UpdateCandidateSkillCommand(

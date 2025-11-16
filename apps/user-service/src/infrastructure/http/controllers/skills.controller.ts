@@ -15,7 +15,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery, ApiBody } from '@nestjs/swagger';
 
 // Guards
 import { InternalServiceGuard } from '../guards/internal-service.guard';
@@ -33,9 +33,21 @@ import { ListSkillCategoriesQuery } from '../../../application/queries/skills/li
 
 // DTOs
 import { CreateSkillDto, UpdateSkillDto, ListSkillsDto } from '../dto/skills.dto';
+import { 
+  SkillResponseDto, 
+  SkillCategoriesResponseDto, 
+  SkillListResponseDto,
+  SkillSuccessResponseDto 
+} from '../dto/skills.response.dto';
 
-// Mappers
-import { SkillResponseMapper } from '../mappers/skill.response.mapper';
+// Error Schemas
+import {
+  BadRequestErrorSchema,
+  UnauthorizedErrorSchema,
+  NotFoundErrorSchema,
+  ConflictErrorSchema,
+  ValidationErrorSchema,
+} from '../schemas/error.schemas';
 
 /**
  * Skills Controller
@@ -69,10 +81,11 @@ export class SkillsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create new skill' })
-  @ApiResponse({ status: 201, description: 'Skill created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 409, description: 'Skill already exists' })
+  @ApiBody({ type: CreateSkillDto })
+  @ApiResponse({ status: 201, type: SkillSuccessResponseDto, description: 'Skill created successfully' })
+  @ApiResponse({ status: 400, type: ValidationErrorSchema, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 409, type: ConflictErrorSchema, description: 'Skill already exists' })
   async createSkill(
     @Body() dto: CreateSkillDto,
   ) {
@@ -109,10 +122,11 @@ export class SkillsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update skill' })
-  @ApiResponse({ status: 200, description: 'Skill updated successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, description: 'Skill not found' })
+  @ApiBody({ type: UpdateSkillDto })
+  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill updated successfully' })
+  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
   async updateSkill(
     @Param('id') skillId: string,
     @Body() dto: UpdateSkillDto,
@@ -152,8 +166,8 @@ export class SkillsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete skill' })
   @ApiResponse({ status: 204, description: 'Skill deleted successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, description: 'Skill not found' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
   async deleteSkill(
     @Param('id') skillId: string,
     @Query('adminId') adminId?: string,
@@ -182,14 +196,13 @@ export class SkillsController {
   // ============================================
 
   @Get()
-  @ApiOperation({ summary: 'List skills with filters and pagination' })
+  @ApiOperation({ summary: 'List skills with filters' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by skill name' })
-  @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by skill category ID' })
-  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
-  @ApiResponse({ status: 200, description: 'Skills list retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
+  @ApiResponse({ status: 200, type: SkillListResponseDto, description: 'Skills list retrieved successfully' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
   async listSkills(
     @Query() query: ListSkillsDto,
   ) {
@@ -197,15 +210,16 @@ export class SkillsController {
       query.page || 1,
       query.limit || 20,
       query.categoryId,
-      query.isActive,
+      undefined, // isActive - not exposed in public API
       query.search,
     );
 
     const result = await this.queryBus.execute(listSkillsQuery);
 
+    // Result already contains Read Models (plain objects) - no mapping needed
     return {
       success: true,
-      data: SkillResponseMapper.toSkillListDto(result.data),
+      data: result.data,
       pagination: {
         total: result.total,
         page: result.page,
@@ -217,31 +231,32 @@ export class SkillsController {
 
   @Get('categories')
   @ApiOperation({ summary: 'List all skill categories' })
-  @ApiResponse({ status: 200, description: 'Categories list retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 200, type: SkillCategoriesResponseDto, description: 'Categories retrieved successfully' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
   async listCategories() {
     const query = new ListSkillCategoriesQuery();
     const result = await this.queryBus.execute(query);
 
     return {
       success: true,
-      data: SkillResponseMapper.toCategoryListDto(result),
+      data: result,
     };
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get skill by ID' })
-  @ApiResponse({ status: 200, description: 'Skill retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, description: 'Skill not found' })
+  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill retrieved successfully' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
   async getSkill(@Param('id') skillId: string) {
     try {
       const query = new GetSkillQuery(skillId);
       const result = await this.queryBus.execute(query);
 
+      // Result already contains Read Model (plain object) - no mapping needed
       return {
         success: true,
-        data: SkillResponseMapper.toSkillWithCategoryDto(result),
+        data: result,
       };
     } catch (error) {
       if (error.message.includes('not found')) {

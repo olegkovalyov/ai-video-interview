@@ -1,4 +1,8 @@
-import { Company } from '../aggregates/company.aggregate';
+import type {
+  CompanyReadModel,
+  CompanyWithUsersReadModel,
+  CompanyDetailReadModel,
+} from '../read-models/company.read-model';
 
 /**
  * Pagination result
@@ -21,26 +25,25 @@ export interface CompanyListFilters {
 }
 
 /**
- * Company with user info
- */
-export interface CompanyWithUsers extends Company {
-  usersCount: number;
-}
-
-/**
  * Company Read Repository Interface (Query operations)
+ * Returns Read Models (plain objects) - no domain entities
  * Optimized for read operations (CQRS read side)
  */
 export interface ICompanyReadRepository {
   /**
    * Find company by ID
    */
-  findById(id: string): Promise<Company | null>;
+  findById(id: string): Promise<CompanyReadModel | null>;
 
   /**
    * Find company by ID with users count
    */
-  findByIdWithUsers(id: string): Promise<CompanyWithUsers | null>;
+  findByIdWithUsers(id: string): Promise<CompanyWithUsersReadModel | null>;
+
+  /**
+   * Find company by ID with full details (users count + creator info)
+   */
+  findByIdWithDetails(id: string): Promise<CompanyDetailReadModel | null>;
 
   /**
    * List companies with pagination and filters
@@ -49,12 +52,12 @@ export interface ICompanyReadRepository {
     page: number,
     limit: number,
     filters?: CompanyListFilters,
-  ): Promise<PaginatedResult<Company>>;
+  ): Promise<PaginatedResult<CompanyReadModel>>;
 
   /**
    * List companies for specific user (from user_companies)
    */
-  listByUserId(userId: string): Promise<Company[]>;
+  listByUserId(userId: string): Promise<CompanyReadModel[]>;
 
   /**
    * Count companies

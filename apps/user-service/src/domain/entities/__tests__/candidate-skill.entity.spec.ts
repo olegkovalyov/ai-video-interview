@@ -177,7 +177,7 @@ describe('CandidateSkill Entity', () => {
       );
 
       skill.updateProficiency(ProficiencyLevel.expert());
-      expect(skill.proficiencyLevel.value).toBe('expert');
+      expect(skill.proficiencyLevel!.value).toBe('expert');
     });
   });
 
@@ -193,7 +193,7 @@ describe('CandidateSkill Entity', () => {
       );
 
       skill.updateYears(YearsOfExperience.fromNumber(7));
-      expect(skill.yearsOfExperience.value).toBe(7);
+      expect(skill.yearsOfExperience!.value).toBe(7);
     });
   });
 
@@ -215,8 +215,8 @@ describe('CandidateSkill Entity', () => {
       );
 
       expect(skill.description).toBe('New description');
-      expect(skill.proficiencyLevel.value).toBe('advanced');
-      expect(skill.yearsOfExperience.value).toBe(5);
+      expect(skill.proficiencyLevel!.value).toBe('advanced');
+      expect(skill.yearsOfExperience!.value).toBe(5);
     });
 
     it('should handle null description', () => {

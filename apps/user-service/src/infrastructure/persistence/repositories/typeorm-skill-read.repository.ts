@@ -5,15 +5,20 @@ import {
   ISkillReadRepository,
   PaginatedResult,
   SkillListFilters,
-  SkillWithCategory,
 } from '../../../domain/repositories/skill-read.repository.interface';
-import { Skill } from '../../../domain/entities/skill.entity';
-import { SkillCategory } from '../../../domain/entities/skill-category.entity';
+import {
+  SkillReadModel,
+  SkillCategoryReadModel,
+  SkillWithCategoryReadModel,
+} from '../../../domain/read-models/skill.read-model';
 import { SkillEntity } from '../entities/skill.entity';
 import { SkillCategoryEntity } from '../entities/skill-category.entity';
-import { SkillMapper } from '../mappers/skill.mapper';
-import { SkillCategoryMapper } from '../mappers/skill-category.mapper';
 
+/**
+ * TypeORM Skill Read Repository
+ * Returns Read Models (plain objects) for CQRS read side
+ * NO domain entities - direct mapping from TypeORM entities to Read Models
+ */
 @Injectable()
 export class TypeOrmSkillReadRepository implements ISkillReadRepository {
   constructor(
@@ -21,16 +26,14 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     private readonly repository: Repository<SkillEntity>,
     @InjectRepository(SkillCategoryEntity)
     private readonly categoryRepository: Repository<SkillCategoryEntity>,
-    private readonly mapper: SkillMapper,
-    private readonly categoryMapper: SkillCategoryMapper,
   ) {}
 
-  async findById(id: string): Promise<Skill | null> {
+  async findById(id: string): Promise<SkillReadModel | null> {
     const entity = await this.repository.findOne({ where: { id } });
-    return entity ? this.mapper.toDomain(entity) : null;
+    return entity ? this.toReadModel(entity) : null;
   }
 
-  async findByIdWithCategory(id: string): Promise<SkillWithCategory | null> {
+  async findByIdWithCategory(id: string): Promise<SkillWithCategoryReadModel | null> {
     const entity = await this.repository.findOne({
       where: { id },
       relations: ['category'],
@@ -38,22 +41,19 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
 
     if (!entity) return null;
 
-    return {
-      skill: this.mapper.toDomain(entity),
-      category: entity.category ? this.categoryMapper.toDomain(entity.category) : null,
-    };
+    return this.toReadModelWithCategory(entity);
   }
 
-  async findBySlug(slug: string): Promise<Skill | null> {
+  async findBySlug(slug: string): Promise<SkillReadModel | null> {
     const entity = await this.repository.findOne({ where: { slug } });
-    return entity ? this.mapper.toDomain(entity) : null;
+    return entity ? this.toReadModel(entity) : null;
   }
 
   async list(
     page: number,
     limit: number,
     filters?: SkillListFilters,
-  ): Promise<PaginatedResult<Skill>> {
+  ): Promise<PaginatedResult<SkillReadModel>> {
     const where: any = {};
 
     if (filters?.categoryId) {
@@ -76,7 +76,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     });
 
     return {
-      data: this.mapper.toDomainList(entities),
+      data: entities.map(entity => this.toReadModel(entity)),
       total,
       page,
       limit,
@@ -88,7 +88,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     page: number,
     limit: number,
     filters?: SkillListFilters,
-  ): Promise<PaginatedResult<SkillWithCategory>> {
+  ): Promise<PaginatedResult<SkillWithCategoryReadModel>> {
     // Handle zero limit edge case
     if (limit === 0) {
       let countQuery = this.repository.createQueryBuilder('skill');
@@ -139,10 +139,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
 
     const [entities, total] = await query.getManyAndCount();
 
-    const data = entities.map(entity => ({
-      skill: this.mapper.toDomain(entity),
-      category: entity.category ? this.categoryMapper.toDomain(entity.category) : null,
-    }));
+    const data = entities.map(entity => this.toReadModelWithCategory(entity));
 
     return {
       data,
@@ -153,16 +150,16 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     };
   }
 
-  async listCategories(): Promise<SkillCategory[]> {
+  async listCategories(): Promise<SkillCategoryReadModel[]> {
     const entities = await this.categoryRepository.find({
       order: { sortOrder: 'ASC', name: 'ASC' },
     });
-    return this.categoryMapper.toDomainList(entities);
+    return entities.map(entity => this.toCategoryReadModel(entity));
   }
 
-  async findCategoryById(id: string): Promise<SkillCategory | null> {
+  async findCategoryById(id: string): Promise<SkillCategoryReadModel | null> {
     const entity = await this.categoryRepository.findOne({ where: { id } });
-    return entity ? this.categoryMapper.toDomain(entity) : null;
+    return entity ? this.toCategoryReadModel(entity) : null;
   }
 
   async count(filters?: SkillListFilters): Promise<number> {
@@ -181,5 +178,59 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     }
 
     return this.repository.count({ where });
+  }
+
+  // ==========================================================================
+  // PRIVATE MAPPERS: TypeORM Entity → Read Model
+  // ==========================================================================
+
+  /**
+   * Map SkillEntity to SkillReadModel (plain object)
+   */
+  private toReadModel(entity: SkillEntity): SkillReadModel {
+    return {
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      categoryId: entity.categoryId,
+      description: entity.description,
+      isActive: entity.isActive,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+
+  /**
+   * Map SkillEntity with CategoryEntity to SkillWithCategoryReadModel
+   * Denormalizes category data for easier consumption
+   */
+  private toReadModelWithCategory(entity: SkillEntity): SkillWithCategoryReadModel {
+    return {
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      categoryId: entity.categoryId,
+      categoryName: entity.category?.name || null,
+      description: entity.description,
+      isActive: entity.isActive,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      category: entity.category ? this.toCategoryReadModel(entity.category) : null,
+    };
+  }
+
+  /**
+   * Map SkillCategoryEntity to SkillCategoryReadModel (plain object)
+   */
+  private toCategoryReadModel(entity: SkillCategoryEntity): SkillCategoryReadModel {
+    return {
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      description: entity.description,
+      sortOrder: entity.sortOrder,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
   }
 }

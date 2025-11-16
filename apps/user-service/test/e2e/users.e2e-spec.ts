@@ -456,6 +456,115 @@ describe('Users API (E2E)', () => {
     });
   });
 
+  describe('POST /users/:userId/roles', () => {
+    it('should assign role to user', async () => {
+      const userId = uuidv4();
+
+      // Create user first
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-role-test',
+          email: 'roletest@example.com',
+          firstName: 'Role',
+          lastName: 'Test',
+        });
+
+      // Assign role
+      const response = await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'hr' })
+        .expect(200);
+
+      expect(response.body.message).toBeDefined();
+      expect(response.body.role).toBe('hr');
+    });
+
+    it('should assign candidate role', async () => {
+      const userId = uuidv4();
+
+      // Create user
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-candidate-test',
+          email: 'candidate@example.com',
+          firstName: 'Candidate',
+          lastName: 'Test',
+        });
+
+      // Assign candidate role
+      const response = await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'candidate' })
+        .expect(200);
+
+      expect(response.body.role).toBe('candidate');
+    });
+
+    it('should return 404 for non-existent user', async () => {
+      const nonExistentId = uuidv4();
+
+      await request(app.getHttpServer())
+        .post(`/users/${nonExistentId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'hr' })
+        .expect(404);
+    });
+
+    it('should validate role enum', async () => {
+      const userId = uuidv4();
+
+      // Create user
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-invalid-role',
+          email: 'invalidrole@example.com',
+          firstName: 'Invalid',
+          lastName: 'Role',
+        });
+
+      // Try to assign invalid role
+      await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'invalid-role' })
+        .expect(400);
+    });
+
+    it('should require role field', async () => {
+      const userId = uuidv4();
+
+      // Create user
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-no-role',
+          email: 'norole@example.com',
+          firstName: 'No',
+          lastName: 'Role',
+        });
+
+      // Try to assign without role field
+      await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({})
+        .expect(400);
+    });
+  });
+
   describe('DELETE /users/:userId/avatar', () => {
     it('should delete avatar', async () => {
       const userId = uuidv4();

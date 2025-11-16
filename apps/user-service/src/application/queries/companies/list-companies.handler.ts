@@ -2,8 +2,12 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ListCompaniesQuery } from './list-companies.query';
 import type { ICompanyReadRepository, PaginatedResult, CompanyListFilters } from '../../../domain/repositories/company-read.repository.interface';
-import { Company } from '../../../domain/aggregates/company.aggregate';
+import type { CompanyReadModel } from '../../../domain/read-models/company.read-model';
 
+/**
+ * List Companies Query Handler
+ * Returns Read Models (plain objects) - no domain entities
+ */
 @QueryHandler(ListCompaniesQuery)
 export class ListCompaniesHandler implements IQueryHandler<ListCompaniesQuery> {
   constructor(
@@ -11,7 +15,7 @@ export class ListCompaniesHandler implements IQueryHandler<ListCompaniesQuery> {
     private readonly companyReadRepository: ICompanyReadRepository,
   ) {}
 
-  async execute(query: ListCompaniesQuery): Promise<PaginatedResult<Company>> {
+  async execute(query: ListCompaniesQuery): Promise<PaginatedResult<CompanyReadModel>> {
     // HR видит только свои компании (из user_companies)
     if (!query.isAdmin && query.currentUserId) {
       const userCompanies = await this.companyReadRepository.listByUserId(query.currentUserId);

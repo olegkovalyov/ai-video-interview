@@ -6,3 +6,4 @@
 export * from './admin-user.dto';
 export * from './user-profile.dto';
 export * from './internal.dto';
+export * from './skills.dto';

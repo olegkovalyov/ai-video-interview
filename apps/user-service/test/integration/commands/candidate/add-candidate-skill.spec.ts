@@ -52,11 +52,13 @@ describe('AddCandidateSkillCommand Integration', () => {
       );
 
       // Create skill
+      const adminId = uuidv4();
       const createSkillCommand = new CreateSkillCommand(
         'Elixir Lang',
         'elixir-lang-test',
         null,
         'Programming language',
+        adminId,
       );
       const { skillId } = await commandBus.execute(createSkillCommand);
 
@@ -102,12 +104,14 @@ describe('AddCandidateSkillCommand Integration', () => {
       const skillIds: string[] = [];
 
       // Create skills for each level
+      const adminId = uuidv4();
       for (let i = 0; i < levels.length; i++) {
         const createSkillCommand = new CreateSkillCommand(
           `Skill ${levels[i]}`,
           `skill-${levels[i]}`,
           null,
           null,
+          adminId,
         );
         const { skillId } = await commandBus.execute(createSkillCommand);
         skillIds.push(skillId);
@@ -152,11 +156,13 @@ describe('AddCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
+      const adminId = uuidv4();
       const createSkillCommand = new CreateSkillCommand(
         'Clojure',
         'clojure-test',
         null,
-        null,
+        'Functional language',
+        adminId,
       );
       const { skillId } = await commandBus.execute(createSkillCommand);
 
@@ -197,13 +203,13 @@ describe('AddCandidateSkillCommand Integration', () => {
       );
 
       // Create 3 skills
-      const skill1Command = new CreateSkillCommand('Svelte Kit', 'svelte-kit-test', null, null);
+      const skill1Command = new CreateSkillCommand('Svelte Kit', 'svelte-kit-test', null, null, uuidv4());
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('Deno', 'deno-test', null, null);
+      const skill2Command = new CreateSkillCommand('Deno', 'deno-test', null, null, uuidv4());
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      const skill3Command = new CreateSkillCommand('CockroachDB', 'cockroachdb-test', null, null);
+      const skill3Command = new CreateSkillCommand('CockroachDB', 'cockroachdb-test', null, null, uuidv4());
       const { skillId: skill3Id } = await commandBus.execute(skill3Command);
 
       // Act - Add all 3 skills
@@ -229,7 +235,7 @@ describe('AddCandidateSkillCommand Integration', () => {
       // Arrange
       const nonExistentCandidateId = uuidv4();
       
-      const createSkillCommand = new CreateSkillCommand('Test Skill', 'test-skill', null, null);
+      const createSkillCommand = new CreateSkillCommand('Test Skill', 'test-skill', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const command = new AddCandidateSkillCommand(
@@ -285,7 +291,7 @@ describe('AddCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Erlang', 'erlang-test', null, null);
+      const createSkillCommand = new CreateSkillCommand('Erlang', 'erlang-test', null, null, uuidv4());
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       // Add skill first time

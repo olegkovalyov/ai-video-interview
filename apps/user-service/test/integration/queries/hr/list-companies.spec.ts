@@ -101,13 +101,15 @@ describe('ListCompaniesQuery Integration', () => {
 
       // Verify structure
       const company = result.data[0];
-      expect(company).toHaveProperty('_id');
-      expect(company).toHaveProperty('_name');
-      expect(company).toHaveProperty('_description');
-      expect(company).toHaveProperty('_website');
-      expect(company).toHaveProperty('_industry');
-      expect(company).toHaveProperty('_size');
-      expect(company).toHaveProperty('_location');
+      expect(company).toHaveProperty('id');
+      expect(company).toHaveProperty('name');
+      expect(company).toHaveProperty('description');
+      expect(company).toHaveProperty('website');
+      expect(company).toHaveProperty('industry');
+      expect(company).toHaveProperty('size');
+      expect(company).toHaveProperty('location');
+      expect(company).toHaveProperty('createdAt');
+      expect(company).toHaveProperty('updatedAt');
     });
 
     it('should list all companies for HR user', async () => {
@@ -265,12 +267,14 @@ describe('ListCompaniesQuery Integration', () => {
       // Assert - Verify full metadata
       expect(result.data.length).toBe(1);
       const company = result.data[0];
-      expect(company._name).toBe('Tech Solutions Inc');
-      expect(company._description).toBe('Software development company');
-      expect(company._website).toBe('https://techsolutions.com');
-      expect(company._industry).toBe('Technology');
-      expect(company._size?._value).toBe('51-200');
-      expect(company._location).toBe('San Francisco, CA');
+      expect(company.name).toBe('Tech Solutions Inc');
+      expect(company.description).toBe('Software development company');
+      expect(company.website).toBe('https://techsolutions.com');
+      expect(company.industry).toBe('Technology');
+      expect(company.size).toBe('51-200');
+      expect(company.location).toBe('San Francisco, CA');
+      expect(company.createdAt).toBeDefined();
+      expect(company.updatedAt).toBeDefined();
     });
   });
 

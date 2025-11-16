@@ -45,11 +45,11 @@ export function SkillsTable({
               </tr>
             </thead>
             <tbody>
-              {skills.map((skill) => {
+              {skills.map((skill, index) => {
                 const isLoading = loadingSkills.has(skill.id);
                 return (
                   <tr 
-                    key={skill.id}
+                    key={skill.id || `skill-${index}`}
                     className={`
                       border-b border-white/10 hover:bg-white/5 transition-all duration-200
                       ${isLoading ? 'opacity-60 blur-[0.5px]' : ''}

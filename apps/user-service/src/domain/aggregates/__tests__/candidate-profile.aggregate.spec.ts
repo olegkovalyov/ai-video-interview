@@ -65,8 +65,8 @@ describe('CandidateProfile Aggregate (Updated)', () => {
 
       expect(profile.skills).toHaveLength(1);
       expect(profile.skills[0].skillId).toBe(validSkillId);
-      expect(profile.skills[0].proficiencyLevel.value).toBe('advanced');
-      expect(profile.skills[0].yearsOfExperience.value).toBe(5);
+      expect(profile.skills[0].proficiencyLevel!.value).toBe('advanced');
+      expect(profile.skills[0].yearsOfExperience!.value).toBe(5);
     });
 
     it('should add skill without description', () => {
@@ -184,8 +184,8 @@ describe('CandidateProfile Aggregate (Updated)', () => {
 
       const skill = profile.skills.find(s => s.skillId === validSkillId);
       expect(skill?.description).toBe('Updated description');
-      expect(skill?.proficiencyLevel.value).toBe('advanced');
-      expect(skill?.yearsOfExperience.value).toBe(5);
+      expect(skill?.proficiencyLevel!.value).toBe('advanced');
+      expect(skill?.yearsOfExperience!.value).toBe(5);
     });
 
     it('should publish CandidateSkillUpdatedEvent with changes', () => {

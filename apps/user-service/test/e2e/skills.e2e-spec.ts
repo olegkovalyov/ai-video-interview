@@ -104,9 +104,23 @@ describe('Skills API (E2E)', () => {
       expect(response.body).toHaveProperty('data');
       expect(Array.isArray(response.body.data)).toBe(true);
       expect(response.body.data.length).toBeGreaterThan(0);
-      expect(response.body.data[0]).toHaveProperty('id');
-      expect(response.body.data[0]).toHaveProperty('name');
-      expect(response.body.data[0]).toHaveProperty('slug');
+      
+      // Verify field existence AND values (not just structure)
+      const category = response.body.data[0];
+      expect(category).toHaveProperty('id');
+      expect(category.id).toBeDefined();
+      expect(typeof category.id).toBe('string');
+      expect(category.id).not.toBe('');
+      
+      expect(category).toHaveProperty('name');
+      expect(category.name).toBeDefined();
+      expect(typeof category.name).toBe('string');
+      expect(category.name).not.toBe('');
+      
+      expect(category).toHaveProperty('slug');
+      expect(category.slug).toBeDefined();
+      expect(typeof category.slug).toBe('string');
+      expect(category.slug).not.toBe('');
     });
 
     it('should reject without internal token', async () => {
@@ -207,6 +221,25 @@ describe('Skills API (E2E)', () => {
       expect(response.body.pagination).toHaveProperty('total');
       expect(response.body.pagination).toHaveProperty('page');
       expect(response.body.pagination).toHaveProperty('limit');
+      
+      // Verify actual field values if data exists
+      if (response.body.data.length > 0) {
+        const skill = response.body.data[0];
+        
+        expect(skill.id).toBeDefined();
+        expect(typeof skill.id).toBe('string');
+        expect(skill.id).not.toBe('');
+        
+        expect(skill.name).toBeDefined();
+        expect(typeof skill.name).toBe('string');
+        expect(skill.name).not.toBe('');
+        
+        expect(skill.slug).toBeDefined();
+        expect(typeof skill.slug).toBe('string');
+        expect(skill.slug).not.toBe('');
+        
+        expect(skill.categoryName).toBeDefined();
+      }
     });
 
     it('should filter skills by category', async () => {
@@ -255,8 +288,19 @@ describe('Skills API (E2E)', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('id', createdSkillId);
+      
+      // Verify field values (not just existence)
       expect(response.body.data).toHaveProperty('name');
       expect(response.body.data.name).toBe('Gettable Skill');
+      expect(typeof response.body.data.name).toBe('string');
+      expect(response.body.data.name).not.toBe('');
+      
+      expect(response.body.data).toHaveProperty('slug');
+      expect(typeof response.body.data.slug).toBe('string');
+      expect(response.body.data.slug).not.toBe('');
+      
+      expect(response.body.data).toHaveProperty('categoryName');
+      expect(response.body.data.categoryName).toBeDefined();
     });
 
     it('should return 404 for non-existent skill', async () => {

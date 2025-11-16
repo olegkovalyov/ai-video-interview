@@ -2,8 +2,12 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { GetCompanyQuery } from './get-company.query';
 import type { ICompanyReadRepository } from '../../../domain/repositories/company-read.repository.interface';
-import { Company } from '../../../domain/aggregates/company.aggregate';
+import type { CompanyReadModel } from '../../../domain/read-models/company.read-model';
 
+/**
+ * Get Company Query Handler
+ * Returns Read Model (plain object) - no domain entity
+ */
 @QueryHandler(GetCompanyQuery)
 export class GetCompanyHandler implements IQueryHandler<GetCompanyQuery> {
   constructor(
@@ -11,7 +15,7 @@ export class GetCompanyHandler implements IQueryHandler<GetCompanyQuery> {
     private readonly companyReadRepository: ICompanyReadRepository,
   ) {}
 
-  async execute(query: GetCompanyQuery): Promise<Company> {
+  async execute(query: GetCompanyQuery): Promise<CompanyReadModel> {
     const company = await this.companyReadRepository.findById(query.companyId);
     
     if (!company) {

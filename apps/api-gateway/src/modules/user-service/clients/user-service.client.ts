@@ -565,4 +565,236 @@ export class UserServiceClient extends BaseServiceProxy {
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }
+
+  // ==========================================================================
+  // SKILLS MANAGEMENT (ADMIN)
+  // ==========================================================================
+
+  /**
+   * Create new skill (Admin)
+   * Route: POST /skills
+   * Body: CreateSkillDto
+   */
+  async createSkill(dto: any, adminId: string): Promise<any> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/skills`, { ...dto, adminId }, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      // Extract data from success wrapper (already Read Model)
+      return response.data.data;
+    } catch (error) {
+      this.handleInternalError(error, 'create skill', { adminId });
+    }
+  }
+
+  /**
+   * List skills with filters (Admin)
+   * Route: GET /skills
+   */
+  async listSkills(filters: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string;
+    isActive?: boolean;
+  }): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      if (filters.page) params.append('page', String(filters.page));
+      if (filters.limit) params.append('limit', String(filters.limit));
+      if (filters.search) params.append('search', filters.search);
+      if (filters.categoryId) params.append('categoryId', filters.categoryId);
+      if (filters.isActive !== undefined) params.append('isActive', String(filters.isActive));
+
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/skills?${params}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      // User Service returns { success, data, pagination }
+      // Data is already Read Models (plain objects) - no mapping needed
+      const { data, pagination } = response.data;
+      return { data, pagination };
+    } catch (error) {
+      this.handleInternalError(error, 'list skills', {});
+    }
+  }
+
+  /**
+   * Get skill by ID (Admin)
+   * Route: GET /skills/:id
+   */
+  async getSkill(id: string): Promise<any> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/skills/${id}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      // Extract data from success wrapper (already Read Model)
+      return response.data.data;
+    } catch (error) {
+      this.handleInternalError(error, 'get skill', { skillId: id });
+    }
+  }
+
+  /**
+   * Update skill (Admin)
+   * Route: PUT /skills/:id
+   */
+  async updateSkill(id: string, dto: any, adminId: string): Promise<any> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/skills/${id}`, { ...dto, adminId }, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      // Extract data from success wrapper (already Read Model)
+      return response.data.data;
+    } catch (error) {
+      this.handleInternalError(error, 'update skill', { skillId: id, adminId });
+    }
+  }
+
+  /**
+   * Toggle skill active status (Admin)
+   * Route: POST /skills/:id/toggle
+   */
+  async toggleSkillStatus(id: string, adminId: string): Promise<any> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/skills/${id}/toggle`, { adminId }, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      return response.data;
+    } catch (error) {
+      this.handleInternalError(error, 'toggle skill status', { skillId: id, adminId });
+    }
+  }
+
+  /**
+   * Delete skill (Admin)
+   * Route: DELETE /skills/:id
+   */
+  async deleteSkill(id: string, adminId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.delete(`${this.baseUrl}/skills/${id}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+          params: { adminId },
+        }),
+      );
+      return response.data || { success: true, message: 'Skill deleted successfully' };
+    } catch (error) {
+      this.handleInternalError(error, 'delete skill', { skillId: id, adminId });
+    }
+  }
+
+  /**
+   * List skill categories
+   * Route: GET /skills/categories
+   */
+  async listSkillCategories(): Promise<any[]> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/skills/categories`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      // Extract data from success wrapper (already Read Models)
+      return response.data.data || [];
+    } catch (error) {
+      this.handleInternalError(error, 'list skill categories', {});
+    }
+  }
+
+  // ==========================================================================
+  // CANDIDATE SKILLS
+  // ==========================================================================
+
+  /**
+   * Get candidate skills grouped by category
+   * Route: GET /candidates/:userId/skills
+   */
+  async getCandidateSkills(userId: string): Promise<any[]> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/candidates/${userId}/skills`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      // Extract data from success wrapper (already Read Models)
+      return response.data.data || [];
+    } catch (error) {
+      this.handleInternalError(error, 'get candidate skills', { userId });
+    }
+  }
+
+  /**
+   * Add skill to candidate profile
+   * Route: POST /candidates/:userId/skills
+   */
+  async addCandidateSkill(userId: string, dto: any): Promise<any> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/candidates/${userId}/skills`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      // Extract data from success wrapper (already Read Model)
+      return response.data.data;
+    } catch (error) {
+      this.handleInternalError(error, 'add candidate skill', { userId, skillId: dto.skillId });
+    }
+  }
+
+  /**
+   * Update candidate skill
+   * Route: PUT /candidates/:userId/skills/:skillId
+   */
+  async updateCandidateSkill(userId: string, skillId: string, dto: any): Promise<any> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/candidates/${userId}/skills/${skillId}`, dto, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      // Extract data from success wrapper (already Read Model)
+      return response.data.data;
+    } catch (error) {
+      this.handleInternalError(error, 'update candidate skill', { userId, skillId });
+    }
+  }
+
+  /**
+   * Remove skill from candidate profile
+   * Route: DELETE /candidates/:userId/skills/:skillId
+   */
+  async removeCandidateSkill(userId: string, skillId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.delete(`${this.baseUrl}/candidates/${userId}/skills/${skillId}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      return response.data || { success: true, message: 'Skill removed successfully' };
+    } catch (error) {
+      this.handleInternalError(error, 'remove candidate skill', { userId, skillId });
+    }
+  }
 }

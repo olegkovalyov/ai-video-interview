@@ -35,10 +35,21 @@ export function SkillsList() {
       ]);
       
       setSkills(skillsResponse.data);
-      setCategories(categoriesData);
-    } catch (error) {
+      // Safety check: ensure categoriesData is an array
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+    } catch (error: any) {
       console.error('Failed to fetch skills:', error);
-      toast.error('Failed to load skills');
+      
+      // Check if it's a User Service unavailable error
+      if (error?.message?.includes('unavailable') || error?.message?.includes('ECONNREFUSED')) {
+        toast.error('User Service is not running. Skills functionality requires User Service.');
+      } else {
+        toast.error(error?.message || 'Failed to load skills');
+      }
+      
+      // Set empty states on error
+      setSkills([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }

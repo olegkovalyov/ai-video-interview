@@ -8,6 +8,11 @@ import {
   PaginatedResult,
   CandidateProfileWithUser,
 } from '../../../domain/repositories/candidate-profile-read.repository.interface';
+import type { 
+  CandidateProfileReadModel,
+  CandidateSkillReadModel,
+  SkillsByCategoryReadModel,
+} from '../../../domain/read-models/candidate-profile.read-model';
 import { CandidateProfile } from '../../../domain/aggregates/candidate-profile.aggregate';
 import { CandidateSkillEntity } from '../entities/candidate-skill.entity';
 import { UserEntity } from '../entities/user.entity';
@@ -30,31 +35,30 @@ export class TypeOrmCandidateProfileReadRepository
     private readonly dataSource: DataSource,
   ) {}
 
-  async findByUserId(userId: string): Promise<CandidateProfile | null> {
+  async findByUserId(userId: string): Promise<CandidateProfileReadModel | null> {
     const profileData = await this.dataSource.query(
-      `SELECT experience_level, created_at, updated_at 
+      `SELECT 
+        user_id, 
+        experience_level, 
+        is_profile_complete,
+        created_at, 
+        updated_at
        FROM candidate_profiles WHERE user_id = $1`,
       [userId],
     );
 
     if (profileData.length === 0) return null;
 
-    const skillEntities = await this.skillRepository.find({
-      where: { candidateId: userId },
-    });
-
-    const skills = this.skillMapper.toDomainList(skillEntities);
-    const experienceLevel = profileData[0].experience_level
-      ? ExperienceLevel.fromString(profileData[0].experience_level)
-      : null;
-
-    return CandidateProfile.reconstitute(
-      userId,
-      experienceLevel,
-      skills,
-      profileData[0].created_at,
-      profileData[0].updated_at,
-    );
+    const row = profileData[0];
+    
+    // Return ReadModel with ONLY real database columns
+    return {
+      userId: row.user_id,
+      experienceLevel: row.experience_level,
+      isProfileComplete: row.is_profile_complete,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   async findByUserIdWithUser(userId: string): Promise<CandidateProfileWithUser | null> {
@@ -64,12 +68,18 @@ export class TypeOrmCandidateProfileReadRepository
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) return null;
 
+    // Flatten profile and user data
     return {
-      profile,
+      ...profile,
       fullName: `${user.firstName} ${user.lastName}`,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
-      avatarUrl: user.avatarUrl || undefined,
-    };
+      phone: user.phone,
+      avatarUrl: user.avatarUrl,
+      timezone: user.timezone,
+      language: user.language,
+    } as CandidateProfileWithUser;
   }
 
   async searchBySkills(
@@ -117,21 +127,34 @@ export class TypeOrmCandidateProfileReadRepository
       where: { id: In(candidateIds) },
     });
 
-    const data: CandidateSearchResult[] = await Promise.all(
+    const data = await Promise.all(
       candidates.map(async candidate => {
         const profile = await this.findByUserId(candidate.id);
-        const matchedSkills = profile?.skills.filter(s =>
-          filters.skillIds?.includes(s.skillId),
-        ) || [];
+        
+        // Get matched skills from candidate_skills table
+        const skillEntities = await this.skillRepository.find({
+          where: { 
+            candidateId: candidate.id,
+            skillId: In(filters.skillIds || []),
+          },
+          relations: ['skill'],
+        });
+
+        const matchedSkills = skillEntities.map(s => ({
+          skillId: s.skillId,
+          skillName: s.skill?.name || '',
+          proficiencyLevel: s.proficiencyLevel || 'intermediate',
+        }));
 
         return {
           userId: candidate.id,
           fullName: `${candidate.firstName} ${candidate.lastName}`,
           email: candidate.email,
-          experienceLevel: profile?.experienceLevel?.value || null,
-          matchedSkills,
-          matchScore: matchedSkills.reduce((score, s) => 
-            score + (s.yearsOfExperience?.value || 0), 0),
+          avatarUrl: candidate.avatarUrl,
+          experienceLevel: profile?.experienceLevel || null,
+          matchScore: skillEntities.reduce((score, s) => 
+            score + (s.yearsOfExperience || 0), 0),
+          skills: matchedSkills,
         };
       }),
     );
@@ -148,33 +171,49 @@ export class TypeOrmCandidateProfileReadRepository
     };
   }
 
-  async getCandidateSkillsGroupedByCategory(userId: string): Promise<{
-    categoryId: string | null;
-    categoryName: string | null;
-    skills: any[];
-  }[]> {
+  async getCandidateSkillsGroupedByCategory(userId: string): Promise<SkillsByCategoryReadModel[]> {
     const skillEntities = await this.skillRepository.find({
       where: { candidateId: userId },
       relations: ['skill', 'skill.category'],
       order: { createdAt: 'ASC' },
     });
 
-    const grouped = new Map<string, any>();
+    const grouped = new Map<string, SkillsByCategoryReadModel>();
 
     for (const entity of skillEntities) {
       const categoryId = entity.skill?.categoryId || null;
       const categoryName = entity.skill?.category?.name || null;
+      const categorySlug = entity.skill?.category?.slug || null;
       const key = categoryId || 'uncategorized';
 
       if (!grouped.has(key)) {
         grouped.set(key, {
           categoryId,
           categoryName,
+          categorySlug,
           skills: [],
         });
       }
 
-      grouped.get(key)!.skills.push(this.skillMapper.toDomain(entity));
+      // Build CandidateSkillReadModel directly from entity
+      const skillReadModel: CandidateSkillReadModel = {
+        id: entity.id,
+        userId: entity.candidateId,
+        skillId: entity.skillId,
+        skillName: entity.skill?.name || '',
+        skillSlug: entity.skill?.slug || '',
+        categoryId,
+        categoryName,
+        description: entity.description,
+        proficiencyLevel: entity.proficiencyLevel,
+        yearsOfExperience: entity.yearsOfExperience,
+        lastUsedAt: null, // Not in current schema
+        endorsementsCount: 0, // Not in current schema
+        createdAt: entity.createdAt,
+        updatedAt: entity.updatedAt,
+      };
+
+      grouped.get(key)!.skills.push(skillReadModel);
     }
 
     return Array.from(grouped.values());

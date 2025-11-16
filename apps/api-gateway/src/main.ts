@@ -10,12 +10,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true, // Буферизуем логи до подключения logger
   });
-  
+
   const logger = app.get(LoggerService);
-  
+
   // Используем наш Winston Logger для ВСЕХ NestJS логов
   app.useLogger(logger);
-  
+
   const corsOptions: CorsOptions = {
     origin: process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000',
     credentials: true,
@@ -28,32 +28,7 @@ async function bootstrap() {
   // Swagger Documentation Setup
   const config = new DocumentBuilder()
     .setTitle('AI Video Interview - API Gateway')
-    .setDescription(`
-API Gateway for AI Video Interview Platform
-
-**Available Modules:**
-- Authentication & Authorization (OAuth2/OIDC via Keycloak)
-- User Management (Profiles, Admin operations)
-- Role Management (Candidate, HR, Admin)
-- User Actions (Suspend, Activate, Verify Email)
-- Interview Templates (Create, manage interview templates and questions)
-
-**Architecture:**
-- API Gateway handles all external requests
-- Microservices: user-service, interview-service
-- Event-driven architecture with Kafka
-- JWT-based authentication
-
-**Authentication:**
-All endpoints require JWT Bearer token in Authorization header.
-Obtain token via OAuth2 flow: POST /auth/login → GET /auth/callback
-
-**Admin Endpoints:**
-Admin endpoints require 'admin' role in JWT token.
-
-**HR Endpoints:**
-HR users can create and manage their own interview templates.
-    `)
+    .setDescription(`API Gateway for AI Video Interview Platform`)
     .setVersion('1.0')
     .addBearerAuth({
       type: 'http',
@@ -71,7 +46,7 @@ HR users can create and manage their own interview templates.
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  
+
   // Setup Swagger UI at /api/docs
   SwaggerModule.setup('api/docs', app, document, {
     customSiteTitle: 'API Gateway Documentation',
@@ -83,6 +58,10 @@ HR users can create and manage their own interview templates.
       docExpansion: 'none', // Collapse all by default
       filter: true, // Enable search filter
     },
+  });
+
+  app.use('/api/docs-json', (req, res) => {
+    res.json(document);
   });
 
   logger.info('📚 Swagger documentation enabled at /api/docs');
@@ -98,7 +77,7 @@ HR users can create and manage their own interview templates.
   });
 
   await app.listen(port);
-  
+
   logger.info('✅ API Gateway successfully started', {
     service: 'api-gateway',
     action: 'startup_complete',
