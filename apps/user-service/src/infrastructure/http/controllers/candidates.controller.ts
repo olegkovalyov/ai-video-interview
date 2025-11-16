@@ -26,6 +26,7 @@ import { Public } from '../decorators/public.decorator';
 import { AddCandidateSkillCommand } from '../../../application/commands/candidate/add-candidate-skill/add-candidate-skill.command';
 import { UpdateCandidateSkillCommand } from '../../../application/commands/candidate/update-candidate-skill/update-candidate-skill.command';
 import { RemoveCandidateSkillCommand } from '../../../application/commands/candidate/remove-candidate-skill/remove-candidate-skill.command';
+import { UpdateCandidateExperienceLevelCommand } from '../../../application/commands/candidate/update-experience-level/update-experience-level.command';
 
 // Queries
 import { SearchCandidatesBySkillsQuery } from '../../../application/queries/candidate/search-candidates-by-skills.query';
@@ -33,7 +34,7 @@ import { GetCandidateProfileQuery } from '../../../application/queries/candidate
 import { GetCandidateSkillsQuery } from '../../../application/queries/candidate/get-candidate-skills.query';
 
 // DTOs
-import { SearchCandidatesDto, AddCandidateSkillDto, UpdateCandidateSkillDto } from '../dto/candidates.dto';
+import { SearchCandidatesDto, AddCandidateSkillDto, UpdateCandidateSkillDto, UpdateExperienceLevelDto } from '../dto/candidates.dto';
 import { 
   CandidateProfileResponseDto, 
   SkillsByCategoryResponseDto,
@@ -377,6 +378,56 @@ export class CandidatesController {
           success: false,
           error: error.message,
           code: 'NOT_FOUND',
+        });
+      }
+
+      throw new BadRequestException({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
+  @Put(':userId/experience-level')
+  @ApiOperation({ 
+    summary: 'Update candidate experience level',
+    description: 'Updates the overall experience level of a candidate (junior, mid, senior, lead).'
+  })
+  @ApiBody({ type: UpdateExperienceLevelDto })
+  @ApiResponse({ status: 200, type: CandidateProfileSuccessResponseDto, description: 'Experience level updated successfully' })
+  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid experience level' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Candidate profile not found' })
+  async updateExperienceLevel(
+    @Param('userId') userId: string,
+    @Body() dto: UpdateExperienceLevelDto,
+  ) {
+    try {
+      const command = new UpdateCandidateExperienceLevelCommand(userId, dto.experienceLevel);
+      await this.commandBus.execute(command);
+
+      // Get updated profile to return (pass userId as currentUserId to bypass permission check)
+      const query = new GetCandidateProfileQuery(userId, userId);
+      const result = await this.queryBus.execute(query);
+
+      return {
+        success: true,
+        data: CandidateResponseMapper.toProfileDto(result),
+      };
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        throw new NotFoundException({
+          success: false,
+          error: error.message,
+          code: 'PROFILE_NOT_FOUND',
+        });
+      }
+
+      if (error.message.includes('Invalid experience level') || error.name === 'DomainException') {
+        throw new BadRequestException({
+          success: false,
+          error: error.message,
+          code: 'INVALID_EXPERIENCE_LEVEL',
         });
       }
 

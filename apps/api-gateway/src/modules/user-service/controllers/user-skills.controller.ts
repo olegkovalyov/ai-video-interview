@@ -27,7 +27,6 @@ import {
 import {
   AddCandidateSkillDto,
   UpdateCandidateSkillDto,
-  CandidateSkillDto,
   CandidateSkillsByCategoryDto,
   SkillDeleteResponseDto,
 } from '../dto';
@@ -113,7 +112,6 @@ export class UserSkillsController {
   @ApiResponse({
     status: 201,
     description: 'Skill added successfully',
-    type: CandidateSkillDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -122,7 +120,7 @@ export class UserSkillsController {
   async addSkill(
     @Body() dto: AddCandidateSkillDto,
     @CurrentUser() user: CurrentUserData,
-  ): Promise<CandidateSkillDto> {
+  ): Promise<{ success: boolean; message: string }> {
     this.loggerService.info('User: Adding skill to profile', {
       userId: user.userId,
       skillId: dto.skillId,
@@ -130,18 +128,17 @@ export class UserSkillsController {
     });
 
     try {
-      const skill = await this.userServiceClient.addCandidateSkill(
+      const result = await this.userServiceClient.addCandidateSkill(
         user.userId,
         dto,
       );
 
       this.loggerService.info('User: Skill added successfully', {
         userId: user.userId,
-        skillId: skill.skillId,
-        skillName: skill.skillName,
+        skillId: dto.skillId,
       });
 
-      return skill;
+      return result;
     } catch (error) {
       this.loggerService.error('User: Failed to add skill', error, {
         userId: user.userId,
@@ -173,7 +170,6 @@ export class UserSkillsController {
   @ApiResponse({
     status: 200,
     description: 'Skill updated successfully',
-    type: CandidateSkillDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -182,7 +178,7 @@ export class UserSkillsController {
     @Param('skillId') skillId: string,
     @Body() dto: UpdateCandidateSkillDto,
     @CurrentUser() user: CurrentUserData,
-  ): Promise<CandidateSkillDto> {
+  ): Promise<{ success: boolean; message: string }> {
     this.loggerService.info('User: Updating skill', {
       userId: user.userId,
       skillId,
@@ -190,7 +186,7 @@ export class UserSkillsController {
     });
 
     try {
-      const skill = await this.userServiceClient.updateCandidateSkill(
+      const result = await this.userServiceClient.updateCandidateSkill(
         user.userId,
         skillId,
         dto,
@@ -198,11 +194,10 @@ export class UserSkillsController {
 
       this.loggerService.info('User: Skill updated successfully', {
         userId: user.userId,
-        skillId: skill.skillId,
-        proficiencyLevel: skill.proficiencyLevel,
+        skillId,
       });
 
-      return skill;
+      return result;
     } catch (error) {
       this.loggerService.error('User: Failed to update skill', error, {
         userId: user.userId,

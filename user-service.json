@@ -962,6 +962,136 @@
         ]
       }
     },
+    "/users/{userId}/permissions": {
+      "get": {
+        "description": "Retrieves user roles and permissions based on their assigned role.",
+        "operationId": "UsersController_getUserPermissions",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User permissions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPermissionsSuccessResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get user permissions",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{userId}/companies": {
+      "get": {
+        "description": "Retrieves all companies associated with a user. Only accessible by the user themselves or administrators.",
+        "operationId": "UsersController_getUserCompanies",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentUserId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isAdmin",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User companies retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - not authorized to view these companies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenErrorSchema"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get user companies",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/skills": {
       "post": {
         "operationId": "SkillsController_createSkill",
@@ -1300,6 +1430,136 @@
           }
         ],
         "summary": "Get skill by ID",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/skills/{id}/activate": {
+      "post": {
+        "description": "Activates a deactivated skill, making it visible and available for candidates to add to their profiles.",
+        "operationId": "SkillsController_activateSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "adminId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillSuccessResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Activate skill",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/skills/{id}/deactivate": {
+      "post": {
+        "description": "Deactivates an active skill, hiding it from candidates and preventing new additions to profiles. Existing candidate skills remain intact.",
+        "operationId": "SkillsController_deactivateSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "adminId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill deactivated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillSuccessResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Deactivate skill",
         "tags": [
           "skills"
         ]
@@ -2213,6 +2473,83 @@
         ]
       }
     },
+    "/candidates/{userId}/experience-level": {
+      "put": {
+        "description": "Updates the overall experience level of a candidate (junior, mid, senior, lead).",
+        "operationId": "CandidatesController_updateExperienceLevel",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExperienceLevelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Experience level updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateProfileSuccessResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid experience level",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing internal token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorSchema"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Update candidate experience level",
+        "tags": [
+          "candidates"
+        ]
+      }
+    },
     "/metrics": {
       "get": {
         "operationId": "MetricsController_getMetrics",
@@ -2657,6 +2994,226 @@
           "role"
         ]
       },
+      "RoleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Role ID",
+            "example": "candidate"
+          },
+          "name": {
+            "type": "string",
+            "description": "Role name",
+            "example": "candidate"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Role display name",
+            "example": "Candidate"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "displayName"
+        ]
+      },
+      "UserPermissionsResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "User ID",
+            "example": "uuid"
+          },
+          "roles": {
+            "description": "User roles",
+            "example": [
+              {
+                "id": "candidate",
+                "name": "candidate",
+                "displayName": "Candidate"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleDto"
+            }
+          },
+          "permissions": {
+            "description": "User permissions",
+            "example": [
+              "read:own_profile",
+              "write:own_profile"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "roles",
+          "permissions"
+        ]
+      },
+      "UserPermissionsSuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Success flag",
+            "example": true
+          },
+          "data": {
+            "description": "User permissions data",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserPermissionsResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CompanyListItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid",
+            "description": "Company ID"
+          },
+          "name": {
+            "type": "string",
+            "example": "TechCorp Inc.",
+            "description": "Company name"
+          },
+          "industry": {
+            "type": "string",
+            "example": "Software Development",
+            "nullable": true,
+            "description": "Company industry"
+          },
+          "size": {
+            "type": "string",
+            "example": "50-100 employees",
+            "nullable": true,
+            "description": "Company size"
+          },
+          "location": {
+            "type": "string",
+            "example": "San Francisco, CA",
+            "nullable": true,
+            "description": "Company location"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the company is active"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Creation date"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "isActive",
+          "createdAt"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total number of items"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page number"
+          },
+          "limit": {
+            "type": "number",
+            "example": 20,
+            "description": "Items per page"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "CompanyListResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Success status"
+          },
+          "data": {
+            "description": "List of companies",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyListItemResponseDto"
+            }
+          },
+          "pagination": {
+            "description": "Pagination metadata",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaginationMetaDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "pagination"
+        ]
+      },
+      "ForbiddenErrorSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Access denied - insufficient permissions"
+          },
+          "code": {
+            "type": "string",
+            "example": "FORBIDDEN"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "code"
+        ]
+      },
       "CreateSkillDto": {
         "type": "object",
         "properties": {
@@ -2842,37 +3399,6 @@
           "name",
           "slug",
           "isActive"
-        ]
-      },
-      "PaginationMetaDto": {
-        "type": "object",
-        "properties": {
-          "total": {
-            "type": "number",
-            "example": 42,
-            "description": "Total number of items"
-          },
-          "page": {
-            "type": "number",
-            "example": 1,
-            "description": "Current page number"
-          },
-          "limit": {
-            "type": "number",
-            "example": 20,
-            "description": "Items per page"
-          },
-          "totalPages": {
-            "type": "number",
-            "example": 3,
-            "description": "Total number of pages"
-          }
-        },
-        "required": [
-          "total",
-          "page",
-          "limit",
-          "totalPages"
         ]
       },
       "SkillListResponseDto": {
@@ -3166,28 +3692,6 @@
         },
         "required": [
           "updatedBy"
-        ]
-      },
-      "ForbiddenErrorSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": false
-          },
-          "error": {
-            "type": "string",
-            "example": "Access denied - insufficient permissions"
-          },
-          "code": {
-            "type": "string",
-            "example": "FORBIDDEN"
-          }
-        },
-        "required": [
-          "success",
-          "error",
-          "code"
         ]
       },
       "CandidateSkillResponseDto": {
@@ -3510,6 +4014,25 @@
             "minimum": 0
           }
         }
+      },
+      "UpdateExperienceLevelDto": {
+        "type": "object",
+        "properties": {
+          "experienceLevel": {
+            "type": "string",
+            "description": "Candidate experience level",
+            "example": "mid",
+            "enum": [
+              "junior",
+              "mid",
+              "senior",
+              "lead"
+            ]
+          }
+        },
+        "required": [
+          "experienceLevel"
+        ]
       }
     }
   }

@@ -31,8 +31,9 @@ export function AddSkillForm({ onClose, onSuccess }: AddSkillFormProps) {
         setLoading(true);
         const response = await listSkills({ isActive: true, limit: 100 });
         setSkills(response.data);
-        if (response.data.length > 0) {
-          setFormData(prev => ({ ...prev, skillId: response.data[0].id }));
+        const firstSkill = response.data[0];
+        if (firstSkill) {
+          setFormData(prev => ({ ...prev, skillId: firstSkill.id }));
         }
       } catch (error) {
         toast.error('Failed to load skills');

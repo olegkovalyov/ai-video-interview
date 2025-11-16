@@ -15,11 +15,10 @@ export interface Skill {
   id: string;
   name: string;
   slug: string;
-  categoryId: string;
-  categoryName: string;
-  description?: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  description: string | null;
   isActive: boolean;
-  candidatesCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,7 +27,9 @@ export interface SkillCategory {
   id: string;
   name: string;
   slug: string;
-  skillsCount: number;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface SkillsListResponse {

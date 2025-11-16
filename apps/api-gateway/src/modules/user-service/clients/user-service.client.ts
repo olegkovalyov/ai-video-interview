@@ -20,6 +20,16 @@ import type {
   SuspendUserDto,
 } from '../dto/admin-user.dto';
 import type { SelectRoleDto } from '../dto/user-profile.dto';
+import type {
+  CandidateSkillsByCategoryDto,
+  AddCandidateSkillDto,
+  UpdateCandidateSkillDto,
+  SkillDto,
+  SkillsListResponseDto,
+  SkillCategoryDto,
+  CreateSkillDto,
+  UpdateSkillDto,
+} from '../dto/skills.dto';
 
 // ============================================================================
 // Type Aliases for Client Methods
@@ -392,31 +402,6 @@ export class UserServiceClient extends BaseServiceProxy {
     }
   }
 
-  /**
-   * Get user permissions
-   * Route: GET /users/:userId/permissions
-   * Response: UserPermissionsResponseDto
-   */
-  async getUserPermissions(userId: string): Promise<UserPermissionsResponseDto> {
-    try {
-      this.loggerService.info('UserServiceClient: Getting user permissions', { userId });
-
-      const response = await firstValueFrom(
-        this.httpService.get<UserPermissionsResponseDto>(
-          `${this.baseUrl}/users/${userId}/permissions`,
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      return response.data;
-    } catch (error) {
-      return this.handleInternalError(error, 'get user permissions', { userId });
-    }
-  }
-
   // ==========================================================================
   // PROFILE MANAGEMENT
   // ==========================================================================
@@ -567,28 +552,8 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   // ==========================================================================
-  // SKILLS MANAGEMENT (ADMIN)
+  // SKILLS (Admin)
   // ==========================================================================
-
-  /**
-   * Create new skill (Admin)
-   * Route: POST /skills
-   * Body: CreateSkillDto
-   */
-  async createSkill(dto: any, adminId: string): Promise<any> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/skills`, { ...dto, adminId }, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      // Extract data from success wrapper (already Read Model)
-      return response.data.data;
-    } catch (error) {
-      this.handleInternalError(error, 'create skill', { adminId });
-    }
-  }
 
   /**
    * List skills with filters (Admin)
@@ -600,7 +565,7 @@ export class UserServiceClient extends BaseServiceProxy {
     search?: string;
     categoryId?: string;
     isActive?: boolean;
-  }): Promise<any> {
+  }): Promise<SkillsListResponseDto> {
     try {
       const params = new URLSearchParams();
       if (filters.page) params.append('page', String(filters.page));
@@ -621,7 +586,7 @@ export class UserServiceClient extends BaseServiceProxy {
       const { data, pagination } = response.data;
       return { data, pagination };
     } catch (error) {
-      this.handleInternalError(error, 'list skills', {});
+      throw this.handleInternalError(error, 'list skills', {});
     }
   }
 
@@ -629,7 +594,7 @@ export class UserServiceClient extends BaseServiceProxy {
    * Get skill by ID (Admin)
    * Route: GET /skills/:id
    */
-  async getSkill(id: string): Promise<any> {
+  async getSkill(id: string): Promise<SkillDto> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/skills/${id}`, {
@@ -645,13 +610,13 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   /**
-   * Update skill (Admin)
-   * Route: PUT /skills/:id
+   * Create skill (Admin)
+   * Route: POST /skills
    */
-  async updateSkill(id: string, dto: any, adminId: string): Promise<any> {
+  async createSkill(dto: CreateSkillDto, adminId: string): Promise<SkillDto> {
     try {
       const response = await firstValueFrom(
-        this.httpService.put(`${this.baseUrl}/skills/${id}`, { ...dto, adminId }, {
+        this.httpService.post(`${this.baseUrl}/skills`, { ...dto, adminId }, {
           headers: this.getInternalHeaders(),
           timeout: this.timeout,
         }),
@@ -659,25 +624,78 @@ export class UserServiceClient extends BaseServiceProxy {
       // Extract data from success wrapper (already Read Model)
       return response.data.data;
     } catch (error) {
+      this.handleInternalError(error, 'create skill', { adminId });
+    }
+  }
+
+  /**
+   * Update skill (Admin)
+   * Route: PUT /skills/:id
+   *
+   * User Service возвращает SkillSuccessResponseDto вида:
+   * { success: true }
+   */
+  async updateSkill(id: string, dto: UpdateSkillDto, adminId: string): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating skill', { skillId: id, adminId });
+      const response = await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/skills/${id}`, { ...dto, adminId }, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.debug('UserServiceClient: Update skill response', {
+        status: response.status,
+        dataKeys: Object.keys(response.data || {}),
+        data: response.data,
+      });
+
+      const result = response.data as { success: boolean };
+
+      if (!result || typeof result.success !== 'boolean') {
+        this.loggerService.error('UserServiceClient: Unexpected update skill response shape', {
+          responseData: response.data,
+        });
+      }
+
+      return result;
+    } catch (error) {
       this.handleInternalError(error, 'update skill', { skillId: id, adminId });
+      throw error;
     }
   }
 
   /**
    * Toggle skill active status (Admin)
-   * Route: POST /skills/:id/toggle
+   * Uses activate/deactivate commands based on current status
    */
-  async toggleSkillStatus(id: string, adminId: string): Promise<any> {
+  async toggleSkillStatus(id: string, adminId: string): Promise<SkillDto> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/skills/${id}/toggle`, { adminId }, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      return response.data;
+      this.loggerService.info('UserServiceClient: Toggling skill status', { skillId: id, adminId });
+
+      // Step 1: Get current skill to check isActive status
+      const currentSkill = await this.getSkill(id);
+      
+      // Step 2: Call activate or deactivate based on current status
+      let result: { success: boolean; data: SkillDto };
+      if (currentSkill.isActive) {
+        // Currently active -> deactivate
+        result = await this.deactivateSkill(id, adminId);
+      } else {
+        // Currently inactive -> activate
+        result = await this.activateSkill(id, adminId);
+      }
+      
+      this.loggerService.info('UserServiceClient: Skill status toggled', { 
+        skillId: id, 
+        wasActive: currentSkill.isActive,
+        nowActive: result.data.isActive 
+      });
+
+      return result.data;
     } catch (error) {
-      this.handleInternalError(error, 'toggle skill status', { skillId: id, adminId });
+      throw this.handleInternalError(error, 'toggle skill status', { skillId: id, adminId });
     }
   }
 
@@ -704,7 +722,7 @@ export class UserServiceClient extends BaseServiceProxy {
    * List skill categories
    * Route: GET /skills/categories
    */
-  async listSkillCategories(): Promise<any[]> {
+  async listSkillCategories(): Promise<SkillCategoryDto[]> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/skills/categories`, {
@@ -727,7 +745,7 @@ export class UserServiceClient extends BaseServiceProxy {
    * Get candidate skills grouped by category
    * Route: GET /candidates/:userId/skills
    */
-  async getCandidateSkills(userId: string): Promise<any[]> {
+  async getCandidateSkills(userId: string): Promise<CandidateSkillsByCategoryDto[]> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/candidates/${userId}/skills`, {
@@ -746,7 +764,7 @@ export class UserServiceClient extends BaseServiceProxy {
    * Add skill to candidate profile
    * Route: POST /candidates/:userId/skills
    */
-  async addCandidateSkill(userId: string, dto: any): Promise<any> {
+  async addCandidateSkill(userId: string, dto: AddCandidateSkillDto): Promise<{ success: boolean; message: string }> {
     try {
       const response = await firstValueFrom(
         this.httpService.post(`${this.baseUrl}/candidates/${userId}/skills`, dto, {
@@ -754,8 +772,8 @@ export class UserServiceClient extends BaseServiceProxy {
           timeout: this.timeout,
         }),
       );
-      // Extract data from success wrapper (already Read Model)
-      return response.data.data;
+      // Command returns { success, message }
+      return response.data;
     } catch (error) {
       this.handleInternalError(error, 'add candidate skill', { userId, skillId: dto.skillId });
     }
@@ -765,7 +783,7 @@ export class UserServiceClient extends BaseServiceProxy {
    * Update candidate skill
    * Route: PUT /candidates/:userId/skills/:skillId
    */
-  async updateCandidateSkill(userId: string, skillId: string, dto: any): Promise<any> {
+  async updateCandidateSkill(userId: string, skillId: string, dto: UpdateCandidateSkillDto): Promise<{ success: boolean; message: string }> {
     try {
       const response = await firstValueFrom(
         this.httpService.put(`${this.baseUrl}/candidates/${userId}/skills/${skillId}`, dto, {
@@ -773,8 +791,8 @@ export class UserServiceClient extends BaseServiceProxy {
           timeout: this.timeout,
         }),
       );
-      // Extract data from success wrapper (already Read Model)
-      return response.data.data;
+      // Command returns { success, message }
+      return response.data;
     } catch (error) {
       this.handleInternalError(error, 'update candidate skill', { userId, skillId });
     }
@@ -795,6 +813,150 @@ export class UserServiceClient extends BaseServiceProxy {
       return response.data || { success: true, message: 'Skill removed successfully' };
     } catch (error) {
       this.handleInternalError(error, 'remove candidate skill', { userId, skillId });
+    }
+  }
+
+  // ==========================================================================
+  // ADMIN SKILL OPERATIONS
+  // ==========================================================================
+
+  /**
+   * Activate a skill (ADMIN ONLY)
+   * Route: POST /skills/:id/activate?adminId=xxx
+   */
+  async activateSkill(skillId: string, adminId: string): Promise<{ success: boolean; data: SkillDto }> {
+    try {
+      this.loggerService.info('UserServiceClient: Activating skill', { skillId, adminId });
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.baseUrl}/skills/${skillId}/activate`,
+          {},
+          {
+            headers: this.getInternalHeaders(),
+            params: { adminId },
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      this.loggerService.info('UserServiceClient: Skill activated', { skillId });
+      return response.data;
+    } catch (error) {
+      throw this.handleInternalError(error, 'activate skill', { skillId, adminId });
+    }
+  }
+
+  /**
+   * Deactivate a skill (ADMIN ONLY)
+   * Route: POST /skills/:id/deactivate?adminId=xxx
+   */
+  async deactivateSkill(skillId: string, adminId: string): Promise<{ success: boolean; data: SkillDto }> {
+    try {
+      this.loggerService.info('UserServiceClient: Deactivating skill', { skillId, adminId });
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.baseUrl}/skills/${skillId}/deactivate`,
+          {},
+          {
+            headers: this.getInternalHeaders(),
+            params: { adminId },
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      this.loggerService.info('UserServiceClient: Skill deactivated', { skillId });
+      return response.data;
+    } catch (error) {
+      throw this.handleInternalError(error, 'deactivate skill', { skillId, adminId });
+    }
+  }
+
+  // ==========================================================================
+  // CANDIDATE PROFILE OPERATIONS
+  // ==========================================================================
+
+  /**
+   * Update candidate experience level
+   * Route: PUT /candidates/:userId/experience-level
+   */
+  async updateExperienceLevel(
+    userId: string,
+    experienceLevel: 'junior' | 'mid' | 'senior' | 'lead',
+  ): Promise<{ success: boolean; data: any }> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating experience level', { userId, experienceLevel });
+
+      const response = await firstValueFrom(
+        this.httpService.put(
+          `${this.baseUrl}/candidates/${userId}/experience-level`,
+          { experienceLevel },
+          {
+            headers: this.getInternalHeaders(),
+            timeout: this.timeout,
+          },
+        ),
+      );
+
+      this.loggerService.info('UserServiceClient: Experience level updated', { userId });
+      return response.data;
+    } catch (error) {
+      throw this.handleInternalError(error, 'update experience level', { userId, experienceLevel });
+    }
+  }
+
+  // ==========================================================================
+  // USER PERMISSIONS & COMPANIES
+  // ==========================================================================
+
+  /**
+   * Get user permissions
+   * Route: GET /users/:userId/permissions
+   */
+  async getUserPermissions(userId: string): Promise<UserPermissionsResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user permissions', { userId });
+
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/users/${userId}/permissions`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Permissions retrieved', { userId });
+      return response.data.data; // Unwrap { success, data }
+    } catch (error) {
+      throw this.handleInternalError(error, 'get user permissions', { userId });
+    }
+  }
+
+  /**
+   * Get user companies
+   * Route: GET /users/:userId/companies?currentUserId=xxx&isAdmin=true
+   */
+  async getUserCompanies(
+    userId: string,
+    currentUserId: string,
+    isAdmin: boolean,
+  ): Promise<any[]> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting user companies', { userId, currentUserId, isAdmin });
+
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/users/${userId}/companies`, {
+          headers: this.getInternalHeaders(),
+          params: { currentUserId, isAdmin },
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Companies retrieved', { userId, count: response.data.data?.length });
+      return response.data.data; // Unwrap { success, data }
+    } catch (error) {
+      throw this.handleInternalError(error, 'get user companies', { userId, currentUserId, isAdmin });
     }
   }
 }

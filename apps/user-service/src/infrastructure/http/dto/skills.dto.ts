@@ -81,7 +81,7 @@ export class ListSkillsDto {
   @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by active status', example: true })
+  @ApiPropertyOptional({ description: 'Filter by active status', example: true, type: Boolean })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

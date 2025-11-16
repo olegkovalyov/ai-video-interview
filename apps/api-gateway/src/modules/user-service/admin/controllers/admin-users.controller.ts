@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../../core/auth/guards/jwt-auth.guard';
+import { Public } from '../../../../core/auth/decorators/public.decorator';
 import { KeycloakUserService } from '../keycloak';
 import { LoggerService } from '../../../../core/logging/logger.service';
 import { UserOrchestrationSaga } from '../user-orchestration.saga';
@@ -28,6 +30,7 @@ import {
 @ApiTags('Admin - Users')
 @ApiBearerAuth()
 @Controller('api/admin/users')
+@UseGuards(JwtAuthGuard)
 export class AdminUsersController {
   constructor(
     private readonly keycloakUserService: KeycloakUserService,
@@ -45,6 +48,7 @@ export class AdminUsersController {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"test@example.com","firstName":"Test","lastName":"User"}'
    */
+  @Public() // Allow bootstrap scripts to create admin user without JWT
   @Post()
   @ApiOperation({ 
     summary: 'Create new user',

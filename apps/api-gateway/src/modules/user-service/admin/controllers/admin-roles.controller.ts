@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../../core/auth/guards/jwt-auth.guard';
+import { Public } from '../../../../core/auth/decorators/public.decorator';
 import { KeycloakRoleService } from '../keycloak';
 import { LoggerService } from '../../../../core/logging/logger.service';
 import { UserOrchestrationSaga } from '../user-orchestration.saga';
@@ -18,6 +20,7 @@ import { AssignRoleDto, RolesListResponseDto, UserRolesResponseDto } from '../..
 @ApiTags('Admin - Roles')
 @ApiBearerAuth()
 @Controller('api/admin')
+@UseGuards(JwtAuthGuard)
 export class AdminRolesController {
   constructor(
     private readonly keycloakRoleService: KeycloakRoleService,
@@ -110,6 +113,7 @@ export class AdminRolesController {
    *   -H "Content-Type: application/json" \
    *   -d '{"roleName":"admin"}'
    */
+  @Public() // Allow bootstrap scripts to assign roles without JWT
   @Post('users/:id/roles')
   @ApiOperation({ 
     summary: 'Assign role to user',

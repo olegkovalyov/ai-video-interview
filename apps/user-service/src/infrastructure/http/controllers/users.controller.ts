@@ -19,6 +19,7 @@ import {
   NotFoundException,
   ConflictException,
   InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -36,6 +37,8 @@ import { GetUserQuery } from '../../../application/queries/get-user/get-user.que
 import { GetUserByExternalAuthIdQuery } from '../../../application/queries/get-user-by-external-auth-id/get-user-by-external-auth-id.query';
 import { ListUsersQuery } from '../../../application/queries/list-users/list-users.query';
 import { GetUserStatsQuery } from '../../../application/queries/get-user-stats/get-user-stats.query';
+import { GetUserPermissionsQuery } from '../../../application/queries/get-user-permissions/get-user-permissions.query';
+import { ListUserCompaniesQuery } from '../../../application/queries/companies/list-user-companies.query';
 
 // DTOs
 import { CreateUserInternalDto } from '../../../application/dto/requests/create-user-internal.dto';
@@ -45,6 +48,8 @@ import { SelectRoleDto } from '../../../application/dto/requests/select-role.dto
 import { UserResponseDto } from '../../../application/dto/responses/user.response.dto';
 import { UserListResponseDto } from '../../../application/dto/responses/user-list.response.dto';
 import { UserStatsResponseDto } from '../../../application/dto/responses/user-stats.response.dto';
+import { UserPermissionsSuccessResponseDto } from '../dto/user-permissions.response.dto';
+import { CompanyListResponseDto } from '../dto/companies.response.dto';
 
 // Guards & Exceptions
 import { InternalServiceGuard } from '../guards/internal-service.guard';
@@ -59,6 +64,7 @@ import {
   NotFoundErrorSchema,
   ConflictErrorSchema,
   InternalServerErrorSchema,
+  ForbiddenErrorSchema,
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
 
@@ -474,6 +480,76 @@ export class UsersController {
    * DELETE /users/:userId/avatar
    * Delete user avatar
    */
+  @Get(':userId/permissions')
+  @ApiOperation({ 
+    summary: 'Get user permissions',
+    description: 'Retrieves user roles and permissions based on their assigned role.'
+  })
+  @ApiResponse({ status: 200, type: UserPermissionsSuccessResponseDto, description: 'User permissions retrieved successfully' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
+  async getUserPermissions(@Param('userId') userId: string) {
+    try {
+      const query = new GetUserPermissionsQuery(userId);
+      const result = await this.queryBus.execute(query);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      if (error instanceof UserNotFoundException) {
+        throw new NotFoundException({
+          success: false,
+          error: error.message,
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      throw new BadRequestException({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
+  @Get(':userId/companies')
+  @ApiOperation({ 
+    summary: 'Get user companies',
+    description: 'Retrieves all companies associated with a user. Only accessible by the user themselves or administrators.'
+  })
+  @ApiResponse({ status: 200, type: CompanyListResponseDto, description: 'User companies retrieved successfully' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 403, type: ForbiddenErrorSchema, description: 'Forbidden - not authorized to view these companies' })
+  async getUserCompanies(
+    @Param('userId') userId: string,
+    @Query('currentUserId') currentUserId?: string,
+    @Query('isAdmin') isAdmin?: boolean,
+  ) {
+    try {
+      const query = new ListUserCompaniesQuery(userId, currentUserId, isAdmin);
+      const result = await this.queryBus.execute(query);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      if (error.message.includes('permission')) {
+        throw new ForbiddenException({
+          success: false,
+          error: error.message,
+          code: 'FORBIDDEN',
+        });
+      }
+
+      throw new BadRequestException({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
   @Delete(':userId/avatar')
   @HttpCode(204)
   @ApiOperation({ summary: 'Delete user avatar' })

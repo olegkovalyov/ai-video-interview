@@ -26,8 +26,9 @@ export default function CreateSkillPage() {
       try {
         const data = await listCategories();
         setCategories(data);
-        if (data.length > 0) {
-          setFormData(prev => ({ ...prev, categoryId: data[0].id }));
+        const firstCategory = data[0];
+        if (firstCategory) {
+          setFormData(prev => ({ ...prev, categoryId: firstCategory.id }));
         }
       } catch (error) {
         toast.error('Failed to load categories');

@@ -41,7 +41,7 @@ export function SkillFiltersComponent({
             <option value="">All Categories</option>
             {categories.map(category => (
               <option key={category.id} value={category.id} className="bg-gray-800">
-                {category.name} ({category.skillsCount})
+                {category.name}
               </option>
             ))}
           </select>

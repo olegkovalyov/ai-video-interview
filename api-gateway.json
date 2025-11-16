@@ -405,14 +405,7 @@
         },
         "responses": {
           "201": {
-            "description": "Skill added successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CandidateSkillDto"
-                }
-              }
-            }
+            "description": "Skill added successfully"
           },
           "400": {
             "description": "Invalid input data"
@@ -466,14 +459,7 @@
         },
         "responses": {
           "200": {
-            "description": "Skill updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CandidateSkillDto"
-                }
-              }
-            }
+            "description": "Skill updated successfully"
           },
           "400": {
             "description": "Invalid input data"
@@ -2159,17 +2145,14 @@
           "skillName": {
             "type": "string",
             "description": "Skill name",
-            "example": "React"
-          },
-          "categoryName": {
-            "type": "string",
-            "description": "Category name",
-            "example": "Frontend"
+            "example": "React",
+            "nullable": true
           },
           "description": {
             "type": "string",
             "description": "Skill description or notes",
-            "example": "Built 10+ production React apps"
+            "example": "Built 10+ production React apps",
+            "nullable": true
           },
           "proficiencyLevel": {
             "type": "string",
@@ -2180,12 +2163,14 @@
               "advanced",
               "expert"
             ],
-            "example": "expert"
+            "example": "expert",
+            "nullable": true
           },
           "yearsOfExperience": {
             "type": "number",
             "description": "Years of experience",
-            "example": 5
+            "example": 5,
+            "nullable": true
           },
           "addedAt": {
             "type": "string",
@@ -2196,10 +2181,6 @@
         },
         "required": [
           "skillId",
-          "skillName",
-          "categoryName",
-          "proficiencyLevel",
-          "yearsOfExperience",
           "addedAt"
         ]
       },
@@ -2210,12 +2191,14 @@
             "type": "string",
             "description": "Category ID",
             "example": "123e4567-e89b-12d3-a456-426614174000",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "categoryName": {
             "type": "string",
             "description": "Category name",
-            "example": "Frontend"
+            "example": "Frontend",
+            "nullable": true
           },
           "skills": {
             "description": "Skills in this category",
@@ -2226,8 +2209,6 @@
           }
         },
         "required": [
-          "categoryId",
-          "categoryName",
           "skills"
         ]
       },
@@ -2336,17 +2317,30 @@
             "description": "Category slug",
             "example": "frontend"
           },
-          "skillsCount": {
-            "type": "number",
-            "description": "Number of skills in category",
-            "example": 12
+          "description": {
+            "type": "string",
+            "description": "Category description",
+            "example": "Frontend technologies",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether category is active",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-15T10:00:00Z",
+            "format": "date-time"
           }
         },
         "required": [
           "id",
           "name",
           "slug",
-          "skillsCount"
+          "isActive",
+          "createdAt"
         ]
       },
       "CreateUserDto": {
@@ -2716,27 +2710,25 @@
             "type": "string",
             "description": "Skill category ID",
             "example": "123e4567-e89b-12d3-a456-426614174000",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "categoryName": {
             "type": "string",
             "description": "Category name",
-            "example": "Frontend"
+            "example": "Frontend",
+            "nullable": true
           },
           "description": {
             "type": "string",
             "description": "Skill description",
-            "example": "JavaScript superset with static typing"
+            "example": "JavaScript superset with static typing",
+            "nullable": true
           },
           "isActive": {
             "type": "boolean",
             "description": "Whether skill is active",
             "example": true
-          },
-          "candidatesCount": {
-            "type": "number",
-            "description": "Number of candidates with this skill",
-            "example": 42
           },
           "createdAt": {
             "type": "string",
@@ -2755,10 +2747,7 @@
           "id",
           "name",
           "slug",
-          "categoryId",
-          "categoryName",
           "isActive",
-          "candidatesCount",
           "createdAt",
           "updatedAt"
         ]

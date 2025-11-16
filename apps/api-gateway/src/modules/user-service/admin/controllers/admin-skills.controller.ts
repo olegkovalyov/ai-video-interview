@@ -263,7 +263,6 @@ export class AdminSkillsController {
   @ApiResponse({
     status: 200,
     description: 'Skill updated successfully',
-    type: SkillDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -273,7 +272,7 @@ export class AdminSkillsController {
     @Param('id') id: string,
     @Body() dto: UpdateSkillDto,
     @CurrentUser() user: CurrentUserData,
-  ): Promise<SkillDto> {
+  ): Promise<{ success: boolean }> {
     this.loggerService.info('Admin: Updating skill', {
       adminId: user.userId,
       skillId: id,
@@ -281,15 +280,15 @@ export class AdminSkillsController {
     });
 
     try {
-      const skill = await this.userServiceClient.updateSkill(id, dto, user.userId);
+      const result = await this.userServiceClient.updateSkill(id, dto, user.userId);
 
       this.loggerService.info('Admin: Skill updated successfully', {
         adminId: user.userId,
-        skillId: skill.id,
-        skillName: skill.name,
+        skillId: id,
+        success: result?.success,
       });
 
-      return skill;
+      return { success: !!result?.success };
     } catch (error) {
       this.loggerService.error('Admin: Failed to update skill', error, {
         adminId: user.userId,
@@ -399,6 +398,110 @@ export class AdminSkillsController {
       return result;
     } catch (error) {
       this.loggerService.error('Admin: Failed to delete skill', error, {
+        adminId: user.userId,
+        skillId: id,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/admin/skills/:id/activate
+   * Activate a deactivated skill
+   * 
+   * curl -X POST http://localhost:8001/api/admin/skills/<uuid>/activate \
+   *   -H "Authorization: Bearer <jwt>"
+   */
+  @Post(':id/activate')
+  @ApiOperation({
+    summary: 'Activate skill',
+    description: 'Activates a deactivated skill, making it visible and available for candidates (Admin only).',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Skill ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Skill activated successfully',
+    type: SkillDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  @ApiResponse({ status: 404, description: 'Skill not found' })
+  async activateSkill(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<{ success: boolean; data: SkillDto }> {
+    this.loggerService.info('Admin: Activating skill', {
+      adminId: user.userId,
+      skillId: id,
+    });
+
+    try {
+      const result = await this.userServiceClient.activateSkill(id, user.userId);
+
+      this.loggerService.info('Admin: Skill activated successfully', {
+        adminId: user.userId,
+        skillId: id,
+      });
+
+      return result;
+    } catch (error) {
+      this.loggerService.error('Admin: Failed to activate skill', error, {
+        adminId: user.userId,
+        skillId: id,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/admin/skills/:id/deactivate
+   * Deactivate an active skill
+   * 
+   * curl -X POST http://localhost:8001/api/admin/skills/<uuid>/deactivate \
+   *   -H "Authorization: Bearer <jwt>"
+   */
+  @Post(':id/deactivate')
+  @ApiOperation({
+    summary: 'Deactivate skill',
+    description: 'Deactivates an active skill, hiding it from candidates. Existing candidate skills remain intact (Admin only).',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Skill ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Skill deactivated successfully',
+    type: SkillDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  @ApiResponse({ status: 404, description: 'Skill not found' })
+  async deactivateSkill(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<{ success: boolean; data: SkillDto }> {
+    this.loggerService.info('Admin: Deactivating skill', {
+      adminId: user.userId,
+      skillId: id,
+    });
+
+    try {
+      const result = await this.userServiceClient.deactivateSkill(id, user.userId);
+
+      this.loggerService.info('Admin: Skill deactivated successfully', {
+        adminId: user.userId,
+        skillId: id,
+      });
+
+      return result;
+    } catch (error) {
+      this.loggerService.error('Admin: Failed to deactivate skill', error, {
         adminId: user.userId,
         skillId: id,
       });

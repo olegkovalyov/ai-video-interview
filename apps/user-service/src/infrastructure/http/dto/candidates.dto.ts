@@ -124,3 +124,16 @@ export class UpdateCandidateSkillDto {
   @Min(0)
   yearsOfExperience?: number;
 }
+
+/**
+ * DTO for updating candidate experience level
+ */
+export class UpdateExperienceLevelDto {
+  @ApiProperty({
+    description: 'Candidate experience level',
+    example: 'mid',
+    enum: ['junior', 'mid', 'senior', 'lead']
+  })
+  @IsEnum(['junior', 'mid', 'senior', 'lead'])
+  experienceLevel: 'junior' | 'mid' | 'senior' | 'lead';
+}

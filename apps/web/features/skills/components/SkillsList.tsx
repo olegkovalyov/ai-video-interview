@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { SkillStatsCards } from './SkillStatsCards';
 import { SkillFiltersComponent } from './SkillFilters';
@@ -27,7 +27,7 @@ export function SkillsList() {
       
       const [skillsResponse, categoriesData] = await Promise.all([
         listSkills({
-          search: searchQuery || undefined,
+          // searchQuery is applied client-side, not sent to API
           categoryId: categoryFilter || undefined,
           isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
         }),
@@ -57,7 +57,21 @@ export function SkillsList() {
 
   useEffect(() => {
     fetchData();
-  }, [searchQuery, categoryFilter, statusFilter]);
+  }, [categoryFilter, statusFilter]); // searchQuery removed - handled client-side
+
+  // Client-side search filtering (memoized)
+  const filteredSkills = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return skills;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return skills.filter(skill => 
+      skill.name.toLowerCase().includes(query) ||
+      skill.slug.toLowerCase().includes(query) ||
+      skill.categoryName?.toLowerCase().includes(query)
+    );
+  }, [skills, searchQuery]);
 
   // Row-level locking helper
   const withSkillLock = async <T,>(skillId: string, action: () => Promise<T>): Promise<T | void> => {
@@ -106,13 +120,12 @@ export function SkillsList() {
     });
   };
 
-  // Calculate stats
+  // Calculate stats (based on all loaded skills, not filtered)
   const stats = {
     total: skills.length,
     active: skills.filter(s => s.isActive).length,
     inactive: skills.filter(s => !s.isActive).length,
     totalCategories: categories.length,
-    totalCandidatesUsingSkills: skills.reduce((sum, s) => sum + s.candidatesCount, 0),
   };
 
   if (loading) {
@@ -137,8 +150,8 @@ export function SkillsList() {
 
       {/* Results Count */}
       <div className="mb-4 text-white/80">
-        Found {skills.length} skill{skills.length !== 1 ? 's' : ''}
-        {(categoryFilter || statusFilter !== 'all') && (
+        Found {filteredSkills.length} skill{filteredSkills.length !== 1 ? 's' : ''}
+        {(searchQuery || categoryFilter || statusFilter !== 'all') && (
           <span className="ml-2 text-white/60">
             (filtered)
           </span>
@@ -146,7 +159,7 @@ export function SkillsList() {
       </div>
 
       <SkillsTable
-        skills={skills}
+        skills={filteredSkills}
         onToggleStatus={handleToggleStatus}
         onEdit={handleEdit}
         onDelete={handleDelete}

@@ -38,7 +38,7 @@ export default function EditSkillPage() {
         setCategories(categoriesData);
         setFormData({
           name: skillData.name,
-          categoryId: skillData.categoryId,
+          categoryId: skillData.categoryId || '',
           description: skillData.description || '',
         });
       } catch (error: any) {
@@ -187,9 +187,6 @@ export default function EditSkillPage() {
                   </div>
                   <div>
                     <span className="font-medium">Status:</span> {skill.isActive ? '🟢 Active' : '🔴 Inactive'}
-                  </div>
-                  <div>
-                    <span className="font-medium">Used by:</span> {skill.candidatesCount} candidates
                   </div>
                 </div>
               </div>

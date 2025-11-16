@@ -458,6 +458,55 @@ describe('Candidates API (E2E)', () => {
     });
   });
 
+  describe('PUT /candidates/:userId/experience-level', () => {
+    it('should update candidate experience level', async () => {
+      const response = await request(app.getHttpServer())
+        .put(`/candidates/${candidateUserId}/experience-level`)
+        .set('x-internal-token', 'test-token')
+        .send({ experienceLevel: 'senior' })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty('experienceLevel', 'senior');
+    });
+
+    it('should reject invalid experience level', async () => {
+      await request(app.getHttpServer())
+        .put(`/candidates/${candidateUserId}/experience-level`)
+        .set('x-internal-token', 'test-token')
+        .send({ experienceLevel: 'invalid' })
+        .expect(400);
+    });
+
+    it('should return 404 for non-existent candidate', async () => {
+      const fakeUserId = uuidv4();
+      await request(app.getHttpServer())
+        .put(`/candidates/${fakeUserId}/experience-level`)
+        .set('x-internal-token', 'test-token')
+        .send({ experienceLevel: 'mid' })
+        .expect(404);
+    });
+
+    it('should update from junior to lead', async () => {
+      // First set to junior
+      await request(app.getHttpServer())
+        .put(`/candidates/${candidateUserId}/experience-level`)
+        .set('x-internal-token', 'test-token')
+        .send({ experienceLevel: 'junior' })
+        .expect(200);
+
+      // Then update to lead
+      const response = await request(app.getHttpServer())
+        .put(`/candidates/${candidateUserId}/experience-level`)
+        .set('x-internal-token', 'test-token')
+        .send({ experienceLevel: 'lead' })
+        .expect(200);
+
+      expect(response.body.data.experienceLevel).toBe('lead');
+    });
+  });
+
   describe('Authentication', () => {
     it('should reject all endpoints without internal token', async () => {
       await request(app.getHttpServer())
@@ -482,6 +531,10 @@ describe('Candidates API (E2E)', () => {
       
       await request(app.getHttpServer())
         .get('/candidates/search')
+        .expect(401);
+      
+      await request(app.getHttpServer())
+        .put(`/candidates/${candidateUserId}/experience-level`)
         .expect(401);
     });
   });

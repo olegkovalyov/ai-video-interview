@@ -183,6 +183,128 @@ export class UsersController {
     }
   }
 
+  /**
+   * PUT /api/users/me/experience-level
+   * Update current user experience level (Candidate only)
+   */
+  @Put('me/experience-level')
+  @ApiOperation({ 
+    summary: 'Update my experience level',
+    description: 'Updates the experience level of the current user (junior, mid, senior, lead). Candidate only.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Experience level updated successfully'
+  })
+  @ApiResponse({ status: 400, description: 'Invalid experience level' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Candidate profile not found' })
+  async updateExperienceLevel(
+    @Req() req: Request & { user?: any }, 
+    @Body() body: { experienceLevel: 'junior' | 'mid' | 'senior' | 'lead' }
+  ) {
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      this.loggerService.error('PUT /users/me/experience-level - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.info(`📝 [API Gateway] PUT /users/me/experience-level - userId: ${userId}, level: ${body.experienceLevel}`);
+
+    try {
+      const result = await this.userServiceClient.updateExperienceLevel(userId, body.experienceLevel);
+      
+      this.loggerService.log(`✅ [API Gateway] Experience level updated: userId=${userId}, level=${body.experienceLevel}`);
+      
+      return result;
+    } catch (error) {
+      this.loggerService.error('Failed to update experience level', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/users/me/permissions
+   * Get current user permissions
+   */
+  @Get('me/permissions')
+  @ApiOperation({ 
+    summary: 'Get my permissions',
+    description: 'Retrieves roles and permissions for the current user based on their assigned role.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Permissions retrieved successfully'
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getMyPermissions(@Req() req: Request & { user?: any }) {
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      this.loggerService.error('GET /users/me/permissions - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.log(`📡 [API Gateway] GET /users/me/permissions - userId: ${userId}`);
+
+    try {
+      const permissions = await this.userServiceClient.getUserPermissions(userId);
+      
+      this.loggerService.log(`✅ [API Gateway] Permissions retrieved: userId=${userId}`);
+      
+      return permissions;
+    } catch (error) {
+      this.loggerService.error('Failed to fetch user permissions', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/users/me/companies
+   * Get current user companies (HR only)
+   */
+  @Get('me/companies')
+  @ApiOperation({ 
+    summary: 'Get my companies',
+    description: 'Retrieves all companies associated with the current user. Typically used by HR users.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Companies retrieved successfully'
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not authorized to view companies' })
+  async getMyCompanies(@Req() req: Request & { user?: any }) {
+    const userId = req.user?.userId;
+    const isAdmin = req.user?.roles?.includes('admin') || false;
+    
+    if (!userId) {
+      this.loggerService.error('GET /users/me/companies - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.log(`📡 [API Gateway] GET /users/me/companies - userId: ${userId}, isAdmin: ${isAdmin}`);
+
+    try {
+      const companies = await this.userServiceClient.getUserCompanies(userId, userId, isAdmin);
+      
+      this.loggerService.log(`✅ [API Gateway] Companies retrieved: userId=${userId}, count=${companies.length}`);
+      
+      return companies;
+    } catch (error) {
+      this.loggerService.error('Failed to fetch user companies', error);
+      throw error;
+    }
+  }
+
   // TODO: Добавить остальные endpoints когда понадобятся:
   // - GET /api/users/me/stats
   // - POST /api/users/quota/reserve  

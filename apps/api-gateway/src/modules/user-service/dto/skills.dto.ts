@@ -96,36 +96,36 @@ export class SkillDto {
   })
   slug: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    type: String,
     description: 'Skill category ID',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
+    nullable: true,
   })
-  categoryId: string;
-
-  @ApiProperty({
-    description: 'Category name',
-    example: 'Frontend',
-  })
-  categoryName: string;
+  categoryId: string | null;
 
   @ApiPropertyOptional({
+    type: String,
+    description: 'Category name',
+    example: 'Frontend',
+    nullable: true,
+  })
+  categoryName: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
     description: 'Skill description',
     example: 'JavaScript superset with static typing',
+    nullable: true,
   })
-  description?: string;
+  description: string | null;
 
   @ApiProperty({
     description: 'Whether skill is active',
     example: true,
   })
   isActive: boolean;
-
-  @ApiProperty({
-    description: 'Number of candidates with this skill',
-    example: 42,
-  })
-  candidatesCount: number;
 
   @ApiProperty({
     description: 'Creation timestamp',
@@ -193,11 +193,26 @@ export class SkillCategoryDto {
   })
   slug: string;
 
-  @ApiProperty({
-    description: 'Number of skills in category',
-    example: 12,
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Category description',
+    example: 'Frontend technologies',
+    nullable: true,
   })
-  skillsCount: number;
+  description: string | null;
+
+  @ApiProperty({
+    description: 'Whether category is active',
+    example: true,
+  })
+  isActive: boolean;
+
+  @ApiProperty({
+    description: 'Creation timestamp',
+    example: '2024-11-15T10:00:00Z',
+    format: 'date-time',
+  })
+  createdAt: string;
 }
 
 // ============================================================================
@@ -288,36 +303,37 @@ export class CandidateSkillDto {
   })
   skillId: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    type: String,
     description: 'Skill name',
     example: 'React',
+    nullable: true,
   })
-  skillName: string;
-
-  @ApiProperty({
-    description: 'Category name',
-    example: 'Frontend',
-  })
-  categoryName: string;
+  skillName: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Skill description or notes',
     example: 'Built 10+ production React apps',
+    nullable: true,
   })
-  description?: string;
+  description: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Proficiency level',
     enum: ProficiencyLevel,
     example: ProficiencyLevel.EXPERT,
+    nullable: true,
   })
-  proficiencyLevel: ProficiencyLevel;
+  proficiencyLevel: ProficiencyLevel | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    type: Number,
     description: 'Years of experience',
     example: 5,
+    nullable: true,
   })
-  yearsOfExperience: number;
+  yearsOfExperience: number | null;
 
   @ApiProperty({
     description: 'When skill was added to profile',
@@ -331,18 +347,22 @@ export class CandidateSkillDto {
  * Candidate skills grouped by category
  */
 export class CandidateSkillsByCategoryDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
+    type: String,
     description: 'Category ID',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
+    nullable: true,
   })
-  categoryId: string;
+  categoryId: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    type: String,
     description: 'Category name',
     example: 'Frontend',
+    nullable: true,
   })
-  categoryName: string;
+  categoryName: string | null;
 
   @ApiProperty({
     description: 'Skills in this category',

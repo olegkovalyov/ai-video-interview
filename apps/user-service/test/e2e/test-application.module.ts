@@ -43,11 +43,13 @@ import { UpdateCompanyHandler } from '../../src/application/commands/hr/update-c
 import { DeleteCompanyHandler } from '../../src/application/commands/hr/delete-company/delete-company.handler';
 import { ListCompaniesHandler } from '../../src/application/queries/companies/list-companies.handler';
 import { GetCompanyHandler } from '../../src/application/queries/companies/get-company.handler';
+import { ListUserCompaniesHandler } from '../../src/application/queries/companies/list-user-companies.handler';
 
 // Candidates handlers
 import { AddCandidateSkillHandler } from '../../src/application/commands/candidate/add-candidate-skill/add-candidate-skill.handler';
 import { UpdateCandidateSkillHandler } from '../../src/application/commands/candidate/update-candidate-skill/update-candidate-skill.handler';
 import { RemoveCandidateSkillHandler } from '../../src/application/commands/candidate/remove-candidate-skill/remove-candidate-skill.handler';
+import { UpdateCandidateExperienceLevelHandler } from '../../src/application/commands/candidate/update-experience-level/update-experience-level.handler';
 import { GetCandidateProfileHandler } from '../../src/application/queries/candidate/get-candidate-profile.handler';
 import { GetCandidateSkillsHandler } from '../../src/application/queries/candidate/get-candidate-skills.handler';
 import { SearchCandidatesBySkillsHandler } from '../../src/application/queries/candidate/search-candidates-by-skills.handler';
@@ -146,11 +148,13 @@ export const mockStorageService = {
     DeleteCompanyHandler,
     ListCompaniesHandler,
     GetCompanyHandler,
+    ListUserCompaniesHandler,
 
     // Candidates handlers
     AddCandidateSkillHandler,
     UpdateCandidateSkillHandler,
     RemoveCandidateSkillHandler,
+    UpdateCandidateExperienceLevelHandler,
     GetCandidateProfileHandler,
     GetCandidateSkillsHandler,
     SearchCandidatesBySkillsHandler,

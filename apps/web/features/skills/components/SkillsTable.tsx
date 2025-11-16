@@ -40,7 +40,6 @@ export function SkillsTable({
                 <th className="text-left p-4 text-white/70 font-semibold">Category</th>
                 <th className="text-left p-4 text-white/70 font-semibold">Description</th>
                 <th className="text-center p-4 text-white/70 font-semibold">Status</th>
-                <th className="text-center p-4 text-white/70 font-semibold">Users</th>
                 <th className="text-right p-4 text-white/70 font-semibold">Actions</th>
               </tr>
             </thead>
@@ -92,13 +91,6 @@ export function SkillsTable({
                           `} />
                         </button>
                       </div>
-                    </td>
-
-                    {/* Candidates Count */}
-                    <td className="p-4 text-center">
-                      <span className="text-white/80 font-medium">
-                        {skill.candidatesCount}
-                      </span>
                     </td>
 
                     {/* Actions */}

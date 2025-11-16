@@ -25,6 +25,8 @@ import { Public } from '../decorators/public.decorator';
 import { CreateSkillCommand } from '../../../application/commands/admin/create-skill/create-skill.command';
 import { UpdateSkillCommand } from '../../../application/commands/admin/update-skill/update-skill.command';
 import { DeleteSkillCommand } from '../../../application/commands/admin/delete-skill/delete-skill.command';
+import { ActivateSkillCommand } from '../../../application/commands/admin/activate-skill/activate-skill.command';
+import { DeactivateSkillCommand } from '../../../application/commands/admin/deactivate-skill/deactivate-skill.command';
 
 // Queries
 import { ListSkillsQuery } from '../../../application/queries/skills/list-skills/list-skills.query';
@@ -37,8 +39,11 @@ import {
   SkillResponseDto, 
   SkillCategoriesResponseDto, 
   SkillListResponseDto,
-  SkillSuccessResponseDto 
+  SkillSuccessResponseDto
 } from '../dto/skills.response.dto';
+
+// Pipes
+import { ParseBoolPipe } from '../pipes/parse-bool.pipe';
 
 // Error Schemas
 import {
@@ -191,6 +196,88 @@ export class SkillsController {
     }
   }
 
+  @Post(':id/activate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Activate skill',
+    description: 'Activates a deactivated skill, making it visible and available for candidates to add to their profiles.'
+  })
+  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill activated successfully' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
+  async activateSkill(
+    @Param('id') skillId: string,
+    @Query('adminId') adminId?: string,
+  ) {
+    try {
+      const command = new ActivateSkillCommand(skillId, adminId || 'system');
+      await this.commandBus.execute(command);
+
+      // Get updated skill to return
+      const query = new GetSkillQuery(skillId);
+      const result = await this.queryBus.execute(query);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        throw new NotFoundException({
+          success: false,
+          error: error.message,
+          code: 'SKILL_NOT_FOUND',
+        });
+      }
+
+      throw new BadRequestException({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
+  @Post(':id/deactivate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Deactivate skill',
+    description: 'Deactivates an active skill, hiding it from candidates and preventing new additions to profiles. Existing candidate skills remain intact.'
+  })
+  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill deactivated successfully' })
+  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
+  async deactivateSkill(
+    @Param('id') skillId: string,
+    @Query('adminId') adminId?: string,
+  ) {
+    try {
+      const command = new DeactivateSkillCommand(skillId, adminId || 'system');
+      await this.commandBus.execute(command);
+
+      // Get updated skill to return
+      const query = new GetSkillQuery(skillId);
+      const result = await this.queryBus.execute(query);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        throw new NotFoundException({
+          success: false,
+          error: error.message,
+          code: 'SKILL_NOT_FOUND',
+        });
+      }
+
+      throw new BadRequestException({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
   // ============================================
   // Queries
   // ============================================
@@ -201,16 +288,18 @@ export class SkillsController {
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by skill name' })
   @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
   @ApiResponse({ status: 200, type: SkillListResponseDto, description: 'Skills list retrieved successfully' })
   @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
   async listSkills(
-    @Query() query: ListSkillsDto,
+    @Query() query: Omit<ListSkillsDto, 'isActive'>,
+    @Query('isActive', new ParseBoolPipe()) isActive?: boolean,
   ) {
     const listSkillsQuery = new ListSkillsQuery(
       query.page || 1,
       query.limit || 20,
       query.categoryId,
-      undefined, // isActive - not exposed in public API
+      isActive, // Filter by active status from pipe
       query.search,
     );
 

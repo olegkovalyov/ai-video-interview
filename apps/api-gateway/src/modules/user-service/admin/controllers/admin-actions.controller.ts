@@ -1,5 +1,6 @@
-import { Controller, Post, Param, Body } from '@nestjs/common';
+import { Controller, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../../core/auth/guards/jwt-auth.guard';
 import { KeycloakUserService, KeycloakEmailService } from '../keycloak';
 import { LoggerService } from '../../../../core/logging/logger.service';
 import { UserServiceClient } from '../../clients/user-service.client';
@@ -19,6 +20,7 @@ import { SuspendUserDto, SuccessResponseDto } from '../../dto/admin-user.dto';
 @ApiTags('Admin - User Actions')
 @ApiBearerAuth()
 @Controller('api/admin/users')
+@UseGuards(JwtAuthGuard)
 export class AdminActionsController {
   constructor(
     private readonly keycloakUserService: KeycloakUserService,

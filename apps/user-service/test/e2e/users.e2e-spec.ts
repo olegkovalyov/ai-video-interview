@@ -594,4 +594,234 @@ describe('Users API (E2E)', () => {
         .expect(404);
     });
   });
+
+  describe('GET /users/:userId/permissions', () => {
+    it('should get user permissions for candidate', async () => {
+      const userId = uuidv4();
+
+      // Create candidate user
+      const createResponse = await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
+        userId,
+        externalAuthId: 'auth-candidate',
+        email: 'candidate@test.com',
+        firstName: 'Jane',
+        lastName: 'Candidate',
+      }).expect(201);
+
+      // Assign candidate role
+      await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'candidate' })
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get(`/users/${userId}/permissions`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty('userId', userId);
+      expect(response.body.data).toHaveProperty('roles');
+      expect(response.body.data.roles).toBeInstanceOf(Array);
+      expect(response.body.data.roles.length).toBeGreaterThan(0);
+      expect(response.body.data.roles[0]).toHaveProperty('name', 'candidate');
+      expect(response.body.data).toHaveProperty('permissions');
+      expect(response.body.data.permissions).toBeInstanceOf(Array);
+      expect(response.body.data.permissions).toContain('read:own_profile');
+    });
+
+    it('should get user permissions for admin', async () => {
+      const userId = uuidv4();
+
+      // Create admin user
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
+        userId,
+        externalAuthId: 'auth-admin',
+        email: 'admin@test.com',
+        firstName: 'Admin',
+        lastName: 'User',
+      }).expect(201);
+
+      // Assign admin role
+      await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'admin' })
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get(`/users/${userId}/permissions`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.data.roles[0]).toHaveProperty('name', 'admin');
+      expect(response.body.data.permissions).toContain('read:users');
+      expect(response.body.data.permissions).toContain('write:users');
+      expect(response.body.data.permissions).toContain('manage:system');
+    });
+
+    it('should return 404 for non-existent user', async () => {
+      const nonExistentId = uuidv4();
+
+      await request(app.getHttpServer())
+        .get(`/users/${nonExistentId}/permissions`)
+        .set('x-internal-token', 'test-token')
+        .expect(404);
+    });
+
+    it('should return permissions for HR role', async () => {
+      const userId = uuidv4();
+
+      // Create HR user
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
+        userId,
+        externalAuthId: 'auth-hr',
+        email: 'hr@test.com',
+        firstName: 'HR',
+        lastName: 'Manager',
+      }).expect(201);
+
+      // Assign HR role
+      await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'hr' })
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get(`/users/${userId}/permissions`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.data.roles[0]).toHaveProperty('name', 'hr');
+      expect(response.body.data.permissions).toContain('read:candidates');
+      expect(response.body.data.permissions).toContain('create:interviews');
+    });
+  });
+
+  describe('GET /users/:userId/companies', () => {
+    it('should get user companies for own profile', async () => {
+      const userId = uuidv4();
+
+      // Create HR user
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
+        userId,
+        externalAuthId: 'auth-hr-companies',
+        email: 'hr-companies@test.com',
+        firstName: 'HR',
+        lastName: 'WithCompanies',
+      }).expect(201);
+
+      // Assign HR role
+      await request(app.getHttpServer())
+        .post(`/users/${userId}/roles`)
+        .set('x-internal-token', 'test-token')
+        .send({ role: 'hr' })
+        .expect(200);
+
+      // Create a company for this user
+      const companyId = uuidv4();
+      await dataSource.query(`
+        INSERT INTO companies (id, name, created_by, is_active)
+        VALUES ($1, $2, $3, $4)
+      `, [companyId, 'Test Company', userId, true]);
+      
+      // Link user to company via user_companies table
+      await dataSource.query(`
+        INSERT INTO user_companies (id, user_id, company_id)
+        VALUES ($1, $2, $3)
+      `, [uuidv4(), userId, companyId]);
+
+      const response = await request(app.getHttpServer())
+        .get(`/users/${userId}/companies?currentUserId=${userId}`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body.data.length).toBeGreaterThan(0);
+      expect(response.body.data[0]).toHaveProperty('id', companyId);
+      expect(response.body.data[0]).toHaveProperty('name', 'Test Company');
+    });
+
+    it('should allow admin to view any user companies', async () => {
+      const hrUserId = uuidv4();
+      const adminUserId = uuidv4();
+
+      // Create HR user
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
+        userId: hrUserId,
+        externalAuthId: 'auth-hr-view',
+        email: 'hr-view@test.com',
+        firstName: 'HR',
+        lastName: 'User',
+      }).expect(201);
+
+      // Create a company for HR user
+      const companyId = uuidv4();
+      await dataSource.query(`
+        INSERT INTO companies (id, name, created_by, is_active)
+        VALUES ($1, $2, $3, $4)
+      `, [companyId, 'HR Company', hrUserId, true]);
+      
+      // Link user to company via user_companies table
+      await dataSource.query(`
+        INSERT INTO user_companies (id, user_id, company_id)
+        VALUES ($1, $2, $3)
+      `, [uuidv4(), hrUserId, companyId]);
+
+      // Admin views HR user's companies
+      const response = await request(app.getHttpServer())
+        .get(`/users/${hrUserId}/companies?currentUserId=${adminUserId}&isAdmin=true`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBeInstanceOf(Array);
+    });
+
+    it('should return 403 when non-admin tries to view other user companies', async () => {
+      const hrUserId = uuidv4();
+      const otherUserId = uuidv4();
+
+      // Create HR user
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
+        userId: hrUserId,
+        externalAuthId: 'auth-hr-forbidden',
+        email: 'hr-forbidden@test.com',
+        firstName: 'HR',
+        lastName: 'Forbidden',
+      }).expect(201);
+
+      // Try to view from another user (not admin)
+      await request(app.getHttpServer())
+        .get(`/users/${hrUserId}/companies?currentUserId=${otherUserId}&isAdmin=false`)
+        .set('x-internal-token', 'test-token')
+        .expect(403);
+    });
+
+    it('should return empty array for user with no companies', async () => {
+      const userId = uuidv4();
+
+      // Create user
+      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
+        userId,
+        externalAuthId: 'auth-no-companies',
+        email: 'no-companies@test.com',
+        firstName: 'No',
+        lastName: 'Companies',
+      }).expect(201);
+
+      const response = await request(app.getHttpServer())
+        .get(`/users/${userId}/companies?currentUserId=${userId}`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual([]);
+    });
+  });
 });
