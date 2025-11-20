@@ -4,9 +4,13 @@ import { INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { UserEntity } from '../../src/infrastructure/persistence/entities/user.entity';
-import { CandidateProfileEntity } from '../../src/infrastructure/persistence/entities/candidate-profile.entity';
-import { HRProfileEntity } from '../../src/infrastructure/persistence/entities/hr-profile.entity';
+import { RoleEntity } from '../../src/infrastructure/persistence/entities/role.entity';
 import { OutboxEntity } from '../../src/infrastructure/persistence/entities/outbox.entity';
+import { SkillCategoryEntity } from '../../src/infrastructure/persistence/entities/skill-category.entity';
+import { SkillEntity } from '../../src/infrastructure/persistence/entities/skill.entity';
+import { CompanyEntity } from '../../src/infrastructure/persistence/entities/company.entity';
+import { UserCompanyEntity } from '../../src/infrastructure/persistence/entities/user-company.entity';
+import { CandidateSkillEntity } from '../../src/infrastructure/persistence/entities/candidate-skill.entity';
 import { TestApplicationModule } from './test-application.module';
 import { DatabaseModule } from '../../src/infrastructure/persistence/database.module';
 
@@ -28,9 +32,13 @@ export async function createTestDataSource(): Promise<DataSource> {
     database: 'ai_video_interview_user_test', // ← Test database
     entities: [
       UserEntity,
-      CandidateProfileEntity,
-      HRProfileEntity,
+      RoleEntity,
       OutboxEntity,
+      SkillCategoryEntity,
+      SkillEntity,
+      CompanyEntity,
+      UserCompanyEntity,
+      CandidateSkillEntity,
     ],
     migrations: ['src/infrastructure/persistence/migrations/*.ts'],
     synchronize: false, // NEVER use synchronize in tests
@@ -112,12 +120,57 @@ export async function cleanDatabase(dataSource: DataSource): Promise<void> {
   // RESTART IDENTITY resets auto-increment counters
   await dataSource.query(`
     TRUNCATE TABLE 
-      users,
+      candidate_skills,
+      user_companies,
+      companies,
       candidate_profiles,
-      hr_profiles,
+      users,
       outbox
     RESTART IDENTITY CASCADE;
   `);
+  
+  // Delete test-created skills (not seeded ones)
+  // Seeded skills are preserved by checking created_at > migration date
+  // or by explicit patterns. This approach deletes test skills with specific patterns.
+  await dataSource.query(`
+    DELETE FROM skills 
+    WHERE slug LIKE '%-test%'
+       OR slug LIKE '%-remove-%'
+       OR slug LIKE '%-update-%'
+       OR slug LIKE '%-delete-%'
+       OR name LIKE '%Test%'
+       OR name LIKE '%Elixir%'
+       OR name LIKE '%Phoenix%'
+       OR name LIKE '%Haskell%'
+       OR name LIKE '%Scala%'
+       OR name LIKE '%F#%'
+       OR name LIKE '%Ember%'
+       OR name LIKE '%Preact%'
+       OR name LIKE '%Aurelia%'
+       OR name LIKE '%Backbone%'
+       OR name LIKE '%Bun%'
+       OR name LIKE '%Zig%'
+       OR name LIKE '%Nim%'
+       OR name LIKE '%Svelte Kit%'
+       OR name LIKE '%Deno%'
+       OR name LIKE '%CockroachDB%'
+       OR name LIKE '%Erlang%'
+       OR name LIKE '%Clojure%'
+       OR name LIKE '%Crystal%'
+       OR name LIKE '%CamelCase%'
+       OR name LIKE '%Advanced%'
+       OR name LIKE '%Expert%'
+       OR name LIKE '%Pro%'
+       OR name LIKE '%TypeScript Pro%'
+       OR name LIKE '%JavaScript Advanced%'
+       OR name LIKE '%Python Expert%'
+       OR name LIKE '%Test Cache%'
+       OR name LIKE '%Test Queue%'
+       OR name LIKE '%Test Stream%'
+       OR (name IN ('Skill 1', 'Skill 2', 'Full Skill', 'Temp Skill', 'Unassigned Skill'));
+  `);
+  
+  // Note: skill_categories are NOT truncated - they are reference data from seed
 }
 
 /**
@@ -143,19 +196,19 @@ export async function seedUser(
   const userId = data.id || uuidv4();
   const externalAuthId = data.externalAuthId || uuidv4();
 
-  // Create user
-  const user = userRepo.create({
-    id: userId,
-    externalAuthId,
-    email: data.email,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    username: data.username || null,
-    status: data.status || 'active',
-    role: data.role || 'candidate',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  // Create user entity manually
+  const user = new UserEntity();
+  user.id = userId as any;
+  user.externalAuthId = externalAuthId;
+  user.email = data.email;
+  user.firstName = data.firstName;
+  user.lastName = data.lastName;
+  user.username = data.username as any;
+  user.status = (data.status || 'active') as any;
+  user.role = (data.role || 'candidate') as any;
+  user.createdAt = new Date();
+  user.updatedAt = new Date();
+  
   await userRepo.save(user);
 
   return userId;

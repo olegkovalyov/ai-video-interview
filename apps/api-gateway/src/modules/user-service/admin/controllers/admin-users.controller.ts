@@ -1,8 +1,19 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../../core/auth/guards/jwt-auth.guard';
+import { Public } from '../../../../core/auth/decorators/public.decorator';
 import { KeycloakUserService } from '../keycloak';
 import { LoggerService } from '../../../../core/logging/logger.service';
 import { UserOrchestrationSaga } from '../user-orchestration.saga';
 import { UserServiceClient } from '../../clients/user-service.client';
+import { 
+  CreateUserDto, 
+  UpdateUserDto, 
+  UserResponseDto,
+  CreateUserResponseDto,
+  UserListResponseDto,
+  UserStatsResponseDto
+} from '../../dto/admin-user.dto';
 
 /**
  * Admin Users Controller
@@ -16,7 +27,10 @@ import { UserServiceClient } from '../../clients/user-service.client';
  * - PUT    /api/admin/users/:id      - Update user (Saga)
  * - DELETE /api/admin/users/:id      - Delete user (Saga)
  */
+@ApiTags('Admin - Users')
+@ApiBearerAuth()
 @Controller('api/admin/users')
+@UseGuards(JwtAuthGuard)
 export class AdminUsersController {
   constructor(
     private readonly keycloakUserService: KeycloakUserService,
@@ -34,13 +48,20 @@ export class AdminUsersController {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"test@example.com","firstName":"Test","lastName":"User"}'
    */
+  @Public() // Allow bootstrap scripts to create admin user without JWT
   @Post()
-  async createUser(@Body() body: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    password?: string;
-  }) {
+  @ApiOperation({ 
+    summary: 'Create new user',
+    description: 'Creates a new user via Saga Orchestration (Keycloak + User Service). Returns immediately with userId and keycloakId.'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'User created successfully',
+    type: CreateUserResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input or email already exists' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Admin role required' })
+  async createUser(@Body() body: CreateUserDto) {
     this.loggerService.info('Admin: Creating user via Saga', {
       email: body.email,
       firstName: body.firstName,
@@ -74,6 +95,19 @@ export class AdminUsersController {
    * curl "http://localhost:8001/api/admin/users?search=test"
    */
   @Get()
+  @ApiOperation({ 
+    summary: 'List all users',
+    description: 'Returns list of users from Keycloak enriched with User Service data (lastLoginAt, etc.)'
+  })
+  @ApiQuery({ name: 'search', required: false, description: 'Search by email, first name, or last name' })
+  @ApiQuery({ name: 'max', required: false, type: Number, description: 'Maximum number of results (default: 100)' })
+  @ApiQuery({ name: 'first', required: false, type: Number, description: 'Offset for pagination (default: 0)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Users list retrieved successfully',
+    type: UserListResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listUsers(
     @Query('search') search?: string,
     @Query('max') max?: number,
@@ -130,6 +164,16 @@ export class AdminUsersController {
    * curl http://localhost:8001/api/admin/users/stats
    */
   @Get('stats')
+  @ApiOperation({ 
+    summary: 'Get user statistics',
+    description: 'Returns aggregated user statistics (total, active, suspended, by role, etc.)'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Statistics retrieved successfully',
+    type: UserStatsResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getUserStats() {
     this.loggerService.info('Admin: Getting user statistics from User Service');
 
@@ -140,10 +184,7 @@ export class AdminUsersController {
         totalUsers: stats.totalUsers,
       });
 
-      return {
-        success: true,
-        data: stats,
-      };
+      return stats;
     } catch (error) {
       this.loggerService.error('Admin: Failed to get user statistics', error);
       throw error;
@@ -157,6 +198,18 @@ export class AdminUsersController {
    * curl http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9
    */
   @Get(':id')
+  @ApiOperation({ 
+    summary: 'Get user by ID',
+    description: 'Returns user details by Keycloak ID'
+  })
+  @ApiParam({ name: 'id', description: 'Keycloak user ID (UUID)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User retrieved successfully',
+    type: UserResponseDto
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getUser(@Param('id') id: string) {
     this.loggerService.info('Admin: Getting user', { userId: id });
 
@@ -184,14 +237,21 @@ export class AdminUsersController {
    *   -d '{"firstName":"Updated","lastName":"Name"}'
    */
   @Put(':id')
+  @ApiOperation({ 
+    summary: 'Update user',
+    description: 'Updates user via Saga Orchestration (Keycloak + User Service)'
+  })
+  @ApiParam({ name: 'id', description: 'Keycloak user ID (UUID)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User updated successfully'
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async updateUser(
     @Param('id') id: string,
-    @Body() body: {
-      firstName?: string;
-      lastName?: string;
-      email?: string;
-      enabled?: boolean;
-    },
+    @Body() body: UpdateUserDto,
   ) {
     this.loggerService.info('Admin: Updating user via Saga', { userId: id, updates: body });
 
@@ -211,6 +271,17 @@ export class AdminUsersController {
    * curl -X DELETE http://localhost:8001/api/admin/users/b2e22c9c-27bd-4fae-b29f-508d32a4dea9
    */
   @Delete(':id')
+  @ApiOperation({ 
+    summary: 'Delete user',
+    description: 'Deletes user via Saga Orchestration (Keycloak + User Service)'
+  })
+  @ApiParam({ name: 'id', description: 'Keycloak user ID (UUID)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User deleted successfully'
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async deleteUser(@Param('id') id: string) {
     this.loggerService.info('Admin: Deleting user via Saga', { userId: id });
 

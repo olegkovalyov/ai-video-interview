@@ -145,7 +145,7 @@ describe('ListUsersQuery Integration', () => {
 
       // Assert
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].fullName.firstName).toBe('Jane');
+      expect(result.data[0].firstName).toBe('Jane');
     });
 
     it('should filter by last name', async () => {
@@ -157,7 +157,7 @@ describe('ListUsersQuery Integration', () => {
 
       // Assert
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].fullName.lastName).toBe('Smith');
+      expect(result.data[0].lastName).toBe('Smith');
     });
 
     it('should be case-insensitive', async () => {
@@ -244,7 +244,7 @@ describe('ListUsersQuery Integration', () => {
 
       // Assert
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].status.value).toBe('active');
+      expect(result.data[0].status).toBe('active');
     });
 
     it('should filter by suspended status', async () => {
@@ -256,7 +256,7 @@ describe('ListUsersQuery Integration', () => {
 
       // Assert
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].status.value).toBe('suspended');
+      expect(result.data[0].status).toBe('suspended');
     });
   });
 
@@ -297,7 +297,7 @@ describe('ListUsersQuery Integration', () => {
 
       // Assert
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].email.value).toBe('john.candidate@example.com');
+      expect(result.data[0].email).toBe('john.candidate@example.com');
     });
 
     it('should filter by role and status', async () => {
@@ -312,7 +312,7 @@ describe('ListUsersQuery Integration', () => {
 
       // Assert
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].email.value).toBe('john.candidate@example.com');
+      expect(result.data[0].email).toBe('john.candidate@example.com');
     });
 
     it('should filter by all criteria', async () => {
@@ -328,7 +328,7 @@ describe('ListUsersQuery Integration', () => {
 
       // Assert
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].email.value).toBe('jane.candidate@example.com');
+      expect(result.data[0].email).toBe('jane.candidate@example.com');
     });
   });
 

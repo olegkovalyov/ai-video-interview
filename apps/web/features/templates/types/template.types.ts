@@ -19,6 +19,12 @@ export interface QuestionOption {
   isCorrect: boolean;
 }
 
+// For creating options without ID (backend generates IDs)
+export interface CreateQuestionOption {
+  text: string;
+  isCorrect: boolean;
+}
+
 export interface Question {
   id: string;
   text: string;
@@ -71,7 +77,7 @@ export interface AddQuestionDto {
   timeLimit: number;
   required: boolean;
   hints?: string;
-  options?: QuestionOption[];  // For multiple_choice questions
+  options?: CreateQuestionOption[];  // For multiple_choice questions (without IDs)
 }
 
 export interface ReorderQuestionsDto {

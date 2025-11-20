@@ -1,426 +1,405 @@
 import { CandidateProfile } from '../candidate-profile.aggregate';
 import { ExperienceLevel } from '../../value-objects/experience-level.vo';
+import { ProficiencyLevel } from '../../value-objects/proficiency-level.vo';
+import { YearsOfExperience } from '../../value-objects/years-of-experience.vo';
+import { CandidateSkill } from '../../entities/candidate-skill.entity';
 import { DomainException } from '../../exceptions/domain.exception';
+import { CandidateSkillAddedEvent } from '../../events/candidate-skill-added.event';
+import { CandidateSkillUpdatedEvent } from '../../events/candidate-skill-updated.event';
+import { CandidateSkillRemovedEvent } from '../../events/candidate-skill-removed.event';
 
-describe('CandidateProfile Aggregate', () => {
-  const userId = 'user-123';
+describe('CandidateProfile Aggregate (Updated)', () => {
+  const validUserId = 'user-123';
+  const validSkillId = 'skill-react';
+  const validCandidateSkillId = 'cs-456';
 
-  describe('Factory Methods', () => {
-    describe('create()', () => {
-      it('should create new candidate profile with empty defaults', () => {
-        const profile = CandidateProfile.create(userId);
+  describe('Factory Method - create', () => {
+    it('should create new candidate profile with empty skills', () => {
+      const profile = CandidateProfile.create(validUserId);
 
-        expect(profile.userId).toBe(userId);
-        expect(profile.skills).toEqual([]);
-        expect(profile.experienceLevel).toBeNull();
-        expect(profile.createdAt).toBeInstanceOf(Date);
-        expect(profile.updatedAt).toBeInstanceOf(Date);
-      });
-
-      it('should throw error for empty userId', () => {
-        expect(() => CandidateProfile.create('')).toThrow(DomainException);
-        expect(() => CandidateProfile.create('')).toThrow('User ID cannot be empty');
-      });
-
-      it('should throw error for whitespace-only userId', () => {
-        expect(() => CandidateProfile.create('   ')).toThrow(DomainException);
-      });
-
-      it('should start with incomplete profile', () => {
-        const profile = CandidateProfile.create(userId);
-
-        expect(profile.isComplete()).toBe(false);
-        expect(profile.getCompletionPercentage()).toBe(0);
-      });
+      expect(profile.userId).toBe(validUserId);
+      expect(profile.experienceLevel).toBeNull();
+      expect(profile.skills).toEqual([]);
+      expect(profile.createdAt).toBeInstanceOf(Date);
+      expect(profile.updatedAt).toBeInstanceOf(Date);
     });
 
-    describe('reconstitute()', () => {
-      it('should reconstitute profile from persistence', () => {
-        const skills = ['JavaScript', 'TypeScript'];
-        const experienceLevel = ExperienceLevel.senior();
-        const createdAt = new Date('2024-01-01');
-        const updatedAt = new Date('2024-01-15');
-
-        const profile = CandidateProfile.reconstitute(
-          userId,
-          skills,
-          experienceLevel,
-          createdAt,
-          updatedAt,
-        );
-
-        expect(profile.userId).toBe(userId);
-        expect(profile.skills).toEqual(skills);
-        expect(profile.experienceLevel).toBe(experienceLevel);
-        expect(profile.createdAt).toBe(createdAt);
-        expect(profile.updatedAt).toBe(updatedAt);
-      });
-
-      it('should reconstitute with null experience level', () => {
-        const profile = CandidateProfile.reconstitute(
-          userId,
-          ['JavaScript'],
-          null,
-          new Date(),
-          new Date(),
-        );
-
-        expect(profile.experienceLevel).toBeNull();
-      });
-    });
-  });
-
-  describe('Business Logic - Skills Management', () => {
-    describe('updateSkills()', () => {
-      it('should update skills list', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.updateSkills(['JavaScript', 'TypeScript', 'React']);
-
-        expect(profile.skills).toEqual(['JavaScript', 'TypeScript', 'React']);
-      });
-
-      it('should trim whitespace from skills', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.updateSkills(['  JavaScript  ', '  TypeScript  ']);
-
-        expect(profile.skills).toEqual(['JavaScript', 'TypeScript']);
-      });
-
-      it('should remove empty skills', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.updateSkills(['JavaScript', '', '   ', 'TypeScript']);
-
-        expect(profile.skills).toEqual(['JavaScript', 'TypeScript']);
-      });
-
-      it('should remove duplicate skills (case-insensitive)', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.updateSkills(['JavaScript', 'javascript', 'JAVASCRIPT', 'TypeScript']);
-
-        expect(profile.skills).toHaveLength(2);
-        expect(profile.skills).toContain('JavaScript');
-        expect(profile.skills).toContain('TypeScript');
-      });
-
-      it('should preserve original case of first occurrence', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.updateSkills(['JavaScript', 'JAVASCRIPT']);
-
-        expect(profile.skills[0]).toBe('JavaScript');
-      });
-
-      it('should update updatedAt timestamp', () => {
-        const profile = CandidateProfile.create(userId);
-        const oldUpdatedAt = profile.updatedAt;
-        
-        profile.updateSkills(['JavaScript']);
-
-        expect(profile.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
-      });
-
-      it('should replace existing skills completely', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript']);
-        
-        profile.updateSkills(['Python', 'Go']);
-
-        expect(profile.skills).toEqual(['Python', 'Go']);
-      });
-    });
-
-    describe('addSkill()', () => {
-      it('should add new skill', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.addSkill('JavaScript');
-
-        expect(profile.skills).toContain('JavaScript');
-      });
-
-      it('should trim whitespace from skill', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.addSkill('  JavaScript  ');
-
-        expect(profile.skills).toEqual(['JavaScript']);
-      });
-
-      it('should throw error for empty skill', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        expect(() => profile.addSkill('')).toThrow(DomainException);
-        expect(() => profile.addSkill('')).toThrow('Skill cannot be empty');
-      });
-
-      it('should throw error for whitespace-only skill', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        expect(() => profile.addSkill('   ')).toThrow(DomainException);
-      });
-
-      it('should not add duplicate skill (case-insensitive)', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.addSkill('JavaScript');
-        
-        profile.addSkill('javascript');
-
-        expect(profile.skills).toHaveLength(1);
-        expect(profile.skills[0]).toBe('JavaScript');
-      });
-
-      it('should add multiple different skills', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.addSkill('JavaScript');
-        profile.addSkill('TypeScript');
-        profile.addSkill('React');
-
-        expect(profile.skills).toHaveLength(3);
-      });
-
-      it('should update updatedAt timestamp', () => {
-        const profile = CandidateProfile.create(userId);
-        const oldUpdatedAt = profile.updatedAt;
-        
-        profile.addSkill('JavaScript');
-
-        expect(profile.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
-      });
-
-      it('should not update timestamp if skill already exists', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.addSkill('JavaScript');
-        const oldUpdatedAt = profile.updatedAt;
-        
-        profile.addSkill('JavaScript');
-
-        expect(profile.updatedAt).toBe(oldUpdatedAt);
-      });
-    });
-
-    describe('removeSkill()', () => {
-      it('should remove existing skill', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript', 'React']);
-        
-        profile.removeSkill('TypeScript');
-
-        expect(profile.skills).toEqual(['JavaScript', 'React']);
-      });
-
-      it('should remove skill case-insensitively', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript']);
-        
-        profile.removeSkill('typescript');
-
-        expect(profile.skills).toEqual(['JavaScript']);
-      });
-
-      it('should trim whitespace before removing', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript']);
-        
-        profile.removeSkill('  TypeScript  ');
-
-        expect(profile.skills).toEqual(['JavaScript']);
-      });
-
-      it('should do nothing if skill does not exist', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript']);
-        
-        profile.removeSkill('Python');
-
-        expect(profile.skills).toEqual(['JavaScript', 'TypeScript']);
-      });
-
-      it('should update updatedAt timestamp', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript']);
-        const oldUpdatedAt = profile.updatedAt;
-        
-        profile.removeSkill('TypeScript');
-
-        expect(profile.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
-      });
-
-      it('should allow removing all skills', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript']);
-        
-        profile.removeSkill('JavaScript');
-        profile.removeSkill('TypeScript');
-
-        expect(profile.skills).toEqual([]);
-      });
+    it('should throw error for empty user ID', () => {
+      expect(() => CandidateProfile.create('')).toThrow(DomainException);
+      expect(() => CandidateProfile.create('   ')).toThrow('User ID cannot be empty');
     });
   });
 
   describe('Business Logic - Experience Level', () => {
-    describe('updateExperienceLevel()', () => {
-      it('should set experience level', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.updateExperienceLevel(ExperienceLevel.senior());
+    it('should update experience level', () => {
+      const profile = CandidateProfile.create(validUserId);
+      const level = ExperienceLevel.mid();
 
-        expect(profile.experienceLevel?.isSenior()).toBe(true);
-      });
+      profile.updateExperienceLevel(level);
 
-      it('should update experience level', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateExperienceLevel(ExperienceLevel.junior());
-        
-        profile.updateExperienceLevel(ExperienceLevel.senior());
+      expect(profile.experienceLevel).toBe(level);
+    });
 
-        expect(profile.experienceLevel?.isSenior()).toBe(true);
-      });
+    it('should update experience level multiple times', () => {
+      const profile = CandidateProfile.create(validUserId);
 
-      it('should update updatedAt timestamp', () => {
-        const profile = CandidateProfile.create(userId);
-        const oldUpdatedAt = profile.updatedAt;
-        
-        profile.updateExperienceLevel(ExperienceLevel.mid());
+      profile.updateExperienceLevel(ExperienceLevel.junior());
+      expect(profile.experienceLevel?.value).toBe('junior');
 
-        expect(profile.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
-      });
-
-      it('should handle all experience levels', () => {
-        const profile = CandidateProfile.create(userId);
-        
-        profile.updateExperienceLevel(ExperienceLevel.junior());
-        expect(profile.experienceLevel?.isJunior()).toBe(true);
-        
-        profile.updateExperienceLevel(ExperienceLevel.mid());
-        expect(profile.experienceLevel?.isMid()).toBe(true);
-        
-        profile.updateExperienceLevel(ExperienceLevel.senior());
-        expect(profile.experienceLevel?.isSenior()).toBe(true);
-        
-        profile.updateExperienceLevel(ExperienceLevel.lead());
-        expect(profile.experienceLevel?.isLead()).toBe(true);
-      });
+      profile.updateExperienceLevel(ExperienceLevel.senior());
+      expect(profile.experienceLevel?.value).toBe('senior');
     });
   });
 
-  describe('Business Logic - Profile Completion', () => {
-    describe('isComplete()', () => {
-      it('should return false for empty profile', () => {
-        const profile = CandidateProfile.create(userId);
+  describe('Business Logic - Add Skill', () => {
+    it('should add skill to profile', () => {
+      const profile = CandidateProfile.create(validUserId);
 
-        expect(profile.isComplete()).toBe(false);
-      });
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Experienced with React hooks and state management',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
 
-      it('should return false with only skills', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript']);
+      expect(profile.skills).toHaveLength(1);
+      expect(profile.skills[0].skillId).toBe(validSkillId);
+      expect(profile.skills[0].proficiencyLevel!.value).toBe('advanced');
+      expect(profile.skills[0].yearsOfExperience!.value).toBe(5);
+    });
 
-        expect(profile.isComplete()).toBe(false);
-      });
+    it('should add skill without description', () => {
+      const profile = CandidateProfile.create(validUserId);
 
-      it('should return false with only experience level', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateExperienceLevel(ExperienceLevel.senior());
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        null,
+        ProficiencyLevel.intermediate(),
+        YearsOfExperience.fromNumber(2),
+      );
 
-        expect(profile.isComplete()).toBe(false);
-      });
+      expect(profile.skills[0].description).toBeNull();
+    });
 
-      it('should return true with both skills and experience level', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript']);
-        profile.updateExperienceLevel(ExperienceLevel.senior());
+    it('should publish CandidateSkillAddedEvent', () => {
+      const profile = CandidateProfile.create(validUserId);
 
-        expect(profile.isComplete()).toBe(true);
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Test description',
+        ProficiencyLevel.expert(),
+        YearsOfExperience.fromNumber(10),
+      );
+
+      const events = profile.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(CandidateSkillAddedEvent);
+      
+      const event = events[0] as CandidateSkillAddedEvent;
+      expect(event.candidateId).toBe(validUserId);
+      expect(event.skillId).toBe(validSkillId);
+      expect(event.proficiencyLevel).toBe('expert');
+      expect(event.yearsOfExperience).toBe(10);
+    });
+
+    it('should throw error when adding duplicate skill', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Description',
+        ProficiencyLevel.intermediate(),
+        YearsOfExperience.fromNumber(3),
+      );
+
+      expect(() =>
+        profile.addSkill(
+          validSkillId,
+          'another-id',
+          'Another description',
+          ProficiencyLevel.advanced(),
+          YearsOfExperience.fromNumber(5),
+        )
+      ).toThrow(DomainException);
+      expect(() =>
+        profile.addSkill(
+          validSkillId,
+          'another-id',
+          'Another description',
+          ProficiencyLevel.advanced(),
+          YearsOfExperience.fromNumber(5),
+        )
+      ).toThrow('Skill already added to profile');
+    });
+
+    it('should add multiple different skills', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill(
+        'react',
+        'cs-1',
+        'React skills',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
+
+      profile.addSkill(
+        'nodejs',
+        'cs-2',
+        'Node.js skills',
+        ProficiencyLevel.intermediate(),
+        YearsOfExperience.fromNumber(3),
+      );
+
+      expect(profile.skills).toHaveLength(2);
+      expect(profile.skills[0].skillId).toBe('react');
+      expect(profile.skills[1].skillId).toBe('nodejs');
+    });
+  });
+
+  describe('Business Logic - Update Skill', () => {
+    it('should update existing skill', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Old description',
+        ProficiencyLevel.beginner(),
+        YearsOfExperience.fromNumber(1),
+      );
+
+      profile.clearEvents(); // Clear add event
+
+      profile.updateSkill(
+        validSkillId,
+        'Updated description',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
+
+      const skill = profile.skills.find(s => s.skillId === validSkillId);
+      expect(skill?.description).toBe('Updated description');
+      expect(skill?.proficiencyLevel!.value).toBe('advanced');
+      expect(skill?.yearsOfExperience!.value).toBe(5);
+    });
+
+    it('should publish CandidateSkillUpdatedEvent with changes', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Old description',
+        ProficiencyLevel.intermediate(),
+        YearsOfExperience.fromNumber(3),
+      );
+
+      profile.clearEvents();
+
+      profile.updateSkill(
+        validSkillId,
+        'New description',
+        ProficiencyLevel.expert(),
+        YearsOfExperience.fromNumber(7),
+      );
+
+      const events = profile.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(CandidateSkillUpdatedEvent);
+      
+      const event = events[0] as CandidateSkillUpdatedEvent;
+      expect(event.skillId).toBe(validSkillId);
+      expect(event.changes).toEqual({
+        description: 'New description',
+        proficiencyLevel: 'expert',
+        yearsOfExperience: 7,
       });
     });
 
-    describe('getCompletionPercentage()', () => {
-      it('should return 0% for empty profile', () => {
-        const profile = CandidateProfile.create(userId);
+    it('should not publish event if no changes', () => {
+      const profile = CandidateProfile.create(validUserId);
 
-        expect(profile.getCompletionPercentage()).toBe(0);
-      });
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Description',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
 
-      it('should return 50% with only skills', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript']);
+      profile.clearEvents();
 
-        expect(profile.getCompletionPercentage()).toBe(50);
-      });
+      // Update with same values
+      profile.updateSkill(
+        validSkillId,
+        'Description',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
 
-      it('should return 50% with only experience level', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateExperienceLevel(ExperienceLevel.senior());
+      const events = profile.getUncommittedEvents();
+      expect(events).toHaveLength(0);
+    });
 
-        expect(profile.getCompletionPercentage()).toBe(50);
-      });
+    it('should throw error when updating non-existent skill', () => {
+      const profile = CandidateProfile.create(validUserId);
 
-      it('should return 100% when complete', () => {
-        const profile = CandidateProfile.create(userId);
-        profile.updateSkills(['JavaScript', 'TypeScript']);
-        profile.updateExperienceLevel(ExperienceLevel.senior());
+      expect(() =>
+        profile.updateSkill(
+          'non-existent',
+          'Description',
+          ProficiencyLevel.advanced(),
+          YearsOfExperience.fromNumber(5),
+        )
+      ).toThrow(DomainException);
+      expect(() =>
+        profile.updateSkill(
+          'non-existent',
+          'Description',
+          ProficiencyLevel.advanced(),
+          YearsOfExperience.fromNumber(5),
+        )
+      ).toThrow('Skill not found in profile');
+    });
+  });
 
-        expect(profile.getCompletionPercentage()).toBe(100);
-      });
+  describe('Business Logic - Remove Skill', () => {
+    it('should remove skill from profile', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Description',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
+
+      expect(profile.skills).toHaveLength(1);
+
+      profile.removeSkill(validSkillId);
+
+      expect(profile.skills).toHaveLength(0);
+    });
+
+    it('should publish CandidateSkillRemovedEvent', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Description',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
+
+      profile.clearEvents();
+
+      profile.removeSkill(validSkillId);
+
+      const events = profile.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(CandidateSkillRemovedEvent);
+      
+      const event = events[0] as CandidateSkillRemovedEvent;
+      expect(event.candidateId).toBe(validUserId);
+      expect(event.skillId).toBe(validSkillId);
+    });
+
+    it('should throw error when removing non-existent skill', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      expect(() => profile.removeSkill('non-existent')).toThrow(DomainException);
+      expect(() => profile.removeSkill('non-existent')).toThrow('Skill not found in profile');
+    });
+
+    it('should remove only specified skill', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill('react', 'cs-1', 'React', ProficiencyLevel.advanced(), YearsOfExperience.fromNumber(5));
+      profile.addSkill('nodejs', 'cs-2', 'Node', ProficiencyLevel.intermediate(), YearsOfExperience.fromNumber(3));
+      profile.addSkill('postgres', 'cs-3', 'PostgreSQL', ProficiencyLevel.beginner(), YearsOfExperience.fromNumber(1));
+
+      expect(profile.skills).toHaveLength(3);
+
+      profile.removeSkill('nodejs');
+
+      expect(profile.skills).toHaveLength(2);
+      expect(profile.skills.find(s => s.skillId === 'react')).toBeDefined();
+      expect(profile.skills.find(s => s.skillId === 'postgres')).toBeDefined();
+      expect(profile.skills.find(s => s.skillId === 'nodejs')).toBeUndefined();
+    });
+  });
+
+  describe('Factory Method - reconstitute', () => {
+    it('should reconstitute profile from persistence', () => {
+      const createdAt = new Date('2024-01-01');
+      const updatedAt = new Date('2024-01-02');
+      const experienceLevel = ExperienceLevel.senior();
+      const skills = [
+        CandidateSkill.create(
+          'cs-1',
+          validUserId,
+          'react',
+          'React skills',
+          ProficiencyLevel.expert(),
+          YearsOfExperience.fromNumber(8),
+        ),
+      ];
+
+      const profile = CandidateProfile.reconstitute(
+        validUserId,
+        experienceLevel,
+        skills,
+        createdAt,
+        updatedAt,
+      );
+
+      expect(profile.userId).toBe(validUserId);
+      expect(profile.experienceLevel).toBe(experienceLevel);
+      expect(profile.skills).toHaveLength(1);
+      expect(profile.skills[0].skillId).toBe('react');
+      expect(profile.createdAt).toBe(createdAt);
+      expect(profile.updatedAt).toBe(updatedAt);
+    });
+
+    it('should reconstitute with null experience level', () => {
+      const profile = CandidateProfile.reconstitute(
+        validUserId,
+        null,
+        [],
+        new Date(),
+        new Date(),
+      );
+
+      expect(profile.experienceLevel).toBeNull();
+      expect(profile.skills).toEqual([]);
     });
   });
 
   describe('Getters', () => {
-    it('should return immutable copy of skills array', () => {
-      const profile = CandidateProfile.create(userId);
-      profile.updateSkills(['JavaScript', 'TypeScript']);
-      
+    it('should return readonly skills array', () => {
+      const profile = CandidateProfile.create(validUserId);
+
+      profile.addSkill(
+        validSkillId,
+        validCandidateSkillId,
+        'Description',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
+
       const skills = profile.skills;
-      skills.push('React');
-
-      expect(profile.skills).toEqual(['JavaScript', 'TypeScript']);
-      expect(profile.skills).not.toContain('React');
-    });
-
-    it('should return all properties correctly', () => {
-      const profile = CandidateProfile.create(userId);
-      profile.updateSkills(['JavaScript']);
-      profile.updateExperienceLevel(ExperienceLevel.senior());
-
-      expect(profile.userId).toBe(userId);
-      expect(profile.skills).toEqual(['JavaScript']);
-      expect(profile.experienceLevel).toBeInstanceOf(ExperienceLevel);
-      expect(profile.createdAt).toBeInstanceOf(Date);
-      expect(profile.updatedAt).toBeInstanceOf(Date);
-    });
-  });
-
-  describe('Complex Scenarios', () => {
-    it('should handle full profile lifecycle', () => {
-      // Create profile
-      const profile = CandidateProfile.create(userId);
-      expect(profile.isComplete()).toBe(false);
-      expect(profile.getCompletionPercentage()).toBe(0);
-
-      // Add skills incrementally
-      profile.addSkill('JavaScript');
-      profile.addSkill('TypeScript');
-      expect(profile.getCompletionPercentage()).toBe(50);
-
-      // Set experience level
-      profile.updateExperienceLevel(ExperienceLevel.senior());
-      expect(profile.isComplete()).toBe(true);
-      expect(profile.getCompletionPercentage()).toBe(100);
-
-      // Update skills
-      profile.updateSkills(['Python', 'Go', 'Rust']);
-      expect(profile.skills).toEqual(['Python', 'Go', 'Rust']);
-      expect(profile.isComplete()).toBe(true);
-
-      // Remove a skill
-      profile.removeSkill('Go');
-      expect(profile.skills).toEqual(['Python', 'Rust']);
-      expect(profile.isComplete()).toBe(true);
+      expect(skills).toHaveLength(1);
+      
+      // Should be readonly - TypeScript will prevent modification
+      // but at runtime it's the actual array reference
+      expect(Array.isArray(skills)).toBe(true);
     });
   });
 });

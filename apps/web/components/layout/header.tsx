@@ -119,6 +119,14 @@ export function Header({ userRoles = [] }: HeaderProps) {
                     >
                       Users
                     </Link>
+                    <Link 
+                      href="/admin/skills" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/admin/skills') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Skills
+                    </Link>
                   </>
                 );
               }
@@ -136,6 +144,14 @@ export function Header({ userRoles = [] }: HeaderProps) {
                       Dashboard
                     </Link>
                     <Link 
+                      href="/hr/candidates/search" 
+                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                        pathname.startsWith('/hr/candidates') ? 'text-yellow-400' : ''
+                      }`}
+                    >
+                      Search
+                    </Link>
+                    <Link 
                       href="/hr/interviews" 
                       className={`text-white hover:text-yellow-400 transition-colors font-medium ${
                         pathname.startsWith('/hr/interviews') ? 'text-yellow-400' : ''
@@ -144,12 +160,12 @@ export function Header({ userRoles = [] }: HeaderProps) {
                       Interviews
                     </Link>
                     <Link 
-                      href="/hr/candidates" 
+                      href="/hr/companies" 
                       className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/candidates') ? 'text-yellow-400' : ''
+                        pathname.startsWith('/hr/companies') ? 'text-yellow-400' : ''
                       }`}
                     >
-                      Candidates
+                      Companies
                     </Link>
                   </>
                 );

@@ -8,9 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true, // Буферизуем логи до подключения logger
   });
-  
+
   const logger = app.get(LoggerService);
-  
+
   // Используем наш Winston Logger для ВСЕХ NestJS логов
   app.useLogger(logger);
 
@@ -44,24 +44,28 @@ async function bootstrap() {
     .addBearerAuth()
     .addApiKey({ type: 'apiKey', name: 'x-internal-token', in: 'header' }, 'internal-token')
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
+
+  app.use('/api/docs-json', (req, res) => {
+    res.json(document);
+  });
 
   // Graceful shutdown (from memory)
   app.enableShutdownHooks();
 
   const port = process.env.PORT || 8002;
-  
+
   logger.info('🚀 User Service starting up', {
     service: 'user-service',
     action: 'startup',
     port,
     nodeEnv: process.env.NODE_ENV || 'development'
   });
-  
+
   await app.listen(port);
-  
+
   logger.info('✅ User Service successfully started', {
     service: 'user-service',
     action: 'startup_complete',
@@ -69,7 +73,7 @@ async function bootstrap() {
     url: `http://localhost:${port}`,
     docsUrl: `http://localhost:${port}/api/docs`
   });
-  
+
   console.log(`🚀 User Service running on http://localhost:${port}`);
   console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
 

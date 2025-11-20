@@ -6,14 +6,16 @@ import { LoggerService } from '../../../core/logging/logger.service';
 import type {
   CreateTemplateDto,
   UpdateTemplateDto,
-  AddQuestionDto,
-  ReorderQuestionsDto,
   TemplateResponseDto,
   TemplateListItemDto,
   PaginatedTemplatesResponseDto,
+} from '../dto/template.dto';
+import type {
+  AddQuestionDto,
+  ReorderQuestionsDto,
   QuestionResponseDto,
-  InterviewSettingsDto,
-} from '@repo/shared/dist/contracts/interview-service';
+} from '../dto/question.dto';
+import type { InterviewSettingsDto } from '../dto/settings.dto';
 
 // ════════════════════════════════════════════════════════════════
 // Re-export types for convenience

@@ -13,14 +13,42 @@ import { SuspendUserHandler } from '../../src/application/commands/suspend-user/
 import { ActivateUserHandler } from '../../src/application/commands/activate-user/activate-user.handler';
 import { SelectRoleHandler } from '../../src/application/commands/select-role/select-role.handler';
 import { UploadAvatarHandler } from '../../src/application/commands/upload-avatar/upload-avatar.handler';
-import { UpdateCandidateProfileHandler } from '../../src/application/commands/update-candidate-profile/update-candidate-profile.handler';
-import { UpdateHRProfileHandler } from '../../src/application/commands/update-hr-profile/update-hr-profile.handler';
+
+// Admin Skills Command Handlers
+import { CreateSkillHandler } from '../../src/application/commands/admin/create-skill';
+import { UpdateSkillHandler } from '../../src/application/commands/admin/update-skill';
+import { DeleteSkillHandler } from '../../src/application/commands/admin/delete-skill';
+import { ActivateSkillHandler } from '../../src/application/commands/admin/activate-skill';
+import { DeactivateSkillHandler } from '../../src/application/commands/admin/deactivate-skill';
+
+// HR Companies Command Handlers
+import { CreateCompanyHandler } from '../../src/application/commands/hr/create-company';
+import { UpdateCompanyHandler } from '../../src/application/commands/hr/update-company';
+import { DeleteCompanyHandler } from '../../src/application/commands/hr/delete-company';
+
+// Candidate Skills Command Handlers
+import { AddCandidateSkillHandler } from '../../src/application/commands/candidate/add-candidate-skill';
+import { UpdateCandidateSkillHandler } from '../../src/application/commands/candidate/update-candidate-skill';
+import { RemoveCandidateSkillHandler } from '../../src/application/commands/candidate/remove-candidate-skill';
 
 // Import all query handlers
 import { GetUserHandler } from '../../src/application/queries/get-user/get-user.handler';
 import { GetUserByExternalAuthIdHandler } from '../../src/application/queries/get-user-by-external-auth-id/get-user-by-external-auth-id.handler';
 import { ListUsersHandler } from '../../src/application/queries/list-users/list-users.handler';
 import { GetUserStatsHandler } from '../../src/application/queries/get-user-stats/get-user-stats.handler';
+
+// Admin Queries
+import { ListSkillsHandler } from '../../src/application/queries/skills/list-skills/list-skills.handler';
+import { GetSkillHandler } from '../../src/application/queries/skills/get-skill/get-skill.handler';
+import { ListSkillCategoriesHandler } from '../../src/application/queries/skills/list-categories/list-categories.handler';
+
+// HR Queries
+import { ListCompaniesHandler } from '../../src/application/queries/companies/list-companies.handler';
+import { GetCompanyHandler } from '../../src/application/queries/companies/get-company.handler';
+
+// Candidate Queries
+import { GetCandidateProfileHandler } from '../../src/application/queries/candidate/get-candidate-profile.handler';
+import { GetCandidateSkillsHandler } from '../../src/application/queries/candidate/get-candidate-skills.handler';
 
 // Mock services for testing
 export const mockKafkaService = {
@@ -73,14 +101,42 @@ export const mockStorageService = {
     ActivateUserHandler,
     SelectRoleHandler,
     UploadAvatarHandler,
-    UpdateCandidateProfileHandler,
-    UpdateHRProfileHandler,
+    
+    // Admin Skills Commands
+    CreateSkillHandler,
+    UpdateSkillHandler,
+    DeleteSkillHandler,
+    ActivateSkillHandler,
+    DeactivateSkillHandler,
+    
+    // HR Companies Commands
+    CreateCompanyHandler,
+    UpdateCompanyHandler,
+    DeleteCompanyHandler,
+    
+    // Candidate Skills Commands
+    AddCandidateSkillHandler,
+    UpdateCandidateSkillHandler,
+    RemoveCandidateSkillHandler,
 
     // Query Handlers
     GetUserHandler,
     GetUserByExternalAuthIdHandler,
     ListUsersHandler,
     GetUserStatsHandler,
+    
+    // Admin Queries
+    ListSkillsHandler,
+    GetSkillHandler,
+    ListSkillCategoriesHandler,
+    
+    // HR Queries
+    ListCompaniesHandler,
+    GetCompanyHandler,
+    
+    // Candidate Queries
+    GetCandidateProfileHandler,
+    GetCandidateSkillsHandler,
 
     // Mock services - use actual classes as tokens (not strings!)
     {

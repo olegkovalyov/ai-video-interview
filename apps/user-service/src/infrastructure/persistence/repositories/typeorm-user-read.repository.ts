@@ -1,53 +1,68 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository } from 'typeorm';
 import {
   IUserReadRepository,
   PaginatedResult,
   UserListFilters,
 } from '../../../domain/repositories/user-read.repository.interface';
-import { User } from '../../../domain/aggregates/user.aggregate';
+import type {
+  UserReadModel,
+  UserWithProfileReadModel,
+  UserSummaryReadModel,
+} from '../../../domain/read-models/user.read-model';
 import { UserEntity } from '../entities/user.entity';
-import { UserMapper } from '../mappers/user.mapper';
 
 /**
  * TypeORM User Read Repository Implementation
- * Optimized for read operations (CQRS read side)
+ * Returns Read Models (plain objects) - no domain entities
+ * Maps TypeORM entities directly to Read Models
  */
 @Injectable()
 export class TypeOrmUserReadRepository implements IUserReadRepository {
   constructor(
     @InjectRepository(UserEntity)
     private readonly repository: Repository<UserEntity>,
-    private readonly mapper: UserMapper,
   ) {}
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: string): Promise<UserReadModel | null> {
     const entity = await this.repository.findOne({
       where: { id },
     });
-    return entity ? this.mapper.toDomain(entity) : null;
+    return entity ? this.toReadModel(entity) : null;
   }
 
-  async findByExternalAuthId(externalAuthId: string): Promise<User | null> {
+  async findByIdWithProfile(id: string): Promise<UserWithProfileReadModel | null> {
+    // TODO: Implement profile loading when CandidateProfileEntity and HrProfileEntity are created
+    // For now, return user data without profile details
+    const entity = await this.repository.findOne({
+      where: { id },
+    });
+    if (!entity) return null;
+
+    const baseModel = this.toReadModel(entity);
+    return { ...baseModel };
+  }
+
+  async findByExternalAuthId(externalAuthId: string): Promise<UserReadModel | null> {
     const entity = await this.repository.findOne({
       where: { externalAuthId },
     });
-    return entity ? this.mapper.toDomain(entity) : null;
+    return entity ? this.toReadModel(entity) : null;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<UserReadModel | null> {
     const entity = await this.repository.findOne({
       where: { email },
     });
-    return entity ? this.mapper.toDomain(entity) : null;
+    return entity ? this.toReadModel(entity) : null;
   }
 
   async list(
     page: number,
     limit: number,
     filters?: UserListFilters,
-  ): Promise<PaginatedResult<User>> {
+  ): Promise<PaginatedResult<UserReadModel>> {
     const queryBuilder = this.repository.createQueryBuilder('user');
 
     // Apply filters
@@ -73,7 +88,7 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     // Execute query
     const [entities, total] = await queryBuilder.getManyAndCount();
 
-    const users = this.mapper.toDomainList(entities);
+    const users = entities.map(entity => this.toReadModel(entity));
     const totalPages = Math.ceil(total / limit);
 
     return {
@@ -82,6 +97,23 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
       page,
       limit,
       totalPages,
+    };
+  }
+
+  async getSummary(id: string): Promise<UserSummaryReadModel | null> {
+    const entity = await this.repository.findOne({
+      where: { id },
+      select: ['id', 'firstName', 'lastName', 'email', 'role', 'avatarUrl'],
+    });
+
+    if (!entity) return null;
+
+    return {
+      id: entity.id,
+      fullName: `${entity.firstName} ${entity.lastName}`,
+      email: entity.email,
+      role: entity.role,
+      avatarUrl: entity.avatarUrl,
     };
   }
 
@@ -114,5 +146,35 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
       acc[row.status] = parseInt(row.count, 10);
       return acc;
     }, {});
+  }
+
+  // ==========================================================================
+  // PRIVATE MAPPING METHODS
+  // ==========================================================================
+
+  /**
+   * Map TypeORM UserEntity to UserReadModel
+   * Direct mapping - no domain logic
+   */
+  private toReadModel(entity: UserEntity): UserReadModel {
+    return {
+      id: entity.id,
+      externalAuthId: entity.externalAuthId,
+      email: entity.email,
+      fullName: `${entity.firstName} ${entity.lastName}`,
+      firstName: entity.firstName,
+      lastName: entity.lastName,
+      status: entity.status,
+      role: entity.role,
+      avatarUrl: entity.avatarUrl,
+      bio: entity.bio,
+      phone: entity.phone,
+      timezone: entity.timezone,
+      language: entity.language,
+      emailVerified: entity.emailVerified,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      lastLoginAt: entity.lastLoginAt,
+    };
   }
 }

@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { User } from '../../../domain/aggregates/user.aggregate';
+import type { UserReadModel } from '../../../domain/read-models/user.read-model';
 
 /**
  * User Response DTO
- * Maps User aggregate to API response
+ * Maps User Read Model to API response
  */
 export class UserResponseDto {
   @ApiProperty()
@@ -21,14 +21,14 @@ export class UserResponseDto {
   @ApiProperty()
   lastName: string;
 
-  @ApiPropertyOptional()
-  avatarUrl?: string;
+  @ApiPropertyOptional({ type: String, nullable: true })
+  avatarUrl: string | null;
 
-  @ApiPropertyOptional()
-  bio?: string;
+  @ApiPropertyOptional({ type: String, nullable: true })
+  bio: string | null;
 
-  @ApiPropertyOptional()
-  phone?: string;
+  @ApiPropertyOptional({ type: String, nullable: true })
+  phone: string | null;
 
   @ApiProperty()
   timezone: string;
@@ -60,30 +60,30 @@ export class UserResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  @ApiPropertyOptional()
-  lastLoginAt?: Date;
+  @ApiPropertyOptional({ type: Date, nullable: true })
+  lastLoginAt: Date | null;
 
   /**
-   * Factory method to create DTO from domain model
+   * Factory method to create DTO from Read Model
    */
-  static fromDomain(user: User): UserResponseDto {
+  static fromDomain(user: UserReadModel): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
     dto.externalAuthId = user.externalAuthId;
-    dto.email = user.email.value;
-    dto.firstName = user.fullName.firstName;
-    dto.lastName = user.fullName.lastName;
+    dto.email = user.email;
+    dto.firstName = user.firstName;
+    dto.lastName = user.lastName;
     dto.avatarUrl = user.avatarUrl;
     dto.bio = user.bio;
     dto.phone = user.phone;
     dto.timezone = user.timezone;
     dto.language = user.language;
     dto.emailVerified = user.emailVerified;
-    dto.status = user.status.value;
-    dto.role = user.role.toString();
-    dto.isActive = user.isActive;
-    dto.isSuspended = user.isSuspended;
-    dto.isDeleted = user.isDeleted;
+    dto.status = user.status;
+    dto.role = user.role;
+    dto.isActive = user.status === 'active';
+    dto.isSuspended = user.status === 'suspended';
+    dto.isDeleted = user.status === 'deleted';
     dto.createdAt = user.createdAt;
     dto.updatedAt = user.updatedAt;
     dto.lastLoginAt = user.lastLoginAt;

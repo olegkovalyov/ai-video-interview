@@ -1,0 +1,1298 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_healthCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy"
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_readinessCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is ready"
+          }
+        },
+        "summary": "Readiness check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_livenessCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is alive"
+          }
+        },
+        "summary": "Liveness check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/kafka": {
+      "get": {
+        "operationId": "HealthController_kafkaHealthCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Kafka connection status"
+          }
+        },
+        "summary": "Kafka health check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/templates": {
+      "post": {
+        "description": "Creates a new interview template (HR and Admin only)",
+        "operationId": "TemplatesController_create",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid internal token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Create interview template",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "get": {
+        "description": "Get paginated list of templates. HR sees only their templates, Admin sees all.",
+        "operationId": "TemplatesController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by status",
+            "schema": {
+              "enum": [
+                "draft",
+                "active",
+                "archived"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedTemplatesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "List interview templates",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}": {
+      "get": {
+        "description": "Retrieve a specific template with all questions",
+        "operationId": "TemplatesController_getOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get template by ID",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "put": {
+        "description": "Update template title, description, or settings",
+        "operationId": "TemplatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Update template",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "delete": {
+        "description": "Soft delete (archive) an interview template",
+        "operationId": "TemplatesController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Template deleted"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Delete template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/questions": {
+      "post": {
+        "description": "Add a new question to the interview template",
+        "operationId": "TemplatesController_addQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Question added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Add question to template",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "get": {
+        "description": "Retrieve all questions for a template",
+        "operationId": "TemplatesController_getQuestions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of questions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "questions": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get template questions",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/questions/{questionId}": {
+      "delete": {
+        "description": "Delete a question from the interview template",
+        "operationId": "TemplatesController_removeQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "description": "Question ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Question removed"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template or question not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Remove question from template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/questions/reorder": {
+      "patch": {
+        "description": "Reorder all questions by providing question IDs in desired order. Uses batch UPDATE for performance.",
+        "operationId": "TemplatesController_reorderQuestions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderQuestionsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Questions reordered successfully"
+          },
+          "400": {
+            "description": "Bad request - Invalid question IDs or count mismatch"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Reorder questions in template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/publish": {
+      "put": {
+        "description": "Change template status from draft to active",
+        "operationId": "TemplatesController_publish",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "active"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Publish template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Interview Service API",
+    "description": "Interview management microservice",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      },
+      "internal-token": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-internal-token"
+      }
+    },
+    "schemas": {
+      "InterviewSettingsDto": {
+        "type": "object",
+        "properties": {
+          "totalTimeLimit": {
+            "type": "number",
+            "description": "Total time limit for the interview in minutes",
+            "minimum": 1,
+            "maximum": 480,
+            "example": 60
+          },
+          "allowRetakes": {
+            "type": "boolean",
+            "description": "Allow candidates to retake the interview",
+            "example": false
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show timer to candidates during interview",
+            "example": true
+          },
+          "randomizeQuestions": {
+            "type": "boolean",
+            "description": "Randomize question order for each candidate",
+            "example": false
+          }
+        },
+        "required": [
+          "totalTimeLimit",
+          "allowRetakes",
+          "showTimer",
+          "randomizeQuestions"
+        ]
+      },
+      "CreateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Interview template title",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Senior Developer Interview"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the interview template",
+            "minLength": 1,
+            "maxLength": 1000,
+            "example": "Comprehensive interview for senior backend developers with focus on system design and architecture"
+          },
+          "settings": {
+            "description": "Interview settings (optional)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSettingsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "description"
+        ]
+      },
+      "TemplateListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Template UUID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "title": {
+            "type": "string",
+            "description": "Template title",
+            "example": "Senior Developer Interview"
+          },
+          "description": {
+            "type": "string",
+            "description": "Template description",
+            "example": "Comprehensive interview for senior developers"
+          },
+          "status": {
+            "type": "string",
+            "description": "Template status",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ],
+            "example": "active"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created this template",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "questionsCount": {
+            "type": "number",
+            "description": "Total number of questions",
+            "example": 5
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-05T22:00:00Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp",
+            "example": "2024-11-05T22:30:00Z"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "status",
+          "createdBy",
+          "questionsCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginatedTemplatesResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "List of templates",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateListItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of templates",
+            "example": 42
+          },
+          "page": {
+            "type": "number",
+            "description": "Current page number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "description": "Items per page",
+            "example": 10
+          },
+          "totalPages": {
+            "type": "number",
+            "description": "Total number of pages",
+            "example": 5
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "InterviewSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "totalTimeLimit": {
+            "type": "number",
+            "description": "Total time limit in minutes",
+            "example": 60
+          },
+          "allowRetakes": {
+            "type": "boolean",
+            "description": "Allow candidates to retake the interview",
+            "example": false
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show timer during interview",
+            "example": true
+          },
+          "randomizeQuestions": {
+            "type": "boolean",
+            "description": "Randomize question order",
+            "example": false
+          }
+        },
+        "required": [
+          "totalTimeLimit",
+          "allowRetakes",
+          "showTimer",
+          "randomizeQuestions"
+        ]
+      },
+      "QuestionOptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Option ID",
+            "example": "opt-123e4567-e89b-12d3-a456-426614174000"
+          },
+          "text": {
+            "type": "string",
+            "description": "Answer option text",
+            "example": "Paris"
+          },
+          "isCorrect": {
+            "type": "boolean",
+            "description": "Whether this option is correct",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "isCorrect"
+        ]
+      },
+      "QuestionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Question UUID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "text": {
+            "type": "string",
+            "description": "Question text",
+            "example": "Describe your experience with microservices"
+          },
+          "type": {
+            "type": "string",
+            "description": "Question type",
+            "enum": [
+              "video",
+              "text",
+              "multiple_choice"
+            ],
+            "example": "video"
+          },
+          "order": {
+            "type": "number",
+            "description": "Display order (1-based)",
+            "example": 1
+          },
+          "timeLimit": {
+            "type": "number",
+            "description": "Time limit in seconds",
+            "example": 180
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether question is mandatory",
+            "example": true
+          },
+          "hints": {
+            "type": "string",
+            "description": "Optional hints for candidates",
+            "example": "Focus on real-world examples"
+          },
+          "options": {
+            "description": "Answer options for multiple choice questions",
+            "example": [
+              {
+                "id": "opt-1",
+                "text": "Paris",
+                "isCorrect": true
+              },
+              {
+                "id": "opt-2",
+                "text": "London",
+                "isCorrect": false
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionOptionResponseDto"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-05T22:00:00Z"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "type",
+          "order",
+          "timeLimit",
+          "required",
+          "createdAt"
+        ]
+      },
+      "TemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Template UUID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "title": {
+            "type": "string",
+            "description": "Template title",
+            "example": "Senior Developer Interview"
+          },
+          "description": {
+            "type": "string",
+            "description": "Template description",
+            "example": "Comprehensive interview for senior developers"
+          },
+          "status": {
+            "type": "string",
+            "description": "Template status",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ],
+            "example": "active"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created this template",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "settings": {
+            "description": "Interview settings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSettingsResponseDto"
+              }
+            ]
+          },
+          "questions": {
+            "description": "List of questions",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionResponseDto"
+            }
+          },
+          "questionsCount": {
+            "type": "number",
+            "description": "Total number of questions",
+            "example": 5
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-05T22:00:00Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp",
+            "example": "2024-11-05T22:30:00Z"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "status",
+          "createdBy",
+          "settings",
+          "questions",
+          "questionsCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "QuestionOptionDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Answer option text",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Paris"
+          },
+          "isCorrect": {
+            "type": "boolean",
+            "description": "Whether this option is a correct answer",
+            "example": true
+          }
+        },
+        "required": [
+          "text",
+          "isCorrect"
+        ]
+      },
+      "AddQuestionDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Question text",
+            "minLength": 10,
+            "maxLength": 500,
+            "example": "Describe your experience with microservices architecture and event-driven design patterns."
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of question response",
+            "enum": [
+              "video",
+              "text",
+              "multiple_choice"
+            ],
+            "example": "video"
+          },
+          "order": {
+            "type": "number",
+            "description": "Display order of the question (1-based)",
+            "minimum": 1,
+            "example": 1
+          },
+          "timeLimit": {
+            "type": "number",
+            "description": "Time limit for answering the question in seconds",
+            "minimum": 30,
+            "maximum": 600,
+            "example": 180
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether this question is mandatory",
+            "example": true
+          },
+          "hints": {
+            "type": "string",
+            "description": "Optional hints for the candidate",
+            "maxLength": 200,
+            "example": "Focus on real-world examples from your previous projects"
+          },
+          "options": {
+            "description": "Answer options for multiple choice questions (required for multiple_choice type)",
+            "minItems": 2,
+            "maxItems": 10,
+            "example": [
+              {
+                "text": "Paris",
+                "isCorrect": true
+              },
+              {
+                "text": "London",
+                "isCorrect": false
+              },
+              {
+                "text": "Berlin",
+                "isCorrect": false
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionOptionDto"
+            }
+          }
+        },
+        "required": [
+          "text",
+          "type",
+          "order",
+          "timeLimit",
+          "required"
+        ]
+      },
+      "ReorderQuestionsDto": {
+        "type": "object",
+        "properties": {
+          "questionIds": {
+            "description": "Array of question IDs in desired order. Must include all questions.",
+            "example": [
+              "q3-uuid-here",
+              "q1-uuid-here",
+              "q2-uuid-here"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "questionIds"
+        ]
+      },
+      "UpdateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Updated interview template title",
+            "maxLength": 200,
+            "example": "Senior Full-Stack Developer Interview"
+          },
+          "description": {
+            "type": "string",
+            "description": "Updated detailed description",
+            "maxLength": 1000,
+            "example": "Updated comprehensive interview for senior full-stack developers"
+          },
+          "settings": {
+            "description": "Updated interview settings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSettingsDto"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -51,10 +51,10 @@ describe('GetUserQuery Integration', () => {
       // Assert
       expect(result).toBeDefined();
       expect(result.id).toBe(userId);
-      expect(result.email.value).toBe('john.doe@example.com');
-      expect(result.fullName.firstName).toBe('John');
-      expect(result.fullName.lastName).toBe('Doe');
-      expect(result.status.value).toBe('active');
+      expect(result.email).toBe('john.doe@example.com');
+      expect(result.firstName).toBe('John');
+      expect(result.lastName).toBe('Doe');
+      expect(result.status).toBe('active');
     });
 
     it('should get user with all fields populated', async () => {
@@ -112,8 +112,8 @@ describe('GetUserQuery Integration', () => {
       const result2 = await queryBus.execute(new GetUserQuery(userId2));
 
       // Assert
-      expect(result1.email.value).toBe('user1@example.com');
-      expect(result2.email.value).toBe('user2@example.com');
+      expect(result1.email).toBe('user1@example.com');
+      expect(result2.email).toBe('user2@example.com');
     });
   });
 
@@ -154,7 +154,7 @@ describe('GetUserQuery Integration', () => {
       const result = await queryBus.execute(new GetUserQuery(userId));
 
       // Assert
-      expect(result.status.value).toBe('suspended');
+      expect(result.status).toBe('suspended');
     });
   });
 

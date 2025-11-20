@@ -1,0 +1,3373 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/protected": {
+      "get": {
+        "operationId": "AppController_getProtected",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_getReady",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_getLive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/circuits": {
+      "get": {
+        "operationId": "HealthController_getCircuits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/login": {
+      "get": {
+        "operationId": "AuthController_initiateLogin",
+        "parameters": [
+          {
+            "name": "redirect_uri",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/register": {
+      "get": {
+        "operationId": "AuthController_initiateRegister",
+        "parameters": [
+          {
+            "name": "redirect_uri",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/callback": {
+      "get": {
+        "operationId": "AuthController_handleCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/jwks": {
+      "get": {
+        "operationId": "AuthController_getJWKS",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/change-password": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "description": "Returns the profile of the currently authenticated user",
+        "operationId": "UsersController_getCurrentUser",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user profile",
+        "tags": [
+          "Users"
+        ]
+      },
+      "put": {
+        "description": "Updates the profile of the currently authenticated user",
+        "operationId": "UsersController_updateCurrentUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update current user profile",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/me/select-role": {
+      "post": {
+        "description": "User selects their role (candidate/hr/admin). One-time operation after registration. Updates both Keycloak and User Service.",
+        "operationId": "UsersController_selectRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role selected successfully. User will receive new JWT on next login."
+          },
+          "400": {
+            "description": "Invalid role or role already selected"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Select user role",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/me/skills": {
+      "get": {
+        "description": "Returns current user skills grouped by category with proficiency levels and experience.",
+        "operationId": "UserSkillsController_getMySkills",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Skills retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateSkillsByCategoryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid JWT token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my skills",
+        "tags": [
+          "Users - Skills"
+        ]
+      },
+      "post": {
+        "description": "Adds a new skill to current user profile with proficiency level and experience.",
+        "operationId": "UserSkillsController_addSkill",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCandidateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Skill added successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Skill not found"
+          },
+          "409": {
+            "description": "Skill already added to profile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add skill to profile",
+        "tags": [
+          "Users - Skills"
+        ]
+      }
+    },
+    "/api/me/skills/{skillId}": {
+      "put": {
+        "description": "Updates skill proficiency level, years of experience, or description.",
+        "operationId": "UserSkillsController_updateSkill",
+        "parameters": [
+          {
+            "name": "skillId",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCandidateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Skill updated successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Skill not found in profile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update my skill",
+        "tags": [
+          "Users - Skills"
+        ]
+      },
+      "delete": {
+        "description": "Removes a skill from current user profile.",
+        "operationId": "UserSkillsController_removeSkill",
+        "parameters": [
+          {
+            "name": "skillId",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill removed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDeleteResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Skill not found in profile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove skill from profile",
+        "tags": [
+          "Users - Skills"
+        ]
+      }
+    },
+    "/api/skills/categories": {
+      "get": {
+        "description": "Returns list of all skill categories with skills count. Available to all authenticated users.",
+        "operationId": "SkillsController_getCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Categories retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SkillCategoryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid JWT token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get skill categories",
+        "tags": [
+          "Skills"
+        ]
+      }
+    },
+    "/api/admin/users": {
+      "post": {
+        "description": "Creates a new user via Saga Orchestration (Keycloak + User Service). Returns immediately with userId and keycloakId.",
+        "operationId": "AdminUsersController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or email already exists"
+          },
+          "401": {
+            "description": "Unauthorized - Admin role required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create new user",
+        "tags": [
+          "Admin - Users"
+        ]
+      },
+      "get": {
+        "description": "Returns list of users from Keycloak enriched with User Service data (lastLoginAt, etc.)",
+        "operationId": "AdminUsersController_listUsers",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by email, first name, or last name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "max",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of results (default: 100)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "first",
+            "required": false,
+            "in": "query",
+            "description": "Offset for pagination (default: 0)",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users list retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all users",
+        "tags": [
+          "Admin - Users"
+        ]
+      }
+    },
+    "/api/admin/users/stats": {
+      "get": {
+        "description": "Returns aggregated user statistics (total, active, suspended, by role, etc.)",
+        "operationId": "AdminUsersController_getUserStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserStatsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user statistics",
+        "tags": [
+          "Admin - Users"
+        ]
+      }
+    },
+    "/api/admin/users/{id}": {
+      "get": {
+        "description": "Returns user details by Keycloak ID",
+        "operationId": "AdminUsersController_getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user by ID",
+        "tags": [
+          "Admin - Users"
+        ]
+      },
+      "put": {
+        "description": "Updates user via Saga Orchestration (Keycloak + User Service)",
+        "operationId": "AdminUsersController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update user",
+        "tags": [
+          "Admin - Users"
+        ]
+      },
+      "delete": {
+        "description": "Deletes user via Saga Orchestration (Keycloak + User Service)",
+        "operationId": "AdminUsersController_deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete user",
+        "tags": [
+          "Admin - Users"
+        ]
+      }
+    },
+    "/api/admin/roles": {
+      "get": {
+        "description": "Returns list of all available roles in the system (candidate, hr, admin, pending)",
+        "operationId": "AdminRolesController_getAvailableRoles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Roles list retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolesListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get available roles",
+        "tags": [
+          "Admin - Roles"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/roles": {
+      "get": {
+        "description": "Returns list of roles assigned to the user",
+        "operationId": "AdminRolesController_getUserRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User roles retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRolesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user roles",
+        "tags": [
+          "Admin - Roles"
+        ]
+      },
+      "post": {
+        "description": "Assigns a role to user via Saga Orchestration (Keycloak + User Service). Removes pending role if present.",
+        "operationId": "AdminRolesController_assignRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role assigned successfully"
+          },
+          "400": {
+            "description": "Invalid role name"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign role to user",
+        "tags": [
+          "Admin - Roles"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/roles/{roleName}": {
+      "delete": {
+        "deprecated": true,
+        "description": "This endpoint is NOT SUPPORTED. To change user role, use POST /api/admin/users/:id/roles with the new role.",
+        "operationId": "AdminRolesController_removeRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleName",
+            "required": true,
+            "in": "path",
+            "description": "Role name to remove",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          },
+          "501": {
+            "description": "Not Implemented - Role removal is not supported"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove role from user (DEPRECATED)",
+        "tags": [
+          "Admin - Roles"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/suspend": {
+      "post": {
+        "description": "Suspends user in both Keycloak (disabled) and User Service (suspended status). User will not be able to login.",
+        "operationId": "AdminActionsController_suspendUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User suspended successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suspend user",
+        "tags": [
+          "Admin - User Actions"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/activate": {
+      "post": {
+        "description": "Activates user in both Keycloak (enabled) and User Service (active status). User will be able to login again.",
+        "operationId": "AdminActionsController_activateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate user",
+        "tags": [
+          "Admin - User Actions"
+        ]
+      }
+    },
+    "/api/admin/users/{id}/verify-email": {
+      "post": {
+        "description": "Marks user email as verified in Keycloak",
+        "operationId": "AdminActionsController_verifyEmail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Keycloak user ID (UUID)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify user email",
+        "tags": [
+          "Admin - User Actions"
+        ]
+      }
+    },
+    "/api/admin/skills": {
+      "post": {
+        "description": "Creates a new skill (Admin only). Skill must have unique name and slug.",
+        "operationId": "AdminSkillsController_createSkill",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Skill created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          },
+          "409": {
+            "description": "Skill already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create new skill",
+        "tags": [
+          "Admin - Skills"
+        ]
+      },
+      "get": {
+        "description": "Returns paginated list of skills with optional filters (Admin only).",
+        "operationId": "AdminSkillsController_listSkills",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20, max: 100)",
+            "schema": {
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by skill name",
+            "schema": {
+              "example": "Type",
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category ID",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skills list retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillsListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List skills with filters",
+        "tags": [
+          "Admin - Skills"
+        ]
+      }
+    },
+    "/api/admin/skills/{id}": {
+      "get": {
+        "description": "Returns detailed skill information (Admin only).",
+        "operationId": "AdminSkillsController_getSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get skill by ID",
+        "tags": [
+          "Admin - Skills"
+        ]
+      },
+      "put": {
+        "description": "Updates skill name, description, or category (Admin only).",
+        "operationId": "AdminSkillsController_updateSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Skill updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update skill",
+        "tags": [
+          "Admin - Skills"
+        ]
+      },
+      "delete": {
+        "description": "Deletes a skill (Admin only). This is a hard delete and will fail if skill is used by candidates.",
+        "operationId": "AdminSkillsController_deleteSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDeleteResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          },
+          "404": {
+            "description": "Skill not found"
+          },
+          "409": {
+            "description": "Conflict - Skill is in use by candidates"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete skill",
+        "tags": [
+          "Admin - Skills"
+        ]
+      }
+    },
+    "/api/admin/skills/{id}/toggle": {
+      "post": {
+        "description": "Activates or deactivates a skill (Admin only). Deactivated skills are hidden from candidates.",
+        "operationId": "AdminSkillsController_toggleSkillStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill status toggled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Toggle skill active status",
+        "tags": [
+          "Admin - Skills"
+        ]
+      }
+    },
+    "/api/templates": {
+      "post": {
+        "description": "Creates a new interview template (HR and Admin only). Template starts in draft status.",
+        "operationId": "TemplatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTemplateResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions (requires HR or Admin role)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create interview template",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "get": {
+        "description": "Get paginated list of templates. HR sees only their templates, Admin sees all.",
+        "operationId": "TemplatesController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by status",
+            "schema": {
+              "enum": [
+                "draft",
+                "active",
+                "archived"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 10, max: 1000)",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedTemplatesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List interview templates",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}": {
+      "get": {
+        "description": "Retrieve a specific template with all questions. HR can only access their own templates.",
+        "operationId": "TemplatesController_getOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get template by ID",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "put": {
+        "description": "Update template title, description, or settings. Only the owner can update.",
+        "operationId": "TemplatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update template",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "delete": {
+        "description": "Soft delete (archive) an interview template. Only the owner can delete.",
+        "operationId": "TemplatesController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Template deleted (archived)"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/publish": {
+      "put": {
+        "description": "Change template status from draft to active. Only the owner can publish.",
+        "operationId": "TemplatesController_publish",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishTemplateResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/questions": {
+      "post": {
+        "description": "Add a new question to the interview template. Supports video, text, and multiple choice types.",
+        "operationId": "TemplatesController_addQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Question added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddQuestionResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add question to template",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "get": {
+        "description": "Retrieve all questions for a template",
+        "operationId": "TemplatesController_getQuestions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of questions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetQuestionsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get template questions",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/questions/{questionId}": {
+      "delete": {
+        "description": "Delete a question from the interview template. Only the owner can remove questions.",
+        "operationId": "TemplatesController_removeQuestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "description": "Question ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Question removed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template or question not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove question from template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/templates/{id}/questions/reorder": {
+      "patch": {
+        "description": "Reorder all questions by providing question IDs in desired order. Must include all questions. Uses batch UPDATE for performance.",
+        "operationId": "TemplatesController_reorderQuestions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderQuestionsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Questions reordered successfully"
+          },
+          "400": {
+            "description": "Bad request - Invalid question IDs or count mismatch"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not the owner"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reorder questions in template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "AI Video Interview - API Gateway",
+    "description": "API Gateway for AI Video Interview Platform",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Users",
+      "description": "Current user profile operations"
+    },
+    {
+      "name": "Admin - Users",
+      "description": "Admin user management operations"
+    },
+    {
+      "name": "Admin - User Actions",
+      "description": "Admin user action operations (suspend/activate)"
+    },
+    {
+      "name": "Admin - Roles",
+      "description": "Admin role management operations"
+    },
+    {
+      "name": "Templates",
+      "description": "Interview templates management (HR & Admin)"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "name": "Authorization",
+        "description": "Enter JWT token from /auth/login",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "UserProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "candidate",
+              "hr",
+              "admin",
+              "pending"
+            ],
+            "example": "candidate"
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "fullName",
+          "role",
+          "status",
+          "createdAt"
+        ]
+      },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "First name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name",
+            "example": "Doe"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Full name",
+            "example": "John Doe"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number",
+            "example": "+1234567890"
+          },
+          "bio": {
+            "type": "string",
+            "description": "Bio/description",
+            "example": "Software Engineer with 5 years of experience"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "description": "Avatar URL",
+            "example": "https://example.com/avatar.jpg"
+          }
+        }
+      },
+      "SelectRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Role to assign",
+            "enum": [
+              "candidate",
+              "hr",
+              "admin"
+            ],
+            "example": "candidate"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "CandidateSkillDto": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string",
+            "description": "Skill ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "skillName": {
+            "type": "string",
+            "description": "Skill name",
+            "example": "React",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description or notes",
+            "example": "Built 10+ production React apps",
+            "nullable": true
+          },
+          "proficiencyLevel": {
+            "type": "string",
+            "description": "Proficiency level",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced",
+              "expert"
+            ],
+            "example": "expert",
+            "nullable": true
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "description": "Years of experience",
+            "example": 5,
+            "nullable": true
+          },
+          "addedAt": {
+            "type": "string",
+            "description": "When skill was added to profile",
+            "example": "2024-01-15T10:00:00Z",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "skillId",
+          "addedAt"
+        ]
+      },
+      "CandidateSkillsByCategoryDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "description": "Category ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "Category name",
+            "example": "Frontend",
+            "nullable": true
+          },
+          "skills": {
+            "description": "Skills in this category",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSkillDto"
+            }
+          }
+        },
+        "required": [
+          "skills"
+        ]
+      },
+      "AddCandidateSkillDto": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string",
+            "description": "Skill ID to add",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description or notes",
+            "example": "Used in production for 2 years",
+            "maxLength": 500
+          },
+          "proficiencyLevel": {
+            "type": "string",
+            "description": "Proficiency level",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced",
+              "expert"
+            ],
+            "example": "intermediate"
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "description": "Years of experience with this skill",
+            "example": 2,
+            "minimum": 0,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "skillId"
+        ]
+      },
+      "UpdateCandidateSkillDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Skill description or notes",
+            "example": "Used in production for 2 years",
+            "maxLength": 500
+          },
+          "proficiencyLevel": {
+            "type": "string",
+            "description": "Proficiency level",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced",
+              "expert"
+            ],
+            "example": "advanced"
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "description": "Years of experience with this skill",
+            "example": 3,
+            "minimum": 0,
+            "maximum": 50
+          }
+        }
+      },
+      "SkillDeleteResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Operation success status",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Success message",
+            "example": "Skill deleted successfully"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "SkillCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Category ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Category name",
+            "example": "Frontend"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Category slug",
+            "example": "frontend"
+          },
+          "description": {
+            "type": "string",
+            "description": "Category description",
+            "example": "Frontend technologies",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether category is active",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-15T10:00:00Z",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isActive",
+          "createdAt"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "john.doe@example.com"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "First name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name",
+            "example": "Doe"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password (optional, default: \"password\")",
+            "example": "SecurePassword123"
+          }
+        },
+        "required": [
+          "email",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "CreateUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "description": "Created user data",
+            "example": {
+              "userId": "123e4567-e89b-12d3-a456-426614174000",
+              "keycloakId": "456e7890-a12b-34c5-d678-901234567890",
+              "email": "john.doe@example.com"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe"
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "example": true
+          },
+          "realmRoles": {
+            "description": "User roles",
+            "example": [
+              "candidate"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdTimestamp": {
+            "type": "number",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "enabled",
+          "emailVerified",
+          "realmRoles"
+        ]
+      },
+      "UserListResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "description": "List of users",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserResponseDto"
+            }
+          },
+          "count": {
+            "type": "number",
+            "example": 10
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "count"
+        ]
+      },
+      "UserStatsResponseDto": {
+        "type": "object",
+        "properties": {
+          "totalUsers": {
+            "type": "number",
+            "description": "Total number of users",
+            "example": 100
+          },
+          "activeUsers": {
+            "type": "number",
+            "description": "Number of active users",
+            "example": 80
+          },
+          "suspendedUsers": {
+            "type": "number",
+            "description": "Number of suspended users",
+            "example": 10
+          },
+          "deletedUsers": {
+            "type": "number",
+            "description": "Number of deleted users",
+            "example": 10
+          },
+          "usersByStatus": {
+            "type": "object",
+            "description": "Users grouped by status",
+            "example": {
+              "active": 80,
+              "suspended": 10,
+              "deleted": 10
+            }
+          }
+        },
+        "required": [
+          "totalUsers",
+          "activeUsers",
+          "suspendedUsers",
+          "deletedUsers",
+          "usersByStatus"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "First name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name",
+            "example": "Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address",
+            "example": "john.doe@example.com"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable/disable user account",
+            "example": true
+          }
+        }
+      },
+      "RoleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "name": {
+            "type": "string",
+            "example": "candidate"
+          },
+          "description": {
+            "type": "string",
+            "example": "Candidate role"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "RolesListResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "description": "List of available roles",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "UserRolesResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "description": "List of user roles",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "AssignRoleDto": {
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string",
+            "description": "Role name to assign",
+            "enum": [
+              "candidate",
+              "hr",
+              "admin",
+              "pending"
+            ],
+            "example": "candidate"
+          }
+        },
+        "required": [
+          "roleName"
+        ]
+      },
+      "SuspendUserDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Reason for suspension",
+            "example": "Policy violation"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "SuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Operation completed successfully"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "CreateSkillDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Skill name",
+            "example": "TypeScript",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "slug": {
+            "type": "string",
+            "description": "Skill slug (URL-friendly)",
+            "example": "typescript",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Skill category ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description",
+            "example": "JavaScript superset with static typing",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "SkillDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Skill ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Skill name",
+            "example": "TypeScript"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Skill slug",
+            "example": "typescript"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Skill category ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "Category name",
+            "example": "Frontend",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description",
+            "example": "JavaScript superset with static typing",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether skill is active",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-15T10:00:00Z",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp",
+            "example": "2024-11-15T10:00:00Z",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SkillsListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "List of skills",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillDto"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "description": "Pagination metadata",
+            "example": {
+              "total": 100,
+              "page": 1,
+              "limit": 20,
+              "totalPages": 5
+            }
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ]
+      },
+      "UpdateSkillDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Skill name",
+            "example": "TypeScript",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "description": "Skill description",
+            "example": "JavaScript superset with static typing",
+            "maxLength": 500
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Skill category ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          }
+        }
+      },
+      "InterviewSettingsDto": {
+        "type": "object",
+        "properties": {
+          "totalTimeLimit": {
+            "type": "number",
+            "description": "Total time limit for the interview in minutes",
+            "example": 60,
+            "minimum": 1,
+            "maximum": 480
+          },
+          "allowRetakes": {
+            "type": "boolean",
+            "description": "Allow candidates to retake the interview",
+            "example": false
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show timer to candidates during interview",
+            "example": true
+          },
+          "randomizeQuestions": {
+            "type": "boolean",
+            "description": "Randomize question order for each candidate",
+            "example": false
+          }
+        },
+        "required": [
+          "totalTimeLimit",
+          "allowRetakes",
+          "showTimer",
+          "randomizeQuestions"
+        ]
+      },
+      "CreateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Interview template title",
+            "example": "Senior Developer Interview",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the interview template",
+            "example": "Comprehensive interview for senior backend developers with focus on system design and architecture",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "settings": {
+            "description": "Interview settings (optional)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSettingsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "description"
+        ]
+      },
+      "CreateTemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Created template ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "TemplateListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Template UUID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "title": {
+            "type": "string",
+            "description": "Template title",
+            "example": "Senior Developer Interview"
+          },
+          "description": {
+            "type": "string",
+            "description": "Template description",
+            "example": "Comprehensive interview for senior developers"
+          },
+          "status": {
+            "type": "string",
+            "description": "Template status",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ],
+            "example": "active"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created this template",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "questionsCount": {
+            "type": "number",
+            "description": "Total number of questions",
+            "example": 5
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-05T22:00:00Z",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp",
+            "example": "2024-11-05T22:30:00Z",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "status",
+          "createdBy",
+          "questionsCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginatedTemplatesResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "List of templates",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateListItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of templates",
+            "example": 42
+          },
+          "page": {
+            "type": "number",
+            "description": "Current page number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "description": "Items per page",
+            "example": 10
+          },
+          "totalPages": {
+            "type": "number",
+            "description": "Total number of pages",
+            "example": 5
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "InterviewSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "totalTimeLimit": {
+            "type": "number",
+            "description": "Total time limit in minutes",
+            "example": 60
+          },
+          "allowRetakes": {
+            "type": "boolean",
+            "description": "Allow candidates to retake the interview",
+            "example": false
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show timer during interview",
+            "example": true
+          },
+          "randomizeQuestions": {
+            "type": "boolean",
+            "description": "Randomize question order",
+            "example": false
+          }
+        },
+        "required": [
+          "totalTimeLimit",
+          "allowRetakes",
+          "showTimer",
+          "randomizeQuestions"
+        ]
+      },
+      "QuestionOptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Option ID",
+            "example": "opt-123e4567-e89b-12d3-a456-426614174000"
+          },
+          "text": {
+            "type": "string",
+            "description": "Answer option text",
+            "example": "Paris"
+          },
+          "isCorrect": {
+            "type": "boolean",
+            "description": "Whether this option is correct",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "isCorrect"
+        ]
+      },
+      "QuestionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Question UUID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "text": {
+            "type": "string",
+            "description": "Question text",
+            "example": "Describe your experience with microservices"
+          },
+          "type": {
+            "type": "string",
+            "description": "Question type",
+            "enum": [
+              "video",
+              "text",
+              "multiple_choice"
+            ],
+            "example": "video"
+          },
+          "order": {
+            "type": "number",
+            "description": "Display order (1-based)",
+            "example": 1
+          },
+          "timeLimit": {
+            "type": "number",
+            "description": "Time limit in seconds",
+            "example": 180
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether question is mandatory",
+            "example": true
+          },
+          "hints": {
+            "type": "string",
+            "description": "Optional hints for candidates",
+            "example": "Focus on real-world examples"
+          },
+          "options": {
+            "description": "Answer options for multiple choice questions",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionOptionResponseDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-05T22:00:00Z",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "type",
+          "order",
+          "timeLimit",
+          "required",
+          "createdAt"
+        ]
+      },
+      "TemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Template UUID",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "title": {
+            "type": "string",
+            "description": "Template title",
+            "example": "Senior Developer Interview"
+          },
+          "description": {
+            "type": "string",
+            "description": "Template description",
+            "example": "Comprehensive interview for senior developers"
+          },
+          "status": {
+            "type": "string",
+            "description": "Template status",
+            "enum": [
+              "draft",
+              "active",
+              "archived"
+            ],
+            "example": "active"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created this template",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "settings": {
+            "description": "Interview settings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSettingsResponseDto"
+              }
+            ]
+          },
+          "questions": {
+            "description": "List of questions",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionResponseDto"
+            }
+          },
+          "questionsCount": {
+            "type": "number",
+            "description": "Total number of questions",
+            "example": 5
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-11-05T22:00:00Z",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp",
+            "example": "2024-11-05T22:30:00Z",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "status",
+          "createdBy",
+          "settings",
+          "questions",
+          "questionsCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Updated interview template title",
+            "example": "Senior Full-Stack Developer Interview",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "description": "Updated detailed description",
+            "example": "Updated comprehensive interview for senior full-stack developers",
+            "maxLength": 1000
+          },
+          "settings": {
+            "description": "Updated interview settings",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSettingsDto"
+              }
+            ]
+          }
+        }
+      },
+      "PublishTemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Template status after publishing",
+            "enum": [
+              "active"
+            ],
+            "example": "active"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "QuestionOptionDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Answer option text",
+            "example": "Paris",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "isCorrect": {
+            "type": "boolean",
+            "description": "Whether this option is a correct answer",
+            "example": true
+          }
+        },
+        "required": [
+          "text",
+          "isCorrect"
+        ]
+      },
+      "AddQuestionDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Question text",
+            "example": "Describe your experience with microservices architecture and event-driven design patterns.",
+            "minLength": 10,
+            "maxLength": 500
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of question response",
+            "enum": [
+              "video",
+              "text",
+              "multiple_choice"
+            ],
+            "example": "video"
+          },
+          "order": {
+            "type": "number",
+            "description": "Display order of the question (1-based)",
+            "example": 1,
+            "minimum": 1
+          },
+          "timeLimit": {
+            "type": "number",
+            "description": "Time limit for answering the question in seconds",
+            "example": 180,
+            "minimum": 30,
+            "maximum": 600
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether this question is mandatory",
+            "example": true
+          },
+          "hints": {
+            "type": "string",
+            "description": "Optional hints for the candidate",
+            "example": "Focus on real-world examples from your previous projects",
+            "maxLength": 200
+          },
+          "options": {
+            "description": "Answer options for multiple choice questions (required for multiple_choice type)",
+            "example": [
+              {
+                "text": "Paris",
+                "isCorrect": true
+              },
+              {
+                "text": "London",
+                "isCorrect": false
+              },
+              {
+                "text": "Berlin",
+                "isCorrect": false
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionOptionDto"
+            }
+          }
+        },
+        "required": [
+          "text",
+          "type",
+          "order",
+          "timeLimit",
+          "required"
+        ]
+      },
+      "AddQuestionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Created question ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "GetQuestionsResponseDto": {
+        "type": "object",
+        "properties": {
+          "questions": {
+            "description": "List of questions",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionResponseDto"
+            }
+          }
+        },
+        "required": [
+          "questions"
+        ]
+      },
+      "ReorderQuestionsDto": {
+        "type": "object",
+        "properties": {
+          "questionIds": {
+            "description": "Array of question IDs in desired order. Must include all questions.",
+            "example": [
+              "q3-uuid-here",
+              "q1-uuid-here",
+              "q2-uuid-here"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "questionIds"
+        ]
+      }
+    }
+  }
+}

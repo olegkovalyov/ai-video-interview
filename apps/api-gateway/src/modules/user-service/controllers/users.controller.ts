@@ -9,16 +9,20 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { UserServiceClient } from '../clients/user-service.client';
 import { LoggerService } from '../../../core/logging/logger.service';
 import { KeycloakRoleService } from '../admin/keycloak';
+import { UpdateProfileDto, SelectRoleDto, UserProfileResponseDto } from '../dto/user-profile.dto';
 
 /**
  * Users Controller
  * Proxies requests to User Service
  */
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('api/users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
@@ -34,6 +38,17 @@ export class UsersController {
    * Uses INTERNAL endpoint (not JWT proxy)
    */
   @Get('me')
+  @ApiOperation({ 
+    summary: 'Get current user profile',
+    description: 'Returns the profile of the currently authenticated user'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User profile retrieved successfully',
+    type: UserProfileResponseDto 
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getCurrentUser(@Req() req: Request & { user?: any }) {
     const userId = req.user?.userId;
     
@@ -66,7 +81,19 @@ export class UsersController {
    * Uses INTERNAL endpoint (not JWT proxy)
    */
   @Put('me')
-  async updateCurrentUser(@Req() req: Request & { user?: any }, @Body() updates: any) {
+  @ApiOperation({ 
+    summary: 'Update current user profile',
+    description: 'Updates the profile of the currently authenticated user'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profile updated successfully',
+    type: UserProfileResponseDto 
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updateCurrentUser(@Req() req: Request & { user?: any }, @Body() updates: UpdateProfileDto) {
     const userId = req.user?.userId;
     
     if (!userId) {
@@ -98,7 +125,17 @@ export class UsersController {
    * Updates role in both Keycloak and User Service
    */
   @Post('me/select-role')
-  async selectRole(@Req() req: Request & { user?: any }, @Body() body: { role: string }) {
+  @ApiOperation({ 
+    summary: 'Select user role',
+    description: 'User selects their role (candidate/hr/admin). One-time operation after registration. Updates both Keycloak and User Service.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Role selected successfully. User will receive new JWT on next login.'
+  })
+  @ApiResponse({ status: 400, description: 'Invalid role or role already selected' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async selectRole(@Req() req: Request & { user?: any }, @Body() body: SelectRoleDto) {
     const userId = req.user?.userId;
     const keycloakId = req.user?.sub; // Keycloak user ID from JWT
     
@@ -142,6 +179,128 @@ export class UsersController {
       return result;
     } catch (error) {
       this.loggerService.error('Failed to select role', error);
+      throw error;
+    }
+  }
+
+  /**
+   * PUT /api/users/me/experience-level
+   * Update current user experience level (Candidate only)
+   */
+  @Put('me/experience-level')
+  @ApiOperation({ 
+    summary: 'Update my experience level',
+    description: 'Updates the experience level of the current user (junior, mid, senior, lead). Candidate only.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Experience level updated successfully'
+  })
+  @ApiResponse({ status: 400, description: 'Invalid experience level' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Candidate profile not found' })
+  async updateExperienceLevel(
+    @Req() req: Request & { user?: any }, 
+    @Body() body: { experienceLevel: 'junior' | 'mid' | 'senior' | 'lead' }
+  ) {
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      this.loggerService.error('PUT /users/me/experience-level - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.info(`📝 [API Gateway] PUT /users/me/experience-level - userId: ${userId}, level: ${body.experienceLevel}`);
+
+    try {
+      const result = await this.userServiceClient.updateExperienceLevel(userId, body.experienceLevel);
+      
+      this.loggerService.log(`✅ [API Gateway] Experience level updated: userId=${userId}, level=${body.experienceLevel}`);
+      
+      return result;
+    } catch (error) {
+      this.loggerService.error('Failed to update experience level', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/users/me/permissions
+   * Get current user permissions
+   */
+  @Get('me/permissions')
+  @ApiOperation({ 
+    summary: 'Get my permissions',
+    description: 'Retrieves roles and permissions for the current user based on their assigned role.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Permissions retrieved successfully'
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getMyPermissions(@Req() req: Request & { user?: any }) {
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      this.loggerService.error('GET /users/me/permissions - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.log(`📡 [API Gateway] GET /users/me/permissions - userId: ${userId}`);
+
+    try {
+      const permissions = await this.userServiceClient.getUserPermissions(userId);
+      
+      this.loggerService.log(`✅ [API Gateway] Permissions retrieved: userId=${userId}`);
+      
+      return permissions;
+    } catch (error) {
+      this.loggerService.error('Failed to fetch user permissions', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/users/me/companies
+   * Get current user companies (HR only)
+   */
+  @Get('me/companies')
+  @ApiOperation({ 
+    summary: 'Get my companies',
+    description: 'Retrieves all companies associated with the current user. Typically used by HR users.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Companies retrieved successfully'
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not authorized to view companies' })
+  async getMyCompanies(@Req() req: Request & { user?: any }) {
+    const userId = req.user?.userId;
+    const isAdmin = req.user?.roles?.includes('admin') || false;
+    
+    if (!userId) {
+      this.loggerService.error('GET /users/me/companies - userId missing in req.user', {
+        user: req.user,
+      });
+      throw new Error('User ID not found in request');
+    }
+    
+    this.loggerService.log(`📡 [API Gateway] GET /users/me/companies - userId: ${userId}, isAdmin: ${isAdmin}`);
+
+    try {
+      const companies = await this.userServiceClient.getUserCompanies(userId, userId, isAdmin);
+      
+      this.loggerService.log(`✅ [API Gateway] Companies retrieved: userId=${userId}, count=${companies.length}`);
+      
+      return companies;
+    } catch (error) {
+      this.loggerService.error('Failed to fetch user companies', error);
       throw error;
     }
   }

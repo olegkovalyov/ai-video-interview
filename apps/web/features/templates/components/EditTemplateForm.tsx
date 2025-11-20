@@ -221,7 +221,14 @@ export function EditTemplateForm({ templateId }: EditTemplateFormProps) {
         timeLimit: newQuestion.timeLimit || 180,
         required: newQuestion.required ?? true,
         hints: newQuestion.hints,
-        options: newQuestion.options,
+        // Generate temporary IDs for options on client-side
+        options: newQuestion.type === 'multiple_choice' 
+          ? newQuestion.options?.map((opt, idx) => ({
+              id: `${result.id}-opt-${idx}`, // Temporary ID
+              text: opt.text,
+              isCorrect: opt.isCorrect,
+            }))
+          : undefined,
       };
 
       setQuestions([...questions, questionWithId]);

@@ -8,7 +8,9 @@ import {StorageModule} from '../storage/storage.module';
 import {KafkaModule} from '../kafka/kafka.module';
 import {UserAdminController} from './controllers/user-admin.controller';
 import {UsersController} from './controllers/users.controller';
-import {UserProfilesController} from './controllers/user-profiles.controller';
+import {SkillsController} from './controllers/skills.controller';
+import {CompaniesController} from './controllers/companies.controller';
+import {CandidatesController} from './controllers/candidates.controller';
 
 @Module({
   imports: [
@@ -21,7 +23,9 @@ import {UserProfilesController} from './controllers/user-profiles.controller';
     HealthController,
     UserAdminController,
     UsersController,
-    UserProfilesController,
+    SkillsController,
+    CompaniesController,
+    CandidatesController,
   ],
   providers: [
     RolesGuard,
