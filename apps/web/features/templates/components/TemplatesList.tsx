@@ -94,11 +94,11 @@ export function TemplatesList() {
 
   // Handlers
   const handleView = (templateId: string) => {
-    router.push(`/hr/interviews/${templateId}`);
+    router.push(`/hr/templates/${templateId}`);
   };
 
   const handleEdit = (templateId: string) => {
-    router.push(`/hr/interviews/${templateId}/edit`);
+    router.push(`/hr/templates/${templateId}/edit`);
   };
 
   const handleDuplicate = async (templateId: string) => {
@@ -135,7 +135,7 @@ export function TemplatesList() {
   };
 
   const handleCreateClick = () => {
-    router.push('/hr/interviews/create');
+    router.push('/hr/templates/create');
   };
 
   return (

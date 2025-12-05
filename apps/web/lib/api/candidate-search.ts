@@ -2,7 +2,7 @@
  * Candidate Search API Client (for HR)
  * Методы для поиска кандидатов по скиллам
  * 
- * TODO: Переключить на реальные API когда будут готовы эндпоинты в API Gateway
+ * ✅ Подключено к реальным API эндпоинтам
  */
 
 import { apiGet } from '@/lib/api';
@@ -26,8 +26,8 @@ export interface CandidateSearchResult {
   fullName: string;
   email: string;
   avatarUrl?: string;
-  experienceLevel: ExperienceLevel;
-  skills: CandidateSkillMatch[];
+  experienceLevel: ExperienceLevel | null;
+  matchedSkills: CandidateSkillMatch[];
   matchScore: number; // 0-100, процент совпадения
 }
 
@@ -167,87 +167,37 @@ const MOCK_CANDIDATES: CandidateSearchResult[] = [
 
 /**
  * Search candidates by skills (HR)
- * TODO: Replace with: GET /api/hr/candidates/search
+ * GET /api/hr/candidates/search
  */
 export async function searchCandidates(filters: CandidateSearchFilters = {}): Promise<CandidateSearchResponse> {
-  // MOCK IMPLEMENTATION
-  await new Promise(resolve => setTimeout(resolve, 400)); // Simulate network delay
+  const params = new URLSearchParams();
   
-  let filtered = [...MOCK_CANDIDATES];
-  
-  // Filter by skills
   if (filters.skillIds && filters.skillIds.length > 0) {
-    filtered = filtered.filter(candidate => {
-      const candidateSkillIds = candidate.skills.map(s => s.skillId);
-      return filters.skillIds!.some(skillId => candidateSkillIds.includes(skillId));
-    });
+    filters.skillIds.forEach(id => params.append('skillIds', id));
   }
+  if (filters.minProficiency) params.append('minProficiency', filters.minProficiency);
+  if (filters.minYears) params.append('minYears', String(filters.minYears));
+  if (filters.experienceLevel) params.append('experienceLevel', filters.experienceLevel);
+  if (filters.page) params.append('page', String(filters.page));
+  if (filters.limit) params.append('limit', String(filters.limit));
   
-  // Filter by min proficiency
-  if (filters.minProficiency) {
-    const proficiencyOrder: ProficiencyLevel[] = ['beginner', 'intermediate', 'advanced', 'expert'];
-    const minIndex = proficiencyOrder.indexOf(filters.minProficiency);
-    
-    filtered = filtered.filter(candidate => {
-      return candidate.skills.some(skill => {
-        const skillIndex = proficiencyOrder.indexOf(skill.proficiencyLevel);
-        return skillIndex >= minIndex;
-      });
-    });
-  }
-  
-  // Filter by min years
-  if (filters.minYears) {
-    filtered = filtered.filter(candidate => {
-      return candidate.skills.some(skill => skill.yearsOfExperience >= filters.minYears!);
-    });
-  }
-  
-  // Filter by experience level
-  if (filters.experienceLevel) {
-    filtered = filtered.filter(c => c.experienceLevel === filters.experienceLevel);
-  }
-  
-  // Sort by match score (descending)
-  filtered.sort((a, b) => b.matchScore - a.matchScore);
-  
-  // Pagination
-  const page = filters.page || 1;
-  const limit = filters.limit || 20;
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  const paginated = filtered.slice(start, end);
-  
-  return {
-    data: paginated,
-    pagination: {
-      total: filtered.length,
-      page,
-      limit,
-      totalPages: Math.ceil(filtered.length / limit),
-    },
-  };
-  
-  // REAL API (uncomment when ready):
-  // const params = new URLSearchParams();
-  // if (filters.skillIds) filters.skillIds.forEach(id => params.append('skillIds[]', id));
-  // if (filters.minProficiency) params.append('minProficiency', filters.minProficiency);
-  // if (filters.minYears) params.append('minYears', String(filters.minYears));
-  // if (filters.experienceLevel) params.append('experienceLevel', filters.experienceLevel);
-  // if (filters.page) params.append('page', String(filters.page));
-  // if (filters.limit) params.append('limit', String(filters.limit));
-  // return apiGet<CandidateSearchResponse>(`/api/hr/candidates/search?${params}`);
+  return apiGet<CandidateSearchResponse>(`/api/hr/candidates/search?${params}`);
 }
 
 /**
  * Get experience level display info
  */
-export function getExperienceLevelDisplay(level: ExperienceLevel): { label: string; color: string } {
+export function getExperienceLevelDisplay(level: ExperienceLevel | null | undefined): { label: string; color: string } {
   const map = {
-    junior: { label: 'Junior', color: 'text-green-400' },
-    mid: { label: 'Mid-level', color: 'text-blue-400' },
-    senior: { label: 'Senior', color: 'text-purple-400' },
+    junior: { label: 'Junior', color: 'text-blue-400' },
+    mid: { label: 'Mid-level', color: 'text-cyan-400' },
+    senior: { label: 'Senior', color: 'text-emerald-400' },
     lead: { label: 'Lead', color: 'text-yellow-400' },
   };
+  
+  if (!level || !map[level]) {
+    return { label: 'Not specified', color: 'text-gray-400' };
+  }
+  
   return map[level];
 }

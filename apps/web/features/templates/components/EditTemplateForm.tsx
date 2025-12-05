@@ -170,7 +170,7 @@ export function EditTemplateForm({ templateId }: EditTemplateFormProps) {
         });
       } catch (error: any) {
         toast.error(error.message || 'Failed to load template');
-        router.push('/hr/interviews');
+        router.push('/hr/templates');
       } finally {
         setLoading(false);
       }
@@ -314,7 +314,7 @@ export function EditTemplateForm({ templateId }: EditTemplateFormProps) {
       });
 
       toast.success('Template updated successfully');
-      router.push('/hr/interviews');
+      router.push('/hr/templates');
     } catch (error: any) {
       toast.error(error.message || 'Failed to update template');
     } finally {
@@ -337,7 +337,7 @@ export function EditTemplateForm({ templateId }: EditTemplateFormProps) {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/hr/interviews')}
+              onClick={() => router.push('/hr/templates')}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5 text-white" />

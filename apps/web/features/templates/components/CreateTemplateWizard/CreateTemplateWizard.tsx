@@ -96,7 +96,7 @@ export function CreateTemplateWizard() {
       console.log('   Template ID:', templateId);
       console.log('   Total questions:', wizardData.questions.length);
       
-      router.push('/hr/interviews');
+      router.push('/hr/templates');
       
     } catch (error: any) {
       console.error('🔴 Error publishing template:', error);
@@ -123,7 +123,7 @@ export function CreateTemplateWizard() {
       console.log('   Template ID:', templateId);
       console.log('   Status: draft');
       
-      router.push('/hr/interviews');
+      router.push('/hr/templates');
       
     } catch (error: any) {
       console.error('🔴 Error saving draft:', error);
@@ -145,7 +145,7 @@ export function CreateTemplateWizard() {
     } else {
       console.log('ℹ️  Cancelling wizard. No template created.');
     }
-    router.push('/hr/interviews');
+    router.push('/hr/templates');
   };
 
   // ═══════════════════════════════════════════════════════════

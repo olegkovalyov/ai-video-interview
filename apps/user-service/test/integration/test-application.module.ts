@@ -49,6 +49,7 @@ import { GetCompanyHandler } from '../../src/application/queries/companies/get-c
 // Candidate Queries
 import { GetCandidateProfileHandler } from '../../src/application/queries/candidate/get-candidate-profile.handler';
 import { GetCandidateSkillsHandler } from '../../src/application/queries/candidate/get-candidate-skills.handler';
+import { SearchCandidatesBySkillsHandler } from '../../src/application/queries/candidate/search-candidates-by-skills.handler';
 
 // Mock services for testing
 export const mockKafkaService = {
@@ -137,6 +138,7 @@ export const mockStorageService = {
     // Candidate Queries
     GetCandidateProfileHandler,
     GetCandidateSkillsHandler,
+    SearchCandidatesBySkillsHandler,
 
     // Mock services - use actual classes as tokens (not strings!)
     {

@@ -3,36 +3,43 @@
 import { useState, useEffect } from 'react';
 import { CandidateSkillsTable } from './CandidateSkillsTable';
 import { EditSkillForm } from './EditSkillForm';
+import { ExperienceLevelSelector } from './ExperienceLevelSelector';
 import { 
   getMyCandidateSkills, 
   removeMyCandidateSkill,
   type CandidateSkillsByCategory,
-  type CandidateSkill
+  type CandidateSkill,
+  type ExperienceLevel
 } from '@/lib/api/candidate-skills';
 import { toast } from 'sonner';
 
 export function CandidateSkillsList() {
   const [skillsByCategory, setSkillsByCategory] = useState<CandidateSkillsByCategory[]>([]);
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingSkills, setLoadingSkills] = useState<Set<string>>(new Set());
   const [editingSkill, setEditingSkill] = useState<CandidateSkill | null>(null);
 
-  // Fetch skills
-  const fetchSkills = async () => {
+  // Fetch skills and profile (aggregated response from API)
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await getMyCandidateSkills();
-      setSkillsByCategory(data);
+      const response = await getMyCandidateSkills();
+      setSkillsByCategory(response.skills);
+      setExperienceLevel(response.experienceLevel);
     } catch (error) {
-      console.error('Failed to fetch skills:', error);
-      toast.error('Failed to load your skills');
+      console.error('Failed to fetch data:', error);
+      toast.error('Failed to load your profile');
     } finally {
       setLoading(false);
     }
   };
 
+  // Alias for refreshing
+  const fetchSkills = fetchData;
+
   useEffect(() => {
-    fetchSkills();
+    fetchData();
   }, []);
 
   // Row-level locking helper
@@ -96,6 +103,12 @@ export function CandidateSkillsList() {
 
   return (
     <>
+      {/* Experience Level Selector */}
+      <ExperienceLevelSelector 
+        currentLevel={experienceLevel}
+        onUpdate={(level) => setExperienceLevel(level)}
+      />
+
       {/* Edit Skill Form */}
       {editingSkill && (
         <EditSkillForm

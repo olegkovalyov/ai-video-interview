@@ -738,17 +738,126 @@ export class UserServiceClient extends BaseServiceProxy {
   }
 
   // ==========================================================================
+  // CANDIDATE SEARCH (HR)
+  // ==========================================================================
+
+  /**
+   * Search candidates by skills (HR)
+   * Route: GET /candidates/search
+   */
+  async searchCandidates(filters: {
+    skillIds?: string[];
+    minProficiency?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    minYears?: number;
+    experienceLevel?: 'junior' | 'mid' | 'senior' | 'lead';
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: any[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    try {
+      // Use axios params with paramsSerializer to properly format arrays
+      const params: Record<string, any> = {};
+      
+      if (filters.skillIds && filters.skillIds.length > 0) {
+        params.skillIds = filters.skillIds;
+      }
+      if (filters.minProficiency) params.minProficiency = filters.minProficiency;
+      if (filters.minYears !== undefined) params.minYears = filters.minYears;
+      if (filters.experienceLevel) params.experienceLevel = filters.experienceLevel;
+      if (filters.page) params.page = filters.page;
+      if (filters.limit) params.limit = filters.limit;
+
+      this.loggerService.info('UserServiceClient: Searching candidates', { filters, params });
+
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/candidates/search`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+          params,
+          paramsSerializer: {
+            serialize: (p) => {
+              const parts: string[] = [];
+              for (const key in p) {
+                const value = p[key];
+                if (Array.isArray(value)) {
+                  // Format: skillIds=uuid1&skillIds=uuid2
+                  value.forEach(v => parts.push(`${key}=${encodeURIComponent(v)}`));
+                } else if (value !== undefined && value !== null) {
+                  parts.push(`${key}=${encodeURIComponent(value)}`);
+                }
+              }
+              return parts.join('&');
+            }
+          }
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Candidates search completed', {
+        total: response.data.pagination?.total,
+      });
+
+      return {
+        data: response.data.data || [],
+        pagination: response.data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
+      };
+    } catch (error) {
+      throw this.handleInternalError(error, 'search candidates', { filters });
+    }
+  }
+
+  // ==========================================================================
+  // CANDIDATE PROFILE
+  // ==========================================================================
+
+  /**
+   * Get candidate profile (includes experienceLevel)
+   * Route: GET /candidates/:userId/profile
+   */
+  async getCandidateProfile(userId: string): Promise<{ experienceLevel: string | null }> {
+    try {
+      const params = new URLSearchParams();
+      params.append('currentUserId', userId); // Own profile
+
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/candidates/${userId}/profile?${params}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+      return {
+        experienceLevel: response.data?.data?.experienceLevel || null,
+      };
+    } catch (error) {
+      // If profile not found, return null experienceLevel
+      this.loggerService.warn('getCandidateProfile: Profile not found, returning null', { userId });
+      return { experienceLevel: null };
+    }
+  }
+
+  // ==========================================================================
   // CANDIDATE SKILLS
   // ==========================================================================
 
   /**
    * Get candidate skills grouped by category
    * Route: GET /candidates/:userId/skills
+   * @param userId - Candidate ID to get skills for
+   * @param currentUserId - Current user ID for permission check (pass same as userId for own profile)
    */
-  async getCandidateSkills(userId: string): Promise<CandidateSkillsByCategoryDto[]> {
+  async getCandidateSkills(userId: string, currentUserId: string): Promise<CandidateSkillsByCategoryDto[]> {
     try {
+      const params = new URLSearchParams();
+      params.append('currentUserId', currentUserId);
+
       const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/candidates/${userId}/skills`, {
+        this.httpService.get(`${this.baseUrl}/candidates/${userId}/skills?${params}`, {
           headers: this.getInternalHeaders(),
           timeout: this.timeout,
         }),

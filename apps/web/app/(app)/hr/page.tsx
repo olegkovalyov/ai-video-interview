@@ -73,30 +73,16 @@ export default function HRDashboardPage() {
 
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          {/* Create Interview */}
+          {/* Templates */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">➕</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Create Interview</h3>
+              <div className="text-5xl mb-4">📝</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Templates</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                Set up a new video interview with custom questions
+                Create and manage interview templates
               </p>
               <Button asChild variant="brand" className="w-full mt-auto">
-                <Link href="/interviews/create">Get Started</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* My Interviews */}
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">📋</div>
-              <h3 className="text-xl font-semibold text-white mb-3">My Interviews</h3>
-              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                View and manage all your interviews
-              </p>
-              <Button asChild variant="glass" className="w-full mt-auto">
-                <Link href="/interviews">View All</Link>
+                <Link href="/hr/templates">Manage Templates</Link>
               </Button>
             </CardContent>
           </Card>
@@ -107,10 +93,24 @@ export default function HRDashboardPage() {
               <div className="text-5xl mb-4">👥</div>
               <h3 className="text-xl font-semibold text-white mb-3">Candidates</h3>
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                Review candidate responses and scores
+                Search candidates and send interview invitations
               </p>
               <Button asChild variant="glass" className="w-full mt-auto">
-                <Link href="/hr/candidates">View Candidates</Link>
+                <Link href="/hr/candidates">Find Candidates</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Companies */}
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+            <CardContent className="p-8 text-center flex flex-col h-full">
+              <div className="text-5xl mb-4">🏢</div>
+              <h3 className="text-xl font-semibold text-white mb-3">Companies</h3>
+              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
+                Manage your companies and positions
+              </p>
+              <Button asChild variant="glass" className="w-full mt-auto">
+                <Link href="/hr/companies">View Companies</Link>
               </Button>
             </CardContent>
           </Card>
