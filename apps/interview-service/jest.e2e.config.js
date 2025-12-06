@@ -30,4 +30,5 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/test/e2e/jest.setup.ts'],
   testTimeout: 30000,
   maxWorkers: 1, // Run tests sequentially like integration tests
+  forceExit: true, // Force exit after tests complete (BullMQ/Kafka keep connections open)
 };

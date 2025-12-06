@@ -8,6 +8,7 @@ import { MessagingModule } from './infrastructure/messaging/messaging.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
 import { ApplicationModule } from './application/application.module';
 import { TemplatesModule } from './infrastructure/http/modules/templates.module';
+import { InvitationsModule } from './infrastructure/http/modules/invitations.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TemplatesModule } from './infrastructure/http/modules/templates.module'
     // HTTP (Controllers)
     HttpModule,
     TemplatesModule, // Templates REST API
+    InvitationsModule, // Invitations REST API
     
     // Metrics (Prometheus)
     MetricsModule,

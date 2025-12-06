@@ -18,6 +18,7 @@ export * from './events';
 
 // Repositories
 export * from './repositories/interview-template.repository.interface';
+export * from './repositories/invitation.repository.interface';
 
 // Exceptions
 export * from './exceptions/interview-template.exceptions';
