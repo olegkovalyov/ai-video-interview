@@ -6,3 +6,4 @@
 export * from './settings.dto';
 export * from './question.dto';
 export * from './template.dto';
+export * from './invitation.dto';
