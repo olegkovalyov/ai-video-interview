@@ -12,18 +12,26 @@ import {
   InvalidTemplateMetadataException,
 } from '../interview-template.exceptions';
 
+// Concrete implementation for testing abstract DomainException
+class TestDomainException extends DomainException {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
 describe('Domain Exceptions', () => {
   describe('DomainException', () => {
     it('should create domain exception with message', () => {
-      const exception = new DomainException('Test error message');
+      const exception = new TestDomainException('Test error message');
 
       expect(exception.message).toBe('Test error message');
-      expect(exception.name).toBe('DomainException');
+      expect(exception.name).toBe('TestDomainException');
       expect(exception).toBeInstanceOf(Error);
+      expect(exception).toBeInstanceOf(DomainException);
     });
 
     it('should have stack trace', () => {
-      const exception = new DomainException('Test error');
+      const exception = new TestDomainException('Test error');
 
       expect(exception.stack).toBeDefined();
     });
