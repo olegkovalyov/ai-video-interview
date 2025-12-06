@@ -222,9 +222,6 @@ export default function EditCompanyPage() {
                   <div>
                     <span className="font-medium">Status:</span> {company.isActive ? '🟢 Active' : '🔴 Inactive'}
                   </div>
-                  <div>
-                    <span className="font-medium">Created by:</span> {company.createdByName || 'Unknown'}
-                  </div>
                 </div>
               </div>
 

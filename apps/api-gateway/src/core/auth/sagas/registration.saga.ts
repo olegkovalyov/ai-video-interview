@@ -53,39 +53,63 @@ export class RegistrationSaga {
       email: dto.email,
     });
 
+    // ═══════════════════════════════════════════════════════════
+    // STEP 1: Check if user already exists (fast path)
+    // If user-service is unavailable - just throw 503, DO NOT delete from Keycloak!
+    // ═══════════════════════════════════════════════════════════
+    let existingUser: { userId: string; email: string; firstName: string; lastName: string } | null;
+
     try {
-      // ═══════════════════════════════════════════════════════════
-      // STEP 1: Check if user already exists (fast path)
-      // ═══════════════════════════════════════════════════════════
-      const existingUser = await this.checkUserExists(dto.keycloakId);
-
-      if (existingUser) {
-        this.logger.info('RegistrationSaga: User already exists', {
-          operationId,
-          userId: existingUser.userId,
-          email: existingUser.email,
-        });
-
-        return {
-          userId: existingUser.userId,
-          email: existingUser.email,
-          firstName: existingUser.firstName,
-          lastName: existingUser.lastName,
-          isNew: false, // Returning user
-        };
-      }
-
-      // ═══════════════════════════════════════════════════════════
-      // STEP 2: User doesn't exist - create it (first login)
-      // ═══════════════════════════════════════════════════════════
-      this.logger.info('RegistrationSaga: Creating new user (first login)', {
+      existingUser = await this.checkUserExists(dto.keycloakId);
+    } catch (checkError) {
+      // User-service unavailable during CHECK - this is NOT a reason to delete from Keycloak!
+      this.logger.error('RegistrationSaga: User-service unavailable during existence check', checkError, {
         operationId,
         keycloakId: dto.keycloakId,
-        email: dto.email,
+        errorCode: checkError.code,
       });
 
-      const userId = uuid();
+      throw new HttpException(
+        {
+          success: false,
+          error: 'Service temporarily unavailable',
+          details: 'Please try again in a few moments.',
+          code: 'USER_SERVICE_UNAVAILABLE',
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
 
+    if (existingUser) {
+      this.logger.info('RegistrationSaga: User already exists', {
+        operationId,
+        userId: existingUser.userId,
+        email: existingUser.email,
+      });
+
+      return {
+        userId: existingUser.userId,
+        email: existingUser.email,
+        firstName: existingUser.firstName,
+        lastName: existingUser.lastName,
+        isNew: false, // Returning user
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // STEP 2: User doesn't exist - create it (first login)
+    // From this point, if we fail - we SHOULD delete from Keycloak
+    // because user exists in Keycloak but NOT in user-service
+    // ═══════════════════════════════════════════════════════════
+    this.logger.info('RegistrationSaga: Creating new user (first login)', {
+      operationId,
+      keycloakId: dto.keycloakId,
+      email: dto.email,
+    });
+
+    const userId = uuid();
+
+    try {
       // STEP 2.1: Create user in User Service
       await this.userServiceClient.createUser({
         userId,
@@ -136,35 +160,25 @@ export class RegistrationSaga {
         lastName: fullUser.lastName,
         isNew: true, // First login - can show onboarding!
       };
-    } catch (error) {
-      this.logger.error('RegistrationSaga: Failed to ensure user exists', error, {
+    } catch (createError) {
+      // ═══════════════════════════════════════════════════════════
+      // COMPENSATION: Failed to create user in User Service
+      // User exists in Keycloak but NOT in User Service - inconsistent state!
+      // We delete from Keycloak so user can re-register cleanly.
+      // ═══════════════════════════════════════════════════════════
+      this.logger.error('RegistrationSaga: Failed to create user in User Service', createError, {
         operationId,
         keycloakId: dto.keycloakId,
         email: dto.email,
       });
 
-      // ═══════════════════════════════════════════════════════════
-      // COMPENSATION: User created in Keycloak but NOT in User Service
-      // ═══════════════════════════════════════════════════════════
-      // PROBLEM: User self-registered via OAuth - we can't delete from Keycloak
-      // because user is already authenticated and has active session.
-      //
-      // SOLUTION OPTIONS:
-      // 1. Delete from Keycloak (harsh - user will get 401 on next request)
-      // 2. Mark as orphaned and retry on next login
-      // 3. Keep user logged in but show error (current state is inconsistent)
-      //
-      // For now: We try to delete from Keycloak to maintain consistency.
-      // User will need to re-register.
-
       try {
-        this.logger.warn('RegistrationSaga: COMPENSATION - Deleting user from Keycloak to restore consistency', {
+        this.logger.warn('RegistrationSaga: COMPENSATION - Deleting user from Keycloak (failed to create in user-service)', {
           operationId,
           keycloakId: dto.keycloakId,
           email: dto.email,
         });
 
-        // Delete from Keycloak to prevent orphaned state
         await this.keycloakUserService.deleteUser(dto.keycloakId);
 
         this.logger.info('RegistrationSaga: Compensation successful - user deleted from Keycloak', {
@@ -184,7 +198,7 @@ export class RegistrationSaga {
         {
           success: false,
           error: 'Failed to initialize user profile',
-          details: 'User Service is temporarily unavailable. Please contact support.',
+          details: 'User Service is temporarily unavailable. Please try again later.',
           code: 'USER_SERVICE_UNAVAILABLE',
         },
         HttpStatus.SERVICE_UNAVAILABLE,

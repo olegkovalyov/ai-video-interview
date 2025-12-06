@@ -58,7 +58,7 @@ export class CreateInvitationHandler
       invitationId,
       command.templateId,
       command.candidateId,
-      command.companyId,
+      command.companyName,
       command.invitedBy,
       command.expiresAt,
       template.getQuestionsCount(),

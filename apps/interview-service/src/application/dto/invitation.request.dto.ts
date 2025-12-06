@@ -30,12 +30,14 @@ export class CreateInvitationDto {
   candidateId: string;
 
   @ApiProperty({ 
-    description: 'Company ID', 
-    format: 'uuid',
-    example: '550e8400-e29b-41d4-a716-446655440002',
+    description: 'Company name',
+    example: 'TechCorp Inc.',
+    maxLength: 200,
   })
-  @IsUUID()
-  companyId: string;
+  @IsString()
+  @IsNotEmpty()
+  @Transform(({ value }) => value?.trim())
+  companyName: string;
 
   @ApiProperty({ 
     description: 'Deadline for completing the interview (ISO 8601 format)', 

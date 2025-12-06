@@ -8,7 +8,7 @@ export class InvitationCreatedEvent implements IDomainEvent {
     public readonly aggregateId: string,
     public readonly templateId: string,
     public readonly candidateId: string,
-    public readonly companyId: string,
+    public readonly companyName: string,
     public readonly invitedBy: string,
     public readonly expiresAt: Date,
   ) {
@@ -21,7 +21,7 @@ export class InvitationCreatedEvent implements IDomainEvent {
       aggregateId: this.aggregateId,
       templateId: this.templateId,
       candidateId: this.candidateId,
-      companyId: this.companyId,
+      companyName: this.companyName,
       invitedBy: this.invitedBy,
       expiresAt: this.expiresAt.toISOString(),
       occurredOn: this.occurredOn.toISOString(),

@@ -5,6 +5,7 @@ import { UsersController } from './controllers/users.controller';
 import { UserSkillsController } from './controllers/user-skills.controller';
 import { SkillsController } from './controllers/skills.controller';
 import { HRController } from './controllers/hr.controller';
+import { HRCompaniesController } from './controllers/hr-companies.controller';
 import { UserServiceClient } from './clients/user-service.client';
 import { AuthModule } from '../../core/auth/auth.module';
 
@@ -30,6 +31,7 @@ import { AuthModule } from '../../core/auth/auth.module';
     UserSkillsController,
     SkillsController,
     HRController,
+    HRCompaniesController,
   ],
   providers: [
     UserServiceClient,

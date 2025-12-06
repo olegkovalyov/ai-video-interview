@@ -17,7 +17,7 @@ export default function CreateCompanyPage() {
   const [formData, setFormData] = useState({
     name: '',
     industry: '',
-    size: sizeOptions[0],
+    size: sizeOptions[0] || '1-10 employees',
     website: '',
     description: '',
     location: '',

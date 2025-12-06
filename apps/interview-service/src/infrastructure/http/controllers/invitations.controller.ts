@@ -77,7 +77,7 @@ export class InvitationsController {
     const command = new CreateInvitationCommand(
       dto.templateId,
       dto.candidateId,
-      dto.companyId,
+      dto.companyName,
       userId, // invitedBy = current HR user
       new Date(dto.expiresAt),
       dto.allowPause ?? true,

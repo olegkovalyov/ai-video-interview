@@ -14,7 +14,7 @@ export interface InvitationProps {
   id: string;
   templateId: string;
   candidateId: string;
-  companyId: string;
+  companyName: string;
   invitedBy: string;
   status: InvitationStatus;
   allowPause: boolean;
@@ -51,8 +51,8 @@ export class Invitation extends AggregateRoot {
     return this.props.candidateId;
   }
 
-  get companyId(): string {
-    return this.props.companyId;
+  get companyName(): string {
+    return this.props.companyName;
   }
 
   get invitedBy(): string {
@@ -112,7 +112,7 @@ export class Invitation extends AggregateRoot {
     id: string,
     templateId: string,
     candidateId: string,
-    companyId: string,
+    companyName: string,
     invitedBy: string,
     expiresAt: Date,
     totalQuestions: number,
@@ -128,8 +128,8 @@ export class Invitation extends AggregateRoot {
       throw new Error('Candidate ID is required');
     }
 
-    if (!companyId) {
-      throw new Error('Company ID is required');
+    if (!companyName || companyName.trim() === '') {
+      throw new Error('Company name is required');
     }
 
     if (!invitedBy) {
@@ -148,7 +148,7 @@ export class Invitation extends AggregateRoot {
       id,
       templateId,
       candidateId,
-      companyId,
+      companyName: companyName.trim(),
       invitedBy,
       status: InvitationStatus.pending(),
       allowPause,
@@ -166,7 +166,7 @@ export class Invitation extends AggregateRoot {
         id,
         templateId,
         candidateId,
-        companyId,
+        companyName.trim(),
         invitedBy,
         expiresAt,
       ),
@@ -398,7 +398,7 @@ export class Invitation extends AggregateRoot {
       id: this.id,
       templateId: this.templateId,
       candidateId: this.candidateId,
-      companyId: this.companyId,
+      companyName: this.companyName,
       invitedBy: this.invitedBy,
       status: this.status.toString(),
       allowPause: this.allowPause,

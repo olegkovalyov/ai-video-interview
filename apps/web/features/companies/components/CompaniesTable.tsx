@@ -1,10 +1,9 @@
 import { Edit2, Trash2, Building2, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Company } from '../types/company.types';
+import { Company } from '@/lib/api/companies';
 
 interface CompaniesTableProps {
   companies: Company[];
-  onToggleStatus: (companyId: string) => void;
   onEdit: (companyId: string) => void;
   onDelete: (companyId: string) => void;
   loadingCompanies?: Set<string>;
@@ -12,7 +11,6 @@ interface CompaniesTableProps {
 
 export function CompaniesTable({ 
   companies, 
-  onToggleStatus, 
   onEdit, 
   onDelete, 
   loadingCompanies = new Set() 
@@ -23,7 +21,7 @@ export function CompaniesTable({
         <CardContent className="p-12 text-center">
           <Building2 className="w-16 h-16 text-white/40 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">No companies found</h3>
-          <p className="text-white/70">Try adjusting your filters or create a new company</p>
+          <p className="text-white/70">Create your first company to get started</p>
         </CardContent>
       </Card>
     );
@@ -40,7 +38,6 @@ export function CompaniesTable({
                 <th className="text-left p-4 text-white/70 font-semibold">Industry</th>
                 <th className="text-left p-4 text-white/70 font-semibold">Size</th>
                 <th className="text-left p-4 text-white/70 font-semibold">Location</th>
-                <th className="text-center p-4 text-white/70 font-semibold">Status</th>
                 <th className="text-right p-4 text-white/70 font-semibold">Actions</th>
               </tr>
             </thead>
@@ -94,34 +91,13 @@ export function CompaniesTable({
                       {company.location || '—'}
                     </td>
 
-                    {/* Status Toggle */}
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => onToggleStatus(company.id)}
-                          disabled={isLoading}
-                          className={`
-                            relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-                            ${isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-                            ${company.isActive ? 'bg-green-500' : 'bg-gray-600'}
-                          `}
-                          title={company.isActive ? 'Click to deactivate' : 'Click to activate'}
-                        >
-                          <span className={`
-                            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                            ${company.isActive ? 'translate-x-6' : 'translate-x-1'}
-                          `} />
-                        </button>
-                      </div>
-                    </td>
-
                     {/* Actions */}
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => onEdit(company.id)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4 text-blue-400" />
@@ -129,7 +105,7 @@ export function CompaniesTable({
                         <button
                           onClick={() => onDelete(company.id)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4 text-red-400" />

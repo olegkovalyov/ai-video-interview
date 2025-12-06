@@ -28,8 +28,8 @@ export class InvitationEntity {
   @Column({ name: 'candidate_id', type: 'uuid' })
   candidateId: string;
 
-  @Column({ name: 'company_id', type: 'uuid' })
-  companyId: string;
+  @Column({ name: 'company_name', type: 'varchar', length: 200 })
+  companyName: string;
 
   @Column({ name: 'invited_by', type: 'uuid' })
   invitedBy: string;

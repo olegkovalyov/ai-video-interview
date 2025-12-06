@@ -108,8 +108,8 @@ export class InvitationResponseDto {
   @ApiProperty({ description: 'Candidate user ID', format: 'uuid' })
   candidateId: string;
 
-  @ApiProperty({ description: 'Company ID', format: 'uuid' })
-  companyId: string;
+  @ApiProperty({ description: 'Company name', example: 'TechCorp Inc.' })
+  companyName: string;
 
   @ApiProperty({ description: 'HR user ID who created this invitation', format: 'uuid' })
   invitedBy: string;
@@ -186,11 +186,8 @@ export class InvitationListItemDto {
   @ApiPropertyOptional({ description: 'Candidate email', example: 'john.doe@example.com' })
   candidateEmail?: string;
 
-  @ApiProperty({ description: 'Company ID', format: 'uuid' })
-  companyId: string;
-
-  @ApiPropertyOptional({ description: 'Company name', example: 'Acme Corp' })
-  companyName?: string;
+  @ApiProperty({ description: 'Company name', example: 'TechCorp Inc.' })
+  companyName: string;
 
   @ApiProperty({ 
     description: 'Current invitation status', 

@@ -189,7 +189,7 @@ export async function seedInvitation(
     id?: string;
     templateId: string;
     candidateId?: string;
-    companyId?: string;
+    companyName?: string;
     invitedBy?: string;
     status?: string;
     allowPause?: boolean;
@@ -202,14 +202,14 @@ export async function seedInvitation(
 
   const invitationId = data.id || uuidv4();
   const candidateId = data.candidateId || uuidv4();
-  const companyId = data.companyId || uuidv4();
+  const companyName = data.companyName || 'Test Company';
   const invitedBy = data.invitedBy || uuidv4();
 
   const invitation = invitationRepo.create({
     id: invitationId,
     templateId: data.templateId,
     candidateId,
-    companyId,
+    companyName,
     invitedBy,
     status: data.status || 'pending',
     allowPause: data.allowPause ?? true,

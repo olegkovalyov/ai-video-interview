@@ -12,7 +12,7 @@ import {
 describe('Invitation Aggregate', () => {
   const templateId = 'template-123';
   const candidateId = 'candidate-456';
-  const companyId = 'company-789';
+  const companyName = 'TechCorp Inc.';
   const invitedBy = 'hr-user-001';
   const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
   const totalQuestions = 5;
@@ -22,7 +22,7 @@ describe('Invitation Aggregate', () => {
       id,
       templateId,
       candidateId,
-      companyId,
+      companyName,
       invitedBy,
       futureDate,
       totalQuestions,
@@ -50,7 +50,7 @@ describe('Invitation Aggregate', () => {
       expect(invitation.id).toBe('invitation-1');
       expect(invitation.templateId).toBe(templateId);
       expect(invitation.candidateId).toBe(candidateId);
-      expect(invitation.companyId).toBe(companyId);
+      expect(invitation.companyName).toBe(companyName);
       expect(invitation.invitedBy).toBe(invitedBy);
       expect(invitation.status.isPending()).toBe(true);
       expect(invitation.allowPause).toBe(true);
@@ -79,7 +79,7 @@ describe('Invitation Aggregate', () => {
           'inv-1',
           '',
           candidateId,
-          companyId,
+          companyName,
           invitedBy,
           futureDate,
           totalQuestions,
@@ -93,7 +93,7 @@ describe('Invitation Aggregate', () => {
           'inv-1',
           templateId,
           '',
-          companyId,
+          companyName,
           invitedBy,
           futureDate,
           totalQuestions,
@@ -108,12 +108,53 @@ describe('Invitation Aggregate', () => {
           'inv-1',
           templateId,
           candidateId,
-          companyId,
+          companyName,
           invitedBy,
           pastDate,
           totalQuestions,
         ),
       ).toThrow('Expiration date must be in the future');
+    });
+
+    it('should throw error for missing companyName', () => {
+      expect(() =>
+        Invitation.create(
+          'inv-1',
+          templateId,
+          candidateId,
+          '',
+          invitedBy,
+          futureDate,
+          totalQuestions,
+        ),
+      ).toThrow('Company name is required');
+    });
+
+    it('should throw error for whitespace-only companyName', () => {
+      expect(() =>
+        Invitation.create(
+          'inv-1',
+          templateId,
+          candidateId,
+          '   ',
+          invitedBy,
+          futureDate,
+          totalQuestions,
+        ),
+      ).toThrow('Company name is required');
+    });
+
+    it('should trim companyName', () => {
+      const invitation = Invitation.create(
+        'inv-1',
+        templateId,
+        candidateId,
+        '  TechCorp Inc.  ',
+        invitedBy,
+        futureDate,
+        totalQuestions,
+      );
+      expect(invitation.companyName).toBe('TechCorp Inc.');
     });
 
     it('should throw error for zero questions', () => {
@@ -122,7 +163,7 @@ describe('Invitation Aggregate', () => {
           'inv-1',
           templateId,
           candidateId,
-          companyId,
+          companyName,
           invitedBy,
           futureDate,
           0,
@@ -178,7 +219,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         pastDate,
         totalQuestions,
@@ -266,7 +307,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         2, // only 2 questions
@@ -289,7 +330,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         2,
@@ -313,7 +354,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         3,
@@ -331,7 +372,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         3,
@@ -351,7 +392,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         1,
@@ -379,7 +420,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         4,
@@ -412,7 +453,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         2,
@@ -433,7 +474,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         3,
@@ -500,7 +541,7 @@ describe('Invitation Aggregate', () => {
         'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         futureDate,
         1,
@@ -521,7 +562,7 @@ describe('Invitation Aggregate', () => {
         id: 'inv-1',
         templateId,
         candidateId,
-        companyId,
+        companyName,
         invitedBy,
         status: InvitationStatus.inProgress(),
         allowPause: false,

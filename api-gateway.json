@@ -730,6 +730,295 @@
         ]
       }
     },
+    "/api/hr/companies": {
+      "post": {
+        "description": "Creates a new company for the current HR user. The company will be associated with the user who created it. HR users can only manage their own companies, while Admin users can manage all companies.",
+        "operationId": "HRCompaniesController_createCompany",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Company created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data - validation failed for required fields"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - HR or Admin role required"
+          },
+          "409": {
+            "description": "Company with this name already exists for this user"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create company",
+        "tags": [
+          "HR - Companies"
+        ]
+      },
+      "get": {
+        "description": "Returns a paginated list of companies. HR users see only companies they created, while Admin users see all companies in the system.",
+        "operationId": "HRCompaniesController_listCompanies",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20, max: 100)",
+            "schema": {
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by company name (partial match)",
+            "schema": {
+              "example": "Tech",
+              "type": "string"
+            }
+          },
+          {
+            "name": "industry",
+            "required": false,
+            "in": "query",
+            "description": "Filter by exact industry name",
+            "schema": {
+              "example": "Software Development",
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status (true/false)",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Companies list retrieved successfully with pagination info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompaniesListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - HR or Admin role required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List my companies",
+        "tags": [
+          "HR - Companies"
+        ]
+      }
+    },
+    "/api/hr/companies/{id}": {
+      "get": {
+        "description": "Retrieves detailed information about a specific company. HR users can only view companies they created, Admin users can view any company.",
+        "operationId": "HRCompaniesController_getCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to view this company (not the owner)"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get company by ID",
+        "tags": [
+          "HR - Companies"
+        ]
+      },
+      "put": {
+        "description": "Updates company details. All fields are optional - only provided fields will be updated. HR users can only update companies they created, Admin users can update any company.",
+        "operationId": "HRCompaniesController_updateCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Company updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to update this company (not the owner)"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update company",
+        "tags": [
+          "HR - Companies"
+        ]
+      },
+      "delete": {
+        "description": "Permanently deletes a company. This action cannot be undone. HR users can only delete companies they created, Admin users can delete any company.",
+        "operationId": "HRCompaniesController_deleteCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyDeleteResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to delete this company (not the owner)"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete company",
+        "tags": [
+          "HR - Companies"
+        ]
+      }
+    },
     "/api/admin/users": {
       "post": {
         "description": "Creates a new user via Saga Orchestration (Keycloak + User Service). Returns immediately with userId and keycloakId.",
@@ -2992,6 +3281,213 @@
           "createdAt"
         ]
       },
+      "CreateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry",
+            "example": "Software Development",
+            "maxLength": 100
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees",
+            "maxLength": 50
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company",
+            "maxLength": 1000
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name",
+          "industry",
+          "size"
+        ]
+      },
+      "CompanyResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Company ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry",
+            "example": "Software Development"
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees"
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company"
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is company active",
+            "example": true
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created this company",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "industry",
+          "size",
+          "isActive",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CompaniesListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "List of companies",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyResponseDto"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "description": "Pagination info",
+            "example": {
+              "total": 100,
+              "page": 1,
+              "limit": 20,
+              "totalPages": 5
+            }
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ]
+      },
+      "UpdateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry",
+            "example": "Software Development",
+            "maxLength": 100
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees",
+            "maxLength": 50
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company",
+            "maxLength": 1000
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA",
+            "maxLength": 200
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is company active",
+            "example": true
+          }
+        }
+      },
+      "CompanyDeleteResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Success status",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Success message",
+            "example": "Company deleted successfully"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -4028,11 +4524,11 @@
             "format": "uuid",
             "example": "550e8400-e29b-41d4-a716-446655440001"
           },
-          "companyId": {
+          "companyName": {
             "type": "string",
-            "description": "Company ID",
-            "format": "uuid",
-            "example": "550e8400-e29b-41d4-a716-446655440002"
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
           },
           "expiresAt": {
             "type": "string",
@@ -4055,7 +4551,7 @@
         "required": [
           "templateId",
           "candidateId",
-          "companyId",
+          "companyName",
           "expiresAt"
         ]
       },
@@ -4218,14 +4714,10 @@
             "type": "string",
             "description": "Candidate email"
           },
-          "companyId": {
-            "type": "string",
-            "description": "Company ID",
-            "format": "uuid"
-          },
           "companyName": {
             "type": "string",
-            "description": "Company name"
+            "description": "Company name",
+            "example": "TechCorp Inc."
           },
           "status": {
             "type": "string",
@@ -4267,7 +4759,7 @@
           "templateId",
           "templateTitle",
           "candidateId",
-          "companyId",
+          "companyName",
           "status",
           "allowPause",
           "expiresAt",
@@ -4398,10 +4890,10 @@
             "description": "Candidate user ID",
             "format": "uuid"
           },
-          "companyId": {
+          "companyName": {
             "type": "string",
-            "description": "Company ID",
-            "format": "uuid"
+            "description": "Company name",
+            "example": "TechCorp Inc."
           },
           "invitedBy": {
             "type": "string",
@@ -4483,7 +4975,7 @@
           "id",
           "templateId",
           "candidateId",
-          "companyId",
+          "companyName",
           "invitedBy",
           "status",
           "allowPause",

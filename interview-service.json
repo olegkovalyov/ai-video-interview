@@ -1448,8 +1448,7 @@
     "title": "Interview Service API",
     "description": "Interview management microservice",
     "version": "1.0",
-    "contact": {
-    }
+    "contact": {}
   },
   "tags": [],
   "servers": [],
@@ -2003,11 +2002,11 @@
             "format": "uuid",
             "example": "550e8400-e29b-41d4-a716-446655440001"
           },
-          "companyId": {
+          "companyName": {
             "type": "string",
-            "description": "Company ID",
-            "format": "uuid",
-            "example": "550e8400-e29b-41d4-a716-446655440002"
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
           },
           "expiresAt": {
             "type": "string",
@@ -2030,7 +2029,7 @@
         "required": [
           "templateId",
           "candidateId",
-          "companyId",
+          "companyName",
           "expiresAt"
         ]
       },
@@ -2105,7 +2104,7 @@
           "codeAnswer": {
             "type": "string",
             "description": "Code answer (required when responseType is \"code\")",
-            "example": "function fibonacci(n) { return n \u003C= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }"
+            "example": "function fibonacci(n) { return n <= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }"
           },
           "videoUrl": {
             "type": "string",
@@ -2208,15 +2207,10 @@
             "description": "Candidate email",
             "example": "john.doe@example.com"
           },
-          "companyId": {
-            "type": "string",
-            "description": "Company ID",
-            "format": "uuid"
-          },
           "companyName": {
             "type": "string",
             "description": "Company name",
-            "example": "Acme Corp"
+            "example": "TechCorp Inc."
           },
           "status": {
             "type": "string",
@@ -2258,7 +2252,7 @@
           "templateId",
           "templateTitle",
           "candidateId",
-          "companyId",
+          "companyName",
           "status",
           "allowPause",
           "expiresAt",
@@ -2392,10 +2386,10 @@
             "description": "Candidate user ID",
             "format": "uuid"
           },
-          "companyId": {
+          "companyName": {
             "type": "string",
-            "description": "Company ID",
-            "format": "uuid"
+            "description": "Company name",
+            "example": "TechCorp Inc."
           },
           "invitedBy": {
             "type": "string",
@@ -2478,7 +2472,7 @@
           "id",
           "templateId",
           "candidateId",
-          "companyId",
+          "companyName",
           "invitedBy",
           "status",
           "allowPause",

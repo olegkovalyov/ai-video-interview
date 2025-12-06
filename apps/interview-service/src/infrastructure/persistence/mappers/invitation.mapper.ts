@@ -24,7 +24,7 @@ export class InvitationMapper {
       id: entity.id,
       templateId: entity.templateId,
       candidateId: entity.candidateId,
-      companyId: entity.companyId,
+      companyName: entity.companyName,
       invitedBy: entity.invitedBy,
       status,
       allowPause: entity.allowPause,
@@ -52,7 +52,7 @@ export class InvitationMapper {
     entity.id = aggregate.id;
     entity.templateId = aggregate.templateId;
     entity.candidateId = aggregate.candidateId;
-    entity.companyId = aggregate.companyId;
+    entity.companyName = aggregate.companyName;
     entity.invitedBy = aggregate.invitedBy;
     entity.status = aggregate.status.toString();
     entity.allowPause = aggregate.allowPause;

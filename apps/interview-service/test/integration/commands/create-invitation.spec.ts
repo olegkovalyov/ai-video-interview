@@ -40,7 +40,7 @@ describe('CreateInvitationCommand Integration', () => {
       // Arrange: Create active template with questions
       const hrUserId = uuidv4();
       const candidateId = uuidv4();
-      const companyId = uuidv4();
+      const companyName = 'TechCorp Inc.';
       
       const templateId = await seedTemplate(dataSource, {
         title: 'Frontend Interview',
@@ -55,7 +55,7 @@ describe('CreateInvitationCommand Integration', () => {
       const command = new CreateInvitationCommand(
         templateId,
         candidateId,
-        companyId,
+        companyName,
         hrUserId,
         expiresAt,
         true, // allowPause
@@ -77,7 +77,7 @@ describe('CreateInvitationCommand Integration', () => {
       expect(entity).toBeDefined();
       expect(entity!.templateId).toBe(templateId);
       expect(entity!.candidateId).toBe(candidateId);
-      expect(entity!.companyId).toBe(companyId);
+      expect(entity!.companyName).toBe(companyName);
       expect(entity!.invitedBy).toBe(hrUserId);
       expect(entity!.status).toBe('pending');
       expect(entity!.allowPause).toBe(true);
@@ -89,7 +89,7 @@ describe('CreateInvitationCommand Integration', () => {
       // Arrange
       const hrUserId = uuidv4();
       const candidateId = uuidv4();
-      const companyId = uuidv4();
+      const companyName = 'StartupXYZ';
 
       const templateId = await seedTemplate(dataSource, {
         title: 'Strict Interview',
@@ -104,7 +104,7 @@ describe('CreateInvitationCommand Integration', () => {
       const command = new CreateInvitationCommand(
         templateId,
         candidateId,
-        companyId,
+        companyName,
         hrUserId,
         expiresAt,
         false, // allowPause
@@ -129,14 +129,14 @@ describe('CreateInvitationCommand Integration', () => {
       // Arrange
       const hrUserId = uuidv4();
       const candidateId = uuidv4();
-      const companyId = uuidv4();
+      const companyName = 'Test Company';
       const fakeTemplateId = uuidv4();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       const command = new CreateInvitationCommand(
         fakeTemplateId,
         candidateId,
-        companyId,
+        companyName,
         hrUserId,
         expiresAt,
       );
@@ -149,7 +149,7 @@ describe('CreateInvitationCommand Integration', () => {
       // Arrange
       const hrUserId = uuidv4();
       const candidateId = uuidv4();
-      const companyId = uuidv4();
+      const companyName = 'Draft Corp';
 
       // Template is draft, not active
       const templateId = await seedTemplate(dataSource, {
@@ -165,7 +165,7 @@ describe('CreateInvitationCommand Integration', () => {
       const command = new CreateInvitationCommand(
         templateId,
         candidateId,
-        companyId,
+        companyName,
         hrUserId,
         expiresAt,
       );
@@ -180,7 +180,7 @@ describe('CreateInvitationCommand Integration', () => {
       // Arrange
       const hrUserId = uuidv4();
       const candidateId = uuidv4();
-      const companyId = uuidv4();
+      const companyName = 'Duplicate Test Corp';
 
       const templateId = await seedTemplate(dataSource, {
         title: 'Interview',
@@ -195,7 +195,7 @@ describe('CreateInvitationCommand Integration', () => {
       const command = new CreateInvitationCommand(
         templateId,
         candidateId,
-        companyId,
+        companyName,
         hrUserId,
         expiresAt,
       );

@@ -5,7 +5,7 @@ export interface InvitationFilters {
   candidateId?: string;
   invitedBy?: string;
   templateId?: string;
-  companyId?: string;
+  companyName?: string;
   status?: string;
 }
 

@@ -30,6 +30,13 @@ import type {
   CreateSkillDto,
   UpdateSkillDto,
 } from '../dto/skills.dto';
+import type {
+  CreateCompanyDto,
+  UpdateCompanyDto,
+  CompanyResponseDto,
+  CompaniesListResponseDto,
+  CompanyFilters,
+} from '../dto/companies.dto';
 
 // ============================================================================
 // Type Aliases for Client Methods
@@ -1066,6 +1073,150 @@ export class UserServiceClient extends BaseServiceProxy {
       return response.data.data; // Unwrap { success, data }
     } catch (error) {
       throw this.handleInternalError(error, 'get user companies', {userId, currentUserId, isAdmin});
+    }
+  }
+
+  // ==========================================================================
+  // COMPANIES CRUD (HR)
+  // ==========================================================================
+
+  /**
+   * Create company
+   * Route: POST /companies
+   */
+  async createCompany(dto: CreateCompanyDto, userId: string): Promise<CompanyResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Creating company', {name: dto.name, userId});
+
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.baseUrl}/companies`, {...dto, createdBy: userId}, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Company created', {companyId: response.data.data?.id});
+      return response.data.data;
+    } catch (error) {
+      throw this.handleInternalError(error, 'create company', {name: dto.name, userId});
+    }
+  }
+
+  /**
+   * List companies with filters
+   * Route: GET /companies
+   */
+  async listCompanies(
+    filters: CompanyFilters,
+    currentUserId: string,
+    isAdmin: boolean,
+  ): Promise<CompaniesListResponseDto> {
+    try {
+      const params = new URLSearchParams();
+      if (filters.page) params.append('page', String(filters.page));
+      if (filters.limit) params.append('limit', String(filters.limit));
+      if (filters.search) params.append('search', filters.search);
+      if (filters.industry) params.append('industry', filters.industry);
+      if (filters.isActive !== undefined) params.append('isActive', String(filters.isActive));
+      params.append('currentUserId', currentUserId);
+      params.append('isAdmin', String(isAdmin));
+      // For HR: filter by createdBy to show only their companies
+      if (!isAdmin) {
+        params.append('createdBy', currentUserId);
+      }
+
+      this.loggerService.info('UserServiceClient: Listing companies', {filters, currentUserId, isAdmin});
+
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/companies?${params}`, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      const {data, pagination} = response.data;
+      return {data: data || [], pagination: pagination || {total: 0, page: 1, limit: 20, totalPages: 0}};
+    } catch (error) {
+      throw this.handleInternalError(error, 'list companies', {filters});
+    }
+  }
+
+  /**
+   * Get company by ID
+   * Route: GET /companies/:id
+   */
+  async getCompanyById(
+    id: string,
+    currentUserId: string,
+    isAdmin: boolean,
+  ): Promise<CompanyResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Getting company', {companyId: id});
+
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.baseUrl}/companies/${id}`, {
+          headers: this.getInternalHeaders(),
+          params: {userId: currentUserId, isAdmin},
+          timeout: this.timeout,
+        }),
+      );
+
+      return response.data.data;
+    } catch (error) {
+      throw this.handleInternalError(error, 'get company', {companyId: id});
+    }
+  }
+
+  /**
+   * Update company
+   * Route: PUT /companies/:id
+   */
+  async updateCompany(
+    id: string,
+    dto: UpdateCompanyDto,
+    currentUserId: string,
+    isAdmin: boolean,
+  ): Promise<CompanyResponseDto> {
+    try {
+      this.loggerService.info('UserServiceClient: Updating company', {companyId: id});
+
+      const response = await firstValueFrom(
+        this.httpService.put(`${this.baseUrl}/companies/${id}`, {...dto, updatedBy: currentUserId}, {
+          headers: this.getInternalHeaders(),
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Company updated', {companyId: id});
+      return response.data.data;
+    } catch (error) {
+      throw this.handleInternalError(error, 'update company', {companyId: id});
+    }
+  }
+
+  /**
+   * Delete company
+   * Route: DELETE /companies/:id
+   */
+  async deleteCompany(
+    id: string,
+    currentUserId: string,
+  ): Promise<{success: boolean; message: string}> {
+    try {
+      this.loggerService.info('UserServiceClient: Deleting company', {companyId: id});
+
+      await firstValueFrom(
+        this.httpService.delete(`${this.baseUrl}/companies/${id}`, {
+          headers: this.getInternalHeaders(),
+          params: {userId: currentUserId},
+          timeout: this.timeout,
+        }),
+      );
+
+      this.loggerService.info('UserServiceClient: Company deleted', {companyId: id});
+      return {success: true, message: 'Company deleted successfully'};
+    } catch (error) {
+      throw this.handleInternalError(error, 'delete company', {companyId: id});
     }
   }
 }

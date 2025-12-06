@@ -1,59 +1,69 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CompanyStatsCards } from './CompanyStatsCards';
-import { CompanyFiltersComponent } from './CompanyFilters';
 import { CompaniesTable } from './CompaniesTable';
-import { listCompanies, listIndustries, toggleCompanyStatus, deleteCompany, type Company } from '@/lib/api/companies';
+import { listCompanies, deleteCompany, type Company } from '@/lib/api/companies';
 import { toast } from 'sonner';
+import { Search } from 'lucide-react';
 
 export function CompaniesList() {
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [industries, setIndustries] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingCompanies, setLoadingCompanies] = useState<Set<string>>(new Set());
-  
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [industryFilter, setIndustryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch companies and industries
-  const fetchData = async () => {
+  // Debounce search input
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+    
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(value);
+    }, 400);
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
+  // Fetch companies
+  const fetchData = useCallback(async (search?: string) => {
     try {
       setLoading(true);
-      
-      const [companiesResponse, industriesData] = await Promise.all([
-        listCompanies({
-          search: searchQuery || undefined,
-          industry: industryFilter || undefined,
-          isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
-        }),
-        listIndustries(),
-      ]);
-      
-      setCompanies(companiesResponse.data);
-      setIndustries(industriesData);
+      const response = await listCompanies({
+        search: search || undefined,
+      });
+      setCompanies(response.data);
     } catch (error) {
       console.error('Failed to fetch companies:', error);
       toast.error('Failed to load companies');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [searchQuery, industryFilter, statusFilter]);
+    fetchData(debouncedSearch);
+  }, [debouncedSearch, fetchData]);
 
   // Row-level locking helper
   const withCompanyLock = async <T,>(companyId: string, action: () => Promise<T>): Promise<T | void> => {
     setLoadingCompanies(prev => new Set(prev).add(companyId));
     try {
       const result = await action();
-      await fetchData(); // Refresh data
+      await fetchData(debouncedSearch); // Refresh data
       return result;
     } catch (error: any) {
       console.error('Operation failed:', error);
@@ -65,14 +75,6 @@ export function CompaniesList() {
         return next;
       });
     }
-  };
-
-  // Handle status toggle
-  const handleToggleStatus = async (companyId: string) => {
-    await withCompanyLock(companyId, async () => {
-      await toggleCompanyStatus(companyId);
-      toast.success('Company status updated');
-    });
   };
 
   // Handle edit
@@ -95,47 +97,34 @@ export function CompaniesList() {
     });
   };
 
-  // Calculate stats
-  const stats = {
-    total: companies.length,
-    active: companies.filter(c => c.isActive).length,
-    inactive: companies.filter(c => !c.isActive).length,
-    totalIndustries: industries.length,
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-white/80">Loading companies...</div>
-      </div>
-    );
-  }
-
   return (
     <>
-      <CompanyStatsCards stats={stats} />
-
-      <CompanyFiltersComponent
-        filters={{ search: searchQuery, industry: industryFilter, status: statusFilter }}
-        industries={industries}
-        onSearchChange={setSearchQuery}
-        onIndustryChange={setIndustryFilter}
-        onStatusChange={setStatusFilter}
-      />
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+          <input
+            type="text"
+            placeholder="Search companies..."
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+          />
+          {loading && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Results Count */}
       <div className="mb-4 text-white/80">
         Found {companies.length} compan{companies.length !== 1 ? 'ies' : 'y'}
-        {(industryFilter || statusFilter !== 'all') && (
-          <span className="ml-2 text-white/60">
-            (filtered)
-          </span>
-        )}
       </div>
 
       <CompaniesTable
         companies={companies}
-        onToggleStatus={handleToggleStatus}
         onEdit={handleEdit}
         onDelete={handleDelete}
         loadingCompanies={loadingCompanies}

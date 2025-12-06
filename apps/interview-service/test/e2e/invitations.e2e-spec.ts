@@ -16,7 +16,7 @@ describe('Invitations API (E2E)', () => {
   let candidateId: string;
   let candidate2Id: string;
   let adminUserId: string;
-  let companyId: string;
+  const companyName = 'TechCorp Inc.';
 
   beforeAll(async () => {
     dataSource = await createE2EDataSource();
@@ -48,7 +48,6 @@ describe('Invitations API (E2E)', () => {
     candidateId = uuidv4();
     candidate2Id = uuidv4();
     adminUserId = uuidv4();
-    companyId = uuidv4();
   });
 
   afterEach(async () => {
@@ -120,7 +119,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
           allowPause: true,
           showTimer: true,
@@ -141,7 +140,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         })
         .expect(201);
@@ -160,7 +159,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         })
         .expect(201);
@@ -173,7 +172,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         })
         .expect(400); // Duplicate invitation
@@ -190,7 +189,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId: fakeTemplateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         })
         .expect(404);
@@ -217,7 +216,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId: draftTemplateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         })
         .expect(400); // BadRequestException - draft template
@@ -231,7 +230,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId: 'not-a-uuid',
           candidateId,
-          companyId,
+          companyName,
           expiresAt: 'invalid-date',
         })
         .expect(400);
@@ -254,7 +253,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         });
 
@@ -321,7 +320,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         });
 
@@ -452,7 +451,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         });
 
@@ -524,7 +523,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId: candidate2Id,
-          companyId,
+          companyName,
           expiresAt,
         });
 
@@ -576,7 +575,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
         });
 
@@ -658,14 +657,14 @@ describe('Invitations API (E2E)', () => {
         .post('/api/invitations')
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
-        .send({ templateId, candidateId, companyId, expiresAt });
+        .send({ templateId, candidateId, companyName, expiresAt });
 
       const templateId2 = await createActiveTemplate(hrUserId);
       await request(app.getHttpServer())
         .post('/api/invitations')
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
-        .send({ templateId: templateId2, candidateId, companyId, expiresAt });
+        .send({ templateId: templateId2, candidateId, companyName, expiresAt });
 
       // Create 1 invitation for other candidate
       const templateId3 = await createActiveTemplate(hrUserId);
@@ -673,7 +672,7 @@ describe('Invitations API (E2E)', () => {
         .post('/api/invitations')
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
-        .send({ templateId: templateId3, candidateId: candidate2Id, companyId, expiresAt });
+        .send({ templateId: templateId3, candidateId: candidate2Id, companyName, expiresAt });
     });
 
     it('should list candidate own invitations', async () => {
@@ -726,13 +725,13 @@ describe('Invitations API (E2E)', () => {
         .post('/api/invitations')
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
-        .send({ templateId, candidateId, companyId, expiresAt });
+        .send({ templateId, candidateId, companyName, expiresAt });
 
       await request(app.getHttpServer())
         .post('/api/invitations')
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
-        .send({ templateId, candidateId: candidate2Id, companyId, expiresAt });
+        .send({ templateId, candidateId: candidate2Id, companyName, expiresAt });
 
       // Create 1 invitation by HR2
       const templateId2 = await createActiveTemplate(hr2UserId);
@@ -740,7 +739,7 @@ describe('Invitations API (E2E)', () => {
         .post('/api/invitations')
         .set('x-user-id', hr2UserId)
         .set('x-user-role', 'hr')
-        .send({ templateId: templateId2, candidateId, companyId, expiresAt });
+        .send({ templateId: templateId2, candidateId, companyName, expiresAt });
     });
 
     it('should list HR own invitations', async () => {
@@ -805,7 +804,7 @@ describe('Invitations API (E2E)', () => {
         .send({
           templateId,
           candidateId,
-          companyId,
+          companyName,
           expiresAt,
           allowPause: true,
           showTimer: true,

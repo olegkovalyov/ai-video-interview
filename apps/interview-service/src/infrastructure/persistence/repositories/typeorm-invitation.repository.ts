@@ -165,8 +165,8 @@ export class TypeOrmInvitationRepository implements IInvitationRepository {
       where.templateId = filters.templateId;
     }
 
-    if (filters.companyId) {
-      where.companyId = filters.companyId;
+    if (filters.companyName) {
+      where.companyName = filters.companyName;
     }
 
     if (filters.status) {

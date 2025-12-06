@@ -34,12 +34,13 @@ export class CreateInvitationDto {
   candidateId: string;
 
   @ApiProperty({
-    description: 'Company ID',
-    format: 'uuid',
-    example: '550e8400-e29b-41d4-a716-446655440002',
+    description: 'Company name',
+    example: 'TechCorp Inc.',
+    maxLength: 200,
   })
-  @IsUUID()
-  companyId: string;
+  @IsString()
+  @IsNotEmpty()
+  companyName: string;
 
   @ApiProperty({
     description: 'Deadline for completing the interview (ISO 8601 format)',
@@ -230,8 +231,8 @@ export class InvitationResponseDto {
   @ApiProperty({ description: 'Candidate user ID', format: 'uuid' })
   candidateId: string;
 
-  @ApiProperty({ description: 'Company ID', format: 'uuid' })
-  companyId: string;
+  @ApiProperty({ description: 'Company name', example: 'TechCorp Inc.' })
+  companyName: string;
 
   @ApiProperty({ description: 'HR user ID who created invitation', format: 'uuid' })
   invitedBy: string;
@@ -314,11 +315,8 @@ export class InvitationListItemDto {
   @ApiPropertyOptional({ description: 'Candidate email' })
   candidateEmail?: string;
 
-  @ApiProperty({ description: 'Company ID', format: 'uuid' })
-  companyId: string;
-
-  @ApiPropertyOptional({ description: 'Company name' })
-  companyName?: string;
+  @ApiProperty({ description: 'Company name', example: 'TechCorp Inc.' })
+  companyName: string;
 
   @ApiProperty({
     description: 'Status',
