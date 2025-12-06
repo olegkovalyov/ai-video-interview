@@ -7,6 +7,7 @@ import { LoggerService } from '../../../core/logging/logger.service';
 
 export interface CreateUserDto {
   email: string;
+  username?: string;
   firstName: string;
   lastName: string;
   password?: string;
@@ -67,6 +68,7 @@ export class UserOrchestrationSaga {
       try {
         const keycloakResult = await this.keycloakUserService.createUser({
           email: dto.email,
+          username: dto.username,
           firstName: dto.firstName,
           lastName: dto.lastName,
           password: dto.password || 'password',

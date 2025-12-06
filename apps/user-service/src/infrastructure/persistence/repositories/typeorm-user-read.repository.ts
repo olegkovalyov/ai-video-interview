@@ -33,8 +33,6 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
   }
 
   async findByIdWithProfile(id: string): Promise<UserWithProfileReadModel | null> {
-    // TODO: Implement profile loading when CandidateProfileEntity and HrProfileEntity are created
-    // For now, return user data without profile details
     const entity = await this.repository.findOne({
       where: { id },
     });

@@ -25,9 +25,6 @@ export class UserEntity {
   @Index()
   email: string;
 
-  @Column({ nullable: true, unique: true, type: 'varchar', length: 100 })
-  username: string;
-
   @Column({ type: 'varchar', length: 100, name: 'first_name' })
   firstName: string;
 
