@@ -4,6 +4,7 @@ import { InterviewServiceClient } from './clients/interview-service.client';
 import { TemplatesController } from './controllers/templates.controller';
 import { InvitationsController } from './controllers/invitations.controller';
 import { LoggerService } from '../../core/logging/logger.service';
+import { UserServiceModule } from '../user-service/user-service.module';
 
 /**
  * Interview Service Module
@@ -21,6 +22,7 @@ import { LoggerService } from '../../core/logging/logger.service';
 @Module({
   imports: [
     HttpModule,
+    UserServiceModule, // For enriching invitations with candidate info
   ],
   controllers: [
     TemplatesController,

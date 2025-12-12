@@ -793,13 +793,24 @@ export class InterviewServiceClient {
     if (error.response) {
       // Interview Service returned an error response
       const status = error.response.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const message = error.response.data?.message || 'Interview Service error';
+      const data = error.response.data;
+
+      // Extract message safely - handle string, object, or array
+      let message = 'Interview Service error';
+      if (typeof data === 'string') {
+        message = data;
+      } else if (data?.message) {
+        // NestJS validation errors return array of messages
+        message = Array.isArray(data.message) ? data.message.join(', ') : String(data.message);
+      } else if (data?.error && typeof data.error === 'string') {
+        message = data.error;
+      }
 
       return new HttpException(
         {
           success: false,
           error: message,
-          details: error.response.data?.details || error.response.data,
+          statusCode: status,
         },
         status,
       );

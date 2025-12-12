@@ -1,137 +1,40 @@
 'use client';
 
-import { useState } from 'react';
-import { Clock, Play, Mail, MoreVertical, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Clock, Play, MoreVertical, AlertCircle, Loader2, RefreshCw, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { listHRInvitations, type InvitationListItem, type InvitationStatus } from '@/lib/api/invitations';
 
-// Mock data - will be replaced with real API
-const mockInvitations = [
-  {
-    id: '1',
-    candidate: {
-      id: 'c1',
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-    },
-    template: {
-      id: 't1',
-      title: 'Frontend Developer Interview',
-      questionsCount: 5,
-    },
-    company: {
-      id: 'comp1',
-      name: 'TechCorp Inc.',
-    },
-    status: 'pending' as const,
-    createdAt: '2024-12-02T10:00:00Z',
-  },
-  {
-    id: '2',
-    candidate: {
-      id: 'c2',
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-    },
-    template: {
-      id: 't2',
-      title: 'Backend Engineer Interview',
-      questionsCount: 8,
-    },
-    company: {
-      id: 'comp1',
-      name: 'TechCorp Inc.',
-    },
-    status: 'in_progress' as const,
-    startedAt: '2024-12-03T14:30:00Z',
-    progress: {
-      answered: 3,
-      total: 8,
-    },
-    createdAt: '2024-12-01T09:00:00Z',
-  },
-  {
-    id: '3',
-    candidate: {
-      id: 'c3',
-      name: 'Mike Johnson',
-      email: 'mike.j@example.com',
-    },
-    template: {
-      id: 't1',
-      title: 'Frontend Developer Interview',
-      questionsCount: 5,
-    },
-    company: {
-      id: 'comp2',
-      name: 'StartupXYZ',
-    },
-    status: 'pending' as const,
-    createdAt: '2024-12-03T16:00:00Z',
-  },
-  {
-    id: '4',
-    candidate: {
-      id: 'c4',
-      name: 'Sarah Williams',
-      email: 'sarah.w@example.com',
-    },
-    template: {
-      id: 't3',
-      title: 'Full Stack Developer Interview',
-      questionsCount: 10,
-    },
-    company: {
-      id: 'comp1',
-      name: 'TechCorp Inc.',
-    },
-    status: 'in_progress' as const,
-    startedAt: '2024-12-04T09:00:00Z',
-    progress: {
-      answered: 7,
-      total: 10,
-    },
-    createdAt: '2024-12-02T11:00:00Z',
-  },
-  {
-    id: '5',
-    candidate: {
-      id: 'c5',
-      name: 'Alex Brown',
-      email: 'alex.b@example.com',
-    },
-    template: {
-      id: 't2',
-      title: 'Backend Engineer Interview',
-      questionsCount: 8,
-    },
-    company: {
-      id: 'comp2',
-      name: 'StartupXYZ',
-    },
-    status: 'pending' as const,
-    createdAt: '2024-12-04T08:00:00Z',
-  },
-];
-
-type InvitationStatus = 'pending' | 'in_progress';
+type FilterStatus = 'all' | 'pending' | 'in_progress';
 
 function getStatusBadge(status: InvitationStatus) {
-  if (status === 'pending') {
-    return (
-      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs font-medium">
-        <Clock className="w-3 h-3" />
-        Pending
-      </span>
-    );
+  switch (status) {
+    case 'pending':
+      return (
+        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs font-medium">
+          <Clock className="w-3 h-3" />
+          Pending
+        </span>
+      );
+    case 'in_progress':
+      return (
+        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-medium">
+          <Play className="w-3 h-3" />
+          In Progress
+        </span>
+      );
+    case 'expired':
+      return (
+        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 text-red-300 rounded-full text-xs font-medium">
+          <AlertCircle className="w-3 h-3" />
+          Expired
+        </span>
+      );
+    default:
+      return null;
   }
-  return (
-    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-medium">
-      <Play className="w-3 h-3" />
-      In Progress
-    </span>
-  );
 }
 
 function formatDate(dateString: string) {
@@ -144,15 +47,42 @@ function formatDate(dateString: string) {
 }
 
 export function CandidateInvitedTab() {
-  const [filter, setFilter] = useState<'all' | InvitationStatus>('all');
+  const [filter, setFilter] = useState<FilterStatus>('all');
+  const [invitations, setInvitations] = useState<InvitationListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredInvitations = mockInvitations.filter(inv => {
+  const loadInvitations = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Load pending and in_progress invitations (not completed)
+      const response = await listHRInvitations({ limit: 100 });
+      // Filter out completed - they go to another tab
+      const activeInvitations = (response.items || []).filter(
+        inv => inv.status === 'pending' || inv.status === 'in_progress' || inv.status === 'expired'
+      );
+      setInvitations(activeInvitations);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load invitations';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInvitations();
+  }, [loadInvitations]);
+
+  const filteredInvitations = invitations.filter(inv => {
     if (filter === 'all') return true;
     return inv.status === filter;
   });
 
-  const pendingCount = mockInvitations.filter(i => i.status === 'pending').length;
-  const inProgressCount = mockInvitations.filter(i => i.status === 'in_progress').length;
+  const pendingCount = invitations.filter(i => i.status === 'pending').length;
+  const inProgressCount = invitations.filter(i => i.status === 'in_progress').length;
 
   return (
     <div className="space-y-6">
@@ -166,7 +96,7 @@ export function CandidateInvitedTab() {
               : 'bg-white/10 text-white hover:bg-white/20'
           }`}
         >
-          All ({mockInvitations.length})
+          All ({invitations.length})
         </button>
         <button
           onClick={() => setFilter('pending')}
@@ -188,10 +118,38 @@ export function CandidateInvitedTab() {
         >
           In Progress ({inProgressCount})
         </button>
+        
+        {/* Refresh Button */}
+        <button
+          onClick={loadInvitations}
+          disabled={isLoading}
+          className="ml-auto px-3 py-2 rounded-full text-sm font-medium bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
-      {/* Invitations List */}
-      {filteredInvitations.length === 0 ? (
+      {/* Loading State */}
+      {isLoading ? (
+        <Card className="bg-white/10 backdrop-blur-md border-white/20">
+          <CardContent className="p-12 text-center">
+            <Loader2 className="w-12 h-12 text-white/50 mx-auto mb-4 animate-spin" />
+            <p className="text-white/70">Loading invitations...</p>
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Card className="bg-white/10 backdrop-blur-md border-white/20">
+          <CardContent className="p-12 text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">Failed to load</h3>
+            <p className="text-white/70 mb-4">{error}</p>
+            <Button onClick={loadInvitations} className="bg-yellow-400 hover:bg-yellow-500 text-gray-900">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      ) : filteredInvitations.length === 0 ? (
         <Card className="bg-white/10 backdrop-blur-md border-white/20">
           <CardContent className="p-12 text-center">
             <AlertCircle className="w-16 h-16 text-white/40 mx-auto mb-4" />
@@ -208,25 +166,30 @@ export function CandidateInvitedTab() {
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {invitation.candidate.name.split(' ').map(n => n[0]).join('')}
+                      {(invitation.candidateName || 'U').split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </div>
 
                     {/* Info */}
                     <div>
                       <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-bold text-white">{invitation.candidate.name}</h3>
+                        <h3 className="text-lg font-bold text-white">{invitation.candidateName || 'Unknown'}</h3>
                         {getStatusBadge(invitation.status)}
                       </div>
-                      <p className="text-white/60 text-sm mb-3">{invitation.candidate.email}</p>
+                      <p className="text-white/60 text-sm mb-3">{invitation.candidateEmail || invitation.candidateId}</p>
                       
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div className="flex items-center gap-1.5 text-white/70">
                           <span className="text-white/50">Template:</span>
-                          <span className="text-white">{invitation.template.title}</span>
+                          <span className="text-white">{invitation.templateTitle}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-white/70">
                           <span className="text-white/50">Company:</span>
-                          <span className="text-white">{invitation.company.name}</span>
+                          <span className="text-white">{invitation.companyName}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-white/70">
+                          <Calendar className="w-3.5 h-3.5 text-white/50" />
+                          <span className="text-white/50">Expires:</span>
+                          <span className="text-white">{formatDate(invitation.expiresAt)}</span>
                         </div>
                       </div>
 
@@ -240,7 +203,7 @@ export function CandidateInvitedTab() {
                           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-blue-500 rounded-full transition-all"
-                              style={{ width: `${(invitation.progress.answered / invitation.progress.total) * 100}%` }}
+                              style={{ width: `${invitation.progress.percentage}%` }}
                             />
                           </div>
                         </div>
@@ -258,17 +221,6 @@ export function CandidateInvitedTab() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
-                    {invitation.status === 'pending' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-white/10 border-white/20 text-white hover:bg-white/20 cursor-pointer"
-                        onClick={() => toast.info('Resend invitation - coming soon')}
-                      >
-                        <Mail className="w-4 h-4 mr-1" />
-                        Resend
-                      </Button>
-                    )}
                     <Button
                       variant="ghost"
                       size="sm"

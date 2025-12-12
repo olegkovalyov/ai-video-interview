@@ -12,9 +12,9 @@ export default function HRCandidatesPage() {
   const [activeTab, setActiveTab] = useState<TabType>('search');
 
   const tabs = [
-    { id: 'search' as TabType, label: 'Search', icon: Search, count: null },
-    { id: 'invited' as TabType, label: 'Invited', icon: Send, count: 5 },
-    { id: 'completed' as TabType, label: 'Completed', icon: CheckCircle, count: 12 },
+    { id: 'search' as TabType, label: 'Search', icon: Search },
+    { id: 'invited' as TabType, label: 'Invited', icon: Send },
+    { id: 'completed' as TabType, label: 'Completed', icon: CheckCircle },
   ];
 
   return (
@@ -50,17 +50,6 @@ export default function HRCandidatesPage() {
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
-                  {tab.count !== null && (
-                    <span className={`
-                      px-2 py-0.5 text-xs rounded-full
-                      ${activeTab === tab.id
-                        ? 'bg-yellow-600 text-white'
-                        : 'bg-white/20 text-white'
-                      }
-                    `}>
-                      {tab.count}
-                    </span>
-                  )}
                 </button>
               );
             })}

@@ -17,6 +17,7 @@ import {
   extractPrimaryRole,
 } from '../../../core/auth/decorators/current-user.decorator';
 import { InterviewServiceClient, ListInvitationsQuery } from '../clients/interview-service.client';
+import { UserServiceClient } from '../../user-service/clients/user-service.client';
 import {
   CreateInvitationDto,
   SubmitResponseDto,
@@ -43,7 +44,10 @@ import {
 @Controller('api/invitations')
 @UseGuards(JwtAuthGuard)
 export class InvitationsController {
-  constructor(private readonly interviewService: InterviewServiceClient) {}
+  constructor(
+    private readonly interviewService: InterviewServiceClient,
+    private readonly userService: UserServiceClient,
+  ) {}
 
   // ════════════════════════════════════════════════════════════════
   // Commands
@@ -230,7 +234,41 @@ export class InvitationsController {
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
     };
-    return this.interviewService.listHRInvitations(user!.userId, role, query);
+    
+    // Get invitations from interview-service
+    const result = await this.interviewService.listHRInvitations(user!.userId, role, query);
+    
+    // Enrich with candidate info from user-service
+    if (result.items && result.items.length > 0) {
+      const uniqueCandidateIds = [...new Set(result.items.map(item => item.candidateId))];
+      
+      // Fetch user info in parallel
+      const usersMap = new Map<string, { fullName: string; email: string }>();
+      await Promise.all(
+        uniqueCandidateIds.map(async (candidateId) => {
+          try {
+            const userInfo = await this.userService.getUserById(candidateId);
+            if (userInfo) {
+              usersMap.set(candidateId, {
+                fullName: `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() || 'Unknown',
+                email: userInfo.email,
+              });
+            }
+          } catch {
+            // Ignore errors - user might not exist
+          }
+        }),
+      );
+      
+      // Enrich items with candidate name and email
+      result.items = result.items.map(item => ({
+        ...item,
+        candidateName: usersMap.get(item.candidateId)?.fullName || undefined,
+        candidateEmail: usersMap.get(item.candidateId)?.email || undefined,
+      }));
+    }
+    
+    return result;
   }
 
   /**

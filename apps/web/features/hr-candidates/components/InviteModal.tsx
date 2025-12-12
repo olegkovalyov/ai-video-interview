@@ -1,41 +1,66 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Send, FileText, Building2 } from 'lucide-react';
+import { X, Send, FileText, Building2, Calendar, Pause, Timer, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { CandidateSearchResult } from '@/lib/api/candidate-search';
-
-// Mock data - will be replaced with real API calls
-const mockTemplates = [
-  { id: '1', title: 'Frontend Developer Interview', questionsCount: 5 },
-  { id: '2', title: 'Backend Engineer Interview', questionsCount: 8 },
-  { id: '3', title: 'Full Stack Developer Interview', questionsCount: 10 },
-  { id: '4', title: 'DevOps Engineer Interview', questionsCount: 6 },
-];
-
-const mockCompanies = [
-  { id: '1', name: 'TechCorp Inc.', position: 'Senior Developer' },
-  { id: '2', name: 'StartupXYZ', position: 'Lead Engineer' },
-  { id: '3', name: 'BigTech Solutions', position: 'Software Architect' },
-];
+import { listTemplates } from '@/features/templates/services/templates-api';
+import type { Template } from '@/features/templates/types/template.types';
+import { listCompanies, type Company } from '@/lib/api/companies';
+import { createInvitation } from '@/lib/api/invitations';
 
 interface InviteModalProps {
   open: boolean;
   onClose: () => void;
   candidate: CandidateSearchResult | null;
+  onSuccess?: () => void;
 }
 
-export function InviteModal({ open, onClose, candidate }: InviteModalProps) {
+export function InviteModal({ open, onClose, candidate, onSuccess }: InviteModalProps) {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [allowPause, setAllowPause] = useState(true);
+  const [showTimer, setShowTimer] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Data from API
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Reset form when modal opens
+  // Load templates and companies when modal opens
   useEffect(() => {
     if (open) {
+      setIsLoading(true);
+      
+      // Set default expiration date (+7 days)
+      const defaultExpiry = new Date();
+      defaultExpiry.setDate(defaultExpiry.getDate() + 7);
+      setExpiresAt(defaultExpiry.toISOString().slice(0, 16)); // Format for datetime-local
+      
+      // Reset form
       setSelectedTemplate('');
       setSelectedCompany('');
+      setAllowPause(true);
+      setShowTimer(true);
+      
+      // Load data
+      Promise.all([
+        listTemplates(1, 100, { status: 'active' }).catch(() => ({ items: [] })),
+        listCompanies({ limit: 100 }).catch(() => ({ data: [] })),
+      ]).then(([templatesData, companiesData]) => {
+        setTemplates(templatesData?.items || []);
+        setCompanies(companiesData?.data || []);
+        
+        // Auto-select if only one company
+        if (companiesData.data?.length === 1) {
+          setSelectedCompany(companiesData.data[0].id);
+        }
+      }).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, [open]);
 
@@ -50,21 +75,39 @@ export function InviteModal({ open, onClose, candidate }: InviteModalProps) {
       toast.error('Please select a company');
       return;
     }
+    if (!expiresAt) {
+      toast.error('Please set a deadline');
+      return;
+    }
 
     setIsSubmitting(true);
     
-    // Mock API call - will be replaced with real invitation API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const template = mockTemplates.find(t => t.id === selectedTemplate);
-    const company = mockCompanies.find(c => c.id === selectedCompany);
-    
-    toast.success(`Interview invitation sent to ${candidate.fullName}`, {
-      description: `Template: ${template?.title} • Company: ${company?.name}`,
-    });
-    
-    setIsSubmitting(false);
-    onClose();
+    try {
+      const company = companies.find(c => c.id === selectedCompany);
+      
+      await createInvitation({
+        templateId: selectedTemplate,
+        candidateId: candidate.userId,
+        companyName: company?.name || '',
+        expiresAt: new Date(expiresAt).toISOString(),
+        allowPause,
+        showTimer,
+      });
+      
+      const template = templates.find(t => t.id === selectedTemplate);
+      
+      toast.success(`Interview invitation sent to ${candidate.fullName}`, {
+        description: `Template: ${template?.title} • Company: ${company?.name}`,
+      });
+      
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create invitation';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -104,45 +147,105 @@ export function InviteModal({ open, onClose, candidate }: InviteModalProps) {
             </div>
           </div>
 
-          {/* Template Selection */}
-          <div>
-            <label className="flex items-center gap-2 text-white font-medium mb-3">
-              <FileText className="w-4 h-4" />
-              Interview Template <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
-            >
-              <option value="" className="bg-gray-800">Select a template...</option>
-              {mockTemplates.map(template => (
-                <option key={template.id} value={template.id} className="bg-gray-800">
-                  {template.title} ({template.questionsCount} questions)
-                </option>
-              ))}
-            </select>
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 text-white/50 animate-spin" />
+              <span className="ml-2 text-white/50">Loading...</span>
+            </div>
+          ) : (
+            <>
+              {/* Template Selection */}
+              <div>
+                <label className="flex items-center gap-2 text-white font-medium mb-3">
+                  <FileText className="w-4 h-4" />
+                  Interview Template <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
+                  disabled={templates.length === 0}
+                >
+                  <option value="" className="bg-gray-800">
+                    {templates.length === 0 ? 'No active templates available' : 'Select a template...'}
+                  </option>
+                  {templates.map(template => (
+                    <option key={template.id} value={template.id} className="bg-gray-800">
+                      {template.title} ({template.questionsCount} questions)
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Company Selection */}
-          <div>
-            <label className="flex items-center gap-2 text-white font-medium mb-3">
-              <Building2 className="w-4 h-4" />
-              Company <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={selectedCompany}
-              onChange={(e) => setSelectedCompany(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
-            >
-              <option value="" className="bg-gray-800">Select a company...</option>
-              {mockCompanies.map(company => (
-                <option key={company.id} value={company.id} className="bg-gray-800">
-                  {company.name} — {company.position}
-                </option>
-              ))}
-            </select>
-          </div>
+              {/* Company Selection */}
+              <div>
+                <label className="flex items-center gap-2 text-white font-medium mb-3">
+                  <Building2 className="w-4 h-4" />
+                  Company <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={selectedCompany}
+                  onChange={(e) => setSelectedCompany(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
+                  disabled={companies.length === 0}
+                >
+                  <option value="" className="bg-gray-800">
+                    {companies.length === 0 ? 'No companies available' : 'Select a company...'}
+                  </option>
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id} className="bg-gray-800">
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Deadline */}
+              <div>
+                <label className="flex items-center gap-2 text-white font-medium mb-3">
+                  <Calendar className="w-4 h-4" />
+                  Deadline <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer [color-scheme:dark]"
+                />
+                <p className="text-white/50 text-xs mt-1">Candidate must complete the interview before this date</p>
+              </div>
+
+              {/* Options */}
+              <div className="flex gap-6">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowPause}
+                    onChange={(e) => setAllowPause(e.target.checked)}
+                    className="w-5 h-5 rounded border-white/20 bg-white/10 text-yellow-400 focus:ring-yellow-400/50 cursor-pointer"
+                  />
+                  <span className="flex items-center gap-2 text-white">
+                    <Pause className="w-4 h-4" />
+                    Allow Pause
+                  </span>
+                </label>
+                
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showTimer}
+                    onChange={(e) => setShowTimer(e.target.checked)}
+                    className="w-5 h-5 rounded border-white/20 bg-white/10 text-yellow-400 focus:ring-yellow-400/50 cursor-pointer"
+                  />
+                  <span className="flex items-center gap-2 text-white">
+                    <Timer className="w-4 h-4" />
+                    Show Timer
+                  </span>
+                </label>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
@@ -156,7 +259,7 @@ export function InviteModal({ open, onClose, candidate }: InviteModalProps) {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !selectedTemplate || !selectedCompany}
+            disabled={isSubmitting || isLoading || !selectedTemplate || !selectedCompany || !expiresAt}
             className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold cursor-pointer"
           >
             {isSubmitting ? (
