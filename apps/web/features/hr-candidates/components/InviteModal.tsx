@@ -52,11 +52,12 @@ export function InviteModal({ open, onClose, candidate, onSuccess }: InviteModal
         listCompanies({ limit: 100 }).catch(() => ({ data: [] })),
       ]).then(([templatesData, companiesData]) => {
         setTemplates(templatesData?.items || []);
-        setCompanies(companiesData?.data || []);
+        const companyList = companiesData?.data || [];
+        setCompanies(companyList);
         
         // Auto-select if only one company
-        if (companiesData.data?.length === 1) {
-          setSelectedCompany(companiesData.data[0].id);
+        if (companyList.length === 1 && companyList[0]) {
+          setSelectedCompany(companyList[0].id);
         }
       }).finally(() => {
         setIsLoading(false);

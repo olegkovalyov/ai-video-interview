@@ -226,6 +226,8 @@ export class InvitationReadRepository {
             order: q.order,
             timeLimit: q.timeLimit,
             required: q.required,
+            hints: q.hints || undefined,
+            options: q.options || undefined,
           }))
       : [];
 

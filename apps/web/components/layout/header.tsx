@@ -138,26 +138,18 @@ export function Header({ userRoles = [] }: HeaderProps) {
                     <Link 
                       href="/hr/dashboard" 
                       className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/dashboard') ? 'text-yellow-400' : ''
+                        pathname === '/hr/dashboard' ? 'text-yellow-400' : ''
                       }`}
                     >
                       Dashboard
                     </Link>
                     <Link 
-                      href="/hr/candidates" 
+                      href="/hr/interviews/templates" 
                       className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/candidates') ? 'text-yellow-400' : ''
+                        pathname.startsWith('/hr/interviews') ? 'text-yellow-400' : ''
                       }`}
                     >
-                      Candidates
-                    </Link>
-                    <Link 
-                      href="/hr/templates" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/templates') || pathname.startsWith('/hr/interviews') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Templates
+                      Interviews
                     </Link>
                     <Link 
                       href="/hr/companies" 

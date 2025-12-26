@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { QuestionOptionDto } from './add-question.dto';
 
 // ==================== Simple Response DTOs ====================
 
@@ -51,6 +52,9 @@ export class QuestionItemDto {
 
   @ApiPropertyOptional({ description: 'Hints for the candidate' })
   hints?: string;
+
+  @ApiPropertyOptional({ description: 'Options for multiple choice questions', type: [QuestionOptionDto] })
+  options?: QuestionOptionDto[];
 }
 
 // ==================== Response Item DTO ====================

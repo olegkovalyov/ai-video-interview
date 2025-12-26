@@ -37,9 +37,7 @@ export default function CandidateDashboardPage() {
       setStartingId(id);
       await startInvitation(id);
       toast.success('Interview started!');
-      // TODO: Navigate to interview page when implemented
-      // router.push(`/candidate/interview/${id}`);
-      loadInvitations(); // Refresh list
+      router.push(`/interview/${id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start interview';
       toast.error(message);
@@ -194,7 +192,7 @@ export default function CandidateDashboardPage() {
                     <button
                       onClick={() => handleStartInterview(invitation.id)}
                       disabled={startingId === invitation.id}
-                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-500/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-500/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       {startingId === invitation.id ? (
                         <>
@@ -212,11 +210,8 @@ export default function CandidateDashboardPage() {
                   
                   {invitation.status === 'in_progress' && (
                     <button
-                      onClick={() => {
-                        // TODO: Navigate to interview page
-                        toast.info('Interview page coming soon');
-                      }}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      onClick={() => router.push(`/interview/${invitation.id}`)}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       <Play className="w-4 h-4" />
                       Resume Interview
@@ -229,7 +224,7 @@ export default function CandidateDashboardPage() {
                         // TODO: Navigate to results page
                         toast.info('Results page coming soon');
                       }}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors"
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors cursor-pointer"
                     >
                       View Results
                     </button>

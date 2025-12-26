@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { TokenRefreshProvider } from "@/components/auth/TokenRefreshProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -19,10 +18,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * BULLETPROOF AUTH - Root Layout
+ * Root Layout
  * 
- * Включает TokenRefreshProvider для proactive обновления токенов
- * Токены обновляются каждые 4 минуты (до истечения 5-минутного access_token)
+ * TokenRefreshProvider moved to (app)/layout.tsx for protected routes only
  */
 export default function RootLayout({
   children,
@@ -32,9 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <TokenRefreshProvider>
-          {children}
-        </TokenRefreshProvider>
+        {children}
         <Toaster position="top-right" richColors />
       </body>
     </html>

@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Fix cursor pointer for sidebar navigation */
+nav a {
+  cursor: pointer !important;
+}

@@ -15,7 +15,7 @@ export interface Invitation {
   id: string;
   templateId: string;
   candidateId: string;
-  companyId: string;
+  companyName: string;
   invitedBy: string;
   status: InvitationStatus;
   allowPause: boolean;
@@ -29,21 +29,37 @@ export interface Invitation {
   updatedAt: string;
 }
 
+export type QuestionType = 'text' | 'multiple_choice' | 'video';
+
+export interface QuestionOption {
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  type: QuestionType;
+  order: number;
+  timeLimit?: number;
+  required: boolean;
+  hints?: string;
+  options?: QuestionOption[];
+}
+
 export interface InvitationWithDetails extends Invitation {
+  // When includeTemplate=true, these fields are included at top level
+  templateTitle?: string;
+  templateDescription?: string;
+  questions?: Question[];
+  
+  // Nested template object (for backward compatibility)
   template?: {
     id: string;
     title: string;
     description?: string;
     questionsCount: number;
-    questions?: {
-      id: string;
-      text: string;
-      type: string;
-      order: number;
-      timeLimit?: number;
-      required: boolean;
-      options?: { text: string; isCorrect: boolean }[];
-    }[];
+    questions?: Question[];
   };
   candidate?: {
     id: string;
@@ -107,6 +123,8 @@ export interface CreateInvitationDto {
 
 export interface SubmitResponseDto {
   questionId: string;
+  questionIndex: number;
+  questionText: string;
   responseType: 'text' | 'code' | 'video';
   textAnswer?: string;
   codeAnswer?: string;
