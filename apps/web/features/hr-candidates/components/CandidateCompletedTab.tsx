@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, Star, Clock, Eye, Download, MoreVertical, Trophy, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { CheckCircle, Star, Clock, Eye, Bot, MoreVertical, Trophy, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -41,6 +42,7 @@ function generateRandomScore(id: string): number {
 }
 
 export function CandidateCompletedTab() {
+  const router = useRouter();
   const [invitations, setInvitations] = useState<InvitationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
@@ -222,18 +224,18 @@ export function CandidateCompletedTab() {
                       <div className="flex items-center gap-2">
                         <Button
                           className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold cursor-pointer"
-                          onClick={() => toast.info('View results - coming soon')}
+                          onClick={() => router.push(`/hr/interviews/review/${interview.id}`)}
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           View Results
                         </Button>
                         <Button
                           variant="outline"
-                          size="icon"
-                          className="bg-white/10 border-white/20 text-white hover:bg-white/20 cursor-pointer"
-                          onClick={() => toast.info('Download report - coming soon')}
+                          disabled
+                          className="bg-white/5 border-white/10 text-white/40 cursor-not-allowed"
                         >
-                          <Download className="w-4 h-4" />
+                          <Bot className="w-4 h-4 mr-2" />
+                          AI Review
                         </Button>
                         <Button
                           variant="ghost"
