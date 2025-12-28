@@ -1,743 +1,676 @@
 # User Service
 
-**Статус:** ✅ Реализован  
-**Порт:** 3003  
-**Технологии:** NestJS, TypeORM, PostgreSQL, CQRS  
-**Версия:** 1.0
+**Status:** ✅ Implemented  
+**Port:** 3005  
+**Technology Stack:** NestJS, TypeORM, PostgreSQL, Kafka, MinIO, Redis (BullMQ)  
+**Database:** `ai_video_interview_user`
 
 ---
 
-## 🎯 Назначение
+## Overview
 
-User Service управляет пользовательскими профилями, статистикой и квотами. Построен на принципах DDD (Domain-Driven Design) и CQRS.
+User Service manages all user-related operations for the AI Video Interview platform using Clean Architecture with CQRS and DDD patterns.
 
----
-
-## ✅ Ответственность
-
-### Что входит:
-- **User Profiles (CRUD)** - создание, чтение, обновление профилей
-- **Avatar Management** - загрузка и хранение аватаров
-- **User Statistics** - interviews created, storage used
-- **Quota Tracking** - отслеживание лимитов пользователя
-- **User Preferences** - настройки уведомлений, языка
-- **Kafka Events** - публикация user events
-
-### Что НЕ входит:
-- ❌ **Аутентификация** (Keycloak)
-- ❌ **Authorization/Permissions** (API Gateway)
-- ❌ **Billing/Subscriptions** (Billing Service)
-- ❌ **Interview management** (Interview Service)
+**Key Responsibilities:**
+- User profile management
+- Role-based access control (admin, hr, candidate)
+- HR company management
+- Candidate skills management
+- Avatar storage (MinIO)
+- Event publishing via INBOX/OUTBOX pattern
 
 ---
 
-## 🏗️ Архитектура (CQRS + DDD)
+## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│          USER SERVICE (3003)                │
-│                                             │
-│  ┌─────────────────────────────────────┐   │
-│  │      HTTP Layer (Controllers)       │   │
-│  │  - UsersController                  │   │
-│  │  - ProfilesController               │   │
-│  │  - StatsController                  │   │
-│  └──────────────┬──────────────────────┘   │
-│                 │                           │
-│  ┌──────────────▼──────────────────────┐   │
-│  │    Application Layer (CQRS)         │   │
-│  │  ┌────────────┐  ┌───────────────┐  │   │
-│  │  │ Commands   │  │   Queries     │  │   │
-│  │  ├────────────┤  ├───────────────┤  │   │
-│  │  │ CreateUser │  │ GetUserById   │  │   │
-│  │  │ UpdateUser │  │ GetUserByEmail│  │   │
-│  │  │ UploadAvatar│  │ GetUserStats  │  │   │
-│  │  └────────────┘  └───────────────┘  │   │
-│  └──────────────┬──────────────────────┘   │
-│                 │                           │
-│  ┌──────────────▼──────────────────────┐   │
-│  │     Domain Layer (Entities)         │   │
-│  │  - User (Aggregate Root)            │   │
-│  │  - Profile (Value Object)           │   │
-│  │  - Stats (Value Object)             │   │
-│  │  - Quota (Value Object)             │   │
-│  └──────────────┬──────────────────────┘   │
-│                 │                           │
-│  ┌──────────────▼──────────────────────┐   │
-│  │   Infrastructure Layer              │   │
-│  │  - TypeORM Repositories             │   │
-│  │  - KafkaService (Event Publishing)  │   │
-│  │  - MinIO (Avatar Storage)           │   │
-│  │  - LoggerService                    │   │
-│  └─────────────────────────────────────┘   │
-└─────────────────────────────────────────────┘
-           │              │
-           ▼              ▼
-     PostgreSQL        Kafka
-    (users DB)      (user-events)
-```
-
----
-
-## 📡 API Endpoints
-
-### Users CRUD
-
-#### `POST /api/v1/users`
-Создать нового пользователя (вызывается после регистрации в Keycloak)
-```typescript
-Request: {
-  keycloakId: string
-  email: string
-  profile: {
-    fullName: string
-  }
-}
-
-Response: {
-  id: string
-  keycloakId: string
-  email: string
-  profile: {
-    fullName: string
-    avatarUrl: null
-  }
-  stats: {
-    interviewsCreated: 0
-    storageUsed: 0
-  }
-  createdAt: string
-}
-```
-
-#### `GET /api/v1/users/:id`
-Получить пользователя по ID
-```typescript
-Response: User
-```
-
-#### `GET /api/v1/users/by-keycloak/:keycloakId`
-Получить пользователя по Keycloak ID
-```typescript
-Response: User
-```
-
-#### `PATCH /api/v1/users/:id`
-Обновить профиль пользователя
-```typescript
-Request: {
-  profile?: {
-    fullName?: string
-    companyName?: string
-    phone?: string
-  }
-}
-
-Response: User
-```
-
-#### `DELETE /api/v1/users/:id`
-Удалить пользователя (soft delete)
-```typescript
-Response: {
-  message: "User deleted successfully"
-}
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           USER SERVICE (3005)                                   │
+│                                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                         HTTP Layer                                       │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │   │
+│  │  │    Users    │  │  Candidates │  │  Companies  │  │   Skills    │    │   │
+│  │  │ Controller  │  │ Controller  │  │ Controller  │  │ Controller  │    │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                        │                                        │
+│  ┌─────────────────────────────────────▼───────────────────────────────────┐   │
+│  │                    Application Layer (CQRS)                              │   │
+│  │                                                                          │   │
+│  │  Commands:                              Queries:                         │   │
+│  │  ┌──────────────────────────┐          ┌──────────────────────────┐    │   │
+│  │  │ CreateUser, UpdateUser   │          │ GetUser, ListUsers       │    │   │
+│  │  │ SuspendUser, ActivateUser│          │ GetUserByExternalAuthId  │    │   │
+│  │  │ SelectRole, UploadAvatar │          │ GetUserPermissions       │    │   │
+│  │  │ Admin: Create/Update/Del │          │ GetUserStats             │    │   │
+│  │  │ HR: Companies CRUD       │          │ Candidate: Profile, Skills│   │   │
+│  │  │ Candidate: Profile/Skills│          │ Companies: List, Get     │    │   │
+│  │  └──────────────────────────┘          └──────────────────────────┘    │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                        │                                        │
+│  ┌─────────────────────────────────────▼───────────────────────────────────┐   │
+│  │                         Domain Layer (DDD)                               │   │
+│  │                                                                          │   │
+│  │  Aggregates:        Entities:           Value Objects:                   │   │
+│  │  ┌────────────┐    ┌────────────┐      ┌────────────────────────┐       │   │
+│  │  │    User    │    │   Skill    │      │ Email, FullName        │       │   │
+│  │  │ (aggregate)│    │  Company   │      │ UserStatus, UserRole   │       │   │
+│  │  └────────────┘    │ Candidate  │      │ ExperienceLevel        │       │   │
+│  │                    │   Skill    │      │ ProficiencyLevel       │       │   │
+│  │                    └────────────┘      └────────────────────────┘       │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                        │                                        │
+│  ┌─────────────────────────────────────▼───────────────────────────────────┐   │
+│  │                      Infrastructure Layer                                │   │
+│  │                                                                          │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐  │   │
+│  │  │  Persistence │  │   Messaging  │  │    Kafka     │  │  Storage   │  │   │
+│  │  │  (TypeORM)   │  │(INBOX/OUTBOX)│  │  (Consumer/  │  │  (MinIO)   │  │   │
+│  │  │              │  │  (BullMQ)    │  │   Producer)  │  │            │  │   │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘  │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+         │                    │                    │                    │
+         ▼                    ▼                    ▼                    ▼
+    PostgreSQL             Redis               Kafka                MinIO
+     (5432)               (6379)              (9092)             (9000/9001)
 ```
 
 ---
 
-### Profile Management
+## Project Structure
 
-#### `PUT /api/v1/users/:id/profile`
-Полное обновление профиля
-```typescript
-Request: {
-  fullName: string
-  companyName?: string
-  phone?: string
-  bio?: string
-}
-
-Response: User
+```
+src/
+├── domain/                              # Domain Layer (Pure business logic)
+│   ├── aggregates/
+│   │   └── user.aggregate.ts           # User aggregate root
+│   ├── entities/
+│   │   ├── skill.entity.ts             # Skill domain entity
+│   │   ├── skill-category.entity.ts    # Skill category
+│   │   ├── candidate-skill.entity.ts   # Candidate-skill relation
+│   │   └── user-company.entity.ts      # User-company relation
+│   ├── value-objects/
+│   │   ├── email.vo.ts                 # Email validation
+│   │   ├── full-name.vo.ts             # Name handling
+│   │   ├── user-status.vo.ts           # active/suspended/deleted
+│   │   ├── user-role.vo.ts             # admin/hr/candidate
+│   │   ├── experience-level.vo.ts      # junior/middle/senior/lead
+│   │   ├── proficiency-level.vo.ts     # beginner/intermediate/...
+│   │   ├── company-size.vo.ts          # startup/small/medium/...
+│   │   └── years-of-experience.vo.ts   # Experience validation
+│   ├── events/
+│   │   ├── user-created.event.ts
+│   │   ├── user-updated.event.ts
+│   │   ├── user-suspended.event.ts
+│   │   └── ... (domain events)
+│   ├── repositories/
+│   │   └── user.repository.interface.ts
+│   ├── read-models/
+│   │   └── user-read.model.ts
+│   ├── base/
+│   │   └── aggregate-root.ts
+│   └── exceptions/
+│       └── user.exceptions.ts
+│
+├── application/                         # Application Layer (CQRS)
+│   ├── commands/
+│   │   ├── create-user/
+│   │   │   ├── create-user.command.ts
+│   │   │   └── create-user.handler.ts
+│   │   ├── update-user/
+│   │   ├── suspend-user/
+│   │   ├── activate-user/
+│   │   ├── select-role/
+│   │   ├── upload-avatar/
+│   │   ├── admin/                      # Admin-specific commands
+│   │   │   ├── admin-create-user/
+│   │   │   ├── admin-update-user/
+│   │   │   ├── admin-assign-role/
+│   │   │   └── ... 
+│   │   ├── hr/                         # HR-specific commands
+│   │   │   ├── create-company/
+│   │   │   ├── update-company/
+│   │   │   └── delete-company/
+│   │   └── candidate/                  # Candidate-specific commands
+│   │       ├── update-candidate-profile/
+│   │       ├── add-candidate-skill/
+│   │       └── remove-candidate-skill/
+│   ├── queries/
+│   │   ├── get-user/
+│   │   ├── get-user-by-external-auth-id/
+│   │   ├── list-users/
+│   │   ├── get-user-permissions/
+│   │   ├── get-user-stats/
+│   │   ├── candidate/
+│   │   │   ├── get-candidate-profile/
+│   │   │   └── get-candidate-skills/
+│   │   ├── companies/
+│   │   │   ├── get-company/
+│   │   │   └── list-companies/
+│   │   └── skills/
+│   │       ├── get-skill/
+│   │       ├── list-skills/
+│   │       └── search-skills/
+│   ├── dto/
+│   │   ├── requests/
+│   │   └── responses/
+│   └── application.module.ts
+│
+├── infrastructure/                      # Infrastructure Layer
+│   ├── persistence/
+│   │   ├── entities/                   # TypeORM entities
+│   │   │   ├── user.entity.ts
+│   │   │   ├── role.entity.ts
+│   │   │   ├── skill.entity.ts
+│   │   │   ├── skill-category.entity.ts
+│   │   │   ├── company.entity.ts
+│   │   │   ├── candidate-skill.entity.ts
+│   │   │   ├── user-company.entity.ts
+│   │   │   └── outbox.entity.ts
+│   │   ├── repositories/
+│   │   │   ├── typeorm-user.repository.ts
+│   │   │   ├── typeorm-role.repository.ts
+│   │   │   ├── typeorm-skill.repository.ts
+│   │   │   └── typeorm-company.repository.ts
+│   │   ├── mappers/
+│   │   │   ├── user.mapper.ts
+│   │   │   ├── skill.mapper.ts
+│   │   │   └── company.mapper.ts
+│   │   ├── migrations/
+│   │   │   └── ... (TypeORM migrations)
+│   │   ├── database.module.ts
+│   │   └── typeorm.config.ts
+│   │
+│   ├── messaging/                      # INBOX/OUTBOX Pattern
+│   │   ├── outbox/
+│   │   │   ├── outbox-publisher.processor.ts
+│   │   │   └── outbox-scheduler.service.ts
+│   │   └── messaging.module.ts
+│   │
+│   ├── kafka/
+│   │   └── kafka.module.ts
+│   │
+│   ├── http/
+│   │   ├── controllers/
+│   │   │   ├── users.controller.ts
+│   │   │   ├── candidates.controller.ts
+│   │   │   ├── companies.controller.ts
+│   │   │   ├── skills.controller.ts
+│   │   │   ├── user-admin.controller.ts
+│   │   │   └── health.controller.ts
+│   │   └── http.module.ts
+│   │
+│   ├── storage/
+│   │   ├── minio-storage.service.ts
+│   │   └── storage.module.ts
+│   │
+│   ├── logger/
+│   │   ├── logger.service.ts
+│   │   └── logger.module.ts
+│   │
+│   └── metrics/
+│       └── metrics.module.ts
+│
+├── app.module.ts
+└── main.ts
 ```
 
 ---
 
-### Avatar Management
+## Database Schema
 
-#### `POST /api/v1/users/:id/avatar`
-Загрузить аватар (multipart/form-data)
-```typescript
-Request: multipart/form-data
-  file: File (jpeg, png, max 5MB)
+### Entity Relationship Diagram
 
-Response: {
-  avatarUrl: string
-}
+```
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│     users       │       │   user_roles    │       │     roles       │
+├─────────────────┤       ├─────────────────┤       ├─────────────────┤
+│ id (PK)         │◄──────│ user_id (FK)    │       │ id (PK)         │
+│ external_auth_id│       │ role_id (FK)    │──────►│ name            │
+│ email           │       │ created_at      │       │ display_name    │
+│ first_name      │       └─────────────────┘       └─────────────────┘
+│ last_name       │
+│ phone           │       ┌─────────────────┐       ┌─────────────────┐
+│ avatar_url      │       │  user_companies │       │   companies     │
+│ status          │◄──────│ user_id (FK)    │       ├─────────────────┤
+│ selected_role   │       │ company_id (FK) │──────►│ id (PK)         │
+│ created_at      │       │ position        │       │ name            │
+│ updated_at      │       │ is_primary      │       │ description     │
+└─────────────────┘       └─────────────────┘       │ size            │
+                                                     │ industry        │
+                                                     │ website         │
+┌─────────────────┐       ┌─────────────────┐       │ owner_id (FK)   │
+│     skills      │       │candidate_skills │       └─────────────────┘
+├─────────────────┤       ├─────────────────┤
+│ id (PK)         │◄──────│ skill_id (FK)   │
+│ name            │       │ user_id (FK)    │──────►users
+│ category_id(FK) │       │ proficiency     │
+│ is_active       │       │ years_exp       │
+└────────┬────────┘       │ is_primary      │
+         │                └─────────────────┘
+         ▼
+┌─────────────────┐       ┌─────────────────┐
+│skill_categories │       │     outbox      │
+├─────────────────┤       ├─────────────────┤
+│ id (PK)         │       │ id (PK)         │
+│ name            │       │ event_type      │
+│ description     │       │ payload (JSONB) │
+└─────────────────┘       │ status          │
+                          │ published_at    │
+                          │ created_at      │
+                          └─────────────────┘
 ```
 
-#### `DELETE /api/v1/users/:id/avatar`
-Удалить аватар
-```typescript
-Response: {
-  message: "Avatar deleted successfully"
-}
-```
+### Tables Detail
+
+**users**
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `external_auth_id` | VARCHAR | Keycloak user ID (unique) |
+| `email` | VARCHAR | Email address (unique) |
+| `first_name` | VARCHAR | First name |
+| `last_name` | VARCHAR | Last name |
+| `phone` | VARCHAR | Phone number |
+| `avatar_url` | TEXT | Avatar URL in MinIO |
+| `status` | ENUM | active, suspended, deleted |
+| `selected_role` | VARCHAR | Currently selected role |
+| `created_at` | TIMESTAMP | Creation timestamp |
+| `updated_at` | TIMESTAMP | Last update timestamp |
+
+**roles**
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `name` | VARCHAR | Role name (admin, hr, candidate) |
+| `display_name` | VARCHAR | Human-readable name |
+
+**companies**
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `name` | VARCHAR | Company name |
+| `description` | TEXT | Company description |
+| `size` | ENUM | startup, small, medium, large, enterprise |
+| `industry` | VARCHAR | Industry sector |
+| `website` | VARCHAR | Company website |
+| `owner_id` | UUID | FK to users (HR who created) |
+
+**skills**
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `name` | VARCHAR | Skill name |
+| `category_id` | UUID | FK to skill_categories |
+| `is_active` | BOOLEAN | Is skill active |
+
+**candidate_skills**
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `user_id` | UUID | FK to users |
+| `skill_id` | UUID | FK to skills |
+| `proficiency_level` | ENUM | beginner, intermediate, advanced, expert |
+| `years_of_experience` | INTEGER | Years with this skill |
+| `is_primary` | BOOLEAN | Primary skill flag |
 
 ---
 
-### Statistics
+## CQRS Commands
 
-#### `GET /api/v1/users/:id/stats`
-Получить статистику пользователя
-```typescript
-Response: {
-  interviewsCreated: number
-  interviewsActive: number
-  candidatesTotal: number
-  storageUsed: number          // bytes
-  storageUsedFormatted: string // "1.5 GB"
-}
-```
+### User Commands
 
-#### `POST /api/v1/users/:id/stats/increment-interviews`
-Инкремент счетчика интервью (внутренний endpoint)
-```typescript
-Response: Stats
-```
+| Command | Handler | Description |
+|---------|---------|-------------|
+| `CreateUserCommand` | Creates new user from Kafka event |
+| `UpdateUserCommand` | Updates user profile |
+| `SuspendUserCommand` | Suspends user account |
+| `ActivateUserCommand` | Activates suspended user |
+| `SelectRoleCommand` | Sets user's active role |
+| `UploadAvatarCommand` | Uploads avatar to MinIO |
 
----
+### Admin Commands
 
-### Health & Metrics
+| Command | Handler | Description |
+|---------|---------|-------------|
+| `AdminCreateUserCommand` | Admin creates user directly |
+| `AdminUpdateUserCommand` | Admin updates any user |
+| `AdminDeleteUserCommand` | Admin deletes user |
+| `AdminAssignRoleCommand` | Assigns role to user |
+| `AdminRemoveRoleCommand` | Removes role from user |
+| `AdminCreateSkillCommand` | Creates new skill |
+| `AdminUpdateSkillCommand` | Updates skill |
+| `AdminDeleteSkillCommand` | Deletes skill |
 
-#### `GET /health`
-Health check
-```typescript
-Response: {
-  status: "ok",
-  database: "connected",
-  kafka: "connected"
-}
-```
+### HR Commands
 
-#### `GET /metrics`
-Prometheus metrics
+| Command | Handler | Description |
+|---------|---------|-------------|
+| `CreateCompanyCommand` | HR creates company |
+| `UpdateCompanyCommand` | HR updates company |
+| `DeleteCompanyCommand` | HR deletes company |
 
----
+### Candidate Commands
 
-## 🗄️ Database Schema
-
-### Table: `users`
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  keycloak_id VARCHAR(255) UNIQUE NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  
-  -- Profile (embedded)
-  full_name VARCHAR(255) NOT NULL,
-  company_name VARCHAR(255),
-  phone VARCHAR(50),
-  bio TEXT,
-  avatar_url TEXT,
-  
-  -- Stats (embedded)
-  interviews_created INTEGER DEFAULT 0,
-  storage_used BIGINT DEFAULT 0,
-  
-  -- Quotas (embedded)
-  max_interviews INTEGER DEFAULT 10,
-  max_storage BIGINT DEFAULT 5368709120, -- 5GB
-  
-  -- Metadata
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  deleted_at TIMESTAMP NULL
-);
-
-CREATE INDEX idx_users_keycloak_id ON users(keycloak_id);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_created_at ON users(created_at);
-```
-
-### Table: `processed_events` (Idempotency)
-```sql
-CREATE TABLE processed_events (
-  id SERIAL PRIMARY KEY,
-  event_id VARCHAR(255) NOT NULL,
-  service_name VARCHAR(100) NOT NULL,
-  topic VARCHAR(255) NOT NULL,
-  processed_at TIMESTAMP DEFAULT NOW(),
-  
-  CONSTRAINT unique_event_per_service UNIQUE (event_id, service_name)
-);
-
-CREATE INDEX idx_processed_events_event_id ON processed_events(event_id);
-```
+| Command | Handler | Description |
+|---------|---------|-------------|
+| `UpdateCandidateProfileCommand` | Updates candidate profile |
+| `AddCandidateSkillCommand` | Adds skill to candidate |
+| `RemoveCandidateSkillCommand` | Removes skill from candidate |
+| `UpdateCandidateSkillCommand` | Updates skill proficiency |
 
 ---
 
-## 📨 Events
+## CQRS Queries
 
-### Published Events
+| Query | Handler | Description |
+|-------|---------|-------------|
+| `GetUserQuery` | Get user by ID |
+| `GetUserByExternalAuthIdQuery` | Find by Keycloak ID |
+| `ListUsersQuery` | Paginated user list |
+| `GetUserPermissionsQuery` | Get user's permissions |
+| `GetUserStatsQuery` | Get user statistics |
+| `GetCandidateProfileQuery` | Get candidate profile |
+| `GetCandidateSkillsQuery` | Get candidate's skills |
+| `GetCompanyQuery` | Get company by ID |
+| `ListCompaniesQuery` | List HR's companies |
+| `GetSkillQuery` | Get skill by ID |
+| `ListSkillsQuery` | List all skills |
+| `SearchSkillsQuery` | Search skills by name |
 
-#### `user.created`
-Публикуется при создании пользователя
-```typescript
+---
+
+## API Endpoints
+
+### Internal API (Service-to-Service)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/internal/users/:id` | Get user by ID |
+| `GET` | `/api/v1/internal/users/by-external-auth/:externalAuthId` | Find by Keycloak ID |
+| `POST` | `/api/v1/internal/users` | Create user (from Kafka) |
+
+### Users API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/users/:id` | Get user profile |
+| `PUT` | `/api/v1/users/:id` | Update user profile |
+| `POST` | `/api/v1/users/:id/avatar` | Upload avatar |
+| `DELETE` | `/api/v1/users/:id/avatar` | Remove avatar |
+| `POST` | `/api/v1/users/:id/select-role` | Select active role |
+
+### Candidates API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/candidates/:id/profile` | Get candidate profile |
+| `PUT` | `/api/v1/candidates/:id/profile` | Update candidate profile |
+| `GET` | `/api/v1/candidates/:id/skills` | Get candidate skills |
+| `POST` | `/api/v1/candidates/:id/skills` | Add skill |
+| `PUT` | `/api/v1/candidates/:id/skills/:skillId` | Update skill |
+| `DELETE` | `/api/v1/candidates/:id/skills/:skillId` | Remove skill |
+
+### Companies API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/companies` | List user's companies |
+| `GET` | `/api/v1/companies/:id` | Get company |
+| `POST` | `/api/v1/companies` | Create company |
+| `PUT` | `/api/v1/companies/:id` | Update company |
+| `DELETE` | `/api/v1/companies/:id` | Delete company |
+
+### Skills API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/skills` | List all skills |
+| `GET` | `/api/v1/skills/search` | Search skills |
+| `GET` | `/api/v1/skills/categories` | List categories |
+
+### Admin API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/admin/users` | List all users (paginated) |
+| `POST` | `/api/v1/admin/users` | Create user |
+| `PUT` | `/api/v1/admin/users/:id` | Update user |
+| `DELETE` | `/api/v1/admin/users/:id` | Delete user |
+| `POST` | `/api/v1/admin/users/:id/suspend` | Suspend user |
+| `POST` | `/api/v1/admin/users/:id/activate` | Activate user |
+| `POST` | `/api/v1/admin/users/:id/roles` | Assign role |
+| `DELETE` | `/api/v1/admin/users/:id/roles/:roleId` | Remove role |
+| `POST` | `/api/v1/admin/skills` | Create skill |
+| `PUT` | `/api/v1/admin/skills/:id` | Update skill |
+| `DELETE` | `/api/v1/admin/skills/:id` | Delete skill |
+
+### Health
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Health check |
+| `GET` | `/health/live` | Liveness probe |
+| `GET` | `/health/ready` | Readiness probe |
+
+---
+
+## Kafka Integration
+
+### Consumed Topics
+
+| Topic | Event | Action |
+|-------|-------|--------|
+| `user-commands` | `CREATE_USER` | Create user in database |
+| `user-commands` | `UPDATE_USER` | Update user profile |
+| `user-commands` | `DELETE_USER` | Soft delete user |
+| `user-commands` | `SUSPEND_USER` | Suspend user account |
+| `user-commands` | `ACTIVATE_USER` | Activate user account |
+
+### Published Events (via OUTBOX)
+
+| Topic | Event | Trigger |
+|-------|-------|---------|
+| `user-events` | `user.created` | User created |
+| `user-events` | `user.updated` | User updated |
+| `user-events` | `user.deleted` | User deleted |
+| `user-events` | `user.suspended` | User suspended |
+| `user-events` | `user.activated` | User activated |
+| `user-events` | `user.role_selected` | Role selected |
+
+### Event Schema
+
+**user.created**
+```json
 {
-  eventId: string            // UUID
-  eventType: "user.created"
-  timestamp: string          // ISO 8601
-  userId: string
-  data: {
-    keycloakId: string
-    email: string
-    fullName: string
+  "eventId": "uuid",
+  "eventType": "user.created",
+  "timestamp": "2025-01-01T00:00:00Z",
+  "data": {
+    "userId": "uuid",
+    "externalAuthId": "keycloak-user-id",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "roles": ["candidate"]
   }
 }
-```
-
-#### `user.updated`
-Публикуется при обновлении профиля
-```typescript
-{
-  eventId: string
-  eventType: "user.updated"
-  timestamp: string
-  userId: string
-  data: {
-    changes: {
-      fullName?: string
-      companyName?: string
-      phone?: string
-    }
-  }
-}
-```
-
-#### `user.avatar_uploaded`
-Публикуется при загрузке аватара
-```typescript
-{
-  eventId: string
-  eventType: "user.avatar_uploaded"
-  timestamp: string
-  userId: string
-  data: {
-    avatarUrl: string
-    fileSize: number
-  }
-}
-```
-
-#### `user.deleted`
-Публикуется при удалении пользователя (soft delete)
-```typescript
-{
-  eventId: string
-  eventType: "user.deleted"
-  timestamp: string
-  userId: string
-  data: {
-    deletedAt: string
-  }
-}
-```
-
-### Subscribed Events
-
-#### `interview.created` (from Interview Service)
-Обрабатывает создание интервью для инкремента статистики
-```typescript
-{
-  eventType: "interview.created"
-  userId: string
-  data: {
-    interviewId: string
-  }
-}
-
-// Action: Increment users.interviews_created
-```
-
-#### `media.uploaded` (from Media Service)
-Обрабатывает загрузку медиа для обновления storage_used
-```typescript
-{
-  eventType: "media.uploaded"
-  userId: string
-  data: {
-    fileId: string
-    fileSize: number
-  }
-}
-
-// Action: Increment users.storage_used
 ```
 
 ---
 
-## 🔧 Configuration
+## OUTBOX Pattern
+
+Ensures reliable event publishing with at-least-once delivery.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                            OUTBOX Pattern Flow                                  │
+│                                                                                 │
+│  1. Command Handler executes business logic                                    │
+│     │                                                                          │
+│     ▼                                                                          │
+│  2. Within SAME transaction:                                                   │
+│     - Save entity to database                                                  │
+│     - Save event to outbox table                                              │
+│     │                                                                          │
+│     ▼                                                                          │
+│  3. Transaction commits (atomicity guaranteed)                                 │
+│     │                                                                          │
+│     ▼                                                                          │
+│  4. OutboxScheduler (@Cron every 5s):                                         │
+│     - Query outbox for pending events                                          │
+│     - Add to BullMQ queue                                                      │
+│     │                                                                          │
+│     ▼                                                                          │
+│  5. OutboxPublisher (BullMQ worker):                                          │
+│     - Publish event to Kafka                                                   │
+│     - Mark outbox record as published                                          │
+│     - On failure: retry with backoff                                           │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Configuration
 
 ### Environment Variables
 
 ```bash
 # Application
-PORT=3003
+PORT=3005
 NODE_ENV=development
 
 # Database
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
-DATABASE_NAME=ai_video_interview
+DATABASE_NAME=ai_video_interview_user
 DATABASE_USER=postgres
 DATABASE_PASSWORD=postgres
-DATABASE_SCHEMA=user_service
 
-# MinIO (Avatar Storage)
-MINIO_ENDPOINT=localhost
-MINIO_PORT=9000
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin123
-MINIO_BUCKET=avatars
-MINIO_USE_SSL=false
+# Redis (BullMQ)
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
 # Kafka
 KAFKA_BROKERS=localhost:9092
 KAFKA_CLIENT_ID=user-service
 KAFKA_GROUP_ID=user-service-group
 
-# Logging
-LOG_LEVEL=debug
-LOKI_HOST=http://localhost:3100
+# MinIO
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin123
+MINIO_BUCKET_AVATARS=avatars
 
 # Observability
-JAEGER_ENDPOINT=http://localhost:14268/api/traces
+LOG_LEVEL=debug
+LOKI_HOST=http://localhost:3100
 ```
 
 ---
 
-## 📊 Metrics & Health
+## Migrations
 
-### Health Check
-```
-GET /health
+### Running Migrations
 
-Response:
-{
-  status: "ok",
-  timestamp: "2025-10-06T10:00:00Z",
-  database: {
-    status: "connected",
-    connections: 5
-  },
-  kafka: {
-    status: "connected",
-    broker: "localhost:9092"
-  }
-}
+```bash
+# Generate new migration
+npm run migration:generate --filter=user-service -- -n MigrationName
+
+# Run pending migrations
+npm run migration:run --filter=user-service
+
+# Revert last migration
+npm run migration:revert --filter=user-service
+
+# Show migration status
+npm run migration:show --filter=user-service
 ```
+
+### Migration Files
+
+Located in `src/infrastructure/persistence/migrations/`
+
+---
+
+## Value Objects
+
+### UserStatus
+- `active` - Normal account
+- `suspended` - Temporarily disabled
+- `deleted` - Soft deleted
+
+### UserRole
+- `admin` - System administrator
+- `hr` - HR manager
+- `candidate` - Job candidate
+
+### ExperienceLevel
+- `junior` - 0-2 years
+- `middle` - 2-5 years
+- `senior` - 5-10 years
+- `lead` - 10+ years
+
+### ProficiencyLevel
+- `beginner` - Basic knowledge
+- `intermediate` - Working knowledge
+- `advanced` - Deep expertise
+- `expert` - Industry expert
+
+### CompanySize
+- `startup` - 1-10 employees
+- `small` - 11-50 employees
+- `medium` - 51-200 employees
+- `large` - 201-1000 employees
+- `enterprise` - 1000+ employees
+
+---
+
+## Metrics
 
 ### Prometheus Metrics
-```
-GET /metrics
 
-# Custom Metrics:
-- user_service_users_total (counter)
-- user_service_profiles_updated_total (counter)
-- user_service_avatars_uploaded_total (counter)
-- user_service_storage_used_bytes (gauge by userId)
-- user_service_database_query_duration_seconds (histogram)
-- user_service_kafka_events_published_total (counter by event_type)
+```
+user_service_users_total{status="active|suspended"}
+user_service_commands_total{command="create|update|delete"}
+user_service_queries_total{query="get_user|list_users"}
+user_service_outbox_events_total{status="pending|published|failed"}
+user_service_avatar_uploads_total
 ```
 
 ---
 
-## 🚨 Error Handling
+## Development
 
-### Error Response Format
-```typescript
-{
-  statusCode: number
-  message: string
-  error: string
-  timestamp: string
-  path: string
-  traceId?: string
-}
-```
+### Running Locally
 
-### Common Errors
-
-| Status | Scenario | Message |
-|--------|----------|---------|
-| 400 | Invalid input | "Validation failed" |
-| 404 | User not found | "User with ID {id} not found" |
-| 409 | Email already exists | "User with email {email} already exists" |
-| 413 | File too large | "Avatar file size exceeds 5MB limit" |
-| 415 | Invalid file type | "Only JPEG and PNG images are supported" |
-| 500 | Database error | "Internal server error" |
-
----
-
-## 🔒 Security
-
-### Authentication
-All endpoints require JWT token from API Gateway (except internal endpoints).
-
-### Authorization
-- Users can only access/modify their own data
-- Internal endpoints (stats increment) require internal-token header
-
-### Data Validation
-```typescript
-// CreateUserDto
-class CreateUserDto {
-  @IsString()
-  @IsNotEmpty()
-  keycloakId: string;
-
-  @IsEmail()
-  email: string;
-
-  @ValidateNested()
-  profile: ProfileDto;
-}
-
-// ProfileDto
-class ProfileDto {
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
-  fullName: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  companyName?: string;
-}
-```
-
----
-
-## 📝 Logging
-
-### Log Format
-```json
-{
-  "timestamp": "2025-10-06T10:00:00.000Z",
-  "level": "info",
-  "service": "user-service",
-  "message": "User created successfully",
-  "userId": "123e4567-e89b-12d3-a456-426614174000",
-  "action": "user_create",
-  "traceId": "abc123"
-}
-```
-
-### Logged Events
-- User CRUD operations
-- Avatar uploads/deletes
-- Kafka event publishing
-- Database query errors
-- Stats updates
-
----
-
-## 🧪 Testing
-
-### Unit Tests
 ```bash
-cd apps/user-service
-npm run test
-```
-
-### Integration Tests
-```bash
-npm run test:e2e
-```
-
-### Key Test Coverage
-- ✅ User CRUD operations
-- ✅ Profile updates
-- ✅ Avatar upload/delete
-- ✅ Stats tracking
-- ✅ Kafka event publishing
-- ✅ Event idempotency
-- ✅ Database transactions
-
----
-
-## 🐛 Troubleshooting
-
-### Database connection issues
-```bash
-# Check PostgreSQL is running
-docker-compose ps postgres
-
-# Test connection
-psql -h localhost -U postgres -d ai_video_interview
-\c user_service
-\dt
-```
-
-### Kafka connection issues
-```bash
-# Check Kafka is running
-docker-compose ps kafka
-
-# List topics
-docker exec -it ai-interview-kafka kafka-topics --list --bootstrap-server localhost:9092
-```
-
-### MinIO connection issues
-```bash
-# Check MinIO is running
-curl http://localhost:9000/minio/health/live
-
-# Access MinIO Console
-# http://localhost:9001
-```
-
-### Duplicate event processing
-```bash
-# Check processed_events table
-SELECT * FROM processed_events ORDER BY processed_at DESC LIMIT 10;
-```
-
----
-
-## 📂 Project Structure
-
-```
-apps/user-service/
-├── src/
-│   ├── main.ts                     # Bootstrap
-│   ├── app.module.ts               # Root module
-│   │
-│   ├── application/                # CQRS Application Layer
-│   │   ├── application.module.ts
-│   │   ├── commands/               # Write operations
-│   │   │   ├── handlers/
-│   │   │   │   ├── create-user.handler.ts
-│   │   │   │   ├── update-user.handler.ts
-│   │   │   │   └── upload-avatar.handler.ts
-│   │   │   └── impl/
-│   │   │       ├── create-user.command.ts
-│   │   │       └── update-user.command.ts
-│   │   └── queries/                # Read operations
-│   │       ├── handlers/
-│   │       │   ├── get-user-by-id.handler.ts
-│   │       │   └── get-user-stats.handler.ts
-│   │       └── impl/
-│   │           └── get-user-by-id.query.ts
-│   │
-│   ├── domain/                     # Domain Layer (DDD)
-│   │   ├── entities/
-│   │   │   └── user.entity.ts      # Aggregate Root
-│   │   ├── value-objects/
-│   │   │   ├── profile.vo.ts
-│   │   │   ├── stats.vo.ts
-│   │   │   └── quota.vo.ts
-│   │   └── repositories/
-│   │       └── user.repository.interface.ts
-│   │
-│   ├── infrastructure/             # Infrastructure Layer
-│   │   ├── persistence/
-│   │   │   ├── database.module.ts
-│   │   │   ├── typeorm.config.ts
-│   │   │   ├── entities/
-│   │   │   │   └── user.entity.ts  # TypeORM Entity
-│   │   │   ├── repositories/
-│   │   │   │   └── user.repository.ts
-│   │   │   └── migrations/
-│   │   │       └── 1234567890-CreateUsersTable.ts
-│   │   │
-│   │   ├── kafka/                  # Event Publishing
-│   │   │   ├── kafka.module.ts
-│   │   │   ├── kafka.service.ts
-│   │   │   └── consumers/
-│   │   │       └── interview-events.consumer.ts
-│   │   │
-│   │   ├── storage/                # MinIO Integration
-│   │   │   ├── storage.module.ts
-│   │   │   └── storage.service.ts
-│   │   │
-│   │   ├── logger/                 # Logging
-│   │   │   ├── logger.module.ts
-│   │   │   └── logger.service.ts
-│   │   │
-│   │   └── http/                   # HTTP Controllers
-│   │       ├── http.module.ts
-│   │       └── controllers/
-│   │           ├── users.controller.ts
-│   │           └── health.controller.ts
-│   │
-│   └── shared/                     # Shared utilities
-│       ├── dto/
-│       ├── guards/
-│       └── interceptors/
-│
-├── test/
-│   └── e2e/
-│       └── users.e2e-spec.ts
-│
-├── package.json
-└── tsconfig.json
-```
-
----
-
-## 🚀 Deployment
-
-### Development
-```bash
-npm run dev
-```
-
-### Production Build
-```bash
-npm run build
-npm run start:prod
-```
-
-### Database Migrations
-```bash
-# Generate migration
-npm run migration:generate -- CreateUsersTable
+# Start dependencies
+docker-compose up -d postgres redis kafka minio
 
 # Run migrations
-npm run migration:run
+npm run migration:run --filter=user-service
 
-# Revert migration
-npm run migration:revert
+# Start service
+npm run dev --filter=user-service
+
+# Service available at http://localhost:3005
+```
+
+### Testing
+
+```bash
+# Unit tests
+npm run test --filter=user-service
+
+# E2E tests
+npm run test:e2e --filter=user-service
 ```
 
 ---
 
-## 🔗 Dependencies
-
-### Internal Services:
-- **API Gateway** (3001) - HTTP routing
-- **Interview Service** (3004) - subscribes to interview events
-- **Media Service** (3006) - subscribes to media events
-
-### External Services:
-- **PostgreSQL** (5432) - database
-- **Kafka** (9092) - event streaming
-- **MinIO** (9000) - avatar storage
-- **Loki** (3100) - log aggregation
-- **Jaeger** (14268) - distributed tracing
-
----
-
-## 📚 Additional Resources
-
-- [CQRS Pattern](https://martinfowler.com/bliki/CQRS.html)
-- [DDD Aggregates](https://martinfowler.com/bliki/DDD_Aggregate.html)
-- [Event-Driven Architecture](../05-events/EVENT_CATALOG.md)
-- [Database Migrations](../06-database/MIGRATIONS.md)
-
----
-
-**Последнее обновление:** 2025-10-06
+**Last Updated:** December 2024
