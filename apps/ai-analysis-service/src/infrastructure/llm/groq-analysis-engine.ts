@@ -62,7 +62,22 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
     };
   }
 
+  private readonly MAX_QUESTIONS_PER_SUMMARY = 15;
+
   async generateSummary(input: SummaryInput): Promise<SummaryOutput> {
+    const questionsCount = input.questionAnalyses.length;
+
+    // For <= 30 questions, use single summary
+    if (questionsCount <= 30) {
+      return this.generateSingleSummary(input);
+    }
+
+    // For > 30 questions, use chunked approach
+    this.logger.log(`Using chunked summary for ${questionsCount} questions`);
+    return this.generateChunkedSummary(input);
+  }
+
+  private async generateSingleSummary(input: SummaryInput): Promise<SummaryOutput> {
     const systemPrompt = this.getSummarySystemPrompt();
     const userPrompt = this.buildSummaryPrompt(input);
 
@@ -79,10 +94,143 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
     };
   }
 
+  private async generateChunkedSummary(input: SummaryInput): Promise<SummaryOutput> {
+    const chunks = this.chunkArray(input.questionAnalyses, this.MAX_QUESTIONS_PER_SUMMARY);
+    
+    this.logger.debug(`Split into ${chunks.length} chunks for summary generation`);
+
+    // Generate mini-summaries for each chunk
+    const miniSummaries: Array<{ summary: string; avgScore: number; tokensUsed: number }> = [];
+    let totalTokens = 0;
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const chunkInput: SummaryInput = {
+        ...input,
+        questionAnalyses: chunk,
+      };
+
+      // Rate limit: wait between chunks (Groq free tier: 8000 TPM)
+      if (i > 0) {
+        this.logger.debug('Waiting 5s for rate limit...');
+        await this.delay(5000);
+      }
+
+      this.logger.debug(`Generating mini-summary for chunk ${i + 1}/${chunks.length} (${chunk.length} questions)`);
+
+      const systemPrompt = this.getMiniSummarySystemPrompt();
+      const userPrompt = this.buildMiniSummaryPrompt(chunkInput, i + 1, chunks.length);
+
+      const response = await this.callGroq(systemPrompt, userPrompt);
+      const parsed = JSON.parse(response.content);
+
+      const avgScore = chunk.reduce((sum, q) => sum + q.score, 0) / chunk.length;
+
+      miniSummaries.push({
+        summary: parsed.summary || '',
+        avgScore: Math.round(avgScore),
+        tokensUsed: response.tokensUsed,
+      });
+
+      totalTokens += response.tokensUsed;
+    }
+
+    // Generate final summary from mini-summaries
+    this.logger.debug('Waiting 5s before final summary...');
+    await this.delay(5000);
+    this.logger.debug('Generating final summary from mini-summaries...');
+
+    const finalSystemPrompt = this.getFinalSummarySystemPrompt();
+    const finalUserPrompt = this.buildFinalSummaryPrompt(input, miniSummaries);
+
+    const finalResponse = await this.callGroq(finalSystemPrompt, finalUserPrompt);
+    const finalParsed = this.parseSummaryResponse(finalResponse.content);
+
+    totalTokens += finalResponse.tokensUsed;
+
+    this.logger.debug(`Chunked summary complete. Total tokens: ${totalTokens}`);
+
+    return {
+      ...finalParsed,
+      tokensUsed: totalTokens,
+    };
+  }
+
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  private getMiniSummarySystemPrompt(): string {
+    return `You are an expert interview analyst. Summarize a PORTION of an interview.
+
+You MUST respond with a valid JSON object:
+{
+  "summary": "<brief 2-3 sentence summary of this portion>",
+  "keyStrengths": ["<strength 1>", "<strength 2>"],
+  "keyWeaknesses": ["<weakness 1>", "<weakness 2>"]
+}
+
+Be concise and focus on the most important observations.`;
+  }
+
+  private buildMiniSummaryPrompt(
+    input: SummaryInput,
+    partNumber: number,
+    totalParts: number,
+  ): string {
+    const questionsText = input.questionAnalyses
+      .map((qa, i) => `- Q: ${qa.questionText.slice(0, 100)}... | Score: ${qa.score}/100`)
+      .join('\n');
+
+    return `Summarize Part ${partNumber} of ${totalParts} of the interview:
+
+**Position:** ${input.templateTitle}
+
+## Questions in this part:
+${questionsText}
+
+Provide a brief summary as JSON.`;
+  }
+
+  private getFinalSummarySystemPrompt(): string {
+    return this.getSummarySystemPrompt();
+  }
+
+  private buildFinalSummaryPrompt(
+    input: SummaryInput,
+    miniSummaries: Array<{ summary: string; avgScore: number; tokensUsed: number }>,
+  ): string {
+    const partsText = miniSummaries
+      .map((ms, i) => `**Part ${i + 1}** (Avg Score: ${ms.avgScore}/100):\n${ms.summary}`)
+      .join('\n\n');
+
+    const overallAvg = Math.round(
+      miniSummaries.reduce((sum, ms) => sum + ms.avgScore, 0) / miniSummaries.length
+    );
+
+    return `Generate a FINAL interview summary based on these partial summaries:
+
+**Position:** ${input.templateTitle}
+**Company:** ${input.companyName}
+**Total Questions:** ${input.questionAnalyses.length}
+**Overall Average Score:** ${overallAvg}/100
+
+## Partial Summaries:
+${partsText}
+
+Combine these into a comprehensive final assessment as JSON.`;
+  }
+
   private async callGroq(
     systemPrompt: string,
     userPrompt: string,
+    retryCount = 0,
   ): Promise<{ content: string; tokensUsed: number }> {
+    const MAX_RETRIES = 3;
     const messages: GroqMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -108,9 +256,30 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
     const duration = Date.now() - startTime;
 
     if (!response.ok) {
-      const error = await response.text();
-      this.logger.error(`Groq API error: ${response.status} - ${error}`);
-      throw new Error(`Groq API error: ${response.status} - ${error}`);
+      const errorText = await response.text();
+      
+      // Handle rate limit with retry
+      if (response.status === 429 && retryCount < MAX_RETRIES) {
+        // Parse retry delay from error message (formats: "X.XXs", "Xms", "X seconds")
+        let retryDelay = (retryCount + 1) * 3000; // Default exponential backoff: 3s, 6s, 9s
+        
+        const secMatch = errorText.match(/try again in ([\d.]+)\s*s(?:econds?)?/i);
+        const msMatch = errorText.match(/try again in ([\d.]+)\s*ms/i);
+        
+        if (secMatch) {
+          retryDelay = Math.ceil(parseFloat(secMatch[1]) * 1000) + 500; // Add 500ms buffer
+        } else if (msMatch) {
+          retryDelay = Math.ceil(parseFloat(msMatch[1])) + 500;
+        }
+        
+        this.logger.warn(`Rate limited. Retry ${retryCount + 1}/${MAX_RETRIES} after ${retryDelay}ms`);
+        await this.delay(retryDelay);
+        
+        return this.callGroq(systemPrompt, userPrompt, retryCount + 1);
+      }
+      
+      this.logger.error(`Groq API error: ${response.status} - ${errorText}`);
+      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
     const data: GroqResponse = await response.json();
@@ -121,6 +290,10 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
       content: data.choices[0].message.content,
       tokensUsed: data.usage.total_tokens,
     };
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private getQuestionAnalysisSystemPrompt(): string {

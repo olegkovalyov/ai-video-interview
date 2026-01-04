@@ -102,30 +102,67 @@ docker exec ai-interview-kafka kafka-topics --create \
     --config retention.ms=2592000000 \
     --if-not-exists
 
+# Create interview-events topic (FROM Interview Service)
+echo "📝 Creating topic: interview-events"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic interview-events \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1 \
+    --config retention.ms=604800000 \
+    --config segment.ms=86400000 \
+    --if-not-exists
+
+# Create interview-events DLQ
+echo "📝 Creating DLQ topic: interview-events-dlq"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic interview-events-dlq \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 \
+    --replication-factor 1 \
+    --config retention.ms=2592000000 \
+    --if-not-exists
+
+# Create analysis-events topic (FROM AI Analysis Service)
+echo "📝 Creating topic: analysis-events"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic analysis-events \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1 \
+    --config retention.ms=604800000 \
+    --config segment.ms=86400000 \
+    --if-not-exists
+
+# Create analysis-events DLQ
+echo "📝 Creating DLQ topic: analysis-events-dlq"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic analysis-events-dlq \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 \
+    --replication-factor 1 \
+    --config retention.ms=2592000000 \
+    --if-not-exists
+
 echo ""
 echo "✅ Kafka Setup Complete!"
 echo "========================"
 echo ""
 echo "📊 Created Topics:"
-echo "  - user-events (3 partitions) - Integration events FROM User Service"
+echo "  - user-events (3 partitions) - FROM User Service"
 echo "  - user-events-dlq (1 partition)"
+echo "  - interview-events (3 partitions) - FROM Interview Service"
+echo "  - interview-events-dlq (1 partition)"
+echo "  - analysis-events (3 partitions) - FROM AI Analysis Service"
+echo "  - analysis-events-dlq (1 partition)"
 echo ""
 echo "🔧 Topic Configuration:"
 echo "  - Retention: 7 days (main topics), 30 days (DLQ)"
-echo "  - Compression: None (producer default)"
-echo "  - Partitioning: By userId for ordering guarantees"
+echo "  - Partitioning: By userId/invitationId for ordering"
 echo ""
-echo "📐 Architecture:"
-echo "  ┌─────────────────────────────────────────────┐"
-echo "  │ User Operations (CRUD + Registration)       │"
-echo "  │ API Gateway → HTTP Saga → User Service      │"
-echo "  │ (Sync, immediate response)                  │"
-echo "  └─────────────────────────────────────────────┘"
-echo "  ┌─────────────────────────────────────────────┐"
-echo "  │ Domain Events (async background)            │"
-echo "  │ User Service → OutboxService → user-events  │"
-echo "  │ → Other Services (Email, Analytics, etc.)   │"
-echo "  └─────────────────────────────────────────────┘"
+echo "📐 Event Flow:"
+echo "  Interview Service → interview-events → AI Analysis Service"
+echo "  AI Analysis Service → analysis-events → Interview Service"
 echo ""
 echo "🌐 Access Kafka UI: http://localhost:8080"
 echo "📋 List topics: docker exec ai-interview-kafka kafka-topics --bootstrap-server localhost:9092 --list"

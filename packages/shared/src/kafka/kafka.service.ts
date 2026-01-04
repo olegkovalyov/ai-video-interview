@@ -52,9 +52,9 @@ export class KafkaService {
     if (!this.consumers.has(consumerKey)) {
       const consumer = this.kafka.consumer({
         groupId: `${groupId}-${this.serviceName}`,
-        sessionTimeout: 30000,       // 30s (default, sufficient for most cases)
-        heartbeatInterval: 3000,     // 3s (default)
-        rebalanceTimeout: 60000,     // 60s
+        sessionTimeout: 600000,      // 10 min - for long-running analysis tasks
+        heartbeatInterval: 10000,    // 10s - must be < sessionTimeout/3
+        rebalanceTimeout: 120000,    // 2 min
         maxWaitTimeInMs: 5000,       // 5s
         allowAutoTopicCreation: false,
       });
