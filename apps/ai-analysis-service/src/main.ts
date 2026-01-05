@@ -26,9 +26,11 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('AI Analysis Service API')
-    .setDescription('AI-powered interview analysis microservice (Sandbox Mode)')
+    .setDescription('AI-powered interview analysis microservice. Provides endpoints for retrieving analysis results and sandbox testing.')
     .setVersion('1.0')
-    .addTag('Sandbox', 'Endpoints for testing and development')
+    .addTag('Analysis', 'Interview analysis results endpoints')
+    .addTag('Health', 'Service health and readiness checks')
+    .addTag('Sandbox', 'Development and testing endpoints')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

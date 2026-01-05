@@ -77,7 +77,7 @@ export class InterviewServiceClient {
     private readonly loggerService: LoggerService,
   ) {
     this.baseUrl =
-      this.configService.get<string>('INTERVIEW_SERVICE_URL') || 'http://localhost:3004';
+      this.configService.get<string>('INTERVIEW_SERVICE_URL') || 'http://localhost:8003';
     this.internalToken = this.configService.get<string>('INTERNAL_SERVICE_TOKEN') || '';
   }
 

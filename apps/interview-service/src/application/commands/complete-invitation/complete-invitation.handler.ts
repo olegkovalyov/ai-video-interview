@@ -2,6 +2,7 @@ import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { CompleteInvitationCommand } from './complete-invitation.command';
 import type { IInvitationRepository } from '../../../domain/repositories/invitation.repository.interface';
+import type { QuestionData } from '../../../domain/events/invitation-completed.event';
 
 @CommandHandler(CompleteInvitationCommand)
 export class CompleteInvitationHandler
@@ -20,19 +21,36 @@ export class CompleteInvitationHandler
       `Completing invitation ${command.invitationId} with reason: ${command.reason}`,
     );
 
-    // Find invitation
-    const invitation = await this.invitationRepository.findById(
+    // Find invitation with template data (needed for AI Analysis)
+    const result = await this.invitationRepository.findByIdWithTemplate(
       command.invitationId,
     );
-    if (!invitation) {
+    if (!result) {
       throw new NotFoundException(
         `Invitation with id ${command.invitationId} not found`,
       );
     }
 
+    const { invitation, template } = result;
+
+    // Map template questions to QuestionData format
+    const questions: QuestionData[] = template.questions.map(q => ({
+      id: q.id,
+      text: q.text,
+      type: q.type,
+      order: q.order,
+      timeLimit: q.timeLimit,
+    }));
+
     // Complete the invitation (domain method handles validation)
     try {
-      invitation.complete(command.userId, command.reason);
+      invitation.complete({
+        userId: command.userId,
+        reason: command.reason,
+        templateTitle: template.title,
+        language: 'en', // TODO: get from invitation or template settings
+        questions,
+      });
     } catch (error: any) {
       if (error.message.includes('Only the invited candidate')) {
         throw new ForbiddenException(error.message);

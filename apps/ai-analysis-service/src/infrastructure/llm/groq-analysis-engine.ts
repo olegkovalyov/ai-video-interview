@@ -258,24 +258,37 @@ Combine these into a comprehensive final assessment as JSON.`;
     if (!response.ok) {
       const errorText = await response.text();
       
-      // Handle rate limit with retry
-      if (response.status === 429 && retryCount < MAX_RETRIES) {
-        // Parse retry delay from error message (formats: "X.XXs", "Xms", "X seconds")
-        let retryDelay = (retryCount + 1) * 3000; // Default exponential backoff: 3s, 6s, 9s
+      // Handle rate limit
+      if (response.status === 429) {
+        // Check if it's a daily limit (TPD) - no point in retrying
+        const isDailyLimit = errorText.includes('tokens per day') || 
+                            errorText.includes('TPD') ||
+                            errorText.includes('per day');
         
-        const secMatch = errorText.match(/try again in ([\d.]+)\s*s(?:econds?)?/i);
-        const msMatch = errorText.match(/try again in ([\d.]+)\s*ms/i);
-        
-        if (secMatch) {
-          retryDelay = Math.ceil(parseFloat(secMatch[1]) * 1000) + 500; // Add 500ms buffer
-        } else if (msMatch) {
-          retryDelay = Math.ceil(parseFloat(msMatch[1])) + 500;
+        if (isDailyLimit) {
+          this.logger.error(`Daily token limit (TPD) reached. Reset at midnight UTC.`);
+          throw new Error(`Daily token limit (TPD) reached. Please try again tomorrow or upgrade to Developer tier.`);
         }
         
-        this.logger.warn(`Rate limited. Retry ${retryCount + 1}/${MAX_RETRIES} after ${retryDelay}ms`);
-        await this.delay(retryDelay);
-        
-        return this.callGroq(systemPrompt, userPrompt, retryCount + 1);
+        // Retry only for per-minute limits (TPM/RPM)
+        if (retryCount < MAX_RETRIES) {
+          // Parse retry delay from error message (formats: "X.XXs", "Xms", "X seconds")
+          let retryDelay = (retryCount + 1) * 3000; // Default exponential backoff: 3s, 6s, 9s
+          
+          const secMatch = errorText.match(/try again in ([\d.]+)\s*s(?:econds?)?/i);
+          const msMatch = errorText.match(/try again in ([\d.]+)\s*ms/i);
+          
+          if (secMatch) {
+            retryDelay = Math.ceil(parseFloat(secMatch[1]) * 1000) + 500; // Add 500ms buffer
+          } else if (msMatch) {
+            retryDelay = Math.ceil(parseFloat(msMatch[1])) + 500;
+          }
+          
+          this.logger.warn(`Rate limited (TPM/RPM). Retry ${retryCount + 1}/${MAX_RETRIES} after ${retryDelay}ms`);
+          await this.delay(retryDelay);
+          
+          return this.callGroq(systemPrompt, userPrompt, retryCount + 1);
+        }
       }
       
       this.logger.error(`Groq API error: ${response.status} - ${errorText}`);

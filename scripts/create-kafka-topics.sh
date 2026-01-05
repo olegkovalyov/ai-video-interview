@@ -81,6 +81,27 @@ echo ""
 echo "🏗️  STEP 2: Creating Kafka Topics"
 echo "================================"
 
+# Create auth-events topic (FROM API Gateway on login/logout)
+echo "📝 Creating topic: auth-events"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic auth-events \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1 \
+    --config retention.ms=604800000 \
+    --config segment.ms=86400000 \
+    --if-not-exists
+
+# Create auth-events DLQ
+echo "📝 Creating DLQ topic: auth-events-dlq"
+docker exec ai-interview-kafka kafka-topics --create \
+    --topic auth-events-dlq \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 \
+    --replication-factor 1 \
+    --config retention.ms=2592000000 \
+    --if-not-exists
+
 # Create user-events topic (FROM User Service to other services)
 echo "📝 Creating topic: user-events"
 docker exec ai-interview-kafka kafka-topics --create \
@@ -149,6 +170,8 @@ echo "✅ Kafka Setup Complete!"
 echo "========================"
 echo ""
 echo "📊 Created Topics:"
+echo "  - auth-events (3 partitions) - FROM API Gateway (login/logout)"
+echo "  - auth-events-dlq (1 partition)"
 echo "  - user-events (3 partitions) - FROM User Service"
 echo "  - user-events-dlq (1 partition)"
 echo "  - interview-events (3 partitions) - FROM Interview Service"

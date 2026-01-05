@@ -102,6 +102,36 @@ export class InvitationProgressDto {
   percentage: number;
 }
 
+// ==================== Analysis DTOs ====================
+
+export class AnalysisResultDto {
+  @ApiPropertyOptional({ description: 'Analysis UUID from AI Analysis Service', format: 'uuid' })
+  analysisId?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Analysis processing status', 
+    enum: ['pending', 'in_progress', 'completed', 'failed'],
+    example: 'completed',
+  })
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Overall interview score (0-100)', example: 85 })
+  score?: number;
+
+  @ApiPropertyOptional({ 
+    description: 'Hiring recommendation', 
+    enum: ['strongly_recommend', 'recommend', 'consider', 'not_recommend'],
+    example: 'recommend',
+  })
+  recommendation?: string;
+
+  @ApiPropertyOptional({ description: 'When analysis was completed' })
+  completedAt?: Date;
+
+  @ApiPropertyOptional({ description: 'Error message if analysis failed' })
+  errorMessage?: string;
+}
+
 export class InvitationResponseDto {
   @ApiProperty({ description: 'Invitation UUID', format: 'uuid' })
   id: string;
@@ -152,6 +182,9 @@ export class InvitationResponseDto {
 
   @ApiProperty({ description: 'List of submitted responses', type: [ResponseItemDto] })
   responses: ResponseItemDto[];
+
+  @ApiPropertyOptional({ description: 'AI analysis results (available after completion)', type: AnalysisResultDto })
+  analysis?: AnalysisResultDto;
 
   @ApiProperty({ description: 'When invitation was created' })
   createdAt: Date;
@@ -208,6 +241,22 @@ export class InvitationListItemDto {
 
   @ApiProperty({ description: 'Interview progress', type: InvitationProgressDto })
   progress: InvitationProgressDto;
+
+  @ApiPropertyOptional({ 
+    description: 'AI analysis status', 
+    enum: ['pending', 'in_progress', 'completed', 'failed'],
+    example: 'completed',
+  })
+  analysisStatus?: string;
+
+  @ApiPropertyOptional({ description: 'AI analysis score (0-100)', example: 85 })
+  analysisScore?: number;
+
+  @ApiPropertyOptional({ 
+    description: 'AI recommendation', 
+    enum: ['strongly_recommend', 'recommend', 'consider', 'not_recommend'],
+  })
+  analysisRecommendation?: string;
 
   @ApiProperty({ description: 'When invitation was created' })
   createdAt: Date;

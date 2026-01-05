@@ -10,6 +10,7 @@ import {
   PaginatedInvitationsResponseDto,
   ResponseItemDto,
   InvitationProgressDto,
+  AnalysisResultDto,
 } from '../../../application/dto/invitation.response.dto';
 
 /**
@@ -205,8 +206,27 @@ export class InvitationReadRepository {
       completedReason: entity.completedReason || undefined,
       progress: this.calculateProgress(responses.length, entity.totalQuestions),
       responses,
+      analysis: this.mapAnalysisToDto(entity),
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+    };
+  }
+
+  /**
+   * Map Analysis fields to DTO
+   */
+  private mapAnalysisToDto(entity: InvitationEntity): AnalysisResultDto | undefined {
+    if (!entity.analysisId && !entity.analysisStatus) {
+      return undefined;
+    }
+
+    return {
+      analysisId: entity.analysisId || undefined,
+      status: entity.analysisStatus || undefined,
+      score: entity.analysisScore || undefined,
+      recommendation: entity.analysisRecommendation || undefined,
+      completedAt: entity.analysisCompletedAt || undefined,
+      errorMessage: entity.analysisErrorMessage || undefined,
     };
   }
 
@@ -255,6 +275,9 @@ export class InvitationReadRepository {
       allowPause: entity.allowPause,
       expiresAt: entity.expiresAt,
       progress: this.calculateProgress(responsesCount, entity.totalQuestions),
+      analysisStatus: entity.analysisStatus || undefined,
+      analysisScore: entity.analysisScore || undefined,
+      analysisRecommendation: entity.analysisRecommendation || undefined,
       createdAt: entity.createdAt,
     };
   }

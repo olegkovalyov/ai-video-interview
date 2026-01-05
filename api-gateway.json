@@ -2997,11 +2997,78 @@
           "Invitations"
         ]
       }
+    },
+    "/api/analysis/{invitationId}": {
+      "get": {
+        "description": "Returns complete analysis results including overall score, summary, strengths, weaknesses, recommendation, and individual question analyses.",
+        "operationId": "AnalysisController_getAnalysisByInvitation",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "description": "Invitation UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis results with question analyses"
+          },
+          "404": {
+            "description": "Analysis not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get full analysis results",
+        "tags": [
+          "Analysis"
+        ]
+      }
+    },
+    "/api/analysis/status/{invitationId}": {
+      "get": {
+        "description": "Returns the processing status of an analysis. Candidates can check if their interview has been analyzed.",
+        "operationId": "AnalysisController_getAnalysisStatus",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "description": "Invitation UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis status"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get analysis status",
+        "tags": [
+          "Analysis"
+        ]
+      }
     }
   },
   "info": {
     "title": "AI Video Interview - API Gateway",
-    "description": "API Gateway for AI Video Interview Platform",
+    "description": "API Gateway for AI Video Interview Platform. \n    \n**Services:**\n- User Service (port 8002) - User management\n- Interview Service (port 8003) - Templates & Invitations\n- AI Analysis Service (port 8005) - Interview analysis",
     "version": "1.0",
     "contact": {}
   },
@@ -3025,6 +3092,14 @@
     {
       "name": "Templates",
       "description": "Interview templates management (HR & Admin)"
+    },
+    {
+      "name": "Invitations",
+      "description": "Interview invitations (HR creates, Candidate completes)"
+    },
+    {
+      "name": "Analysis",
+      "description": "AI-powered interview analysis results (HR & Admin)"
     }
   ],
   "servers": [],
@@ -3495,6 +3570,11 @@
             "type": "string",
             "description": "User email address",
             "example": "john.doe@example.com"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username for login (optional, defaults to email)",
+            "example": "johndoe"
           },
           "firstName": {
             "type": "string",

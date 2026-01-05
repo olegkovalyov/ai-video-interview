@@ -1,4 +1,4 @@
-import { Invitation } from '../invitation.aggregate';
+import { Invitation, CompleteInvitationData } from '../invitation.aggregate';
 import { Response } from '../../entities/response.entity';
 import { ResponseType } from '../../value-objects/response-type.vo';
 import { InvitationStatus } from '../../value-objects/invitation-status.vo';
@@ -42,6 +42,17 @@ describe('Invitation Aggregate', () => {
       duration: 60,
     });
   };
+
+  const createCompleteData = (userId: string | null, reason: 'manual' | 'auto_timeout' | 'expired' = 'manual'): CompleteInvitationData => ({
+    userId,
+    reason,
+    templateTitle: 'Test Template',
+    language: 'en',
+    questions: [
+      { id: 'q1', text: 'Question 1?', type: 'text', order: 0, timeLimit: 120 },
+      { id: 'q2', text: 'Question 2?', type: 'text', order: 1, timeLimit: 120 },
+    ],
+  });
 
   describe('create', () => {
     it('should create a valid invitation', () => {
@@ -318,7 +329,7 @@ describe('Invitation Aggregate', () => {
       invitation.submitResponse(candidateId, createResponse('q2', 1));
       invitation.clearEvents();
 
-      invitation.complete(candidateId, 'manual');
+      invitation.complete(createCompleteData(candidateId, 'manual'));
 
       expect(invitation.status.isCompleted()).toBe(true);
       expect(invitation.completedAt).toBeInstanceOf(Date);
@@ -340,7 +351,7 @@ describe('Invitation Aggregate', () => {
       invitation.submitResponse(candidateId, createResponse('q2', 1));
       invitation.clearEvents();
 
-      invitation.complete(candidateId, 'manual');
+      invitation.complete(createCompleteData(candidateId, 'manual'));
 
       const events = invitation.getUncommittedEvents();
       expect(events).toHaveLength(1);
@@ -362,7 +373,7 @@ describe('Invitation Aggregate', () => {
       invitation.start(candidateId);
       invitation.submitResponse(candidateId, createResponse('q1', 0));
 
-      expect(() => invitation.complete(candidateId, 'manual')).toThrow(
+      expect(() => invitation.complete(createCompleteData(candidateId, 'manual'))).toThrow(
         'All questions must be answered before completing. Answered: 1/3',
       );
     });
@@ -381,7 +392,7 @@ describe('Invitation Aggregate', () => {
       invitation.submitResponse(candidateId, createResponse('q1', 0));
 
       // Auto-complete by system (null userId)
-      invitation.complete(null, 'auto_timeout');
+      invitation.complete(createCompleteData(null, 'auto_timeout'));
 
       expect(invitation.status.isCompleted()).toBe(true);
       expect(invitation.completedReason).toBe('auto_timeout');
@@ -400,7 +411,7 @@ describe('Invitation Aggregate', () => {
       invitation.start(candidateId);
       invitation.submitResponse(candidateId, createResponse('q1', 0));
 
-      expect(() => invitation.complete('other-user', 'manual')).toThrow(
+      expect(() => invitation.complete(createCompleteData('other-user', 'manual'))).toThrow(
         'Only the invited candidate can complete this interview',
       );
     });
@@ -408,7 +419,7 @@ describe('Invitation Aggregate', () => {
     it('should throw error if not in progress', () => {
       const invitation = createValidInvitation();
 
-      expect(() => invitation.complete(candidateId, 'manual')).toThrow(
+      expect(() => invitation.complete(createCompleteData(candidateId, 'manual'))).toThrow(
         'Interview can only be completed when in progress',
       );
     });
@@ -548,7 +559,7 @@ describe('Invitation Aggregate', () => {
       );
       invitation.start(candidateId);
       invitation.submitResponse(candidateId, createResponse('q1', 0));
-      invitation.complete(candidateId, 'manual');
+      invitation.complete(createCompleteData(candidateId, 'manual'));
 
       invitation.markAsExpired();
 

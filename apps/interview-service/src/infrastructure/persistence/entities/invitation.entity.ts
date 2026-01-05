@@ -61,6 +61,25 @@ export class InvitationEntity {
   @Column({ name: 'total_questions', type: 'int' })
   totalQuestions: number;
 
+  // Analysis results from AI Analysis Service
+  @Column({ name: 'analysis_id', type: 'uuid', nullable: true })
+  analysisId: string | null;
+
+  @Column({ name: 'analysis_status', type: 'varchar', length: 20, nullable: true })
+  analysisStatus: string | null; // 'pending' | 'in_progress' | 'completed' | 'failed'
+
+  @Column({ name: 'analysis_score', type: 'int', nullable: true })
+  analysisScore: number | null;
+
+  @Column({ name: 'analysis_recommendation', type: 'varchar', length: 20, nullable: true })
+  analysisRecommendation: string | null; // 'hire' | 'consider' | 'reject'
+
+  @Column({ name: 'analysis_completed_at', type: 'timestamp', nullable: true })
+  analysisCompletedAt: Date | null;
+
+  @Column({ name: 'analysis_error_message', type: 'text', nullable: true })
+  analysisErrorMessage: string | null;
+
   @ManyToOne(() => InterviewTemplateEntity)
   @JoinColumn({ name: 'template_id' })
   template: InterviewTemplateEntity;

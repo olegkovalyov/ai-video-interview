@@ -2241,6 +2241,32 @@
               }
             ]
           },
+          "analysisStatus": {
+            "type": "string",
+            "description": "AI analysis status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "analysisScore": {
+            "type": "number",
+            "description": "AI analysis score (0-100)",
+            "example": 85
+          },
+          "analysisRecommendation": {
+            "type": "string",
+            "description": "AI recommendation",
+            "enum": [
+              "strongly_recommend",
+              "recommend",
+              "consider",
+              "not_recommend"
+            ]
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string",
@@ -2368,6 +2394,52 @@
           "submittedAt"
         ]
       },
+      "AnalysisResultDto": {
+        "type": "object",
+        "properties": {
+          "analysisId": {
+            "type": "string",
+            "description": "Analysis UUID from AI Analysis Service",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "description": "Analysis processing status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "score": {
+            "type": "number",
+            "description": "Overall interview score (0-100)",
+            "example": 85
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "Hiring recommendation",
+            "enum": [
+              "strongly_recommend",
+              "recommend",
+              "consider",
+              "not_recommend"
+            ],
+            "example": "recommend"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When analysis was completed"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if analysis failed"
+          }
+        }
+      },
       "InvitationResponseDto": {
         "type": "object",
         "properties": {
@@ -2456,6 +2528,14 @@
             "items": {
               "$ref": "#/components/schemas/ResponseItemDto"
             }
+          },
+          "analysis": {
+            "description": "AI analysis results (available after completion)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisResultDto"
+              }
+            ]
           },
           "createdAt": {
             "format": "date-time",

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../../src/app.module';
+import { TestAppModule } from './test-app.module';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
@@ -20,7 +20,7 @@ describe('Templates API (E2E)', () => {
     dataSource = await createE2EDataSource();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [TestAppModule],
     })
       .overrideProvider(DataSource)
       .useValue(dataSource) // Override with our test DataSource

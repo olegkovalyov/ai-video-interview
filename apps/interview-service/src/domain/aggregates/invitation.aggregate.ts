@@ -8,7 +8,17 @@ import {
   ResponseSubmittedEvent,
   InvitationCompletedEvent,
   CompletedReason,
+  QuestionData,
+  ResponseData,
 } from '../events';
+
+export interface CompleteInvitationData {
+  userId: string | null;
+  reason?: CompletedReason;
+  templateTitle: string;
+  language: string;
+  questions: QuestionData[];
+}
 
 export interface InvitationProps {
   id: string;
@@ -278,7 +288,9 @@ export class Invitation extends AggregateRoot {
    * Business Rule: For manual completion, all questions must be answered
    * Business Rule: For auto_timeout, complete with whatever answers exist
    */
-  complete(userId: string | null, reason: CompletedReason = 'manual'): void {
+  complete(data: CompleteInvitationData): void {
+    const { userId, reason = 'manual', templateTitle, language, questions } = data;
+    
     // For manual completion, verify user
     if (reason === 'manual') {
       if (!userId || this.candidateId !== userId) {
@@ -302,16 +314,28 @@ export class Invitation extends AggregateRoot {
     this.props.completedReason = reason;
     this.props.updatedAt = new Date();
 
-    // Raise domain event
+    // Map responses to ResponseData format for AI Analysis
+    const responseData: ResponseData[] = this.props.responses.map(r => ({
+      questionId: r.questionId,
+      text: r.getAnswer() || '',
+      duration: r.duration,
+    }));
+
+    // Raise domain event with full data for AI Analysis
     this.apply(
       new InvitationCompletedEvent(
         this.id,
         this.candidateId,
         this.templateId,
+        templateTitle,
+        this.companyName,
         reason,
         this.props.responses.length,
         this.totalQuestions,
         this.props.completedAt,
+        language,
+        questions,
+        responseData,
       ),
     );
   }

@@ -9,17 +9,15 @@ import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 /**
  * OUTBOX Publisher Processor
  * 
- * Publishes integration events from outbox to user-events topic:
+ * Publishes integration events from outbox to appropriate Kafka topics:
  * 1. Fetches event from outbox table
- * 2. Publishes to user-events Kafka topic with trace context
- * 3. Updates outbox status
+ * 2. Determines target topic based on event type
+ * 3. Publishes to Kafka with trace context
+ * 4. Updates outbox status
  * 
- * Integration events (source='user-service'):
- * - user.created, user.updated, user.deleted
- * - user.suspended, user.activated  
- * - user.role_assigned, user.role_removed
- * 
- * Consumed by: Interview Service, Notification Service, Analytics
+ * Topic routing:
+ * - invitation.* events → interview-events (consumed by AI Analysis Service)
+ * - user.* events → user-events (consumed by other services)
  * 
  * Runs with concurrency for parallel publishing
  */
@@ -55,22 +53,26 @@ export class OutboxPublisherProcessor {
     outbox.status = 'publishing';
     await this.outboxRepository.save(outbox);
 
+    // 3. Determine target topic based on event type
+    const topic = this.getTopicForEventType(outbox.eventType);
+
     try {
-      // 3. Publish to user-events topic with trace context
+      // 4. Publish to Kafka with trace context and partition key
       await this.kafkaService.publishEvent(
-        KAFKA_TOPICS.USER_EVENTS,
+        topic,
         outbox.payload,
-        injectTraceContext(), // Propagate distributed trace
+        injectTraceContext(),
+        { partitionKey: outbox.aggregateId },
       );
 
-      // 4. Mark as published
+      // 5. Mark as published
       outbox.status = 'published';
       outbox.publishedAt = new Date();
       await this.outboxRepository.save(outbox);
 
-      console.log(`✅ OUTBOX PUBLISHER: Successfully published ${eventId} (${outbox.eventType}) to user-events`);
+      console.log(`✅ OUTBOX PUBLISHER: Successfully published ${eventId} (${outbox.eventType}) to ${topic}`);
     } catch (error) {
-      // 5. Handle failure
+      // 6. Handle failure
       outbox.status = 'failed';
       outbox.errorMessage = error.message;
       outbox.retryCount += 1;
@@ -85,5 +87,14 @@ export class OutboxPublisherProcessor {
 
       console.log(`💀 OUTBOX PUBLISHER: Max retries reached for ${eventId}`);
     }
+  }
+
+  private getTopicForEventType(eventType: string): string {
+    // Interview domain events go to interview-events topic
+    if (eventType.startsWith('invitation.')) {
+      return KAFKA_TOPICS.INTERVIEW_EVENTS;
+    }
+    // Default to user-events for other events
+    return KAFKA_TOPICS.USER_EVENTS;
   }
 }

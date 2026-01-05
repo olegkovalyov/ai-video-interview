@@ -1,0 +1,536 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/sandbox/health": {
+      "get": {
+        "operationId": "SandboxController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "Sandbox"
+        ]
+      }
+    },
+    "/sandbox/test-groq": {
+      "get": {
+        "operationId": "SandboxController_testGroq",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Groq API is working"
+          }
+        },
+        "summary": "Test Groq API connection",
+        "tags": [
+          "Sandbox"
+        ]
+      }
+    },
+    "/sandbox/analyze": {
+      "post": {
+        "operationId": "SandboxController_analyze",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis completed"
+          }
+        },
+        "summary": "Analyze interview (sandbox mode - output to console)",
+        "tags": [
+          "Sandbox"
+        ]
+      }
+    },
+    "/api/v1/analysis/status/{invitationId}": {
+      "get": {
+        "description": "Returns the processing status of an analysis for a given invitation. Returns status \"not_found\" if no analysis exists.",
+        "operationId": "AnalysisController_getStatus",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "description": "Invitation UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "invitationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_progress",
+                        "completed",
+                        "failed"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get analysis status",
+        "tags": [
+          "Analysis"
+        ]
+      }
+    },
+    "/api/v1/analysis/{invitationId}": {
+      "get": {
+        "description": "Returns complete analysis results including overall score, summary, strengths, weaknesses, recommendation, and individual question analyses.",
+        "operationId": "AnalysisController_getAnalysis",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "description": "Invitation UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full analysis results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "invitationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "templateTitle": {
+                      "type": "string",
+                      "example": "Frontend Developer Interview"
+                    },
+                    "companyName": {
+                      "type": "string",
+                      "example": "TechCorp"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_progress",
+                        "completed",
+                        "failed"
+                      ]
+                    },
+                    "overallScore": {
+                      "type": "number",
+                      "example": 85
+                    },
+                    "summary": {
+                      "type": "string",
+                      "example": "Strong candidate with excellent technical skills..."
+                    },
+                    "strengths": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "Technical knowledge",
+                        "Problem solving"
+                      ]
+                    },
+                    "weaknesses": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "Communication",
+                        "Time management"
+                      ]
+                    },
+                    "recommendation": {
+                      "type": "string",
+                      "enum": [
+                        "strongly_recommend",
+                        "recommend",
+                        "consider",
+                        "not_recommend"
+                      ]
+                    },
+                    "language": {
+                      "type": "string",
+                      "example": "en"
+                    },
+                    "modelUsed": {
+                      "type": "string",
+                      "example": "llama-3.3-70b-versatile"
+                    },
+                    "totalTokensUsed": {
+                      "type": "number",
+                      "example": 5000
+                    },
+                    "processingTimeMs": {
+                      "type": "number",
+                      "example": 15000
+                    },
+                    "errorMessage": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "questionAnalyses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "questionId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "questionText": {
+                            "type": "string"
+                          },
+                          "questionType": {
+                            "type": "string"
+                          },
+                          "responseText": {
+                            "type": "string"
+                          },
+                          "score": {
+                            "type": "number",
+                            "example": 80
+                          },
+                          "feedback": {
+                            "type": "string"
+                          },
+                          "criteriaScores": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "isCorrect": {
+                            "type": "boolean",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Analysis not found"
+          }
+        },
+        "summary": "Get full analysis results",
+        "tags": [
+          "Analysis"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Returns service health status",
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "service": {
+                      "type": "string",
+                      "example": "ai-analysis-service"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "description": "Kubernetes liveness probe endpoint",
+        "operationId": "HealthController_liveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is alive"
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "Kubernetes readiness probe endpoint",
+        "operationId": "HealthController_readiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is ready"
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "Health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "AI Analysis Service API",
+    "description": "AI-powered interview analysis microservice. Provides endpoints for retrieving analysis results and sandbox testing.",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Analysis",
+      "description": "Interview analysis results endpoints"
+    },
+    {
+      "name": "Health",
+      "description": "Service health and readiness checks"
+    },
+    {
+      "name": "Sandbox",
+      "description": "Development and testing endpoints"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "QuestionOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "isCorrect": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "isCorrect"
+        ]
+      },
+      "QuestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "q-1"
+          },
+          "text": {
+            "type": "string",
+            "example": "What is dependency injection?"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "multiple_choice",
+              "video",
+              "code"
+            ]
+          },
+          "orderIndex": {
+            "type": "number",
+            "example": 0
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionOptionDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "type",
+          "orderIndex"
+        ]
+      },
+      "ResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "r-1"
+          },
+          "questionId": {
+            "type": "string",
+            "example": "q-1"
+          },
+          "textAnswer": {
+            "type": "string",
+            "example": "Dependency injection is a design pattern..."
+          },
+          "selectedOptionId": {
+            "type": "string",
+            "example": "opt-1"
+          }
+        },
+        "required": [
+          "id",
+          "questionId"
+        ]
+      },
+      "AnalyzeRequestDto": {
+        "type": "object",
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "example": "inv-test-123"
+          },
+          "candidateId": {
+            "type": "string",
+            "example": "cand-456"
+          },
+          "templateId": {
+            "type": "string",
+            "example": "tmpl-789"
+          },
+          "templateTitle": {
+            "type": "string",
+            "example": "Senior Developer Interview"
+          },
+          "companyName": {
+            "type": "string",
+            "example": "Tech Corp"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionDto"
+            }
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseDto"
+            }
+          },
+          "language": {
+            "type": "string",
+            "example": "en",
+            "default": "en"
+          }
+        },
+        "required": [
+          "invitationId",
+          "candidateId",
+          "templateId",
+          "templateTitle",
+          "companyName",
+          "questions",
+          "responses"
+        ]
+      }
+    }
+  }
+}
