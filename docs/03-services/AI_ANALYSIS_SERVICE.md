@@ -1,420 +1,392 @@
 # AI Analysis Service
 
-**Status:** 🔴 Not Implemented  
-**Port:** 3007  
-**Technology Stack:** NestJS, TypeORM, PostgreSQL, Groq API, pgvector  
-**Priority:** HIGH (Core value proposition)
+**Status:** ✅ Implemented
+**Port:** 8005
+**Technology Stack:** NestJS 11, TypeORM, PostgreSQL, Groq API, Kafka
+**Database:** `ai_video_interview_analysis`
 
 ---
 
 ## Overview
 
-AI Analysis Service is responsible for analyzing candidate interview responses using LLM-based evaluation. It processes transcribed answers, extracts insights, and provides objective feedback using RAG (Retrieval-Augmented Generation) pattern.
+AI Analysis Service analyzes candidate interview responses using LLM-based evaluation via the Groq Cloud API. When a candidate completes an interview, the service automatically receives the event via Kafka, evaluates each response against 4 criteria, and produces an overall score with a hiring recommendation.
 
 **Key Capabilities:**
-- Interview response analysis via LLM (LLama 3.3 70B)
-- RAG-based contextual evaluation against job requirements
-- Skills extraction and scoring
-- Sentiment and communication analysis
-- Comparative candidate ranking
+- Per-question analysis via Groq LLM (configurable model, default: `openai/gpt-oss-120b`)
+- Scoring on 4 criteria: relevance, completeness, clarity, depth (0-100)
+- Overall interview score with hiring recommendation (hire / consider / reject)
+- Fully event-driven: consumes `interview-events`, publishes `analysis-events`
+- Idempotent processing via `processed_events` table
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   AI ANALYSIS SERVICE (3007)                │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │              Kafka Consumer Layer                    │   │
-│  │  - interview.completed events                        │   │
-│  │  - transcription.ready events                        │   │
-│  └──────────────────────┬──────────────────────────────┘   │
-│                         │                                   │
-│  ┌──────────────────────▼──────────────────────────────┐   │
-│  │              Application Layer (CQRS)                │   │
-│  │  Commands:                    Queries:               │   │
-│  │  - AnalyzeInterview           - GetAnalysisById      │   │
-│  │  - GenerateFeedback           - GetCandidateScore    │   │
-│  │  - ExtractSkills              - CompareСandidates    │   │
-│  └──────────────────────┬──────────────────────────────┘   │
-│                         │                                   │
-│  ┌──────────────────────▼──────────────────────────────┐   │
-│  │              RAG Pipeline                            │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │   │
-│  │  │ Embedding   │→ │  Vector     │→ │   LLM       │  │   │
-│  │  │ Generator   │  │  Search     │  │   Prompt    │  │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘  │   │
-│  └──────────────────────┬──────────────────────────────┘   │
-│                         │                                   │
-│  ┌──────────────────────▼──────────────────────────────┐   │
-│  │              Infrastructure Layer                    │   │
-│  │  - GroqService (LLM API)                            │   │
-│  │  - EmbeddingService (text-embedding-3-small)        │   │
-│  │  - VectorRepository (pgvector)                      │   │
-│  │  - AnalysisRepository (TypeORM)                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                   AI ANALYSIS SERVICE (8005)                     │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                      DOMAIN LAYER                         │   │
+│  │  ┌──────────────┐  ┌────────────────┐                    │   │
+│  │  │AnalysisResult│  │QuestionAnalysis│                    │   │
+│  │  │  (Aggregate)  │  │   (Entity)     │                    │   │
+│  │  └──────────────┘  └────────────────┘                    │   │
+│  │                                                           │   │
+│  │  Value Objects: Score, Recommendation, AnalysisStatus,    │   │
+│  │                 AnalysisMetadata, CriteriaScore            │   │
+│  │  Events: AnalysisStarted, AnalysisCompleted, Failed       │   │
+│  │  Repository Interfaces: IAnalysisResultRepository         │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│  ┌──────────────────────────▼───────────────────────────────┐   │
+│  │                   APPLICATION LAYER                       │   │
+│  │                                                           │   │
+│  │  Ports (interfaces):                                      │   │
+│  │  ├── IAnalysisEngine     → LLM abstraction (Groq)        │   │
+│  │  ├── IEventPublisher     → Kafka event publishing         │   │
+│  │  └── IPromptLoader       → Prompt templates & criteria    │   │
+│  │                                                           │   │
+│  │  Commands:                  Queries:                      │   │
+│  │  ├── AnalyzeInterview      ├── GetAnalysisResult          │   │
+│  │  └── RetryAnalysis         ├── GetAnalysisByInvitation    │   │
+│  │                             └── ListAnalyses              │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│  ┌──────────────────────────▼───────────────────────────────┐   │
+│  │                  INFRASTRUCTURE LAYER                      │   │
+│  │                                                           │   │
+│  │  Groq:              Persistence:          Kafka:          │   │
+│  │  ├── GroqClient     ├── TypeORM entities  ├── Consumer    │   │
+│  │  ├── RateLimiter    ├── Repositories      └── Publisher   │   │
+│  │  └── PromptLoader   ├── Mappers                           │   │
+│  │                     └── Migrations                        │   │
+│  │                                                           │   │
+│  │  HTTP:              Logger:                               │   │
+│  │  ├── Analysis Ctrl  └── Winston + Loki                    │   │
+│  │  ├── Sandbox Ctrl                                         │   │
+│  │  └── Health Ctrl                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
          │                    │                    │
          ▼                    ▼                    ▼
-    PostgreSQL            Kafka              Groq API
-   (+ pgvector)        (events)         (LLama 3.3 70B)
+    PostgreSQL             Kafka              Groq Cloud API
 ```
 
 ---
 
-## Groq API Integration
+## Domain Layer
 
-### Selected Models
+### AnalysisResult (Aggregate Root)
 
-| Model | Purpose | Rate Limit (Free) |
-|-------|---------|-------------------|
-| **llama-3.3-70b-versatile** | Interview analysis, feedback generation | ~6000 tokens/min |
-| **llama-3.1-8b-instant** | Quick scoring, simple evaluations | ~20000 tokens/min |
+State machine: `pending → in_progress → completed | failed`
 
-### Configuration
+```typescript
+class AnalysisResult {
+  id: string;                          // UUID
+  invitationId: string;                // Reference to invitation (interview-service)
+  status: AnalysisStatus;              // pending | in_progress | completed | failed
 
-```yaml
-# Environment Variables
-GROQ_API_KEY=gsk_xxxxxxxxxxxx
-GROQ_MODEL_PRIMARY=llama-3.3-70b-versatile
-GROQ_MODEL_FAST=llama-3.1-8b-instant
-GROQ_MAX_TOKENS=4096
-GROQ_TEMPERATURE=0.3
+  // Results
+  overallScore: Score;                 // 0-100, average of question scores
+  summary: string;                     // 2-3 sentence summary
+  strengths: string[];                 // Key strengths
+  weaknesses: string[];                // Areas for improvement
+  recommendation: Recommendation;      // hire | consider | reject
+
+  // Metadata
+  metadata: AnalysisMetadata;         // model, tokens, processingTime, language
+
+  // Child entities
+  questionAnalyses: QuestionAnalysis[];
+
+  // Factory methods
+  static create(invitationId: string): AnalysisResult;    // Emits domain event
+  static reconstitute(props: Props): AnalysisResult;      // From persistence
+
+  // Lifecycle methods
+  start(): void;                       // pending → in_progress
+  addQuestionAnalysis(qa: QuestionAnalysis): void;
+  complete(data: CompletionData): void; // in_progress → completed
+  fail(error: string): void;           // in_progress → failed
+}
 ```
 
-### Rate Limiting Strategy
+**Recommendation logic:**
+- `hire` — overall score ≥ 75 AND no critical weaknesses
+- `consider` — overall score 50-74 OR concerns noted
+- `reject` — overall score < 50 OR red flags
 
+### QuestionAnalysis (Entity)
+
+```typescript
+class QuestionAnalysis {
+  id: string;
+  questionId: string;                  // Reference to question
+  questionText: string;                // Denormalized for display
+  responseText: string;                // Candidate's answer
+
+  score: Score;                        // 0-100
+  feedback: string;                    // LLM-generated feedback
+  criteriaScores: CriteriaScore[];     // Per-criteria breakdown
+}
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Rate Limiter                           │
-│                                                         │
-│  Token Bucket Algorithm:                                │
-│  - Bucket size: 6000 tokens                            │
-│  - Refill rate: 6000 tokens/minute                     │
-│  - Queue overflow: Redis queue for backpressure        │
-│                                                         │
-│  Retry Policy:                                          │
-│  - Max retries: 3                                       │
-│  - Backoff: exponential (1s, 2s, 4s)                   │
-│  - On 429: queue and retry after rate limit reset      │
-└─────────────────────────────────────────────────────────┘
-```
+
+### Value Objects
+
+| Value Object | Description |
+|-------------|-------------|
+| `Score` | Integer 0-100 with validation |
+| `Recommendation` | Enum: `hire`, `consider`, `reject` |
+| `AnalysisStatus` | Enum: `pending`, `in_progress`, `completed`, `failed` |
+| `AnalysisMetadata` | `modelUsed`, `totalTokensUsed`, `processingTimeMs`, `language` |
+| `CriteriaScore` | `{ criterion: string, score: Score, weight: number }` |
+
+### Domain Events
+
+| Event | When | Payload |
+|-------|------|---------|
+| `AnalysisStartedEvent` | Analysis begins | analysisId, invitationId |
+| `AnalysisCompletedEvent` | Analysis succeeds | analysisId, invitationId, overallScore, recommendation |
+| `AnalysisFailedEvent` | Analysis fails | analysisId, invitationId, error |
 
 ---
 
-## RAG Pipeline
+## Application Layer (CQRS)
 
-### 1. Document Preparation (Job Requirements)
+### Ports (Interfaces)
 
-```
-Job Description → Chunking → Embedding → pgvector Storage
+```typescript
+// Abstracts LLM provider (Groq in our case)
+interface IAnalysisEngine {
+  analyzeResponse(input: QuestionAnalysisInput): Promise<QuestionAnalysisResult>;
+  generateSummary(analyses: QuestionAnalysis[]): Promise<SummaryResult>;
+}
 
-Chunk Strategy:
-- Chunk size: 500 tokens
-- Overlap: 50 tokens
-- Metadata: section_type, importance_level
-```
+// Abstracts event publishing
+interface IEventPublisher {
+  publish(event: DomainEvent): Promise<void>;
+}
 
-### 2. Query Flow (Candidate Response Analysis)
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        RAG Query Flow                            │
-│                                                                  │
-│  1. Transcription     2. Embedding      3. Vector Search         │
-│  ┌─────────────┐     ┌─────────────┐   ┌─────────────────────┐  │
-│  │ "I have 5   │ ──▶ │ [0.12, 0.45 │ ─▶│ SELECT * FROM       │  │
-│  │ years of    │     │  0.78, ...]  │   │ embeddings          │  │
-│  │ React..."   │     └─────────────┘   │ ORDER BY embedding   │  │
-│  └─────────────┘                       │ <-> $1 LIMIT 5       │  │
-│                                        └──────────┬────────────┘  │
-│                                                   │               │
-│  4. Context Assembly              5. LLM Prompt                  │
-│  ┌──────────────────────┐        ┌────────────────────────────┐ │
-│  │ Job Req: "5+ years   │   ──▶  │ System: You are an expert  │ │
-│  │ React experience"    │        │ interviewer...             │ │
-│  │                      │        │ Context: {job_requirements}│ │
-│  │ Job Req: "TypeScript │        │ Response: {transcription}  │ │
-│  │ proficiency"         │        │ Task: Evaluate...          │ │
-│  └──────────────────────┘        └────────────────────────────┘ │
-│                                                   │               │
-│                                                   ▼               │
-│                           6. Structured Output                   │
-│                           ┌────────────────────────────────────┐ │
-│                           │ {                                  │ │
-│                           │   "score": 85,                     │ │
-│                           │   "skills_matched": [...],         │ │
-│                           │   "feedback": "...",               │ │
-│                           │   "improvement_areas": [...]       │ │
-│                           │ }                                  │ │
-│                           └────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+// Abstracts prompt template loading
+interface IPromptLoader {
+  getSystemPrompt(): string;
+  getQuestionPrompt(type: string): string;
+  getSummaryPrompt(): string;
+  getCriteria(): CriterionConfig[];
+}
 ```
 
-### 3. Embedding Strategy
+### Commands
 
-```yaml
-# Using OpenAI embeddings (more stable) or local alternative
-EMBEDDING_PROVIDER: openai  # or 'local'
-EMBEDDING_MODEL: text-embedding-3-small
-EMBEDDING_DIMENSIONS: 1536
+| Command | Handler | Description |
+|---------|---------|-------------|
+| `AnalyzeInterviewCommand` | `AnalyzeInterviewHandler` | Main workflow: receives event data, analyzes each question via LLM, generates summary |
+| `RetryAnalysisCommand` | `RetryAnalysisHandler` | Retries a failed analysis |
 
-# Alternative: Hugging Face local model
-# EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
-# EMBEDDING_DIMENSIONS: 384
-```
+**AnalyzeInterview workflow:**
+1. Create `AnalysisResult` in `pending` status
+2. Transition to `in_progress`
+3. For each question-response pair (sequentially, with 5s rate limit):
+   - Call `IAnalysisEngine.analyzeResponse()` → score, feedback, criteriaScores
+   - Add `QuestionAnalysis` to aggregate
+4. Call `IAnalysisEngine.generateSummary()` → summary, strengths, weaknesses, recommendation
+5. Complete analysis, persist, publish `AnalysisCompletedEvent`
+6. On error: mark as `failed`, publish `AnalysisFailedEvent`
+
+### Queries
+
+| Query | Handler | Description |
+|-------|---------|-------------|
+| `GetAnalysisResultQuery` | `GetAnalysisResultHandler` | Get analysis by ID |
+| `GetAnalysisByInvitationQuery` | `GetAnalysisByInvitationHandler` | Get analysis by invitation ID |
+| `ListAnalysesQuery` | `ListAnalysesHandler` | Paginated list of analyses |
 
 ---
 
-## Kafka Integration
+## Infrastructure Layer
 
-### Subscribed Topics
+### Groq Integration
+
+**Configuration:**
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| Model | `openai/gpt-oss-120b` | Configurable via `GROQ_MODEL` env var |
+| Temperature | 0.3 | Low for deterministic scoring |
+| Response format | JSON mode | Structured output parsing |
+| Rate limit | 5s delay between calls | Groq free tier: ~8000 TPM |
+| Max retries | 3 | Exponential backoff on 429 |
+
+**GroqAnalysisEngine** implements `IAnalysisEngine`:
+- Constructs prompts per question type (text, multiple choice)
+- Parses JSON responses with validation
+- Handles rate limiting with configurable delay
+- Supports chunked summaries for interviews with 30+ questions
+
+### Scoring Criteria
+
+Each question is evaluated on 4 criteria with equal weight:
+
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| **Relevance** | 0.25 | How well the answer addresses the question |
+| **Completeness** | 0.25 | How thoroughly the topic is covered |
+| **Clarity** | 0.25 | How clearly the answer is articulated |
+| **Depth** | 0.25 | How deep the candidate's understanding is |
+
+### Kafka Integration
+
+**Consumer:**
 
 | Topic | Event | Action |
 |-------|-------|--------|
-| `interview-events` | `interview.completed` | Trigger analysis pipeline |
-| `media-events` | `transcription.ready` | Process transcription |
+| `interview-events` | `invitation.completed` | Triggers `AnalyzeInterviewCommand` |
 
-### Published Topics
+The `invitation.completed` event contains **all data** needed for analysis:
+- Questions (text, type, options)
+- Responses (text answers, selected options)
+- Template metadata (title, company name)
+
+No HTTP calls to Interview Service needed — fully event-driven.
+
+**Publisher:**
 
 | Topic | Event | Trigger |
 |-------|-------|---------|
-| `analysis-events` | `analysis.completed` | After LLM evaluation |
+| `analysis-events` | `analysis.completed` | After successful LLM evaluation |
 | `analysis-events` | `analysis.failed` | On processing error |
 
-### Event Schemas
+**Idempotency:**
+- `processed_events` table tracks consumed event IDs (UNIQUE constraint)
+- Duplicate events are silently skipped
+- Prevents re-analysis on Kafka rebalances
 
-**Incoming: interview.completed**
-```json
-{
-  "eventId": "uuid",
-  "eventType": "interview.completed",
-  "timestamp": "2025-01-01T00:00:00Z",
-  "data": {
-    "interviewId": "uuid",
-    "candidateId": "uuid",
-    "templateId": "uuid",
-    "responses": [
-      {
-        "questionId": "uuid",
-        "transcriptionUrl": "s3://...",
-        "transcriptionText": "...",
-        "duration": 120
-      }
-    ]
-  }
-}
-```
-
-**Outgoing: analysis.completed**
-```json
-{
-  "eventId": "uuid",
-  "eventType": "analysis.completed",
-  "timestamp": "2025-01-01T00:00:00Z",
-  "data": {
-    "interviewId": "uuid",
-    "candidateId": "uuid",
-    "overallScore": 85,
-    "categoryScores": {
-      "technicalSkills": 90,
-      "communication": 80,
-      "problemSolving": 85
-    },
-    "feedback": {
-      "summary": "...",
-      "strengths": ["..."],
-      "improvements": ["..."]
-    },
-    "skillsExtracted": ["React", "TypeScript", "Node.js"]
-  }
-}
-```
-
----
-
-## Database Schema
-
-### Tables
+### Database Schema
 
 **analysis_results**
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ analysis_results                                                │
-├─────────────────────────────────────────────────────────────────┤
-│ id                  UUID PRIMARY KEY                            │
-│ interview_id        UUID NOT NULL (FK → interviews)             │
-│ candidate_id        UUID NOT NULL                               │
-│ template_id         UUID NOT NULL                               │
-│ overall_score       INTEGER (0-100)                             │
-│ category_scores     JSONB                                       │
-│ feedback            JSONB                                       │
-│ skills_extracted    TEXT[]                                      │
-│ raw_llm_response    TEXT                                        │
-│ model_used          VARCHAR(100)                                │
-│ tokens_used         INTEGER                                     │
-│ processing_time_ms  INTEGER                                     │
-│ status              ENUM('pending','processing','completed',    │
-│                          'failed')                              │
-│ error_message       TEXT                                        │
-│ created_at          TIMESTAMP                                   │
-│ updated_at          TIMESTAMP                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
 
-**job_embeddings (pgvector)**
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ job_embeddings                                                  │
-├─────────────────────────────────────────────────────────────────┤
-│ id                  UUID PRIMARY KEY                            │
-│ template_id         UUID NOT NULL (FK → templates)              │
-│ chunk_text          TEXT NOT NULL                               │
-│ chunk_index         INTEGER                                     │
-│ section_type        VARCHAR(50) (requirements, skills, etc)     │
-│ embedding           VECTOR(1536)                                │
-│ metadata            JSONB                                       │
-│ created_at          TIMESTAMP                                   │
-└─────────────────────────────────────────────────────────────────┘
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID PK | Analysis ID |
+| `invitation_id` | UUID UNIQUE | Reference to invitation |
+| `status` | VARCHAR(20) | pending / in_progress / completed / failed |
+| `overall_score` | INTEGER | 0-100 |
+| `summary` | TEXT | LLM-generated summary |
+| `strengths` | JSONB | Array of strengths |
+| `weaknesses` | JSONB | Array of weaknesses |
+| `recommendation` | VARCHAR(20) | hire / consider / reject |
+| `model_used` | VARCHAR(100) | LLM model identifier |
+| `tokens_used` | INTEGER | Total tokens consumed |
+| `processing_time_ms` | INTEGER | Total processing time |
+| `error_message` | TEXT | Error details (if failed) |
+| `created_at` | TIMESTAMP | Creation timestamp |
+| `updated_at` | TIMESTAMP | Last update timestamp |
 
--- Index for vector similarity search
-CREATE INDEX ON job_embeddings 
-USING ivfflat (embedding vector_cosine_ops) 
-WITH (lists = 100);
-```
+**question_analyses**
 
-**question_analysis**
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ question_analysis                                               │
-├─────────────────────────────────────────────────────────────────┤
-│ id                  UUID PRIMARY KEY                            │
-│ analysis_result_id  UUID NOT NULL (FK → analysis_results)       │
-│ question_id         UUID NOT NULL                               │
-│ transcription       TEXT                                        │
-│ score               INTEGER (0-100)                             │
-│ feedback            TEXT                                        │
-│ keywords_detected   TEXT[]                                      │
-│ sentiment           VARCHAR(20)                                 │
-│ confidence          FLOAT                                       │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID PK | Question analysis ID |
+| `analysis_result_id` | UUID FK | Reference to analysis_results |
+| `question_id` | UUID | Reference to question |
+| `question_text` | TEXT | Denormalized question text |
+| `question_type` | VARCHAR(20) | text / multiple_choice |
+| `response_text` | TEXT | Candidate's answer |
+| `score` | INTEGER | 0-100 |
+| `feedback` | TEXT | LLM-generated feedback |
+| `criteria_scores` | JSONB | Per-criteria scores array |
+| `created_at` | TIMESTAMP | Creation timestamp |
+
+**processed_events**
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID PK | Record ID |
+| `event_id` | VARCHAR UNIQUE | Kafka event ID (idempotency key) |
+| `event_type` | VARCHAR | Event type |
+| `processed_at` | TIMESTAMP | When event was processed |
+
+### HTTP API
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `GET` | `/api/v1/analysis/:id` | Get analysis by ID | JWT |
+| `GET` | `/api/v1/analysis/invitation/:invitationId` | Get analysis by invitation | JWT |
+| `GET` | `/api/v1/analysis` | List analyses (paginated) | JWT, HR/Admin |
+| `POST` | `/api/v1/analysis/invitation/:invitationId/retry` | Retry failed analysis | JWT, HR/Admin |
+
+**Sandbox endpoint** (development only):
+| `POST` | `/api/v1/sandbox/analyze` | Manually trigger analysis | — |
 
 ---
 
-## LLM Prompt Templates
-
-### System Prompt (Interview Evaluator)
+## Processing Flow
 
 ```
-You are an expert technical interviewer and HR professional. 
-Your task is to objectively evaluate candidate responses based on:
-1. Job requirements provided as context
-2. Technical accuracy of answers
-3. Communication clarity
-4. Problem-solving approach
-
-Always provide:
-- Numerical scores (0-100)
-- Specific feedback with examples
-- Actionable improvement suggestions
-
-Be fair, unbiased, and focus on job-relevant criteria only.
-```
-
-### Evaluation Prompt Template
-
-```
-## Job Requirements Context
-{retrieved_job_requirements}
-
-## Interview Question
-{question_text}
-
-## Candidate Response (Transcribed)
-{transcription}
-
-## Evaluation Task
-Analyze this response and provide:
-
-1. **Score** (0-100): Based on relevance to job requirements
-2. **Technical Assessment**: Accuracy of technical content
-3. **Communication Score**: Clarity and structure
-4. **Strengths**: What the candidate did well
-5. **Improvements**: Specific areas to develop
-6. **Keywords Detected**: Technical terms and skills mentioned
-
-Output as JSON:
-{
-  "score": number,
-  "technicalScore": number,
-  "communicationScore": number,
-  "strengths": string[],
-  "improvements": string[],
-  "keywordsDetected": string[],
-  "detailedFeedback": string
-}
-```
-
----
-
-## API Endpoints
-
-### Analysis Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/analysis/:interviewId` | Get analysis results |
-| `GET` | `/api/v1/analysis/:interviewId/questions` | Per-question breakdown |
-| `POST` | `/api/v1/analysis/:interviewId/retry` | Retry failed analysis |
-| `GET` | `/api/v1/candidates/:id/scores` | Candidate score history |
-| `POST` | `/api/v1/compare` | Compare multiple candidates |
-
-### Admin Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/admin/analysis/stats` | Processing statistics |
-| `GET` | `/api/v1/admin/analysis/queue` | Queue status |
-| `POST` | `/api/v1/admin/embeddings/rebuild` | Rebuild vector index |
-
----
-
-## Processing Pipeline
-
-### Sequence Diagram
-
-```
-┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│  Kafka  │     │ AI Svc  │     │pgvector │     │  Groq   │     │  Kafka  │
-└────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘
-     │               │               │               │               │
-     │ interview.    │               │               │               │
-     │ completed     │               │               │               │
-     │──────────────▶│               │               │               │
-     │               │               │               │               │
-     │               │ Query similar │               │               │
-     │               │ job reqs      │               │               │
-     │               │──────────────▶│               │               │
-     │               │               │               │               │
-     │               │◀──────────────│               │               │
-     │               │ Top 5 chunks  │               │               │
-     │               │               │               │               │
-     │               │ Build prompt + analyze        │               │
-     │               │──────────────────────────────▶│               │
-     │               │               │               │               │
-     │               │◀──────────────────────────────│               │
-     │               │ Structured response           │               │
-     │               │               │               │               │
-     │               │ Save to DB    │               │               │
-     │               │───────────────│               │               │
-     │               │               │               │               │
-     │               │                               │ analysis.     │
-     │               │                               │ completed     │
-     │               │───────────────────────────────────────────────▶│
-     │               │               │               │               │
+┌──────────────────┐
+│ Interview Service│
+│   completes      │
+│   invitation     │
+└────────┬─────────┘
+         │
+         ▼ Kafka: invitation.completed
+           {
+             invitationId,
+             questions: [...],
+             responses: [...]   ◄── ALL data in event payload
+           }
+┌──────────────────┐
+│  AI Analysis     │
+│  Consumer        │
+│  (idempotency    │
+│   check via      │
+│   processed_     │
+│   events table)  │
+└────────┬─────────┘
+         │
+         ▼ AnalyzeInterviewCommand(eventData)
+┌──────────────────┐
+│  Handler:        │
+│  1. Create       │
+│     analysis     │
+│  2. Start        │
+└────────┬─────────┘
+         │
+         ▼ For each question (sequential, 5s delay)
+┌──────────────────┐
+│  Groq LLM:       │
+│  - JSON mode     │
+│  - 4 criteria    │
+│  - Score 0-100   │
+│  - Feedback      │
+└────────┬─────────┘
+         │
+         ▼ After all questions
+┌──────────────────┐
+│  Groq LLM:       │
+│  - Summary       │
+│  - Strengths     │
+│  - Weaknesses    │
+│  - Recommendation│
+└────────┬─────────┘
+         │
+         ▼ Persist + Publish
+┌──────────────────┐    ┌──────────────────┐
+│  PostgreSQL:     │    │ Kafka:           │
+│  Save result     │    │ analysis-events  │
+│  + questions     │    │ analysis.        │
+│                  │    │ completed        │
+└──────────────────┘    └──────────────────┘
+                               │
+                               ▼
+                        ┌──────────────────┐
+                        │ Interview Service│
+                        │ updates          │
+                        │ invitation with  │
+                        │ analysis results │
+                        └──────────────────┘
 ```
 
 ---
@@ -425,7 +397,7 @@ Output as JSON:
 
 ```bash
 # Application
-PORT=3007
+PORT=8005
 NODE_ENV=development
 
 # Database
@@ -437,26 +409,16 @@ DATABASE_PASSWORD=postgres
 
 # Groq API
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxx
-GROQ_MODEL_PRIMARY=llama-3.3-70b-versatile
-GROQ_MODEL_FAST=llama-3.1-8b-instant
+GROQ_MODEL=openai/gpt-oss-120b
 GROQ_MAX_TOKENS=4096
 GROQ_TEMPERATURE=0.3
-
-# Embeddings (OpenAI or local)
-EMBEDDING_PROVIDER=openai
-OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
-EMBEDDING_MODEL=text-embedding-3-small
 
 # Kafka
 KAFKA_BROKERS=localhost:9092
 KAFKA_CLIENT_ID=ai-analysis-service
-KAFKA_GROUP_ID=ai-analysis-service-group
+KAFKA_GROUP_ID=ai-analysis-group
 
-# Rate Limiting
-GROQ_RATE_LIMIT_TOKENS=6000
-GROQ_RATE_LIMIT_WINDOW_MS=60000
-
-# Redis (for queue)
+# Redis (for BullMQ)
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
@@ -470,99 +432,112 @@ JAEGER_ENDPOINT=http://localhost:14268/api/traces
 
 ## Error Handling
 
-### Retry Strategy
-
-| Error Type | Retry | Action |
-|------------|-------|--------|
-| Rate limit (429) | Yes (with backoff) | Queue and retry after reset |
-| Timeout | Yes (3 attempts) | Exponential backoff |
-| Invalid response | Yes (2 attempts) | Re-prompt with stricter format |
-| API error (5xx) | Yes (3 attempts) | Exponential backoff |
-| Validation error | No | Log and mark failed |
-
-### Fallback Strategy
-
-```
-Primary Model (llama-3.3-70b) 
-    ↓ (if rate limited)
-Fast Model (llama-3.1-8b)
-    ↓ (if both unavailable)
-Queue for later processing
-```
-
----
-
-## Metrics & Monitoring
-
-### Prometheus Metrics
-
-```
-ai_analysis_requests_total{status="success|failed"}
-ai_analysis_processing_duration_seconds
-ai_analysis_tokens_used_total
-ai_analysis_queue_size
-ai_analysis_groq_rate_limit_hits_total
-ai_analysis_embedding_requests_total
-```
-
-### Health Check
-
-```
-GET /health
-
-{
-  "status": "ok",
-  "groq": "connected",
-  "database": "connected",
-  "kafka": "connected",
-  "queueSize": 5
-}
-```
+| Scenario | Strategy |
+|----------|----------|
+| Groq rate limit (429) | Exponential backoff, max 3 retries |
+| Groq API error (5xx) | Retry with backoff |
+| Invalid JSON from LLM | Retry prompt (max 3 attempts) |
+| Duplicate Kafka event | Skip (idempotency via processed_events) |
+| Analysis failure | Mark as `failed`, publish `AnalysisFailedEvent` |
+| Retry request | Re-run full analysis from scratch (all-or-nothing) |
 
 ---
 
 ## Dependencies
 
-### Internal Services
-- **Media Service** (3006) - Provides transcriptions
-- **Interview Service** (3004) - Source of interview data
-- **Notification Service** (3008) - Notifies HR on completion
+### Internal Services (via Kafka)
+- **Interview Service** — Source of `invitation.completed` events (contains all data)
+- **Interview Service** — Consumer of `analysis.completed` events
 
 ### External Services
-- **Groq API** - LLM inference
-- **OpenAI API** - Text embeddings (optional)
-- **PostgreSQL + pgvector** - Vector storage
-- **Kafka** - Event streaming
-- **Redis** - Rate limit queue
+- **Groq Cloud API** — LLM inference
+- **PostgreSQL** — Persistence
+- **Kafka** — Event streaming
+- **Redis** — BullMQ for outbox processing
 
 ---
 
-## Implementation Phases
+## File Structure
 
-### Phase 1: Foundation
-- [ ] NestJS project setup with Clean Architecture
-- [ ] Database schema + pgvector extension
-- [ ] Groq API integration with rate limiting
-- [ ] Basic Kafka consumer
-
-### Phase 2: RAG Pipeline
-- [ ] Embedding service integration
-- [ ] Vector search implementation
-- [ ] Prompt template system
-- [ ] Structured output parsing
-
-### Phase 3: Analysis Features
-- [ ] Per-question analysis
-- [ ] Overall interview scoring
-- [ ] Skills extraction
-- [ ] Candidate comparison
-
-### Phase 4: Production Readiness
-- [ ] Comprehensive error handling
-- [ ] Metrics and monitoring
-- [ ] Queue management
-- [ ] Performance optimization
+```
+apps/ai-analysis-service/
+├── src/
+│   ├── domain/
+│   │   ├── aggregates/
+│   │   │   └── analysis-result.aggregate.ts
+│   │   ├── entities/
+│   │   │   └── question-analysis.entity.ts
+│   │   ├── value-objects/
+│   │   │   ├── score.vo.ts
+│   │   │   ├── recommendation.vo.ts
+│   │   │   ├── analysis-status.vo.ts
+│   │   │   ├── analysis-metadata.vo.ts
+│   │   │   └── criteria-score.vo.ts
+│   │   ├── events/
+│   │   │   ├── analysis-started.event.ts
+│   │   │   ├── analysis-completed.event.ts
+│   │   │   └── analysis-failed.event.ts
+│   │   ├── repositories/
+│   │   │   └── analysis-result.repository.interface.ts
+│   │   └── exceptions/
+│   │       └── analysis.exceptions.ts
+│   │
+│   ├── application/
+│   │   ├── ports/
+│   │   │   ├── analysis-engine.port.ts
+│   │   │   ├── event-publisher.port.ts
+│   │   │   └── prompt-loader.port.ts
+│   │   ├── commands/
+│   │   │   ├── analyze-interview/
+│   │   │   │   ├── analyze-interview.command.ts
+│   │   │   │   └── analyze-interview.handler.ts
+│   │   │   └── retry-analysis/
+│   │   │       ├── retry-analysis.command.ts
+│   │   │       └── retry-analysis.handler.ts
+│   │   ├── queries/
+│   │   │   ├── get-analysis-result/
+│   │   │   ├── get-analysis-by-invitation/
+│   │   │   └── list-analyses/
+│   │   └── dto/
+│   │
+│   ├── infrastructure/
+│   │   ├── persistence/
+│   │   │   ├── entities/
+│   │   │   │   ├── analysis-result.entity.ts
+│   │   │   │   ├── question-analysis.entity.ts
+│   │   │   │   └── processed-event.entity.ts
+│   │   │   ├── repositories/
+│   │   │   │   └── typeorm-analysis-result.repository.ts
+│   │   │   ├── mappers/
+│   │   │   │   └── analysis-result.mapper.ts
+│   │   │   └── migrations/
+│   │   │       └── 1735900000000-InitialSchema.ts
+│   │   │
+│   │   ├── groq/
+│   │   │   ├── groq-analysis-engine.ts
+│   │   │   ├── groq.module.ts
+│   │   │   └── prompt-loader.service.ts
+│   │   │
+│   │   ├── kafka/
+│   │   │   └── consumers/
+│   │   │       └── invitation-completed.consumer.ts
+│   │   │
+│   │   └── http/
+│   │       └── controllers/
+│   │           ├── analysis.controller.ts
+│   │           ├── sandbox.controller.ts
+│   │           └── health.controller.ts
+│   │
+│   ├── app.module.ts
+│   └── main.ts
+│
+├── test/
+├── .env.example
+├── nest-cli.json
+├── package.json
+└── tsconfig.json
+```
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** February 2026

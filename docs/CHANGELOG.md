@@ -87,6 +87,34 @@
 
 ---
 
+## [2.1.0] - 2026-02-20
+
+### Fixed — Documentation Accuracy
+- Fixed service ports throughout documentation (3005-3010 → 8002-8005)
+- AI Analysis Service: 🔴 Not Implemented → ✅ Implemented
+- Interview Service: 🟡 → ✅
+- Removed Zookeeper reference (Kafka uses KRaft mode)
+- Next.js 14 → Next.js 15, NestJS 10 → NestJS 11
+- Added missing infrastructure services (Kafka UI, Kafka Exporter, Node Exporter, Promtail)
+
+### Changed — README.md
+- Removed links to ~20 non-existent documentation files
+- Updated service statuses to reflect current implementation
+- Reorganized navigation to only link to existing files
+- Added link to docs/plan/ section
+
+### Added — Plans
+- `docs/plan/BACKLOG.md` — high-level backlog of 20 remaining tasks with priority matrix
+- Updated `ROADMAP.md` — Phase 1 marked as ✅ completed
+- Updated `PHASE-1-AI-ANALYSIS.md` — marked as completed with deviations section
+
+### Updated — AI Analysis Service
+- Completely rewritten `AI_ANALYSIS_SERVICE.md` based on actual implementation
+- Documented: Groq API integration, scoring criteria, Kafka event flow, database schema
+- Key differences from plan: no RAG/pgvector, data via Kafka events (no HTTP), model change
+
+---
+
 ## [2.0.2] - 2025-10-06
 
 ### Changed - Documentation Structure

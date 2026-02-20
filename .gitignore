@@ -50,3 +50,8 @@ apps/*/logs/*.json
 
 # Development plans (personal notes)
 docs/plan/
+
+.windsurf
+
+# One-off scripts
+oracle_a1_auto_create.py

@@ -8,7 +8,7 @@ This document provides a comprehensive overview of the AI Video Interview platfo
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              FRONTEND (Next.js 14)                              │
+│                              FRONTEND (Next.js 15)                              │
 │                                   Port: 3000                                    │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                         │
@@ -25,25 +25,25 @@ This document provides a comprehensive overview of the AI Video Interview platfo
          ▼                    ▼                    ▼                    ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │  USER SERVICE   │  │INTERVIEW SERVICE│  │  MEDIA SERVICE  │  │ AI ANALYSIS     │
-│   Port: 3005    │  │   Port: 3007    │  │   Port: 3006    │  │   Port: 3009    │
-│   ✅ DONE       │  │   ✅ DONE       │  │   🔴 PLANNED    │  │   🔴 PLANNED    │
+│   Port: 8002    │  │   Port: 8003    │  │   Port: 8004    │  │   Port: 8005    │
+│   ✅ DONE       │  │   ✅ DONE       │  │   🔴 PLANNED    │  │   ✅ DONE       │
 └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘
          │                    │                    │                    │
          └────────────────────┴────────────────────┴────────────────────┘
                                         │
                                         ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              KAFKA MESSAGE BUS                                   │
+│                              KAFKA MESSAGE BUS (KRaft)                           │
 │                                 Port: 9092                                       │
-│  Topics: user-commands, user-events, interview-events, media-events, etc.       │
+│  Topics: user-commands, user-events, interview-events, analysis-events, etc.    │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                         │
          ┌──────────────────────────────┼──────────────────────────────┐
          ▼                              ▼                              ▼
 ┌─────────────────┐           ┌─────────────────┐           ┌─────────────────┐
 │NOTIFICATION SVC │           │ BILLING SERVICE │           │    ANALYTICS    │
-│   Port: 3008    │           │   Port: 3010    │           │   (ClickHouse)  │
-│   🔴 PLANNED    │           │   🔴 PLANNED    │           │   Port: 8123    │
+│   🔴 PLANNED    │           │   🔴 PLANNED    │           │   (ClickHouse)  │
+│                 │           │                 │           │   🔴 PLANNED    │
 └─────────────────┘           └─────────────────┘           └─────────────────┘
 ```
 
@@ -53,13 +53,13 @@ This document provides a comprehensive overview of the AI Video Interview platfo
 
 | Service | Port | Status | Database | Description |
 |---------|------|--------|----------|-------------|
-| **API Gateway** | 8001 | ✅ Done | — | Auth, routing, metrics, tracing |
-| **User Service** | 3005 | ✅ Done | PostgreSQL | User management, roles, profiles |
-| **Interview Service** | 3007 | ✅ Done | PostgreSQL | Templates, questions, invitations |
-| **Media Service** | 3006 | 🔴 Planned | PostgreSQL + MinIO | File storage, transcription |
-| **AI Analysis Service** | 3009 | 🔴 Planned | PostgreSQL + pgvector | Interview analysis, RAG |
-| **Notification Service** | 3008 | 🔴 Planned | PostgreSQL | Email, webhooks |
-| **Billing Service** | 3010 | 🔴 Planned | PostgreSQL | Subscriptions, payments |
+| **API Gateway** | 8001 | ✅ Done | — | Auth (Keycloak OIDC), routing, circuit breaker, metrics, tracing |
+| **User Service** | 8002 | ✅ Done | PostgreSQL | User management, roles, profiles, companies, skills |
+| **Interview Service** | 8003 | ✅ Done | PostgreSQL | Templates, questions, invitations, responses |
+| **Media Service** | 8004 | 🔴 Planned | PostgreSQL + MinIO | File storage, video processing, transcription |
+| **AI Analysis Service** | 8005 | ✅ Done | PostgreSQL | Groq LLM interview analysis, scoring, recommendations |
+| **Notification Service** | — | 🔴 Planned | PostgreSQL | Email, webhooks |
+| **Billing Service** | — | 🔴 Planned | PostgreSQL | Subscriptions, payments |
 
 ---
 
@@ -67,17 +67,20 @@ This document provides a comprehensive overview of the AI Video Interview platfo
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| **PostgreSQL** | 5432 | Primary database |
+| **PostgreSQL** | 5432 | Primary database (separate DB per service) |
+| **PostgreSQL (Keycloak)** | 5433 | Keycloak database |
 | **Redis** | 6379 | BullMQ queues, caching |
-| **Kafka** | 9092 | Event streaming |
-| **Zookeeper** | 2181 | Kafka coordination |
+| **Kafka (KRaft)** | 9092 | Event streaming (no Zookeeper) |
+| **Kafka UI** | 8080 | Kafka management dashboard |
 | **Keycloak** | 8090 | Identity & Access Management |
 | **MinIO** | 9000/9001 | Object storage (S3-compatible) |
-| **ClickHouse** | 8123 | Analytics database |
 | **Prometheus** | 9090 | Metrics collection |
 | **Grafana** | 3002 | Dashboards & monitoring |
 | **Loki** | 3100 | Log aggregation |
+| **Promtail** | — | Log shipping to Loki |
 | **Jaeger** | 16686 | Distributed tracing |
+| **Kafka Exporter** | 9308 | Kafka metrics for Prometheus |
+| **Node Exporter** | 9100 | Host metrics for Prometheus |
 
 ---
 
@@ -87,9 +90,9 @@ This document provides a comprehensive overview of the AI Video Interview platfo
 
 | Layer | Technology |
 |-------|------------|
-| **Framework** | NestJS 10 |
-| **Language** | TypeScript 5.x |
-| **ORM** | TypeORM |
+| **Framework** | NestJS 11 |
+| **Language** | TypeScript 5.8 |
+| **ORM** | TypeORM 0.3.x |
 | **CQRS** | @nestjs/cqrs |
 | **Validation** | class-validator, class-transformer |
 | **API Docs** | Swagger/OpenAPI |
@@ -99,20 +102,22 @@ This document provides a comprehensive overview of the AI Video Interview platfo
 | Pattern | Implementation |
 |---------|----------------|
 | **Clean Architecture** | Domain → Application → Infrastructure |
-| **CQRS** | Commands/Queries separation |
+| **CQRS** | Commands/Queries separation via @nestjs/cqrs |
 | **DDD** | Aggregates, Value Objects, Domain Events |
-| **INBOX/OUTBOX** | Reliable messaging with BullMQ |
-| **Event Sourcing** | Kafka event streaming |
+| **OUTBOX** | Reliable messaging with BullMQ + PostgreSQL |
+| **Event-Driven** | Kafka event streaming (KRaft mode) |
 
 ### Frontend
 
 | Technology | Version |
 |------------|---------|
-| **Framework** | Next.js 14 (App Router) |
-| **Styling** | Tailwind CSS |
-| **Components** | shadcn/ui |
-| **State** | React Query, Zustand |
-| **Auth** | NextAuth.js + Keycloak |
+| **Framework** | Next.js 15 (App Router) |
+| **UI Library** | React 19 |
+| **Styling** | Tailwind CSS 4 |
+| **Components** | shadcn/ui + Radix UI |
+| **Data Fetching** | React Query (TanStack) |
+| **Forms** | React Hook Form + Zod |
+| **Auth** | Keycloak OIDC (httpOnly cookies) |
 
 ---
 
@@ -123,9 +128,11 @@ This document provides a comprehensive overview of the AI Video Interview platfo
 ```
 Frontend ──HTTP──► API Gateway ──HTTP──► Microservices
                       │
-                      ├── /api/users/* ──► User Service (3005)
-                      ├── /api/templates/* ──► Interview Service (3007)
-                      └── /api/media/* ──► Media Service (3006)
+                      ├── /users/*       ──► User Service (8002)
+                      ├── /templates/*   ──► Interview Service (8003)
+                      ├── /invitations/* ──► Interview Service (8003)
+                      ├── /analysis/*    ──► AI Analysis Service (8005)
+                      └── /media/*       ──► Media Service (8004)
 ```
 
 ### Asynchronous (Kafka)
@@ -135,22 +142,20 @@ Frontend ──HTTP──► API Gateway ──HTTP──► Microservices
 │                             KAFKA TOPICS                                         │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
+│  auth-events         API Gateway ────────────────► User Service                 │
+│  (user.authenticated)                                                            │
+│                                                                                  │
 │  user-commands        API Gateway ──────────────────────► User Service          │
-│  (create, update)                                                                │
+│  (user.create, etc.)                                                             │
 │                                                                                  │
-│  user-events          User Service ────► Interview Service, Notification SVC    │
-│  (created, updated)                   └► Billing Service, Analytics             │
+│  user-events          User Service ────► Interview Service                      │
+│  (user.created, etc.)                                                            │
 │                                                                                  │
-│  interview-events     Interview Service ──► Media Service, AI Analysis          │
-│  (invitation.created)                   └► Notification Service                  │
+│  interview-events     Interview Service ──► AI Analysis Service                 │
+│  (invitation.completed)                                                          │
 │                                                                                  │
-│  media-events         Media Service ──────► AI Analysis Service                 │
-│  (transcription.ready)                                                           │
-│                                                                                  │
-│  analysis-events      AI Analysis ────────► Notification Service                │
+│  analysis-events      AI Analysis ────────► Interview Service                   │
 │  (analysis.completed)                                                            │
-│                                                                                  │
-│  billing-events       Billing Service ────► All services (quota enforcement)    │
 │                                                                                  │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -175,32 +180,34 @@ src/
 │   └── producers/      # Event publishing
 ├── modules/
 │   ├── user-service/   # User Service proxy
-│   └── interview-service/ # Interview Service proxy
-└── proxies/            # HTTP proxies
+│   ├── interview-service/ # Interview Service proxy
+│   └── analysis-service/  # Analysis Service proxy
+└── proxies/            # HTTP proxies with circuit breaker
 ```
 
 **Key Features:**
 - OAuth2/OIDC authentication via Keycloak
-- JWT token validation & refresh
-- Circuit breaker for downstream services
-- Request/response logging
-- Prometheus metrics endpoint
+- JWT token validation (JWKS) & httpOnly cookie sessions
+- Circuit breaker for downstream services (CLOSED/OPEN/HALF_OPEN)
+- Registration saga with compensation pattern
+- Prometheus metrics endpoint (`/metrics`)
 - OpenTelemetry distributed tracing
 - Swagger API documentation at `/api/docs`
+- Kafka event publishing (auth-events, user-commands)
 
 ---
 
-### User Service (Port: 3005)
+### User Service (Port: 8002)
 
 **Architecture:**
 ```
 src/
 ├── domain/
-│   ├── aggregates/     # User aggregate
-│   ├── entities/       # Role, Company, Skill
+│   ├── aggregates/     # User, Company, CandidateProfile
+│   ├── entities/       # Skill, SkillCategory, CandidateSkill
 │   ├── events/         # Domain events
 │   ├── repositories/   # Repository interfaces
-│   └── value-objects/  # Email, FullName, Status
+│   └── value-objects/  # Email, FullName, UserStatus, UserRole
 ├── application/
 │   ├── commands/       # create-user, update-user, suspend, etc.
 │   ├── queries/        # get-user, list-users, get-permissions
@@ -208,7 +215,7 @@ src/
 └── infrastructure/
     ├── persistence/    # TypeORM entities, repositories, migrations
     ├── kafka/          # Event consumers/producers
-    ├── messaging/      # INBOX/OUTBOX pattern
+    ├── messaging/      # OUTBOX pattern
     ├── http/           # Controllers
     └── storage/        # MinIO avatar storage
 ```
@@ -218,58 +225,65 @@ src/
 - `UpdateUser` - Update user profile
 - `SuspendUser` / `ActivateUser` - Account status management
 - `SelectRole` - HR/Candidate role selection
-- `UploadAvatar` - Profile picture upload
+- `UploadAvatar` - Profile picture upload to MinIO
+- `CreateCompany` / `UpdateCompany` / `DeleteCompany` - Company management
+- `CreateSkill` / `UpdateSkill` / `DeleteSkill` - Skill taxonomy (admin)
+- `AddCandidateSkill` / `RemoveCandidateSkill` - Candidate skills management
 
 **CQRS Queries:**
 - `GetUser` - Get user by ID
 - `GetUserByExternalAuthId` - Find by Keycloak ID
 - `ListUsers` - Paginated user list (admin)
 - `GetUserPermissions` - Role-based permissions
+- `GetUserStats` - User statistics
+- `GetCompany` / `ListCompanies` - Company queries
+- `ListSkills` / `GetSkill` - Skill taxonomy queries
+- `GetCandidateProfile` / `GetCandidateSkills` - Candidate queries
 
 **Database Tables:**
 - `users` - User profiles
-- `roles` - System roles (admin, hr, candidate)
-- `user_roles` - Many-to-many relationship
 - `companies` - Company entities
-- `skills` - Skill catalog
-- `inbox` / `outbox` - Messaging patterns
+- `candidate_profiles` - Extended candidate data
+- `skills` / `skill_categories` - Skill taxonomy
+- `candidate_skills` - Candidate skill self-assessment
+- `user_companies` - User-company relationships
+- `outbox` - Outbox pattern
 
 ---
 
-### Interview Service (Port: 3007)
+### Interview Service (Port: 8003)
 
 **Architecture:**
 ```
 src/
 ├── domain/
-│   ├── aggregates/     # Template, Invitation
-│   ├── entities/       # Question
+│   ├── aggregates/     # InterviewTemplate, Invitation
+│   ├── entities/       # Question, Response
 │   ├── events/         # Domain events
-│   └── value-objects/  # Duration, QuestionType
+│   └── value-objects/  # TemplateStatus, InvitationStatus, QuestionType
 ├── application/
 │   ├── commands/       # Templates, Questions, Invitations
 │   ├── queries/        # Get/List templates, invitations
 │   └── dto/            # Request/Response DTOs
 └── infrastructure/
     ├── persistence/    # TypeORM, migrations
-    ├── kafka/          # Event handling
-    ├── messaging/      # INBOX/OUTBOX
+    ├── kafka/          # Event handling (producer + consumer)
+    ├── messaging/      # OUTBOX pattern
     └── http/
-        ├── controllers/
-        └── modules/    # Templates, Invitations modules
+        └── controllers/ # Templates, Invitations
 ```
 
 **CQRS Commands:**
 - `CreateTemplate` - Create interview template
 - `UpdateTemplate` - Modify template
 - `DeleteTemplate` - Remove template
-- `PublishTemplate` - Make template available
+- `PublishTemplate` - Make template available (draft → active)
 - `AddQuestion` / `RemoveQuestion` - Manage questions
-- `ReorderQuestions` - Question ordering
+- `ReorderQuestions` - Question ordering via drag-and-drop
 - `CreateInvitation` - Invite candidate
 - `StartInvitation` - Begin interview
 - `SubmitResponse` - Record answer
-- `CompleteInvitation` - Finish interview
+- `CompleteInvitation` - Finish interview (triggers AI analysis)
 
 **CQRS Queries:**
 - `GetTemplate` - Single template
@@ -280,34 +294,63 @@ src/
 - `ListCandidateInvitations` - Candidate's invitations
 
 **Database Tables:**
-- `templates` - Interview templates
-- `questions` - Template questions
-- `invitations` - Candidate invitations
+- `interview_templates` - Interview templates (draft/active/archived)
+- `questions` - Template questions with options
+- `invitations` - Candidate invitations with analysis results
 - `responses` - Interview responses
-- `inbox` / `outbox` - Messaging patterns
+- `outbox` - Outbox pattern
+
+---
+
+### AI Analysis Service (Port: 8005)
+
+**Architecture:**
+```
+src/
+├── domain/
+│   ├── aggregates/     # AnalysisResult
+│   ├── entities/       # QuestionAnalysis
+│   ├── events/         # Domain events
+│   ├── repositories/   # IAnalysisResultRepository
+│   └── value-objects/  # Score, Recommendation, AnalysisStatus
+├── application/
+│   ├── commands/       # AnalyzeInterview, RetryAnalysis
+│   ├── queries/        # GetAnalysisResult, ListAnalyses
+│   ├── ports/          # IAnalysisEngine, IEventPublisher, IPromptLoader
+│   └── dto/
+└── infrastructure/
+    ├── persistence/    # TypeORM entities, repositories, migrations
+    ├── groq/           # GroqAnalysisEngine (LLM adapter)
+    ├── kafka/          # Consumer (interview-events), publisher
+    └── http/           # Controllers
+```
+
+**Key Features:**
+- Groq LLM integration (configurable model, default: `openai/gpt-oss-120b`)
+- Per-question scoring on 4 criteria: relevance, completeness, clarity, depth
+- Overall score (0-100) with recommendation (hire/consider/reject)
+- Kafka consumer for `interview-events` with idempotency via `processed_events`
+- Sequential processing with 5s rate limit between Groq API calls
+- JSON mode for structured LLM responses
+
+See [AI Analysis Service](../03-services/AI_ANALYSIS_SERVICE.md) for full documentation.
 
 ---
 
 ## Planned Services
 
-### Media Service (Port: 3006)
+### Media Service (Port: 8004)
 - Video/audio file storage (MinIO)
 - FFmpeg video processing
 - Groq Whisper transcription
 - Presigned URL generation
 
-### AI Analysis Service (Port: 3009)
-- Groq LLama 3.3 70B for analysis
-- RAG pipeline with pgvector
-- Interview scoring & feedback
-- Candidate comparison
-
-### Notification Service (Port: 3008)
+### Notification Service
 - Email delivery (Resend)
 - Template-based notifications
-- Webhook integrations
+- Webhook integrations for ATS
 
-### Billing Service (Port: 3010)
+### Billing Service
 - Stripe integration
 - Freemium model (Free/Plus/Pro)
 - Usage tracking & quotas
@@ -329,10 +372,10 @@ src/
    │
    ▼
 4. API Gateway publishes to user-commands topic
-   { type: "CREATE_USER", userId: "uuid", externalAuthId: "keycloak-id" }
+   { type: "user.create", userId: "uuid", externalAuthId: "keycloak-id" }
    │
    ▼
-5. User Service (INBOX) receives command
+5. User Service receives command
    │
    ▼
 6. User Service creates user record
@@ -340,39 +383,40 @@ src/
    ▼
 7. User Service publishes to user-events topic (OUTBOX)
    { type: "user.created", userId: "uuid", email: "...", roles: [...] }
-   │
-   ▼
-8. Interview Service, Billing Service consume event
 ```
 
-### Interview Invitation Flow
+### Interview Analysis Flow
 
 ```
 1. HR creates template with questions
    │
    ▼
-2. HR invites candidate (email)
+2. HR invites candidate (creates invitation)
    │
    ▼
-3. Interview Service publishes invitation.created event
+3. Candidate starts and completes interview
    │
    ▼
-4. Notification Service sends email
+4. Interview Service publishes invitation.completed event (OUTBOX → Kafka)
+   Includes: all questions + all responses in the event payload
    │
    ▼
-5. Candidate clicks link, starts interview
+5. AI Analysis Service consumes event (idempotency check)
    │
    ▼
-6. Candidate records responses
+6. For each question: Groq LLM analyzes response (5s rate limit)
    │
    ▼
-7. Media Service stores videos, triggers transcription
+7. Groq LLM generates overall summary
    │
    ▼
-8. AI Analysis Service analyzes responses
+8. AI Analysis Service publishes analysis.completed event
    │
    ▼
-9. HR receives notification: analysis ready
+9. Interview Service consumes event, updates invitation with results
+   │
+   ▼
+10. Frontend displays AI review to HR
 ```
 
 ---
@@ -385,16 +429,14 @@ src/
 |---------|--------------|------|
 | User Service | `ai_video_interview_user` | 5432 |
 | Interview Service | `ai_video_interview_interview` | 5432 |
-| Media Service | `ai_video_interview_media` | 5432 |
 | AI Analysis Service | `ai_video_interview_analysis` | 5432 |
-| Billing Service | `ai_video_interview_billing` | 5432 |
-| Notification Service | `ai_video_interview_notification` | 5432 |
+| Keycloak | `keycloak` | 5433 |
 
 ### Shared Infrastructure
 
-- **Redis (6379)**: BullMQ queues for all services
-- **MinIO (9000)**: Shared object storage
-- **Kafka (9092)**: Event bus for all services
+- **Redis (6379)**: BullMQ queues for outbox processing
+- **MinIO (9000)**: Shared object storage (avatars, media)
+- **Kafka (9092)**: Event bus for all services (KRaft mode, no Zookeeper)
 
 ---
 
@@ -408,10 +450,11 @@ src/
 │                                                                 │
 │  1. Frontend → Keycloak login page                             │
 │  2. User authenticates with Keycloak                           │
-│  3. Keycloak returns tokens to Frontend                        │
-│  4. Frontend sends JWT to API Gateway                          │
-│  5. API Gateway validates JWT with Keycloak                    │
-│  6. API Gateway forwards request to service                    │
+│  3. Keycloak returns tokens to API Gateway (callback)          │
+│  4. API Gateway sets httpOnly cookies (access + refresh)       │
+│  5. Frontend sends requests with cookies                       │
+│  6. API Gateway validates JWT via JWKS                         │
+│  7. API Gateway forwards request to service                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -419,9 +462,9 @@ src/
 
 | Role | Capabilities |
 |------|-------------|
-| **admin** | Full system access, user management |
-| **hr** | Create templates, invite candidates, view results |
-| **candidate** | Complete interviews, view own profile |
+| **admin** | Full system access, user management, skill taxonomy |
+| **hr** | Create templates, invite candidates, view results, manage companies |
+| **candidate** | Complete interviews, manage profile & skills |
 
 ### Service-to-Service Auth
 
@@ -436,11 +479,11 @@ src/
 ### Logging
 
 ```
-Services ──Winston──► Loki ──► Grafana
+Services ──Winston──► Loki (via Promtail) ──► Grafana
                        │
                        └── Structured JSON logs
                            - requestId
-                           - userId  
+                           - userId
                            - service
                            - action
                            - duration
@@ -455,7 +498,8 @@ Services ──Prometheus Client──► Prometheus ──► Grafana
                                         - http_requests_total
                                         - http_request_duration_seconds
                                         - kafka_messages_processed
-                                        - database_query_duration
+                                        - auth_requests_total
+                                        - circuit_breaker_state
 ```
 
 ### Tracing
@@ -467,7 +511,8 @@ Services ──OpenTelemetry──► Jaeger
                    - API Gateway
                    - User Service
                    - Interview Service
-                   - Kafka consumers
+                   - AI Analysis Service
+                   - Kafka consumers (trace propagation via headers)
 ```
 
 ---
@@ -476,25 +521,27 @@ Services ──OpenTelemetry──► Jaeger
 
 ```bash
 # Start infrastructure
-docker-compose up -d
+npm run infra:up             # PostgreSQL, Redis, MinIO
+npm run kafka:up             # Kafka + UI
 
 # Start all services (Turborepo)
-npm run dev
+npm run dev:all              # All services + web
+npm run dev:services         # Backend services only
+npm run dev:web              # Frontend only
 
 # Start individual service
-npm run dev --filter=api-gateway
+npm run dev:api              # API Gateway
 npm run dev --filter=user-service
 npm run dev --filter=interview-service
+npm run dev:analysis         # AI Analysis Service
 
-# Run migrations
-npm run migration:run --filter=user-service
-npm run migration:run --filter=interview-service
+# Run migrations (from service directory)
+npm run migration:run
+npm run migration:generate -- src/infrastructure/persistence/migrations/MigrationName
 
-# Generate migration
-npm run migration:generate --filter=user-service -- -n MigrationName
-
-# View logs
-docker-compose logs -f loki grafana
+# Testing
+npm run test                 # All tests
+npm run test --filter=<svc>  # Tests for specific service
 ```
 
 ---
@@ -505,7 +552,9 @@ docker-compose logs -f loki grafana
 - **Grafana Dashboards**: http://localhost:3002 (admin/admin123)
 - **Jaeger Tracing**: http://localhost:16686
 - **MinIO Console**: http://localhost:9001
+- **Kafka UI**: http://localhost:8080
+- **Keycloak Admin**: http://localhost:8090
 
 ---
 
-**Last Updated:** December 2024
+**Last Updated:** February 2026

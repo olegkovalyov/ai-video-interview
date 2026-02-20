@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "postgres-user": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5432/ai_video_interview_user"
+      ]
+    },
+    "postgres-interview": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5432/ai_video_interview_interview"
+      ]
+    },
+    "postgres-analysis": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5432/ai_video_interview_analysis"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    }
+  }
+}
