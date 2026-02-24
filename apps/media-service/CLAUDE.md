@@ -100,3 +100,22 @@ PORT=8004
 - **Transcript format**: Store transcripts as structured JSON with timestamps per segment (start, end, text, confidence score). This enables features like timestamp-linked playback, search within transcript, and AI analysis with temporal context.
 - **Language detection**: Auto-detect the spoken language or accept a language hint from the interview metadata. Pass the language to the transcription API for better accuracy.
 - **Cost management**: Transcription APIs charge per audio minute. Track usage per tenant/interview. Cache transcription results -- never re-transcribe the same audio. Consider quality tiers (fast/draft vs. accurate/final) based on use case.
+
+### NestJS Patterns (Media Service Specific)
+
+- **BullMQ for processing pipeline**: Use separate BullMQ queues for each processing stage: `upload-queue`, `transcode-queue`, `thumbnail-queue`, `transcription-queue`. This allows independent scaling and monitoring of each stage. Use `FlowProducer` to chain dependent jobs (upload → transcode → thumbnail + transcription in parallel).
+- **Streaming responses**: For video playback, support HTTP Range requests (`206 Partial Content`). Use Node.js streams to pipe from MinIO to the response without loading the full file in memory. Set `Accept-Ranges: bytes` and `Content-Range` headers correctly.
+- **File type validation**: Validate file types on upload via magic bytes (file signature), not just file extension or MIME type. Use the `file-type` npm package to detect actual format. Reject files that don't match expected types (video/audio only). This prevents uploading malicious files disguised as media.
+- **Progress tracking**: For long-running operations (transcoding, transcription), store progress in Redis with TTL. Expose a `GET /media/:id/status` endpoint that returns `{ status, progress: 0-100, estimatedTimeRemaining }`. Frontend polls this or uses SSE.
+
+### Kafka Integration (Media Service Specific)
+
+- **Event-driven processing**: The media service consumes `interview-events` (specifically `response.submitted`) to initiate media processing. It doesn't expose endpoints for upload initiation — instead, the interview service triggers it via events. This ensures media processing only happens for valid interview responses.
+- **Event publishing**: Publish `media.uploaded`, `media.processed`, `transcription.completed`, `transcription.failed` to `media-events` topic. The AI Analysis Service may consume `transcription.completed` to enhance analysis with transcript data in a future iteration.
+- **Partition key**: Use `invitationId` as the partition key for media events. This ensures all media events for a single interview session are processed in order (upload → process → transcribe).
+
+### Resource Management
+
+- **Memory limits**: FFmpeg and MinIO streams can consume significant memory. Set per-job memory limits: max 500MB per transcoding job, max 200MB per upload. Monitor Node.js heap usage and trigger GC pressure alerts at 80% of container memory limit.
+- **Disk space**: Temporary files during FFmpeg processing can be large. Use a dedicated temp directory with periodic cleanup. Set `TMPDIR` to a volume with sufficient space. Clean up temp files in a `finally` block to prevent leaks.
+- **Concurrent processing**: Limit concurrent FFmpeg processes to prevent CPU starvation. Use BullMQ `concurrency` setting: 2-4 for transcoding (CPU-heavy), 5-10 for uploads (I/O-heavy), 2 for transcription API calls (rate-limited).

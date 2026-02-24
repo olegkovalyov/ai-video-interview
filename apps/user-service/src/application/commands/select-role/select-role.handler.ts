@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { Inject, Injectable } from '@nestjs/common';
 import { SelectRoleCommand } from './select-role.command';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
@@ -6,9 +6,9 @@ import type { ICandidateProfileRepository } from '../../../domain/repositories/c
 import { UserRole } from '../../../domain/value-objects/user-role.vo';
 import { CandidateProfile } from '../../../domain/aggregates/candidate-profile.aggregate';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
-import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
+import { USER_EVENT_TYPES } from '../../../domain/constants';
+import type { IOutboxService } from '../../ports/outbox-service.port';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
-import { v4 as uuid } from 'uuid';
 
 /**
  * SelectRole Command Handler
@@ -22,17 +22,16 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
     private readonly userRepository: IUserRepository,
     @Inject('ICandidateProfileRepository')
     private readonly candidateProfileRepository: ICandidateProfileRepository,
-    private readonly outboxService: OutboxService,
+    private readonly eventBus: EventBus,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
     private readonly logger: LoggerService,
   ) {}
 
   async execute(command: SelectRoleCommand): Promise<void> {
     const { userId, role } = command;
 
-    this.logger.info('Selecting role for user', {
-      userId,
-      role,
-    });
+    this.logger.info('Selecting role for user', { userId, role });
 
     // 1. Get user
     const user = await this.userRepository.findById(userId);
@@ -51,20 +50,23 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
     } else {
       throw new Error(`Invalid role: ${role}`);
     }
-    
+
     user.selectRole(userRole);
 
     // 3. Create corresponding profile
-    // - Candidate: create candidate_profile
-    // - HR: no profile (HR will create companies later)
-    // - Admin: no profile
     if (role === 'candidate') {
       const profile = CandidateProfile.create(userId);
       await this.candidateProfileRepository.save(profile);
     }
 
-    // 4. Save user (updates role field)
+    // 4. Save user
     await this.userRepository.save(user);
+
+    // 5. Publish domain events (internal)
+    user.getUncommittedEvents().forEach(event => {
+      this.eventBus.publish(event);
+    });
+    user.clearEvents();
 
     this.logger.info('Role selected successfully', {
       userId: user.id,
@@ -72,22 +74,15 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
       role: user.role.toString(),
     });
 
-    // 5. Publish role selected event to Kafka via outbox
+    // 6. Publish role selected event to Kafka via outbox
     await this.outboxService.saveEvent(
-      'user.role-selected',
+      USER_EVENT_TYPES.ROLE_SELECTED,
       {
-        eventId: uuid(),
-        eventType: 'user.role-selected',
-        timestamp: Date.now(),
-        version: '1.0',
-        source: 'user-service',
-        payload: {
-          userId: user.id,
-          externalAuthId: user.externalAuthId,
-          email: user.email.value,
-          role: user.role.toString(),
-          selectedAt: user.updatedAt.toISOString(),
-        },
+        userId: user.id,
+        externalAuthId: user.externalAuthId,
+        email: user.email.value,
+        role: user.role.toString(),
+        selectedAt: user.updatedAt.toISOString(),
       },
       user.id,
     );

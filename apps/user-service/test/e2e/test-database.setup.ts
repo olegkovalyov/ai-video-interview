@@ -56,13 +56,12 @@ export async function cleanE2EDatabase(dataSource: DataSource): Promise<void> {
 
   try {
     await dataSource.query(`
-      TRUNCATE TABLE 
+      TRUNCATE TABLE
         candidate_skills,
         user_companies,
         companies,
         skills,
         candidate_profiles,
-        hr_profiles,
         users,
         outbox
       RESTART IDENTITY CASCADE

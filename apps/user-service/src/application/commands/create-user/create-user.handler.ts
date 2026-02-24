@@ -7,14 +7,13 @@ import type { IRoleRepository } from '../../../domain/repositories/role.reposito
 import { Email } from '../../../domain/value-objects/email.vo';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
-import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
+import { USER_EVENT_TYPES } from '../../../domain/constants';
+import type { IOutboxService } from '../../ports/outbox-service.port';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
-import { v4 as uuid } from 'uuid';
 
 /**
  * Create User Command Handler
  * Orchestrates user creation use case
- * Auto-assigns 'candidate' role to new users
  */
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
@@ -24,7 +23,8 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     @Inject('IRoleRepository')
     private readonly roleRepository: IRoleRepository,
     private readonly eventBus: EventBus,
-    private readonly outboxService: OutboxService,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -72,35 +72,24 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       status: user.status.value,
     });
 
-    // 5. Auto-assign 'candidate' role - REMOVED
-    // Role assignment should be done explicitly via Admin API or separate saga step
-    // to avoid transaction conflicts and ensure proper orchestration
-    
-    // 6. Publish domain events (internal only - logging, metrics, etc.)
+    // 5. Publish domain events (internal only)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);
     });
     user.clearEvents();
 
-    // 7. Publish integration event to Kafka (for other services)
+    // 6. Publish integration event to Kafka (for other services)
     await this.outboxService.saveEvent(
-      'user.created',
+      USER_EVENT_TYPES.CREATED,
       {
-        eventId: uuid(),
-        eventType: 'user.created',
-        timestamp: Date.now(),
-        version: '1.0',
-        source: 'user-service',
-        payload: {
-          userId: user.id,
-          externalAuthId: user.externalAuthId,
-          email: user.email.value,
-          firstName: user.fullName.firstName,
-          lastName: user.fullName.lastName,
-          status: user.status.value,
-          role: user.role.toString(),
-          createdAt: user.createdAt.toISOString(),
-        },
+        userId: user.id,
+        externalAuthId: user.externalAuthId,
+        email: user.email.value,
+        firstName: user.fullName.firstName,
+        lastName: user.fullName.lastName,
+        status: user.status.value,
+        role: user.role.toString(),
+        createdAt: user.createdAt.toISOString(),
       },
       user.id,
     );

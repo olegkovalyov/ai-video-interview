@@ -215,11 +215,6 @@ describe('GetCandidateProfileQuery Integration', () => {
         role: 'hr',
       });
 
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
-
       // Act - Admin trying to view HR profile as candidate
       const adminId = uuidv4();
       const query = new GetCandidateProfileQuery(hrId, adminId, false, true);

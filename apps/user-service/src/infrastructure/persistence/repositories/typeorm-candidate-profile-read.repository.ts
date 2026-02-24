@@ -208,7 +208,7 @@ export class TypeOrmCandidateProfileReadRepository
     );
 
     return {
-      candidateIds: results.map((r: any) => r.candidate_id),
+      candidateIds: results.map((r: { candidate_id: string; skill_id?: string; skill_name?: string; count?: string }) => r.candidate_id),
       total: parseInt(countResult[0]?.total || '0', 10),
     };
   }
@@ -299,7 +299,7 @@ export class TypeOrmCandidateProfileReadRepository
     );
 
     return {
-      candidateIds: results.map((r: any) => r.candidate_id),
+      candidateIds: results.map((r: { candidate_id: string; skill_id?: string; skill_name?: string; count?: string }) => r.candidate_id),
       total: parseInt(countResult[0]?.total || '0', 10),
     };
   }
@@ -420,7 +420,7 @@ export class TypeOrmCandidateProfileReadRepository
       [limit],
     );
 
-    return results.map((r: any) => ({
+    return results.map((r: { candidate_id: string; skill_id?: string; skill_name?: string; count?: string }) => ({
       skillId: r.skill_id,
       skillName: r.skill_name,
       count: parseInt(r.count),

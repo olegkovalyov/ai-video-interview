@@ -1,11 +1,10 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { DeleteUserCommand } from './delete-user.command';
-import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
-import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
-import { v4 as uuid } from 'uuid';
+import { USER_EVENT_TYPES } from '../../../domain/constants';
+import type { IOutboxService } from '../../ports/outbox-service.port';
 
 /**
  * Delete User Command Handler
@@ -16,11 +15,12 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
     private readonly eventBus: EventBus,
-    private readonly outboxService: OutboxService,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
   ) {}
 
   async execute(command: DeleteUserCommand): Promise<void> {
-    // 1. Find user by ID (internal ID, not external auth ID)
+    // 1. Find user by ID
     const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
@@ -32,21 +32,14 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
       this.eventBus.publish(event);
     });
 
-    // 3. Publish integration event to Kafka BEFORE deletion (for other services)
+    // 3. Publish integration event to Kafka BEFORE deletion
     await this.outboxService.saveEvent(
-      'user.deleted',
+      USER_EVENT_TYPES.DELETED,
       {
-        eventId: uuid(),
-        eventType: 'user.deleted',
-        timestamp: Date.now(),
-        version: '1.0',
-        source: 'user-service',
-        payload: {
-          userId: user.id,
-          externalAuthId: user.externalAuthId,
-          email: user.email.value,
-          deletedAt: new Date().toISOString(),
-        },
+        userId: user.id,
+        externalAuthId: user.externalAuthId,
+        email: user.email.value,
+        deletedAt: new Date().toISOString(),
       },
       user.id,
     );

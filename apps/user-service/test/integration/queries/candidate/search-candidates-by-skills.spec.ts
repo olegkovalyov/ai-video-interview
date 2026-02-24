@@ -218,8 +218,8 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
       expect(result.total).toBe(0);
     });
 
-    it('should return empty when skillIds is empty', async () => {
-      // Act
+    it('should return all candidates when skillIds is empty (no skill filter)', async () => {
+      // Act - empty skillIds means "no skill filter", returns all candidates
       const query = new SearchCandidatesBySkillsQuery(
         [],
         undefined,
@@ -230,8 +230,9 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
       );
       const result = await queryBus.execute(query);
 
-      // Assert
-      expect(result.data).toHaveLength(0);
+      // Assert - candidate from beforeEach is returned (Mode 2: search all)
+      expect(result.data.length).toBeGreaterThanOrEqual(1);
+      expect(result.data[0].userId).toBe(candidateId);
     });
 
     it('should support pagination', async () => {

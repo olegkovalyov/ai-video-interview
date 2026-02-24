@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from '../../src/infrastructure/persistence/database.module';
 import { StorageModule } from '../../src/infrastructure/storage/storage.module';
-import { OutboxService } from '../../src/infrastructure/messaging/outbox/outbox.service';
 import { LoggerService } from '../../src/infrastructure/logger/logger.service';
 
 // Import all command handlers
@@ -146,7 +145,7 @@ export const mockStorageService = {
       useValue: mockKafkaService,
     },
     {
-      provide: OutboxService,
+      provide: 'IOutboxService',
       useValue: mockOutboxService,
     },
     {

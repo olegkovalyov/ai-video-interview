@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, type FindOptionsWhere } from 'typeorm';
 import {
   ICompanyReadRepository,
   PaginatedResult,
@@ -80,7 +80,7 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
     limit: number,
     filters?: CompanyListFilters,
   ): Promise<PaginatedResult<CompanyReadModel>> {
-    const where: any = {};
+    const where: FindOptionsWhere<CompanyEntity> = {};
 
     if (filters?.isActive !== undefined) {
       where.isActive = filters.isActive;
@@ -124,7 +124,7 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
   }
 
   async count(filters?: CompanyListFilters): Promise<number> {
-    const where: any = {};
+    const where: FindOptionsWhere<CompanyEntity> = {};
 
     if (filters?.isActive !== undefined) {
       where.isActive = filters.isActive;

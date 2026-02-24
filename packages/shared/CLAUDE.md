@@ -228,3 +228,24 @@ Files in `src/contracts/` (and `dist/contracts/`) are **auto-generated from Open
 - **Factory guarantees**: Factories ensure `eventId` is always a fresh UUID, `timestamp` is always current, `version` is always set, and `source` is always the calling service name. This eliminates a class of bugs where consumers receive events with missing metadata.
 - **Type narrowing in consumers**: When parsing Kafka messages, parse to the union type first, then switch on `eventType`. Never parse directly to a specific event subtype -- the message could be any event in the union.
 - **Extending with new events**: When adding a new event type: (1) define the interface extending `BaseEvent`, (2) add it to the union type, (3) add a factory method, (4) update all consumer `switch` statements (the `never` exhaustive check will flag missing cases at compile time).
+
+### Cross-Service Contract Patterns
+
+- **Event catalog**: Maintain a mental model of all event flows. The primary flows are: (1) API Gateway → `user-commands` → User Service → `user-events` → consumers, (2) Interview Service → `interview-events` → AI Analysis → `analysis-events` → Interview Service. When adding a new event, check if it fits an existing flow or needs a new topic.
+- **Payload size limits**: Kafka messages should stay under 1MB (configurable, but smaller is better). The `InvitationCompletedEvent` with 50 questions and responses approaches this limit. If payloads grow larger, consider referencing data by ID and having the consumer fetch it, or compressing the payload.
+- **Event deduplication across services**: Each consuming service has its own `processed_events` table with `(eventId, serviceName)` uniqueness. This means the same event can be processed by multiple services (by design) but not twice by the same service. When adding a new consumer, always implement this pattern.
+- **Backward-compatible defaults**: When adding optional fields to events, always document the default value consumers should use when the field is missing. Example: if adding `language?: string` to an event, document that consumers should default to `'en'` when not present.
+- **Testing event factories**: Every factory method should have a unit test verifying: (1) `eventId` is a valid UUID, (2) `timestamp` is a recent number, (3) `version` is set, (4) `source` is correct, (5) `eventType` matches the expected string literal, (6) payload fields are correctly mapped.
+
+### KafkaService Advanced Patterns
+
+- **Producer batching**: For high-throughput scenarios (analytics events), batch multiple messages in a single `producer.send()` call. The `publishEvent()` method sends one message at a time for reliability; create a `publishBatch()` for analytics.
+- **Consumer error handling hierarchy**: (1) Transient errors (network, timeout) → retry within the consumer, (2) Deserialization errors (malformed JSON) → send to DLQ immediately, (3) Business logic errors (unknown event type) → log and skip, (4) Fatal errors (DB down) → stop consumer and alert.
+- **Health check patterns**: `KafkaHealthService.checkHealth()` reports: broker connectivity, topic existence, consumer group state, and per-partition lag. Integrate this with NestJS `@nestjs/terminus` health checks for a unified `/health` endpoint. Alert if lag exceeds threshold.
+- **Topic creation**: Topics are created by the `init-kafka.sh` script at infrastructure startup. Never create topics from application code (`allowAutoTopicCreation: false` on producers). This prevents typos from creating unintended topics.
+
+### Tracing Patterns (Advanced)
+
+- **End-to-end trace example**: A trace for "interview completion" spans: (1) Frontend `POST /invitations/:id/complete` → (2) API Gateway proxy → (3) Interview Service handler → (4) Outbox save → (5) BullMQ job → (6) Kafka publish → (7) AI Analysis consumer → (8) Groq LLM calls → (9) Analysis save → (10) Kafka publish back. Steps 1-5 share one trace. Steps 6-10 are linked via `traceparent` in Kafka headers.
+- **Span naming conventions**: HTTP spans: `HTTP GET /api/v1/users/:id`. Kafka producer: `kafka.publish interview-events`. Kafka consumer: `kafka.process interview-events`. Database: `db.query SELECT users`. LLM: `llm.call groq.analyzeResponse`. These names appear in Jaeger UI.
+- **Baggage propagation**: Use OpenTelemetry baggage to propagate business context (userId, tenantId) across all spans in a trace. This enables filtering traces by user in Jaeger without adding custom attributes to every span.

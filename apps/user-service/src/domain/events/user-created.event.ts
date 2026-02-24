@@ -1,8 +1,10 @@
+import type { IDomainEvent } from './domain-event.interface';
+
 /**
  * Domain Event: User Created
  * Published when a new user is created in the system
  */
-export class UserCreatedEvent {
+export class UserCreatedEvent implements IDomainEvent {
   constructor(
     public readonly userId: string,
     public readonly email: string,

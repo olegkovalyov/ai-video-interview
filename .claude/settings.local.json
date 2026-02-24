@@ -24,7 +24,12 @@
       "mcp__postgres-interview__*",
       "mcp__postgres-analysis__*",
       "mcp__context7__*",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "WebFetch(domain:skills.sh)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(echo === DOMAIN EVENTS ===:*)"
     ],
     "deny": [
       "Bash(rm -rf /)*",
@@ -33,11 +38,11 @@
       "Bash(npm run kafka:reset*)"
     ]
   },
-  "outputStyle": "Explanatory",
   "enabledMcpjsonServers": [
     "postgres-user",
     "postgres-interview",
     "postgres-analysis",
     "context7"
-  ]
+  ],
+  "outputStyle": "Explanatory"
 }

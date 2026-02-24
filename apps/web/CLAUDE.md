@@ -280,3 +280,32 @@ features/<feature>/
 - **Component testing strategy**: Unit-test utility functions and hooks directly. Integration-test feature components with their React Query providers and mocked API. E2E test critical flows (login, interview recording, template creation) with Playwright or Cypress.
 - **Test structure**: Co-locate test files with source: `features/templates/components/__tests__/TemplateBuilder.test.tsx`. Use `describe` blocks per component and `it` blocks per behavior.
 - **Snapshot testing**: Avoid snapshot tests for dynamic components. Use them sparingly for static UI elements that should not change unintentionally.
+
+### Error Handling & User Experience
+
+- **Optimistic UI with rollback**: For user actions that should feel instant (toggling a status, reordering questions), update the UI immediately via React Query's `onMutate`, show a subtle loading indicator, and rollback on error. Show the error as a toast, not an alert.
+- **Error boundary hierarchy**: Place `error.tsx` at route group level (`(app)/error.tsx`) for catch-all errors, and per-feature for specific recovery (e.g., `hr/interviews/error.tsx` can offer "retry loading interviews"). Always provide a "Try again" button that calls the `reset` prop.
+- **Network error handling**: Detect offline state via `navigator.onLine` or React Query's `onlineManager`. Show a persistent banner when offline. Queue mutations when offline and replay when back online (React Query handles this with `networkMode: 'offlineFirst'`).
+- **Loading state hierarchy**: Show skeleton UI (`loading.tsx`) for initial page loads. Show inline spinners for action buttons. Show progress bars for multi-step operations (interview progress, file upload). Never block the entire page for a single data fetch.
+- **Toast patterns**: Use `sonner` for non-blocking notifications. Success toasts auto-dismiss (3s). Error toasts persist until dismissed. Action toasts include an "Undo" button for destructive operations (delete template, remove question). Never stack more than 3 toasts.
+
+### State Management Architecture
+
+- **React Query as primary state**: Server state lives in React Query cache. No global state management library (Redux, Zustand) is needed. React Query handles caching, deduplication, background refetching, and optimistic updates.
+- **URL state for filters/pagination**: Use URL search params (`useSearchParams`) for filter state, pagination, and sort order. This makes filtered views shareable and bookmarkable. Sync URL params with React Query keys.
+- **Local state for UI**: Use `useState` for ephemeral UI state (modal open/close, dropdown selection, form step). Use `useReducer` for complex local state with multiple related updates.
+- **Context for cross-cutting concerns**: Use React Context for theme, locale, and auth state. Never put frequently-changing data in context (it re-renders all consumers). For performance-critical contexts, use `useMemo` on the value or split into multiple contexts.
+
+### Internationalization Readiness
+
+- **Text extraction**: All user-facing text should be extracted to constants or i18n keys, not hardcoded in JSX. This prepares for future internationalization (Russian, English, German as specified in notification service spec).
+- **Date/time formatting**: Use `Intl.DateTimeFormat` or a library like `date-fns` with locale support. Store dates in UTC on the server, format in the user's timezone on the client. The profile feature already has timezone preferences.
+- **Number formatting**: Use `Intl.NumberFormat` for scores (0-100) and percentages. Different locales format numbers differently (1,234.56 vs 1.234,56).
+- **RTL readiness**: Use logical CSS properties (`margin-inline-start` instead of `margin-left`) and Tailwind's `rtl:` variant for future RTL language support. This is low effort now but expensive to retrofit later.
+
+### Security (Frontend Specific)
+
+- **XSS prevention**: React auto-escapes JSX content. Never use `dangerouslySetInnerHTML` except for sanitized rich text. Sanitize any user-generated content displayed back (candidate responses, interview feedback).
+- **CSRF protection**: With `SameSite=Strict` httpOnly cookies, CSRF is mitigated. The API Gateway also validates the `Origin` header on state-changing requests. No CSRF tokens needed in the frontend.
+- **Content Security Policy**: Configure CSP headers (via nginx or Next.js) to prevent XSS: `script-src 'self'`, `style-src 'self' 'unsafe-inline'` (needed for Tailwind), `img-src 'self' blob: data:` (for MinIO images and camera previews).
+- **Sensitive data**: Never store tokens in localStorage or sessionStorage. Tokens are in httpOnly cookies (set by API Gateway, not accessible to JS). The middleware decodes tokens only for role checking — never expose token content to client components.

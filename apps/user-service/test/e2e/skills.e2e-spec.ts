@@ -4,7 +4,6 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
-import { OutboxService } from '../../src/infrastructure/messaging/outbox/outbox.service';
 import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 import { TestInternalServiceGuard } from './test-auth.guard';
 import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
@@ -34,7 +33,7 @@ describe('Skills API (E2E)', () => {
         disconnect: jest.fn(),
         publishEvent: jest.fn(),
       })
-      .overrideProvider(OutboxService)
+      .overrideProvider('IOutboxService')
       .useValue(mockOutboxService)
       .overrideProvider('IStorageService')
       .useValue(mockStorageService)

@@ -4,6 +4,8 @@ import { CreateCompanyCommand } from './create-company.command';
 import { Company } from '../../../../domain/aggregates/company.aggregate';
 import { CompanySize } from '../../../../domain/value-objects/company-size.vo';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
+import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
+import type { IOutboxService } from '../../../ports/outbox-service.port';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 import { v4 as uuid } from 'uuid';
 
@@ -17,6 +19,8 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
     @Inject('ICompanyRepository')
     private readonly companyRepository: ICompanyRepository,
     private readonly eventBus: EventBus,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -34,7 +38,7 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
 
     // 2. Create Company aggregate
     const companyId = uuid();
-    const userCompanyId = uuid(); // For creator's user_companies record
+    const userCompanyId = uuid();
 
     const company = Company.create(
       companyId,
@@ -53,10 +57,22 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
     // 3. Save to repository
     await this.companyRepository.save(company);
 
-    // 4. Publish domain events
+    // 4. Publish domain events (internal)
     const events = company.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
-    company.commit();
+    company.clearEvents();
+
+    // 5. Publish integration event to Kafka
+    await this.outboxService.saveEvent(
+      COMPANY_EVENT_TYPES.CREATED,
+      {
+        companyId,
+        name: command.name,
+        createdBy: command.createdBy,
+        createdAt: new Date().toISOString(),
+      },
+      companyId,
+    );
 
     this.logger.info('Company created successfully', { companyId, name: command.name });
 

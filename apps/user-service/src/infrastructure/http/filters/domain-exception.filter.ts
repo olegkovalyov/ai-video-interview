@@ -7,13 +7,17 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
+import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
+import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../domain/exceptions/company.exceptions';
 
 /**
  * Domain Exception Filter
- * Catches domain-level exceptions and returns 400 Bad Request
- * 
- * Domain exceptions represent business rule violations and should be
- * communicated to the client as validation errors, not server errors.
+ * Catches domain-level exceptions and maps them to appropriate HTTP statuses.
+ *
+ * Mapping:
+ * - *NotFoundException → 404 Not Found
+ * - *AccessDeniedException → 403 Forbidden
+ * - DomainException (default) → 400 Bad Request
  */
 @Catch(DomainException)
 export class DomainExceptionFilter implements ExceptionFilter {
@@ -24,19 +28,30 @@ export class DomainExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest();
 
-    const status = HttpStatus.BAD_REQUEST;
+    const { status, error } = this.mapExceptionToHttp(exception);
 
-    // Log domain exception for debugging
     this.logger.warn(
-      `Domain validation error: ${exception.message} [${request.method} ${request.url}]`,
+      `Domain exception [${exception.name}]: ${exception.message} [${request.method} ${request.url}]`,
     );
 
     response.status(status).json({
       statusCode: status,
       message: exception.message,
-      error: 'Bad Request',
+      error,
       timestamp: new Date().toISOString(),
       path: request.url,
     });
+  }
+
+  private mapExceptionToHttp(exception: DomainException): { status: number; error: string } {
+    if (exception instanceof UserNotFoundException || exception instanceof CompanyNotFoundException) {
+      return { status: HttpStatus.NOT_FOUND, error: 'Not Found' };
+    }
+
+    if (exception instanceof CompanyAccessDeniedException) {
+      return { status: HttpStatus.FORBIDDEN, error: 'Forbidden' };
+    }
+
+    return { status: HttpStatus.BAD_REQUEST, error: 'Bad Request' };
   }
 }

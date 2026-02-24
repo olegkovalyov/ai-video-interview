@@ -264,3 +264,23 @@ npm run migration:run      # Run pending migrations
 - **Outbox pattern**: Same implementation as user-service. OutboxService saves events to the outbox table, BullMQ processes them asynchronously, Kafka is the final destination. The OutboxScheduler handles stuck events.
 - **Repository injection**: Use string tokens for repository injection: `@Inject('IInterviewTemplateRepository')`. Register in the database module: `{ provide: 'IInterviewTemplateRepository', useClass: TypeOrmInterviewTemplateRepository }`.
 - **Domain exception filter**: Register `DomainExceptionFilter` globally to map domain exceptions to appropriate HTTP status codes. `TemplateNotFoundException` -> 404, `InvalidTemplateOperationException` -> 422, `DomainException` -> 400.
+
+### Outbox & Kafka Patterns (Interview Service Specific)
+
+- **Critical event path**: The `invitation.completed` event is the most important event in the system — it triggers AI analysis. This event MUST go through the Outbox pattern for at-least-once delivery. A lost `invitation.completed` means a candidate's interview is never analyzed.
+- **All command handlers must publish to Outbox**: Every state-changing command handler should save integration events via `OutboxService.saveEvent()`. Template creation, question changes, invitation lifecycle — all need Outbox events so other services (analytics, notification) can react.
+- **Event handler pattern for Outbox**: Use `@EventsHandler(InvitationCompletedEvent)` domain event handlers to save events to the Outbox. This separates the command handler (domain logic) from the event publishing concern (infrastructure). The handler emits the domain event, the event handler saves to Outbox.
+- **Fat events for cross-service**: The `InvitationCompletedEvent` carries full question and response data so the AI Analysis Service can process independently without calling back. This is the "fat event" pattern — include all data consumers need. Trade-off: larger message size vs. fewer inter-service calls.
+
+### Performance Patterns (Interview Service Specific)
+
+- **Template caching**: Published templates are immutable (cannot be modified after publishing). Cache published templates in Redis with a long TTL (1 hour). Invalidate only on archive. This significantly reduces DB load for the most-read entity.
+- **Invitation list optimization**: HR users may have hundreds of invitations. Use keyset pagination (`WHERE created_at < ? ORDER BY created_at DESC LIMIT 20`) instead of `OFFSET` for consistent performance on large datasets. Add composite index on `(hr_user_id, created_at)`.
+- **Eager vs lazy loading**: Load questions eagerly when fetching templates (always needed). Load responses lazily for invitations (only needed in detail view, not list view). Configure in TypeORM: `relations: { questions: true }` for template repository, explicit `leftJoinAndSelect` for invitation responses.
+- **Response submission validation**: During an active interview, `submitResponse()` is called frequently. Keep this path fast: validate in the aggregate (in-memory), save to DB, return immediately. Don't trigger Outbox or Kafka on individual response submissions — only on `invitation.completed`.
+
+### Concurrency & Race Conditions
+
+- **Optimistic locking**: If two HR users try to update the same template simultaneously, use TypeORM's `@VersionColumn()` for optimistic locking. The second update gets a `409 Conflict` error. Alternatively, use `UPDATE ... WHERE version = ?` patterns.
+- **Invitation start race**: If a candidate clicks "Start" twice quickly, the second request should be idempotent (return the already-started invitation, not error). Check `invitation.status === 'in_progress'` before throwing.
+- **Expiration race**: A candidate might submit a response just as the invitation expires. Design the `submitResponse()` method to check expiration before accepting. If expired during an active session, gracefully complete with whatever answers exist (`auto_timeout` reason).

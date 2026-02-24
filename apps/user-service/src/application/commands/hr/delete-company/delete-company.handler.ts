@@ -1,7 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { DeleteCompanyCommand } from './delete-company.command';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
+import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../../domain/exceptions/company.exceptions';
+import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
+import type { IOutboxService } from '../../../ports/outbox-service.port';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 /**
@@ -14,6 +17,8 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
   constructor(
     @Inject('ICompanyRepository')
     private readonly companyRepository: ICompanyRepository,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -26,16 +31,27 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
     // 1. Find company
     const company = await this.companyRepository.findById(command.companyId);
     if (!company) {
-      throw new NotFoundException(`Company with ID "${command.companyId}" not found`);
+      throw new CompanyNotFoundException(command.companyId);
     }
 
     // 2. Check permissions - only creator can delete
     if (company.createdBy !== command.userId) {
-      throw new ForbiddenException('Only company creator can delete the company');
+      throw new CompanyAccessDeniedException('Only company creator can delete the company');
     }
 
     // 3. Hard delete (CASCADE removes user_companies)
     await this.companyRepository.delete(command.companyId);
+
+    // 4. Publish integration event to Kafka
+    await this.outboxService.saveEvent(
+      COMPANY_EVENT_TYPES.DELETED,
+      {
+        companyId: command.companyId,
+        deletedBy: command.userId,
+        deletedAt: new Date().toISOString(),
+      },
+      command.companyId,
+    );
 
     this.logger.warn('Company deleted permanently', { companyId: command.companyId });
   }

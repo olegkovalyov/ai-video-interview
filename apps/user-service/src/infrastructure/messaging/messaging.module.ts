@@ -9,6 +9,7 @@ import { OutboxEntity } from '../persistence/entities/outbox.entity';
 import { OutboxService } from './outbox/outbox.service';
 import { OutboxPublisherProcessor } from './outbox/outbox-publisher.processor';
 import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
+import { BULL_QUEUE } from '../constants';
 
 /**
  * Messaging Module
@@ -51,7 +52,7 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
 
     // Register Queues
     BullModule.registerQueue({
-      name: 'outbox-publisher',
+      name: BULL_QUEUE.OUTBOX_PUBLISHER,
     }),
 
     // Scheduler for polling
@@ -67,6 +68,10 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
   providers: [
     // OUTBOX - for publishing domain events to Kafka
     OutboxService,
+    {
+      provide: 'IOutboxService',
+      useExisting: OutboxService,
+    },
     OutboxPublisherProcessor,
     OutboxSchedulerService,
   ],
@@ -74,6 +79,7 @@ import { OutboxSchedulerService } from './outbox/outbox-scheduler.service';
   exports: [
     BullModule,
     OutboxService,
+    'IOutboxService',
   ],
 })
 export class MessagingModule {}

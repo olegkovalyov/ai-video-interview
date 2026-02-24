@@ -320,3 +320,25 @@ npm run migration:run      # Run pending migrations
 - **Integration tests with real LLM**: Write a small set of integration tests that call the real Groq API with predefined inputs. Mark these as slow tests (`@Slow` or `--testPathPattern integration`). Run them in CI on a schedule, not on every push.
 - **Error scenario tests**: Test rate limit handling (mock a 429 response, verify retry behavior). Test daily limit detection. Test malformed JSON responses. Test network timeouts. Test the full failure flow (analysis fails, status set to `failed`, AnalysisFailedEvent emitted).
 - **Aggregate lifecycle tests**: Test the full AnalysisResult aggregate lifecycle: create -> start -> addQuestionAnalysis (multiple) -> complete. Test the failure path: create -> start -> fail. Verify all domain events are emitted correctly at each transition.
+
+### Security & Data Protection (AI Analysis Specific)
+
+- **PII in prompts**: Candidate responses may contain personal information (names, emails, phone numbers). The LLM prompt should NOT include candidate identity — only the question text and response text. Strip any PII-like patterns from responses before sending to the LLM if possible.
+- **Prompt injection defense**: Candidate responses are untrusted input passed to an LLM. Use system prompts that clearly separate instructions from data. Prefix user content with delimiters: `### CANDIDATE RESPONSE START ###`. Monitor for anomalous scores (all 100s or all 0s) which may indicate prompt injection attempts.
+- **Data retention**: Analysis results contain AI-generated feedback about candidates. Define a retention policy: delete analyses older than the data retention period (GDPR typically 6 months after position is filled). Implement a cleanup job.
+- **Audit trail**: Log every analysis execution: who triggered it, which model was used, how many tokens consumed, what recommendation was made. This is important for explaining AI decisions to candidates (GDPR right to explanation).
+
+### Resilience Patterns (AI Analysis Specific)
+
+- **Groq API unavailability**: If Groq is completely down (not just rate-limited), the analysis should be marked as `failed` with a clear error message. A scheduled job should scan for recent failures and attempt automatic retry after a backoff period (e.g., 15 minutes).
+- **Token budget management**: Track daily token usage. If approaching the daily limit (Groq free tier), queue remaining analyses for the next day rather than failing them. Implement a priority queue: paid tenant analyses run first, free tier analyses run when capacity allows.
+- **Partial failure handling**: If the analysis succeeds for 8/10 questions but fails on questions 9-10, save the partial results and mark as `partial_failure`. This is better than losing all analysis. Allow retry of only the failed questions.
+- **Consumer thread safety**: The Kafka consumer processes one message at a time (concurrency = 1) due to Groq rate limits. If a message takes > 5 minutes, heartbeat periodically to prevent consumer eviction. If a message takes > 10 minutes, timeout and fail the analysis.
+- **Observability for LLM calls**: Instrument every Groq API call with OpenTelemetry spans. Track: model name, prompt token count, completion token count, latency, status (success/rate_limited/error). This data is essential for capacity planning and cost monitoring.
+
+### Kafka Consumer Patterns (AI Analysis Specific)
+
+- **Single consumer, no auto-commit**: Use manual commit mode. Commit the offset ONLY after the analysis is fully persisted. This ensures a crash during processing results in re-processing, not data loss.
+- **Backpressure via rate limiting**: The 5-second delay between LLM calls is the primary backpressure mechanism. If Kafka messages arrive faster than they can be processed, they naturally queue in Kafka. Monitor consumer lag to detect when you're falling behind.
+- **Idempotency is critical**: Because analysis takes minutes and can fail midway, the consumer will inevitably re-process some messages. The dual idempotency check (processed_events table + existing analysis by invitationId) ensures no duplicate analyses are created.
+- **Event data preservation**: Store the original `InvitationCompletedEvent` payload alongside the analysis result. This enables: retry analysis without re-fetching from Interview Service, debugging analysis quality issues, and audit trail compliance.

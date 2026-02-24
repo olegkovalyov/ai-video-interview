@@ -55,7 +55,6 @@ import { GetCandidateSkillsHandler } from '../../src/application/queries/candida
 import { SearchCandidatesBySkillsHandler } from '../../src/application/queries/candidate/search-candidates-by-skills.handler';
 
 // Services
-import { OutboxService } from '../../src/infrastructure/messaging/outbox/outbox.service';
 import { LoggerService } from '../../src/infrastructure/logger/logger.service';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 
@@ -165,7 +164,7 @@ export const mockStorageService = {
       useValue: mockKafkaService,
     },
     {
-      provide: OutboxService,
+      provide: 'IOutboxService',
       useValue: mockOutboxService,
     },
     {

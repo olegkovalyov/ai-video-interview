@@ -304,3 +304,24 @@ npm run migration:run      # Run pending migrations
 - **Application tests (mocked repos)**: Mock `IUserRepository`, `OutboxService`, and `EventBus`. Verify the handler calls `repository.save()`, `outboxService.saveEvent()`, and `eventBus.publish()` with correct arguments.
 - **Integration tests (real DB)**: Use a test PostgreSQL instance. Run migrations, execute the full command handler flow, verify the database state. Clean up between tests with transaction rollback or table truncation.
 - **Test naming convention**: Use descriptive names: `it('should throw UserAlreadyExistsException when email is taken')`. Group by method: `describe('User.suspend()')`.
+
+### Redis & BullMQ Patterns (User Service Specific)
+
+- **Outbox job design**: The outbox BullMQ queue processes one job per domain event. Each job carries the outbox entity ID, not the full event payload (payload is read from the outbox table). Use `jobId: eventId` to prevent duplicate job creation even if `saveEvent()` is called twice.
+- **Job TTL and cleanup**: Set `removeOnComplete: { age: 3600 }` (keep completed jobs 1 hour for debugging) and `removeOnFail: { count: 100 }` (keep last 100 failed jobs). This prevents Redis memory from growing unboundedly.
+- **Worker concurrency**: For outbox publishing, set concurrency to 3-5. Higher concurrency risks Kafka producer overload. Lower concurrency causes event delivery lag. Monitor `waiting` job count as a leading indicator of publishing delays.
+- **Graceful shutdown**: BullMQ workers must be closed before the NestJS process exits. Register `onModuleDestroy` in the outbox module to call `worker.close()`. This ensures in-progress jobs complete before shutdown and are not stuck in `active` state.
+- **Scheduled cleanup**: The OutboxScheduler runs every 60 seconds to find stuck `pending` outbox entries (older than 5 minutes). It re-queues them as BullMQ jobs. This handles edge cases where a job was lost due to Redis restart.
+
+### NestJS Module Patterns (User Service Specific)
+
+- **Module hierarchy**: `AppModule` imports `DatabaseModule`, `KafkaModule`, `OutboxModule`, `HttpModule`. `DatabaseModule` registers TypeORM entities and repositories. `KafkaModule` registers consumers and producers. Keep module responsibilities focused — no module should import everything.
+- **Repository registration**: Register domain repository interfaces with TypeORM implementations using custom providers: `{ provide: 'IUserRepository', useClass: TypeOrmUserRepository }`. Always inject via the interface token, never the implementation class. This enables testing with in-memory repositories.
+- **Guard composition**: `InternalServiceGuard` checks `x-internal-request` header for service-to-service calls. `RolesGuard` checks JWT roles for external calls. Stack guards logically: internal calls skip role checks, external calls require authentication + authorization.
+- **Read model separation**: For list queries, create separate read repositories (`UserReadRepository`) that return flat DTOs directly via SQL/QueryBuilder. These bypass aggregate reconstitution (avoiding mapper overhead) and can use optimized indexes. Write repositories return domain aggregates.
+
+### Domain Event Design (User Service Specific)
+
+- **Event granularity**: Emit specific events (`UserSuspendedEvent`, `UserActivatedEvent`) rather than generic ones (`UserUpdatedEvent` with a changed field). Specific events are easier for consumers to handle and enable precise reactions (e.g., only react to suspension, not every update).
+- **Event payload**: Include the full current state of the relevant fields, not just the delta. Consumers should be able to reconstruct the entity's current state from the event without querying the source service. Include `previousStatus` for state transitions to support audit trails.
+- **Cross-aggregate events**: When a command affects multiple aggregates (e.g., role selection creates CandidateProfile), use the EventBus for internal side effects. The primary aggregate emits the event, and an EventHandler in the same service reacts to create/update the secondary aggregate.

@@ -5,8 +5,8 @@ import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
-import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
-import { v4 as uuid } from 'uuid';
+import { USER_EVENT_TYPES } from '../../../domain/constants';
+import type { IOutboxService } from '../../ports/outbox-service.port';
 
 /**
  * Update User Command Handler
@@ -17,7 +17,8 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
     private readonly eventBus: EventBus,
-    private readonly outboxService: OutboxService,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
   ) {}
 
   async execute(command: UpdateUserCommand): Promise<User> {
@@ -29,13 +30,11 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
 
     // 2. Update profile
     if (command.firstName !== undefined || command.lastName !== undefined) {
-      // Name update (one or both fields) - validate and update
       const firstName = command.firstName !== undefined ? command.firstName : user.fullName.firstName;
       const lastName = command.lastName !== undefined ? command.lastName : user.fullName.lastName;
       const fullName = FullName.create(firstName, lastName);
       user.updateProfile(fullName, command.bio, command.phone, command.timezone, command.language);
     } else if (command.bio !== undefined || command.phone !== undefined || command.timezone !== undefined || command.language !== undefined) {
-      // Only bio/phone/timezone/language update, keep existing name
       user.updateProfile(user.fullName, command.bio, command.phone, command.timezone, command.language);
     }
 
@@ -50,22 +49,15 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
 
     // 5. Publish integration event to Kafka (for other services)
     await this.outboxService.saveEvent(
-      'user.updated',
+      USER_EVENT_TYPES.UPDATED,
       {
-        eventId: uuid(),
-        eventType: 'user.updated',
-        timestamp: Date.now(),
-        version: '1.0',
-        source: 'user-service',
-        payload: {
-          userId: user.id,
-          externalAuthId: user.externalAuthId,
-          email: user.email.value,
-          firstName: user.fullName.firstName,
-          lastName: user.fullName.lastName,
-          role: user.role.toString(),
-          updatedAt: user.updatedAt.toISOString(),
-        },
+        userId: user.id,
+        externalAuthId: user.externalAuthId,
+        email: user.email.value,
+        firstName: user.fullName.firstName,
+        lastName: user.fullName.lastName,
+        role: user.role.toString(),
+        updatedAt: user.updatedAt.toISOString(),
       },
       user.id,
     );

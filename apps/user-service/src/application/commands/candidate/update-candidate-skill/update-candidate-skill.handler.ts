@@ -49,7 +49,7 @@ export class UpdateCandidateSkillHandler implements ICommandHandler<UpdateCandid
     // 5. Publish domain events (if any changes)
     const events = profile.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
-    profile.commit();
+    profile.clearEvents();
 
     this.logger.info('Candidate skill updated successfully', {
       candidateId: command.candidateId,

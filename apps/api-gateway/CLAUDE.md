@@ -228,3 +228,29 @@ npm run test:e2e           # E2E tests
 - **Sensitive data masking**: Never log JWT tokens, passwords, or full email addresses. Mask emails as `j***@example.com`. Log only the last 4 characters of tokens for debugging.
 - **Log levels**: Use `error` for unrecoverable failures requiring attention. Use `warn` for degraded states (circuit open, retry attempts). Use `info` for business events (user created, login success). Use `debug` for request/response details (disable in production).
 - **Loki integration**: Ship logs to Grafana Loki for centralized log aggregation. Use labels sparingly (service, environment, level) to avoid high cardinality. Use structured fields for filtering.
+
+### API Gateway Architecture Patterns
+
+- **Request aggregation**: When a frontend page needs data from multiple services (e.g., interview details + candidate profile + analysis results), the gateway can aggregate responses. Create a dedicated endpoint that calls multiple services in parallel (`Promise.all`) and returns a combined response. This reduces frontend round-trips.
+- **API versioning strategy**: Prefix all routes with `/api/v1/`. When breaking changes are needed, create `/api/v2/` routes alongside existing ones. The gateway routes by version prefix. Old versions can be deprecated with response headers (`Sunset`, `Deprecation`).
+- **Request/response transformation**: The gateway can transform payloads between frontend format and service format. For example, the frontend sends `{ firstName, lastName }` but the User Service expects `{ fullName: { first, last } }`. Keep transforms minimal — prefer aligning DTOs across services.
+- **Backend-for-Frontend (BFF)**: This gateway acts as a BFF — it's designed specifically for the web frontend. If a mobile app is added later, consider a separate mobile BFF or a unified GraphQL gateway that serves both frontends.
+- **Gateway-level caching**: Cache GET responses for immutable or slow-changing data. Published interview templates (immutable after publish) can be cached in Redis for 1 hour. User profiles can be cached for 5 minutes. Invalidate on relevant Kafka events. Set `Cache-Control` headers for CDN caching.
+- **Error response standardization**: All error responses from the gateway should follow a consistent format: `{ success: false, error: string, code: string, details?: any, correlationId: string }`. Map all downstream service errors to this format. Include the correlation ID so users can reference it in support requests.
+
+### Saga Pattern Best Practices
+
+- **Orchestration vs choreography**: This gateway uses orchestration (saga class coordinates steps). This is appropriate for multi-step operations with compensation. Choreography (event-driven) is used for simpler flows. Don't mix both in the same operation.
+- **Compensation ordering**: Compensations execute in reverse order of the original steps. If steps are: (1) create in Keycloak → (2) create in User Service, then compensation for step 2 failure is: delete from Keycloak. Never compensate forward.
+- **Compensation idempotency**: Compensations can fail too (e.g., Keycloak is down). Design compensations to be idempotent and retryable. Log orphaned resources (users in Keycloak without User Service records) for manual cleanup.
+- **Saga timeout**: Set a maximum duration for the entire saga (e.g., 30 seconds for registration). If any step exceeds its timeout, fail the saga and start compensation. Don't let a slow downstream service hang the gateway.
+- **Saga observability**: Log every saga step with a shared `operationId`. Include step name, service called, duration, and result (success/failure/compensation). This creates a complete audit trail for debugging distributed operations.
+
+### Reverse Proxy with nginx (Planned)
+
+- **Architecture**: nginx sits in front of the NestJS gateway. nginx handles: TLS termination, IP-based rate limiting, static file caching, request size limits, security headers. NestJS handles: all business logic (auth, sagas, Kafka, proxying).
+- **Rate limiting in nginx**: Use `limit_req_zone` for auth endpoints (10 req/min per IP) and API endpoints (100 req/min per IP). Return `429 Too Many Requests` with `Retry-After` header. This is the first line of defense before requests reach Node.js.
+- **Security headers in nginx**: Set `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Content-Security-Policy`, `Strict-Transport-Security`. These headers protect against common web attacks.
+- **Request size limits**: Set `client_max_body_size 10m` as default. For media upload endpoints, increase to `100m`. This prevents DoS attacks via large request bodies.
+- **TLS configuration**: Use TLS 1.2+ only. Configure strong cipher suites. Use Let's Encrypt for production. For development, use self-signed certificates. Set HSTS header with `max-age=31536000`.
+- **Health check passthrough**: Configure nginx to proxy `/health` to the NestJS gateway without rate limiting or auth. Orchestrators (Docker, K8s) need unrestricted access to health endpoints.

@@ -34,7 +34,7 @@ export class RemoveCandidateSkillHandler implements ICommandHandler<RemoveCandid
     // 4. Publish domain events
     const events = profile.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
-    profile.commit();
+    profile.clearEvents();
 
     this.logger.info('Candidate skill removed successfully', {
       candidateId: command.candidateId,

@@ -1,4 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import type { OutboxStatus } from '../../constants';
+import { OUTBOX_STATUS } from '../../constants';
 
 @Entity('outbox')
 @Index('idx_outbox_status', ['status'])
@@ -19,10 +21,10 @@ export class OutboxEntity {
   aggregateId: string;
 
   @Column({ type: 'jsonb' })
-  payload: any;
+  payload: Record<string, unknown>;
 
-  @Column({ default: 'pending' })
-  status: 'pending' | 'publishing' | 'published' | 'failed';
+  @Column({ type: 'varchar', default: OUTBOX_STATUS.PENDING })
+  status: OutboxStatus;
 
   @Column({ name: 'retry_count', default: 0 })
   retryCount: number;
