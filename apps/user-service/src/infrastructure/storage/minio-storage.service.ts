@@ -26,10 +26,7 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
   }
 
   async onModuleInit() {
-    // Temporarily disabled - MinIO auth issue with old container
-    // TODO: Fix MinIO credentials or recreate container
-    // await this.ensureBucketExists();
-    this.logger.warn('⚠️ MinIO bucket check disabled - will be created on first upload');
+    await this.ensureBucketExists();
   }
 
   /**
@@ -163,9 +160,8 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
         this.logger.log(`✅ Bucket exists: ${this.bucket}`);
       }
     } catch (error) {
-      this.logger.error(
-        `❌ Failed to ensure bucket exists: ${error.message}`,
-        error.stack,
+      this.logger.warn(
+        `MinIO bucket check skipped (service may be unavailable): ${error.message}`,
       );
     }
   }

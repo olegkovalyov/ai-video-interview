@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { v4 as uuid } from 'uuid';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
-import type { IOutboxService } from '../../../application/ports/outbox-service.port';
+import type { IOutboxService } from '../../../application/interfaces/outbox-service.interface';
+import type { ITransactionContext } from '../../../application/interfaces/transaction-context.interface';
 import {
   OUTBOX_STATUS,
   BULL_QUEUE,
@@ -20,6 +21,10 @@ import {
  *
  * Saves domain events to outbox table and schedules publishing.
  * This ensures at-least-once delivery guarantee.
+ *
+ * Transaction-aware: when `tx` is provided, the outbox entry is saved
+ * within the same database transaction as the aggregate (no BullMQ job created).
+ * Call `schedulePublishing()` after UnitOfWork commit to create BullMQ jobs.
  */
 @Injectable()
 export class OutboxService implements IOutboxService {
@@ -30,13 +35,77 @@ export class OutboxService implements IOutboxService {
   ) {}
 
   /**
-   * Save event to OUTBOX table and schedule for publishing.
-   * Builds the Kafka envelope internally — callers pass only business payload.
+   * Save event to OUTBOX table.
+   * - With tx: saves in the same transaction, returns eventId (no BullMQ job).
+   * - Without tx: saves directly and immediately creates BullMQ job.
    */
-  async saveEvent(eventType: string, payload: Record<string, unknown>, aggregateId: string): Promise<void> {
+  async saveEvent(
+    eventType: string,
+    payload: Record<string, unknown>,
+    aggregateId: string,
+    tx?: ITransactionContext,
+  ): Promise<string> {
     const eventId = this.generateEventId();
+    const outbox = this.buildOutboxEntity(eventId, eventType, payload, aggregateId);
 
-    // Build standard Kafka envelope
+    if (tx) {
+      // Save within the existing UnitOfWork transaction
+      await (tx as unknown as EntityManager).save(OutboxEntity, outbox);
+    } else {
+      // Direct save + immediate BullMQ job (backward compatible)
+      await this.outboxRepository.save(outbox);
+      await this.addPublishJob(eventId);
+    }
+
+    return eventId;
+  }
+
+  /**
+   * Save multiple events in batch.
+   * - With tx: saves in the same transaction, returns eventIds (no BullMQ jobs).
+   * - Without tx: saves directly and immediately creates BullMQ jobs.
+   */
+  async saveEvents(
+    events: Array<{ eventType: string; payload: Record<string, unknown>; aggregateId: string }>,
+    tx?: ITransactionContext,
+  ): Promise<string[]> {
+    if (events.length === 0) return [];
+
+    const outboxEntries = events.map((event) => {
+      const eventId = this.generateEventId();
+      return this.buildOutboxEntity(eventId, event.eventType, event.payload, event.aggregateId);
+    });
+
+    if (tx) {
+      await (tx as unknown as EntityManager).save(OutboxEntity, outboxEntries);
+    } else {
+      await this.outboxRepository.save(outboxEntries);
+      await this.addPublishJobs(outboxEntries.map(e => e.eventId));
+    }
+
+    return outboxEntries.map(e => e.eventId);
+  }
+
+  /**
+   * Schedule BullMQ jobs for outbox events saved within a transaction.
+   * Call this AFTER UnitOfWork.execute() commits successfully.
+   */
+  async schedulePublishing(eventIds: string[]): Promise<void> {
+    if (eventIds.length === 0) return;
+
+    if (eventIds.length === 1) {
+      await this.addPublishJob(eventIds[0]);
+    } else {
+      await this.addPublishJobs(eventIds);
+    }
+  }
+
+  private buildOutboxEntity(
+    eventId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+    aggregateId: string,
+  ): OutboxEntity {
     const envelope: Record<string, unknown> = {
       eventId,
       eventType,
@@ -46,8 +115,7 @@ export class OutboxService implements IOutboxService {
       payload,
     };
 
-    // 1. Save to outbox table
-    const outbox = this.outboxRepository.create({
+    return this.outboxRepository.create({
       eventId,
       aggregateId,
       eventType,
@@ -55,10 +123,9 @@ export class OutboxService implements IOutboxService {
       status: OUTBOX_STATUS.PENDING,
       retryCount: 0,
     });
+  }
 
-    await this.outboxRepository.save(outbox);
-
-    // 2. Add to BullMQ queue for publishing
+  private async addPublishJob(eventId: string): Promise<void> {
     await this.outboxQueue.add(
       BULL_JOB.PUBLISH_OUTBOX_EVENT,
       { eventId },
@@ -75,40 +142,12 @@ export class OutboxService implements IOutboxService {
     );
   }
 
-  /**
-   * Save multiple events in batch (transactional)
-   */
-  async saveEvents(events: Array<{ eventType: string; payload: Record<string, unknown>; aggregateId: string }>): Promise<void> {
-    if (events.length === 0) return;
-
-    const outboxEntries = events.map((event) => {
-      const eventId = this.generateEventId();
-      const envelope: Record<string, unknown> = {
-        eventId,
-        eventType: event.eventType,
-        timestamp: Date.now(),
-        version: SERVICE_VERSION,
-        source: SERVICE_NAME,
-        payload: event.payload,
-      };
-      return this.outboxRepository.create({
-        eventId,
-        aggregateId: event.aggregateId,
-        eventType: event.eventType,
-        payload: envelope,
-        status: OUTBOX_STATUS.PENDING,
-        retryCount: 0,
-      });
-    });
-
-    await this.outboxRepository.save(outboxEntries);
-
-    // Schedule publishing
-    const jobs = outboxEntries.map((outbox) => ({
+  private async addPublishJobs(eventIds: string[]): Promise<void> {
+    const jobs = eventIds.map((eventId) => ({
       name: BULL_JOB.PUBLISH_OUTBOX_EVENT,
-      data: { eventId: outbox.eventId },
+      data: { eventId },
       opts: {
-        jobId: outbox.eventId,
+        jobId: eventId,
         removeOnComplete: true,
         removeOnFail: false,
         attempts: OUTBOX_CONFIG.RETRY_ATTEMPTS,

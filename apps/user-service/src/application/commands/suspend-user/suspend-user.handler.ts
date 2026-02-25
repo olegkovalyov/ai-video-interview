@@ -5,7 +5,8 @@ import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import { USER_EVENT_TYPES } from '../../../domain/constants';
-import type { IOutboxService } from '../../ports/outbox-service.port';
+import type { IOutboxService } from '../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
 
 /**
  * Suspend User Command Handler
@@ -18,6 +19,8 @@ export class SuspendUserHandler implements ICommandHandler<SuspendUserCommand> {
     private readonly eventBus: EventBus,
     @Inject('IOutboxService')
     private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
   ) {}
 
   async execute(command: SuspendUserCommand): Promise<User> {
@@ -30,25 +33,29 @@ export class SuspendUserHandler implements ICommandHandler<SuspendUserCommand> {
     // 2. Suspend
     user.suspend(command.reason, command.suspendedBy);
 
-    // 3. Save
-    await this.userRepository.save(user);
+    // 3. Atomic save: aggregate + outbox in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      await this.userRepository.save(user, tx);
+      return this.outboxService.saveEvent(
+        USER_EVENT_TYPES.SUSPENDED,
+        {
+          userId: user.id,
+          externalAuthId: user.externalAuthId,
+          suspendedAt: new Date().toISOString(),
+        },
+        user.id,
+        tx,
+      );
+    });
 
-    // 4. Publish domain events (internal)
+    // 4. After commit: publish domain events (internal)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);
     });
     user.clearEvents();
 
-    // 5. Publish integration event to Kafka
-    await this.outboxService.saveEvent(
-      USER_EVENT_TYPES.SUSPENDED,
-      {
-        userId: user.id,
-        externalAuthId: user.externalAuthId,
-        suspendedAt: new Date().toISOString(),
-      },
-      user.id,
-    );
+    // 5. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
 
     return user;
   }

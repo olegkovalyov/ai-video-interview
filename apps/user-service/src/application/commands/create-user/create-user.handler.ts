@@ -8,7 +8,8 @@ import { Email } from '../../../domain/value-objects/email.vo';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
 import { USER_EVENT_TYPES } from '../../../domain/constants';
-import type { IOutboxService } from '../../ports/outbox-service.port';
+import type { IOutboxService } from '../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
 /**
@@ -25,6 +26,8 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     private readonly eventBus: EventBus,
     @Inject('IOutboxService')
     private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
     private readonly logger: LoggerService,
   ) {}
 
@@ -62,8 +65,34 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       fullName,
     );
 
-    // 4. Save to repository
-    await this.userRepository.save(user);
+    // 4. Atomic save: aggregate + outbox in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      await this.userRepository.save(user, tx);
+      return this.outboxService.saveEvent(
+        USER_EVENT_TYPES.CREATED,
+        {
+          userId: user.id,
+          externalAuthId: user.externalAuthId,
+          email: user.email.value,
+          firstName: user.fullName.firstName,
+          lastName: user.fullName.lastName,
+          status: user.status.value,
+          role: user.role.toString(),
+          createdAt: user.createdAt.toISOString(),
+        },
+        user.id,
+        tx,
+      );
+    });
+
+    // 5. After commit: publish domain events (internal)
+    user.getUncommittedEvents().forEach(event => {
+      this.eventBus.publish(event);
+    });
+    user.clearEvents();
+
+    // 6. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
 
     this.logger.info('User created successfully', {
       userId: user.id,
@@ -71,28 +100,6 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       role: user.role.toString(),
       status: user.status.value,
     });
-
-    // 5. Publish domain events (internal only)
-    user.getUncommittedEvents().forEach(event => {
-      this.eventBus.publish(event);
-    });
-    user.clearEvents();
-
-    // 6. Publish integration event to Kafka (for other services)
-    await this.outboxService.saveEvent(
-      USER_EVENT_TYPES.CREATED,
-      {
-        userId: user.id,
-        externalAuthId: user.externalAuthId,
-        email: user.email.value,
-        firstName: user.fullName.firstName,
-        lastName: user.fullName.lastName,
-        status: user.status.value,
-        role: user.role.toString(),
-        createdAt: user.createdAt.toISOString(),
-      },
-      user.id,
-    );
 
     return user;
   }

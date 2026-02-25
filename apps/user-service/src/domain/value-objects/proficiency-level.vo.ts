@@ -1,22 +1,24 @@
+import { ValueObject } from '../base/base.value-object';
 import { DomainException } from '../exceptions/domain.exception';
 
 /**
  * ProficiencyLevel Value Object
  * Represents candidate's proficiency level with a skill
  */
-export class ProficiencyLevel {
+export class ProficiencyLevel extends ValueObject<{ value: string }> {
   private static readonly VALID_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
-  
+
   public static readonly BEGINNER = 'beginner';
   public static readonly INTERMEDIATE = 'intermediate';
   public static readonly ADVANCED = 'advanced';
   public static readonly EXPERT = 'expert';
 
-  private constructor(private readonly _value: string) {
-    this.validate(_value);
+  private constructor(value: string) {
+    ProficiencyLevel.validate(value);
+    super({ value });
   }
 
-  private validate(value: string): void {
+  private static validate(value: string): void {
     if (!ProficiencyLevel.VALID_LEVELS.includes(value as any)) {
       throw new DomainException(
         `Invalid proficiency level: ${value}. Must be one of: ${ProficiencyLevel.VALID_LEVELS.join(', ')}`
@@ -47,19 +49,19 @@ export class ProficiencyLevel {
 
   // Comparison methods
   public isBeginner(): boolean {
-    return this._value === ProficiencyLevel.BEGINNER;
+    return this.value === ProficiencyLevel.BEGINNER;
   }
 
   public isIntermediate(): boolean {
-    return this._value === ProficiencyLevel.INTERMEDIATE;
+    return this.value === ProficiencyLevel.INTERMEDIATE;
   }
 
   public isAdvanced(): boolean {
-    return this._value === ProficiencyLevel.ADVANCED;
+    return this.value === ProficiencyLevel.ADVANCED;
   }
 
   public isExpert(): boolean {
-    return this._value === ProficiencyLevel.EXPERT;
+    return this.value === ProficiencyLevel.EXPERT;
   }
 
   /**
@@ -76,10 +78,10 @@ export class ProficiencyLevel {
       ProficiencyLevel.ADVANCED,
       ProficiencyLevel.EXPERT,
     ];
-    
-    const thisIndex = levels.indexOf(this._value);
-    const otherIndex = levels.indexOf(other._value);
-    
+
+    const thisIndex = levels.indexOf(this.value);
+    const otherIndex = levels.indexOf(other.value);
+
     return thisIndex - otherIndex;
   }
 
@@ -88,14 +90,17 @@ export class ProficiencyLevel {
   }
 
   public equals(other: ProficiencyLevel): boolean {
-    return this._value === other._value;
+    if (!(other instanceof ProficiencyLevel)) {
+      return false;
+    }
+    return this.value === other.value;
   }
 
   public get value(): string {
-    return this._value;
+    return this.props.value;
   }
 
   public toString(): string {
-    return this._value;
+    return this.value;
   }
 }

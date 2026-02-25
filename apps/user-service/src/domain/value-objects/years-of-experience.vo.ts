@@ -1,18 +1,20 @@
+import { ValueObject } from '../base/base.value-object';
 import { DomainException } from '../exceptions/domain.exception';
 
 /**
  * YearsOfExperience Value Object
  * Represents years of experience with a specific skill (0-50)
  */
-export class YearsOfExperience {
+export class YearsOfExperience extends ValueObject<{ value: number }> {
   private static readonly MIN_YEARS = 0;
   private static readonly MAX_YEARS = 50;
 
-  private constructor(private readonly _value: number) {
-    this.validate(_value);
+  private constructor(value: number) {
+    YearsOfExperience.validate(value);
+    super({ value });
   }
 
-  private validate(value: number): void {
+  private static validate(value: number): void {
     if (!Number.isInteger(value)) {
       throw new DomainException('Years of experience must be an integer');
     }
@@ -40,40 +42,43 @@ export class YearsOfExperience {
 
   // Comparison methods
   public isGreaterThan(other: YearsOfExperience): boolean {
-    return this._value > other._value;
+    return this.value > other.value;
   }
 
   public isLessThan(other: YearsOfExperience): boolean {
-    return this._value < other._value;
+    return this.value < other.value;
   }
 
   public isGreaterOrEqual(other: YearsOfExperience): boolean {
-    return this._value >= other._value;
+    return this.value >= other.value;
   }
 
   public isLessOrEqual(other: YearsOfExperience): boolean {
-    return this._value <= other._value;
+    return this.value <= other.value;
   }
 
   public equals(other: YearsOfExperience): boolean {
-    return this._value === other._value;
+    if (!(other instanceof YearsOfExperience)) {
+      return false;
+    }
+    return this.value === other.value;
   }
 
   public add(years: number): YearsOfExperience {
-    return new YearsOfExperience(this._value + years);
+    return new YearsOfExperience(this.value + years);
   }
 
   public get value(): number {
-    return this._value;
+    return this.props.value;
   }
 
   public toString(): string {
-    if (this._value === 0) {
+    if (this.value === 0) {
       return 'No experience';
     }
-    if (this._value === 1) {
+    if (this.value === 1) {
       return '1 year';
     }
-    return `${this._value} years`;
+    return `${this.value} years`;
   }
 }

@@ -7,7 +7,8 @@ import { UserRole } from '../../../domain/value-objects/user-role.vo';
 import { CandidateProfile } from '../../../domain/aggregates/candidate-profile.aggregate';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import { USER_EVENT_TYPES } from '../../../domain/constants';
-import type { IOutboxService } from '../../ports/outbox-service.port';
+import type { IOutboxService } from '../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
 /**
@@ -25,6 +26,8 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
     private readonly eventBus: EventBus,
     @Inject('IOutboxService')
     private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
     private readonly logger: LoggerService,
   ) {}
 
@@ -53,38 +56,40 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
 
     user.selectRole(userRole);
 
-    // 3. Create corresponding profile
-    if (role === 'candidate') {
-      const profile = CandidateProfile.create(userId);
-      await this.candidateProfileRepository.save(profile);
-    }
+    // 3. Atomic: save user + candidate profile + outbox in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      if (role === 'candidate') {
+        const profile = CandidateProfile.create(userId);
+        await this.candidateProfileRepository.save(profile, tx);
+      }
+      await this.userRepository.save(user, tx);
+      return this.outboxService.saveEvent(
+        USER_EVENT_TYPES.ROLE_SELECTED,
+        {
+          userId: user.id,
+          externalAuthId: user.externalAuthId,
+          email: user.email.value,
+          role: user.role.toString(),
+          selectedAt: user.updatedAt.toISOString(),
+        },
+        user.id,
+        tx,
+      );
+    });
 
-    // 4. Save user
-    await this.userRepository.save(user);
-
-    // 5. Publish domain events (internal)
+    // 4. After commit: publish domain events (internal)
     user.getUncommittedEvents().forEach(event => {
       this.eventBus.publish(event);
     });
     user.clearEvents();
+
+    // 5. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
 
     this.logger.info('Role selected successfully', {
       userId: user.id,
       email: user.email.value,
       role: user.role.toString(),
     });
-
-    // 6. Publish role selected event to Kafka via outbox
-    await this.outboxService.saveEvent(
-      USER_EVENT_TYPES.ROLE_SELECTED,
-      {
-        userId: user.id,
-        externalAuthId: user.externalAuthId,
-        email: user.email.value,
-        role: user.role.toString(),
-        selectedAt: user.updatedAt.toISOString(),
-      },
-      user.id,
-    );
   }
 }

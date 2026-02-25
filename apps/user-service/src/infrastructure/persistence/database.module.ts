@@ -24,6 +24,7 @@ import { TypeOrmSkillRepository } from './repositories/typeorm-skill.repository'
 import { TypeOrmSkillReadRepository } from './repositories/typeorm-skill-read.repository';
 import { TypeOrmCompanyRepository } from './repositories/typeorm-company.repository';
 import { TypeOrmCompanyReadRepository } from './repositories/typeorm-company-read.repository';
+import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
 
 @Module({
   imports: [
@@ -117,6 +118,12 @@ import { TypeOrmCompanyReadRepository } from './repositories/typeorm-company-rea
       provide: 'ICandidateProfileReadRepository',
       useClass: TypeOrmCandidateProfileReadRepository,
     },
+
+    // UnitOfWork
+    {
+      provide: 'IUnitOfWork',
+      useClass: TypeOrmUnitOfWork,
+    },
   ],
   exports: [
     TypeOrmModule,
@@ -137,6 +144,7 @@ import { TypeOrmCompanyReadRepository } from './repositories/typeorm-company-rea
     'ICompanyReadRepository',
     'ICandidateProfileRepository',
     'ICandidateProfileReadRepository',
+    'IUnitOfWork',
   ],
 })
 export class DatabaseModule {}

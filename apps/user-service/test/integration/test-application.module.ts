@@ -60,8 +60,10 @@ export const mockKafkaService = {
 
 export const mockOutboxService = {
   save: jest.fn().mockResolvedValue(undefined),
-  saveEvent: jest.fn().mockResolvedValue(undefined),
+  saveEvent: jest.fn().mockResolvedValue('mock-event-id'),
+  saveEvents: jest.fn().mockResolvedValue(['mock-event-id']),
   publishPendingEvents: jest.fn().mockResolvedValue(undefined),
+  schedulePublishing: jest.fn().mockResolvedValue(undefined),
 };
 
 export const mockLoggerService = {

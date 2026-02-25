@@ -1,4 +1,5 @@
 import { User } from '../aggregates/user.aggregate';
+import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 /**
  * User Repository Interface (Write operations)
@@ -8,8 +9,9 @@ import { User } from '../aggregates/user.aggregate';
 export interface IUserRepository {
   /**
    * Save user (create or update)
+   * @param tx - optional transaction context from UnitOfWork
    */
-  save(user: User): Promise<void>;
+  save(user: User, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Find user by ID
@@ -28,6 +30,7 @@ export interface IUserRepository {
 
   /**
    * Delete user (hard delete with CASCADE)
+   * @param tx - optional transaction context from UnitOfWork
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, tx?: ITransactionContext): Promise<void>;
 }

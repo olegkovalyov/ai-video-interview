@@ -5,7 +5,8 @@ import { Company } from '../../../../domain/aggregates/company.aggregate';
 import { CompanySize } from '../../../../domain/value-objects/company-size.vo';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
 import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
-import type { IOutboxService } from '../../../ports/outbox-service.port';
+import type { IOutboxService } from '../../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 import { v4 as uuid } from 'uuid';
 
@@ -21,6 +22,8 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
     private readonly eventBus: EventBus,
     @Inject('IOutboxService')
     private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
     private readonly logger: LoggerService,
   ) {}
 
@@ -54,25 +57,29 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
       command.position,
     );
 
-    // 3. Save to repository
-    await this.companyRepository.save(company);
+    // 3. Atomic save: aggregate + outbox in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      await this.companyRepository.save(company, tx);
+      return this.outboxService.saveEvent(
+        COMPANY_EVENT_TYPES.CREATED,
+        {
+          companyId,
+          name: command.name,
+          createdBy: command.createdBy,
+          createdAt: new Date().toISOString(),
+        },
+        companyId,
+        tx,
+      );
+    });
 
-    // 4. Publish domain events (internal)
+    // 4. After commit: publish domain events (internal)
     const events = company.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
     company.clearEvents();
 
-    // 5. Publish integration event to Kafka
-    await this.outboxService.saveEvent(
-      COMPANY_EVENT_TYPES.CREATED,
-      {
-        companyId,
-        name: command.name,
-        createdBy: command.createdBy,
-        createdAt: new Date().toISOString(),
-      },
-      companyId,
-    );
+    // 5. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
 
     this.logger.info('Company created successfully', { companyId, name: command.name });
 

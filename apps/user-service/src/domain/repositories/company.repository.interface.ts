@@ -1,4 +1,5 @@
 import { Company } from '../aggregates/company.aggregate';
+import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 /**
  * Company Repository Interface (Write operations)
@@ -7,8 +8,9 @@ import { Company } from '../aggregates/company.aggregate';
 export interface ICompanyRepository {
   /**
    * Save company (create or update)
+   * @param tx - optional transaction context from UnitOfWork
    */
-  save(company: Company): Promise<void>;
+  save(company: Company, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Find company by ID
@@ -17,8 +19,9 @@ export interface ICompanyRepository {
 
   /**
    * Delete company (hard delete with CASCADE to user_companies)
+   * @param tx - optional transaction context from UnitOfWork
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Check if user is associated with company

@@ -4,7 +4,8 @@ import { DeleteCompanyCommand } from './delete-company.command';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
 import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../../domain/exceptions/company.exceptions';
 import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
-import type { IOutboxService } from '../../../ports/outbox-service.port';
+import type { IOutboxService } from '../../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 /**
@@ -19,6 +20,8 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
     private readonly companyRepository: ICompanyRepository,
     @Inject('IOutboxService')
     private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
     private readonly logger: LoggerService,
   ) {}
 
@@ -39,19 +42,24 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
       throw new CompanyAccessDeniedException('Only company creator can delete the company');
     }
 
-    // 3. Hard delete (CASCADE removes user_companies)
-    await this.companyRepository.delete(command.companyId);
+    // 3. Atomic: outbox save + hard delete in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      const eid = await this.outboxService.saveEvent(
+        COMPANY_EVENT_TYPES.DELETED,
+        {
+          companyId: command.companyId,
+          deletedBy: command.userId,
+          deletedAt: new Date().toISOString(),
+        },
+        command.companyId,
+        tx,
+      );
+      await this.companyRepository.delete(command.companyId, tx);
+      return eid;
+    });
 
-    // 4. Publish integration event to Kafka
-    await this.outboxService.saveEvent(
-      COMPANY_EVENT_TYPES.DELETED,
-      {
-        companyId: command.companyId,
-        deletedBy: command.userId,
-        deletedAt: new Date().toISOString(),
-      },
-      command.companyId,
-    );
+    // 4. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
 
     this.logger.warn('Company deleted permanently', { companyId: command.companyId });
   }
