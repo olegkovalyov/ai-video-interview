@@ -9,13 +9,14 @@ import {
   PaginatedTemplatesResponseDto,
   QuestionResponseDto,
 } from '../../../application/dto';
+import { IInterviewTemplateReadRepository } from '../../../domain/repositories/interview-template-read.repository.interface';
 
 /**
  * Read Repository для Query side (CQRS)
  * Работает напрямую с TypeORM entities без Domain aggregates
  */
 @Injectable()
-export class InterviewTemplateReadRepository {
+export class InterviewTemplateReadRepository implements IInterviewTemplateReadRepository {
   constructor(
     @InjectRepository(InterviewTemplateEntity)
     private readonly templateRepository: Repository<InterviewTemplateEntity>,

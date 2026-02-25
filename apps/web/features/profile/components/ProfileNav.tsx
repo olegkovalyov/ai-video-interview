@@ -4,8 +4,13 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { User, Shield, Star } from 'lucide-react';
 
-export function ProfileNav() {
+interface ProfileNavProps {
+  userRoles?: string[];
+}
+
+export function ProfileNav({ userRoles = [] }: ProfileNavProps) {
   const pathname = usePathname();
+  const isCandidate = userRoles.includes('candidate');
 
   const tabs = [
     {
@@ -13,20 +18,23 @@ export function ProfileNav() {
       href: '/profile',
       icon: User,
       active: pathname === '/profile',
+      visible: true, // всем
     },
     {
       name: 'Security',
       href: '/profile/security',
       icon: Shield,
       active: pathname === '/profile/security',
+      visible: true, // всем
     },
     {
       name: 'Skills',
       href: '/profile/skills',
       icon: Star,
       active: pathname === '/profile/skills',
+      visible: isCandidate, // только candidate
     },
-  ];
+  ].filter(tab => tab.visible);
 
   return (
     <aside className="w-64 flex-shrink-0">

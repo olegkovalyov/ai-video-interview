@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserEventProducer } from './producers/user-event.producer';
 import { AuthLoginConsumer } from './consumers/auth-login.consumer';
 import { UserEntity } from '../persistence/entities/user.entity';
 import { KafkaService } from '@repo/shared';
@@ -10,8 +9,8 @@ import { LoggerModule } from '../logger/logger.module';
 /**
  * Kafka Module
  * Handles Kafka integration for User Service
- * 
- * Producers: Domain events via OutboxService
+ *
+ * Publishing: Domain events via OutboxService + OutboxPublisherProcessor
  * Consumers: Auth events for last_login_at updates
  */
 @Module({
@@ -21,7 +20,6 @@ import { LoggerModule } from '../logger/logger.module';
     LoggerModule,
   ],
   providers: [
-    UserEventProducer,
     AuthLoginConsumer,
     {
       provide: 'KAFKA_CONFIG',
@@ -46,6 +44,6 @@ import { LoggerModule } from '../logger/logger.module';
       },
     },
   ],
-  exports: [UserEventProducer, 'KAFKA_SERVICE'],
+  exports: ['KAFKA_SERVICE'],
 })
 export class KafkaModule {}

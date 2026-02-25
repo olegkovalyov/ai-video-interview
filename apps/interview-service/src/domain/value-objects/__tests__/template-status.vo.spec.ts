@@ -34,7 +34,7 @@ describe('TemplateStatus Value Object', () => {
 
     it('should throw error for invalid status', () => {
       expect(() => TemplateStatus.create('invalid')).toThrow(
-        'Invalid template status: invalid',
+        'Cannot create template in invalid (must be one of: draft, active, archived) state',
       );
     });
   });

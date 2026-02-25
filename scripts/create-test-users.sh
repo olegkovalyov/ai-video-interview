@@ -54,8 +54,9 @@ echo ""
 # 3. Truncate database tables
 echo -e "${YELLOW}→ Truncating database tables...${NC}"
 docker exec ai-interview-postgres psql -U postgres -d ai_video_interview_user -c "
+  TRUNCATE TABLE candidate_skills CASCADE;
   TRUNCATE TABLE candidate_profiles CASCADE;
-  TRUNCATE TABLE hr_profiles CASCADE;
+  TRUNCATE TABLE user_companies CASCADE;
   TRUNCATE TABLE users CASCADE;
   TRUNCATE TABLE outbox CASCADE;
 "
@@ -83,41 +84,23 @@ if [ $? -ne 0 ]; then
 fi
 echo ""
 
-# 2. Create HR users
-echo -e "${BLUE}━━━ Step 2/3: Creating HR Users ━━━${NC}"
-echo -e "${YELLOW}How many HR users to create? (default: 2)${NC}"
-read -t 5 HR_COUNT
-HR_COUNT=${HR_COUNT:-2}
-echo "Creating ${HR_COUNT} HR users..."
+# 2. Create HR user with companies and templates
+echo -e "${BLUE}━━━ Step 2/3: Creating HR User with Companies & Templates ━━━${NC}"
+bash "${SCRIPT_DIR}/create-hr.sh"
+if [ $? -ne 0 ]; then
+  echo -e "${RED}❌ Failed to create HR user${NC}"
+  exit 1
+fi
 echo ""
 
-for i in $(seq 1 $HR_COUNT); do
-  echo -e "${YELLOW}[${i}/${HR_COUNT}] Creating HR user...${NC}"
-  bash "${SCRIPT_DIR}/create-hr.sh"
-  if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Failed to create HR user ${i}${NC}"
-    exit 1
-  fi
-  echo ""
-done
-
-# 3. Create Candidate users
-echo -e "${BLUE}━━━ Step 3/3: Creating Candidate Users ━━━${NC}"
-echo -e "${YELLOW}How many Candidate users to create? (default: 3)${NC}"
-read -t 5 CANDIDATE_COUNT
-CANDIDATE_COUNT=${CANDIDATE_COUNT:-3}
-echo "Creating ${CANDIDATE_COUNT} candidate users..."
+# 3. Create Candidate users (20 candidates with skills)
+echo -e "${BLUE}━━━ Step 3/3: Creating 20 Candidate Users with Skills ━━━${NC}"
+bash "${SCRIPT_DIR}/create-candidate.sh"
+if [ $? -ne 0 ]; then
+  echo -e "${RED}❌ Failed to create candidate users${NC}"
+  exit 1
+fi
 echo ""
-
-for i in $(seq 1 $CANDIDATE_COUNT); do
-  echo -e "${YELLOW}[${i}/${CANDIDATE_COUNT}] Creating candidate user...${NC}"
-  bash "${SCRIPT_DIR}/create-candidate.sh"
-  if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Failed to create candidate user ${i}${NC}"
-    exit 1
-  fi
-  echo ""
-done
 
 # Summary
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -125,9 +108,9 @@ echo -e "${GREEN}🎉 All test users created successfully!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo "Summary:"
-echo "  ✅ 1 Admin user"
-echo "  ✅ ${HR_COUNT} HR users"
-echo "  ✅ ${CANDIDATE_COUNT} Candidate users"
+echo "  ✅ 1 Admin user (admin@test.com)"
+echo "  ✅ 1 HR user (hr@test.com) with 3 companies & 3 templates"
+echo "  ✅ 20 Candidate users (with skills & experience levels)"
 echo ""
 echo "Credentials saved to:"
 echo "  Admin: /tmp/admin-email.txt, /tmp/admin-password.txt"

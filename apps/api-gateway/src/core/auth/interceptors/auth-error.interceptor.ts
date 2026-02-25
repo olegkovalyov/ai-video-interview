@@ -35,7 +35,15 @@ export class AuthErrorInterceptor implements NestInterceptor {
 
         if (error instanceof HttpException) {
           status = error.getStatus();
-          message = error.message;
+          const response = error.getResponse();
+          // Extract message from HttpException response (can be string or object)
+          if (typeof response === 'string') {
+            message = response;
+          } else if (typeof response === 'object' && response !== null) {
+            message = (response as any).error || (response as any).message || error.message;
+          } else {
+            message = error.message;
+          }
         } else if (error.message) {
           // Обрабатываем специфичные auth ошибки
           const errorMessage = error.message.toLowerCase();

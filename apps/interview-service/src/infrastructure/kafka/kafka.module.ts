@@ -1,19 +1,23 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { KafkaService } from '@repo/shared';
 import { LoggerModule } from '../logger/logger.module';
+import { AnalysisCompletedConsumer } from './consumers/analysis-completed.consumer';
+import { InvitationEntity } from '../persistence/entities/invitation.entity';
 
 /**
  * Kafka Module
  * Handles Kafka integration for Interview Service
  * 
  * Producers: Domain events via OutboxService
- * Consumers: None (for now)
+ * Consumers: analysis-events (from AI Analysis Service)
  */
 @Module({
   imports: [
     ConfigModule,
     LoggerModule,
+    TypeOrmModule.forFeature([InvitationEntity]),
   ],
   providers: [
     {
@@ -38,6 +42,7 @@ import { LoggerModule } from '../logger/logger.module';
         return new KafkaService('interview-service');
       },
     },
+    AnalysisCompletedConsumer,
   ],
   exports: ['KAFKA_SERVICE'],
 })

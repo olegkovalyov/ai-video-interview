@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsUUID, IsOptional, IsInt, IsEnum, IsArray, Min, Max } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 /**
  * DTO for searching candidates by skills (HR)
@@ -11,6 +12,12 @@ export class SearchCandidatesDto {
     type: [String]
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    // Convert single value to array
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value;
+    return [value];
+  })
   @IsArray()
   @IsUUID('4', { each: true })
   skillIds?: string[];

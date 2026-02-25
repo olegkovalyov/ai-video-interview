@@ -1,8 +1,17 @@
 import { AggregateRoot } from '../base.aggregate-root';
 import { Entity } from '../base.entity';
 import { ValueObject } from '../base.value-object';
+import { IDomainEvent } from '../../events/domain-event.interface';
 
 // Test implementations
+class TestEvent implements IDomainEvent {
+  public readonly occurredOn = new Date();
+  constructor(
+    public readonly aggregateId: string,
+    public readonly eventName: string,
+  ) {}
+}
+
 class TestAggregate extends AggregateRoot {
   constructor(public readonly name: string) {
     super();
@@ -38,7 +47,7 @@ describe('Base Classes', () => {
 
     it('should apply and track domain events', () => {
       const aggregate = new TestAggregate('test');
-      const event = { aggregateId: '123', eventName: 'TestEvent' };
+      const event = new TestEvent('123', 'TestEvent');
 
       aggregate.apply(event);
 
@@ -49,8 +58,8 @@ describe('Base Classes', () => {
 
     it('should clear events after commit', () => {
       const aggregate = new TestAggregate('test');
-      aggregate.apply({ aggregateId: '123', eventName: 'Event1' });
-      aggregate.apply({ aggregateId: '123', eventName: 'Event2' });
+      aggregate.apply(new TestEvent('123', 'Event1'));
+      aggregate.apply(new TestEvent('123', 'Event2'));
 
       expect(aggregate.getUncommittedEvents()).toHaveLength(2);
 
@@ -62,12 +71,23 @@ describe('Base Classes', () => {
     it('should accumulate multiple events before commit', () => {
       const aggregate = new TestAggregate('test');
 
-      aggregate.apply({ aggregateId: '1', eventName: 'Event1' });
-      aggregate.apply({ aggregateId: '1', eventName: 'Event2' });
-      aggregate.apply({ aggregateId: '1', eventName: 'Event3' });
+      aggregate.apply(new TestEvent('1', 'Event1'));
+      aggregate.apply(new TestEvent('1', 'Event2'));
+      aggregate.apply(new TestEvent('1', 'Event3'));
 
       const events = aggregate.getUncommittedEvents();
       expect(events).toHaveLength(3);
+    });
+
+    it('should return defensive copy from getUncommittedEvents', () => {
+      const aggregate = new TestAggregate('test');
+      aggregate.apply(new TestEvent('1', 'Event1'));
+
+      const events1 = aggregate.getUncommittedEvents();
+      const events2 = aggregate.getUncommittedEvents();
+
+      expect(events1).not.toBe(events2);
+      expect(events1).toEqual(events2);
     });
   });
 

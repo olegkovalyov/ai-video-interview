@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from '../../src/infrastructure/persistence/database.module';
 import { StorageModule } from '../../src/infrastructure/storage/storage.module';
-import { OutboxService } from '../../src/infrastructure/messaging/outbox/outbox.service';
 import { LoggerService } from '../../src/infrastructure/logger/logger.service';
 
 // Import all command handlers
@@ -49,6 +48,7 @@ import { GetCompanyHandler } from '../../src/application/queries/companies/get-c
 // Candidate Queries
 import { GetCandidateProfileHandler } from '../../src/application/queries/candidate/get-candidate-profile.handler';
 import { GetCandidateSkillsHandler } from '../../src/application/queries/candidate/get-candidate-skills.handler';
+import { SearchCandidatesBySkillsHandler } from '../../src/application/queries/candidate/search-candidates-by-skills.handler';
 
 // Mock services for testing
 export const mockKafkaService = {
@@ -60,8 +60,10 @@ export const mockKafkaService = {
 
 export const mockOutboxService = {
   save: jest.fn().mockResolvedValue(undefined),
-  saveEvent: jest.fn().mockResolvedValue(undefined),
+  saveEvent: jest.fn().mockResolvedValue('mock-event-id'),
+  saveEvents: jest.fn().mockResolvedValue(['mock-event-id']),
   publishPendingEvents: jest.fn().mockResolvedValue(undefined),
+  schedulePublishing: jest.fn().mockResolvedValue(undefined),
 };
 
 export const mockLoggerService = {
@@ -137,6 +139,7 @@ export const mockStorageService = {
     // Candidate Queries
     GetCandidateProfileHandler,
     GetCandidateSkillsHandler,
+    SearchCandidatesBySkillsHandler,
 
     // Mock services - use actual classes as tokens (not strings!)
     {
@@ -144,7 +147,7 @@ export const mockStorageService = {
       useValue: mockKafkaService,
     },
     {
-      provide: OutboxService,
+      provide: 'IOutboxService',
       useValue: mockOutboxService,
     },
     {

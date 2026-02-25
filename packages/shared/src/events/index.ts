@@ -1,5 +1,6 @@
 // Shared event types and utilities
 export * from './user.events';
+export * from './analysis.events';
 
 // Common Kafka configuration
 export const KAFKA_CONFIG = {
@@ -34,6 +35,10 @@ export const KAFKA_TOPICS = {
   // Interview domain events from Interview Service
   INTERVIEW_EVENTS: 'interview-events',
   INTERVIEW_EVENTS_DLQ: 'interview-events-dlq',
+  
+  // Analysis domain events from AI Analysis Service
+  ANALYSIS_EVENTS: 'analysis-events',
+  ANALYSIS_EVENTS_DLQ: 'analysis-events-dlq',
   
   // Analytics events
   USER_ANALYTICS: 'user-analytics',

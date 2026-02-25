@@ -735,6 +735,700 @@
         ]
       }
     },
+    "/api/invitations": {
+      "post": {
+        "description": "HR creates an interview invitation for a candidate. Template must be active (published). Cannot create duplicate invitations for same candidate+template combination.",
+        "operationId": "InvitationsController_create",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateInvitationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, duplicate invitation, or draft template"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Create invitation",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/start": {
+      "post": {
+        "description": "Candidate starts the interview. Sets status to \"in_progress\" and records startedAt timestamp. Can only be started by the invited candidate.",
+        "operationId": "InvitationsController_start",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Interview started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already started or invitation expired"
+          },
+          "403": {
+            "description": "Not the invited candidate"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Start interview",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/responses": {
+      "post": {
+        "description": "Candidate submits an answer to a question. Interview must be in \"in_progress\" status. Each question can only be answered once.",
+        "operationId": "InvitationsController_submitResponse",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitResponseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Response submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitResponseResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Interview not in progress or duplicate response to same question"
+          },
+          "403": {
+            "description": "Not the invited candidate"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Submit response",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/complete": {
+      "post": {
+        "description": "Candidate completes the interview. All questions must be answered before completion. Sets status to \"completed\" and records completedAt timestamp.",
+        "operationId": "InvitationsController_complete",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Interview completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Interview not in progress or not all questions answered"
+          },
+          "403": {
+            "description": "Not the invited candidate"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Complete interview",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/candidate": {
+      "get": {
+        "description": "Get paginated list of all invitations for the current authenticated candidate. Supports filtering by status.",
+        "operationId": "InvitationsController_listCandidateInvitations",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by invitation status",
+            "schema": {
+              "enum": [
+                "pending",
+                "in_progress",
+                "completed",
+                "expired"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "templateId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by template ID (HR endpoint only)",
+            "schema": {
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of candidate invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedInvitationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "List candidate invitations",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/hr": {
+      "get": {
+        "description": "Get paginated list of all invitations created by the current HR user. Supports filtering by status and template.",
+        "operationId": "InvitationsController_listHRInvitations",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by invitation status",
+            "schema": {
+              "enum": [
+                "pending",
+                "in_progress",
+                "completed",
+                "expired"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "templateId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by template UUID",
+            "schema": {
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of HR invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedInvitationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "List HR invitations",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}": {
+      "get": {
+        "description": "Get invitation details by ID. Only the invited candidate, the HR who created it, or an admin can view. Use includeTemplate=true to get full template with questions.",
+        "operationId": "InvitationsController_getOne",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeTemplate",
+            "required": false,
+            "in": "query",
+            "description": "Include full template with questions (for candidate taking interview)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized to view this invitation"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Get invitation",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/heartbeat": {
+      "post": {
+        "description": "Update last activity timestamp for non-pausable interviews (allowPause=false). Used to detect if candidate left the interview.",
+        "operationId": "InvitationsController_heartbeat",
+        "parameters": [
+          {
+            "name": "x-user-role",
+            "in": "header",
+            "description": "User role (admin, hr, candidate)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Current user UUID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "internal-token": []
+          }
+        ],
+        "summary": "Heartbeat",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
     "/metrics": {
       "get": {
         "operationId": "MetricsController_getMetrics",
@@ -1292,6 +1986,583 @@
             ]
           }
         }
+      },
+      "CreateInvitationDto": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "description": "Interview template ID (must be active/published)",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "candidateId": {
+            "type": "string",
+            "description": "Candidate user ID who will take the interview",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Deadline for completing the interview (ISO 8601 format)",
+            "example": "2025-01-15T23:59:59Z"
+          },
+          "allowPause": {
+            "type": "boolean",
+            "description": "Allow candidate to pause and resume the interview",
+            "default": true,
+            "example": true
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show countdown timer during interview",
+            "default": true,
+            "example": true
+          }
+        },
+        "required": [
+          "templateId",
+          "candidateId",
+          "companyName",
+          "expiresAt"
+        ]
+      },
+      "CreateInvitationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Created invitation UUID",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "SuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Operation success status",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "SubmitResponseDto": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string",
+            "description": "Question ID being answered",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
+          },
+          "questionIndex": {
+            "type": "number",
+            "description": "Question index (0-based)",
+            "example": 0,
+            "minimum": 0
+          },
+          "questionText": {
+            "type": "string",
+            "description": "Question text snapshot (for record keeping)",
+            "example": "What is your experience with React?"
+          },
+          "responseType": {
+            "type": "string",
+            "description": "Type of response being submitted",
+            "enum": [
+              "text",
+              "code",
+              "video"
+            ],
+            "example": "text"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Time spent on this question (seconds)",
+            "example": 60,
+            "minimum": 0
+          },
+          "textAnswer": {
+            "type": "string",
+            "description": "Text answer (required when responseType is \"text\")",
+            "example": "I have 5 years of experience with React..."
+          },
+          "codeAnswer": {
+            "type": "string",
+            "description": "Code answer (required when responseType is \"code\")",
+            "example": "function fibonacci(n) { return n <= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }"
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "Video URL (required when responseType is \"video\")",
+            "example": "https://storage.example.com/videos/response-abc123.webm"
+          }
+        },
+        "required": [
+          "questionId",
+          "questionIndex",
+          "questionText",
+          "responseType",
+          "duration"
+        ]
+      },
+      "SubmitResponseResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Created response UUID",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "CompleteInvitationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Reason for completing the interview",
+            "enum": [
+              "manual",
+              "auto_timeout"
+            ],
+            "default": "manual",
+            "example": "manual"
+          }
+        }
+      },
+      "InvitationProgressDto": {
+        "type": "object",
+        "properties": {
+          "answered": {
+            "type": "number",
+            "description": "Number of answered questions",
+            "example": 2
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of questions",
+            "example": 5
+          },
+          "percentage": {
+            "type": "number",
+            "description": "Progress percentage (0-100)",
+            "example": 40
+          }
+        },
+        "required": [
+          "answered",
+          "total",
+          "percentage"
+        ]
+      },
+      "InvitationListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Invitation UUID",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Template ID",
+            "format": "uuid"
+          },
+          "templateTitle": {
+            "type": "string",
+            "description": "Interview template title",
+            "example": "Frontend Developer Interview"
+          },
+          "candidateId": {
+            "type": "string",
+            "description": "Candidate user ID",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string",
+            "description": "Candidate full name",
+            "example": "John Doe"
+          },
+          "candidateEmail": {
+            "type": "string",
+            "description": "Candidate email",
+            "example": "john.doe@example.com"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "status": {
+            "type": "string",
+            "description": "Current invitation status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "expired"
+            ],
+            "example": "pending"
+          },
+          "allowPause": {
+            "type": "boolean",
+            "description": "Can candidate pause the interview?",
+            "example": true
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Deadline for completing the interview"
+          },
+          "progress": {
+            "description": "Interview progress",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvitationProgressDto"
+              }
+            ]
+          },
+          "analysisStatus": {
+            "type": "string",
+            "description": "AI analysis status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "analysisScore": {
+            "type": "number",
+            "description": "AI analysis score (0-100)",
+            "example": 85
+          },
+          "analysisRecommendation": {
+            "type": "string",
+            "description": "AI recommendation",
+            "enum": [
+              "strongly_recommend",
+              "recommend",
+              "consider",
+              "not_recommend"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When invitation was created"
+          }
+        },
+        "required": [
+          "id",
+          "templateId",
+          "templateTitle",
+          "candidateId",
+          "companyName",
+          "status",
+          "allowPause",
+          "expiresAt",
+          "progress",
+          "createdAt"
+        ]
+      },
+      "PaginatedInvitationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "List of invitations",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvitationListItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of matching invitations",
+            "example": 25
+          },
+          "page": {
+            "type": "number",
+            "description": "Current page number (1-based)",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "description": "Items per page",
+            "example": 10
+          },
+          "totalPages": {
+            "type": "number",
+            "description": "Total number of pages",
+            "example": 3
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "ResponseItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Response UUID",
+            "format": "uuid"
+          },
+          "questionId": {
+            "type": "string",
+            "description": "Question ID",
+            "format": "uuid"
+          },
+          "questionIndex": {
+            "type": "number",
+            "description": "Question index (0-based)",
+            "example": 0
+          },
+          "questionText": {
+            "type": "string",
+            "description": "Question text snapshot at submission time",
+            "example": "What is your experience?"
+          },
+          "responseType": {
+            "type": "string",
+            "description": "Response type",
+            "enum": [
+              "text",
+              "code",
+              "video"
+            ],
+            "example": "text"
+          },
+          "textAnswer": {
+            "type": "string",
+            "description": "Text answer (for text type)",
+            "example": "I have 5 years of experience."
+          },
+          "codeAnswer": {
+            "type": "string",
+            "description": "Code answer (for code type)",
+            "example": "function hello() { return \"world\"; }"
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "Video URL (for video type)",
+            "example": "https://storage.example.com/videos/abc123.webm"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Time spent on this question (seconds)",
+            "example": 60
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Submission timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "questionId",
+          "questionIndex",
+          "questionText",
+          "responseType",
+          "duration",
+          "submittedAt"
+        ]
+      },
+      "AnalysisResultDto": {
+        "type": "object",
+        "properties": {
+          "analysisId": {
+            "type": "string",
+            "description": "Analysis UUID from AI Analysis Service",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "description": "Analysis processing status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "score": {
+            "type": "number",
+            "description": "Overall interview score (0-100)",
+            "example": 85
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "Hiring recommendation",
+            "enum": [
+              "strongly_recommend",
+              "recommend",
+              "consider",
+              "not_recommend"
+            ],
+            "example": "recommend"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When analysis was completed"
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if analysis failed"
+          }
+        }
+      },
+      "InvitationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Invitation UUID",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Interview template ID",
+            "format": "uuid"
+          },
+          "candidateId": {
+            "type": "string",
+            "description": "Candidate user ID",
+            "format": "uuid"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "invitedBy": {
+            "type": "string",
+            "description": "HR user ID who created this invitation",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "description": "Current invitation status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "expired"
+            ],
+            "example": "pending"
+          },
+          "allowPause": {
+            "type": "boolean",
+            "description": "Can candidate pause and resume the interview?",
+            "example": true
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show countdown timer during interview?",
+            "example": true
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Deadline for completing the interview"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When candidate started the interview"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When interview was completed"
+          },
+          "completedReason": {
+            "type": "string",
+            "description": "Reason for completion",
+            "enum": [
+              "manual",
+              "auto_timeout",
+              "expired"
+            ],
+            "example": "manual"
+          },
+          "progress": {
+            "description": "Interview progress information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvitationProgressDto"
+              }
+            ]
+          },
+          "responses": {
+            "description": "List of submitted responses",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseItemDto"
+            }
+          },
+          "analysis": {
+            "description": "AI analysis results (available after completion)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisResultDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When invitation was created"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "templateId",
+          "candidateId",
+          "companyName",
+          "invitedBy",
+          "status",
+          "allowPause",
+          "showTimer",
+          "expiresAt",
+          "progress",
+          "responses",
+          "createdAt",
+          "updatedAt"
+        ]
       }
     }
   }

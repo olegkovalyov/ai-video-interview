@@ -47,11 +47,6 @@ describe('ListCompaniesQuery Integration', () => {
         role: 'hr',
       });
 
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
-
       // Create 3 companies
       await commandBus.execute(new CreateCompanyCommand(
         'Tech Corp',
@@ -121,11 +116,6 @@ describe('ListCompaniesQuery Integration', () => {
         role: 'hr',
       });
 
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
-
       // Create companies
       await commandBus.execute(new CreateCompanyCommand(
         'Tech Corp 1',
@@ -182,11 +172,6 @@ describe('ListCompaniesQuery Integration', () => {
         role: 'hr',
       });
 
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
-
       // Create 5 companies
       for (let i = 1; i <= 5; i++) {
         await commandBus.execute(new CreateCompanyCommand(
@@ -220,11 +205,6 @@ describe('ListCompaniesQuery Integration', () => {
         role: 'hr',
       });
 
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
-
       // Act
       const query = new ListCompaniesQuery(1, 10, undefined, undefined, undefined, hrId, false);
       const result = await queryBus.execute(query);
@@ -242,11 +222,6 @@ describe('ListCompaniesQuery Integration', () => {
         lastName: 'Manager',
         role: 'hr',
       });
-
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
 
       await commandBus.execute(new CreateCompanyCommand(
         'Tech Solutions Inc',

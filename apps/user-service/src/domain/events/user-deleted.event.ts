@@ -1,8 +1,10 @@
+import type { IDomainEvent } from './domain-event.interface';
+
 /**
  * Domain Event: User Deleted
  * Published when a user is soft-deleted
  */
-export class UserDeletedEvent {
+export class UserDeletedEvent implements IDomainEvent {
   constructor(
     public readonly userId: string,
     public readonly deletedBy: string,

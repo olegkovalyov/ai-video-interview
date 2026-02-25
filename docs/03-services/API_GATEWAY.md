@@ -1,679 +1,601 @@
-# API Gateway Service
+# API Gateway
 
-**Статус:** ✅ Реализован  
-**Порт:** 3001  
-**Технологии:** NestJS, Passport JWT, Winston  
-**Версия:** 1.0
-
----
-
-## 🎯 Назначение
-
-API Gateway — единая точка входа для всех клиентских запросов. Обрабатывает routing, authentication, rate limiting и логирование.
+**Status:** ✅ Implemented  
+**Port:** 8001  
+**Technology Stack:** NestJS, Keycloak, Winston, Prometheus, OpenTelemetry  
+**Database:** None (stateless)
 
 ---
 
-## ✅ Ответственность
+## Overview
 
-### Что входит:
-- **HTTP Routing** к микросервисам (proxy pattern)
-- **JWT Token Validation** (Keycloak integration)
-- **Rate Limiting** и throttling
-- **Request/Response Logging** (structured logs)
-- **CORS handling**
-- **Health checks** aggregation
-- **Metrics export** (Prometheus)
-- **Distributed tracing** (Jaeger)
+API Gateway is the single entry point for all external requests to the AI Video Interview platform. It handles authentication, request routing, metrics collection, and distributed tracing.
 
-### Что НЕ входит:
-- ❌ Бизнес-логика (это зона микросервисов)
-- ❌ Хранение данных (stateless)
-- ❌ Token generation (это Keycloak)
-- ❌ User management (User Service)
+**Key Responsibilities:**
+- OAuth2/OIDC authentication via Keycloak
+- JWT token validation and refresh
+- Request routing to microservices
+- Circuit breaker pattern for resilience
+- Prometheus metrics exposure
+- OpenTelemetry distributed tracing
+- Structured logging with Loki integration
 
 ---
 
-## 🏗️ Архитектура
+## Architecture
 
 ```
-┌──────────────┐
-│   Client     │
-│ (Browser/App)│
-└──────┬───────┘
-       │ HTTP/HTTPS
-       ▼
-┌─────────────────────────────────────┐
-│        API GATEWAY (3001)           │
-│                                     │
-│  ┌─────────────────────────────┐  │
-│  │   JWT Auth Guard            │  │
-│  │   (Passport JWT Strategy)   │  │
-│  └─────────────┬───────────────┘  │
-│                │ validated         │
-│  ┌─────────────▼───────────────┐  │
-│  │   Controllers               │  │
-│  │   - AuthController          │  │
-│  │   - UsersController         │  │
-│  │   - InterviewsController    │  │
-│  └─────────────┬───────────────┘  │
-│                │                   │
-│  ┌─────────────▼───────────────┐  │
-│  │   Service Proxies           │  │
-│  │   - UserServiceProxy        │  │
-│  │   - InterviewServiceProxy   │  │
-│  └─────────────┬───────────────┘  │
-│                │                   │
-└────────────────┼───────────────────┘
-                 │ Internal HTTP
-    ┌────────────┼────────────┐
-    │            │            │
-    ▼            ▼            ▼
-┌───────┐  ┌──────────┐  ┌────────┐
-│ User  │  │Interview │  │ Media  │
-│Service│  │ Service  │  │Service │
-└───────┘  └──────────┘  └────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                            API GATEWAY (8001)                                   │
+│                                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                         Core Infrastructure                              │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │   │
+│  │  │   Auth   │  │ Logging  │  │ Metrics  │  │ Tracing  │  │ Circuit  │  │   │
+│  │  │(Keycloak)│  │ (Winston)│  │(Promethe)│  │ (OTel)   │  │ Breaker  │  │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                         Service Modules                                  │   │
+│  │                                                                          │   │
+│  │  ┌─────────────────────────┐    ┌─────────────────────────┐            │   │
+│  │  │    User Service Module  │    │ Interview Service Module │            │   │
+│  │  │  ┌───────────────────┐  │    │  ┌───────────────────┐   │            │   │
+│  │  │  │ Users Controller  │  │    │  │Templates Controller│   │            │   │
+│  │  │  │ HR Controller     │  │    │  │Invitations Control.│   │            │   │
+│  │  │  │ Skills Controller │  │    │  └───────────────────┘   │            │   │
+│  │  │  │ Admin Controllers │  │    │                          │            │   │
+│  │  │  └───────────────────┘  │    │                          │            │   │
+│  │  └─────────────────────────┘    └─────────────────────────┘            │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                            Kafka Module                                  │   │
+│  │                    (Event Publishing to Services)                        │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+    User Service       Interview Service      Keycloak
+      (3005)              (3007)               (8090)
 ```
 
 ---
 
-## 📡 API Endpoints
+## Project Structure
 
-### Authentication (`/auth`)
-
-#### `POST /auth/login`
-Инициализация OAuth login flow
-```typescript
-Request: {
-  redirectUri?: string  // Optional, default from env
-}
-
-Response: {
-  authUrl: string      // Keycloak auth URL
-  state: string        // CSRF token
-}
 ```
-
-#### `GET /auth/callback`
-OAuth callback handler
-```typescript
-Query: {
-  code: string
-  state: string
-}
-
-Response: {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
-  tokenType: "Bearer"
-}
-```
-
-#### `POST /auth/refresh`
-Refresh access token
-```typescript
-Request: {
-  refreshToken: string
-}
-
-Response: {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
-}
-```
-
-#### `POST /auth/logout`
-Logout и revoke tokens
-```typescript
-Headers: {
-  Authorization: "Bearer <token>"
-}
-
-Response: {
-  message: "Logged out successfully"
-  endSessionUrl?: string  // Keycloak end session URL
-}
-```
-
----
-
-### Users (`/users`)
-
-#### `GET /users/me`
-Получить профиль текущего пользователя
-```typescript
-Headers: {
-  Authorization: "Bearer <token>"
-}
-
-Response: {
-  id: string
-  email: string
-  profile: {
-    fullName: string
-    avatarUrl?: string
-    companyName?: string
-  }
-  stats: {
-    interviewsCreated: number
-    storageUsed: number
-  }
-}
-```
-
-#### `PUT /users/me`
-Обновить профиль
-```typescript
-Headers: {
-  Authorization: "Bearer <token>"
-}
-
-Request: {
-  profile: {
-    fullName?: string
-    companyName?: string
-    phone?: string
-  }
-}
-
-Response: User
+src/
+├── core/
+│   ├── auth/
+│   │   ├── controllers/
+│   │   │   └── auth.controller.ts      # /auth/* endpoints
+│   │   ├── guards/
+│   │   │   ├── jwt-auth.guard.ts       # JWT validation
+│   │   │   ├── jwt-refresh.guard.ts    # Refresh token validation
+│   │   │   ├── roles.guard.ts          # RBAC enforcement
+│   │   │   └── roles.decorator.ts      # @Roles() decorator
+│   │   ├── interceptors/
+│   │   │   └── auth-error.interceptor.ts
+│   │   ├── sagas/
+│   │   │   └── registration.saga.ts    # Ensure user exists flow
+│   │   ├── services/
+│   │   │   ├── auth-orchestrator.service.ts  # Main auth orchestration
+│   │   │   ├── session-manager.service.ts    # Session management
+│   │   │   ├── auth-event-publisher.service.ts
+│   │   │   ├── token.service.ts              # JWT operations
+│   │   │   ├── cookie.service.ts             # Cookie management
+│   │   │   ├── oidc.service.ts               # OIDC discovery
+│   │   │   ├── keycloak.service.ts           # Keycloak API
+│   │   │   └── redirect-uri.helper.ts
+│   │   └── auth.module.ts
+│   │
+│   ├── circuit-breaker/
+│   │   ├── circuit-breaker.service.ts
+│   │   ├── circuit-breaker.interceptor.ts
+│   │   └── circuit-breaker.module.ts
+│   │
+│   ├── health/
+│   │   ├── health.controller.ts        # /health endpoints
+│   │   └── health.module.ts
+│   │
+│   ├── logging/
+│   │   ├── logger.service.ts           # Winston + Loki
+│   │   └── logging.module.ts
+│   │
+│   ├── metrics/
+│   │   ├── metrics.service.ts          # Prometheus client
+│   │   ├── metrics.controller.ts       # /metrics endpoint
+│   │   ├── metrics.interceptor.ts
+│   │   └── metrics.module.ts
+│   │
+│   └── tracing/
+│       ├── tracing.ts                  # OpenTelemetry setup
+│       └── tracing.module.ts
+│
+├── kafka/
+│   ├── producers/
+│   │   └── user-command.producer.ts
+│   └── kafka.module.ts
+│
+├── modules/
+│   ├── user-service/
+│   │   ├── admin/
+│   │   │   ├── controllers/
+│   │   │   │   ├── admin-users.controller.ts
+│   │   │   │   ├── admin-actions.controller.ts
+│   │   │   │   ├── admin-roles.controller.ts
+│   │   │   │   └── admin-skills.controller.ts
+│   │   │   ├── keycloak/
+│   │   │   │   └── keycloak-admin.service.ts
+│   │   │   ├── user-orchestration.saga.ts
+│   │   │   └── admin.module.ts
+│   │   ├── controllers/
+│   │   │   ├── users.controller.ts
+│   │   │   ├── hr.controller.ts
+│   │   │   ├── hr-companies.controller.ts
+│   │   │   ├── skills.controller.ts
+│   │   │   └── user-skills.controller.ts
+│   │   ├── clients/
+│   │   │   └── user-service.client.ts
+│   │   └── user-service.module.ts
+│   │
+│   └── interview-service/
+│       ├── controllers/
+│       │   ├── templates.controller.ts
+│       │   └── invitations.controller.ts
+│       ├── clients/
+│       │   └── interview-service.client.ts
+│       └── interview-service.module.ts
+│
+├── app.module.ts
+└── main.ts
 ```
 
 ---
 
-### Interviews (`/interviews`)
+## Authentication Flow
 
-> ⚠️ В разработке - базовый CRUD реализован
+### Login Flow
 
-#### `GET /interviews`
-Список интервью текущего пользователя
-
-#### `POST /interviews`
-Создать интервью
-
-#### `GET /interviews/:id`
-Получить интервью
-
-#### `PUT /interviews/:id`
-Обновить интервью
-
-#### `DELETE /interviews/:id`
-Удалить интервью
-
----
-
-## 🔐 Authentication Flow
-
-### 1. Login Flow
 ```
-User → Frontend
-        │
-        ▼ POST /auth/login
-     API Gateway
-        │
-        ▼ Return authUrl
-     Frontend
-        │
-        ▼ Redirect
-    Keycloak Login Page
-        │ User enters credentials
-        ▼ Callback with code
-     API Gateway (/auth/callback)
-        │ Exchange code for tokens
-        ▼ POST /token
-    Keycloak
-        │
-        ▼ Return tokens
-     API Gateway
-        │
-        ▼ Set cookies + return
-     Frontend (logged in)
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           OAuth2 Login Flow                                     │
+│                                                                                 │
+│  1. Frontend: GET /auth/login                                                  │
+│     │                                                                          │
+│     ▼                                                                          │
+│  2. API Gateway generates auth URL with:                                       │
+│     - client_id, redirect_uri, scope, state, nonce                            │
+│     │                                                                          │
+│     ▼                                                                          │
+│  3. User redirected to Keycloak login page                                    │
+│     │                                                                          │
+│     ▼                                                                          │
+│  4. User authenticates with Keycloak                                          │
+│     │                                                                          │
+│     ▼                                                                          │
+│  5. Keycloak redirects to /auth/callback?code=xxx&state=yyy                   │
+│     │                                                                          │
+│     ▼                                                                          │
+│  6. API Gateway exchanges code for tokens                                     │
+│     │                                                                          │
+│     ▼                                                                          │
+│  7. RegistrationSaga: Ensure user exists in User Service                      │
+│     - GET /internal/users/by-external-auth/{keycloakId}                       │
+│     - If not found: Publish CREATE_USER command to Kafka                      │
+│     │                                                                          │
+│     ▼                                                                          │
+│  8. Set JWT tokens in HTTP-only cookies                                       │
+│     │                                                                          │
+│     ▼                                                                          │
+│  9. Redirect to frontend with success                                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Request Flow with JWT
-```
-User → Frontend
-        │ API call with token
-        ▼ GET /users/me
-     API Gateway
-        │
-        ▼ JwtAuthGuard validates
-    Passport JWT
-        │ Verify signature
-        │ Check expiration
-        │ Extract user ID
-        ▼ Success
-     Controller
-        │
-        ▼ Proxy to service
-    User Service
-        │
-        ▼ Return data
-     Frontend
-```
+### Token Refresh Flow
 
-### 3. Token Refresh Flow
 ```
-Frontend → Detects 401
-           │
-           ▼ POST /auth/refresh
-        API Gateway
-           │
-           ▼ Validate refresh token
-        Keycloak
-           │
-           ▼ Return new tokens
-        API Gateway
-           │
-           ▼ Update cookies
-        Frontend (retry original request)
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           Token Refresh Flow                                    │
+│                                                                                 │
+│  1. Frontend: POST /auth/refresh (with refresh_token cookie)                   │
+│     │                                                                          │
+│     ▼                                                                          │
+│  2. JwtRefreshGuard validates refresh token                                    │
+│     │                                                                          │
+│     ▼                                                                          │
+│  3. API Gateway requests new tokens from Keycloak                              │
+│     │                                                                          │
+│     ▼                                                                          │
+│  4. New tokens set in cookies                                                  │
+│     │                                                                          │
+│     ▼                                                                          │
+│  5. Return user info                                                           │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🗄️ Database
+## API Endpoints
 
-**Нет собственной базы данных** - API Gateway stateless.
+### Authentication (`/auth/*`)
 
-Использует:
-- **Redis** - для rate limiting counters (опционально)
-- **Keycloak PostgreSQL** - для хранения tokens (внешний сервис)
+| Method | Endpoint | Guard | Description |
+|--------|----------|-------|-------------|
+| `GET` | `/auth/login` | — | Initiate OAuth2 login |
+| `GET` | `/auth/callback` | — | OAuth2 callback handler |
+| `POST` | `/auth/refresh` | JwtRefreshGuard | Refresh access token |
+| `POST` | `/auth/logout` | JwtAuthGuard | Logout and clear tokens |
+| `GET` | `/auth/me` | JwtAuthGuard | Get current user info |
+
+### Users (`/api/users/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `GET` | `/api/users/me` | JwtAuth | Any | Get current user profile |
+| `PUT` | `/api/users/me` | JwtAuth | Any | Update current user |
+| `POST` | `/api/users/me/avatar` | JwtAuth | Any | Upload avatar |
+| `DELETE` | `/api/users/me/avatar` | JwtAuth | Any | Remove avatar |
+| `POST` | `/api/users/select-role` | JwtAuth | Any | Select HR/Candidate role |
+
+### HR (`/api/hr/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `GET` | `/api/hr/profile` | JwtAuth | hr | Get HR profile |
+| `PUT` | `/api/hr/profile` | JwtAuth | hr | Update HR profile |
+| `GET` | `/api/hr/companies` | JwtAuth | hr | List companies |
+| `POST` | `/api/hr/companies` | JwtAuth | hr | Create company |
+| `PUT` | `/api/hr/companies/:id` | JwtAuth | hr | Update company |
+| `DELETE` | `/api/hr/companies/:id` | JwtAuth | hr | Delete company |
+
+### Candidate (`/api/candidate/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `GET` | `/api/candidate/profile` | JwtAuth | candidate | Get candidate profile |
+| `PUT` | `/api/candidate/profile` | JwtAuth | candidate | Update candidate profile |
+| `GET` | `/api/candidate/skills` | JwtAuth | candidate | Get candidate skills |
+| `POST` | `/api/candidate/skills` | JwtAuth | candidate | Add skill |
+| `DELETE` | `/api/candidate/skills/:id` | JwtAuth | candidate | Remove skill |
+
+### Skills (`/api/skills/*`)
+
+| Method | Endpoint | Guard | Description |
+|--------|----------|-------|-------------|
+| `GET` | `/api/skills` | JwtAuth | List all skills (catalog) |
+| `GET` | `/api/skills/search` | JwtAuth | Search skills |
+
+### Admin - Users (`/api/admin/users/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `GET` | `/api/admin/users` | JwtAuth | admin | List all users (paginated) |
+| `GET` | `/api/admin/users/:id` | JwtAuth | admin | Get user by ID |
+| `POST` | `/api/admin/users` | JwtAuth | admin | Create user (Keycloak + DB) |
+| `PUT` | `/api/admin/users/:id` | JwtAuth | admin | Update user |
+| `DELETE` | `/api/admin/users/:id` | JwtAuth | admin | Delete user |
+
+### Admin - Actions (`/api/admin/users/:id/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `POST` | `/api/admin/users/:id/suspend` | JwtAuth | admin | Suspend user |
+| `POST` | `/api/admin/users/:id/activate` | JwtAuth | admin | Activate user |
+| `POST` | `/api/admin/users/:id/roles` | JwtAuth | admin | Assign role |
+| `DELETE` | `/api/admin/users/:id/roles/:roleId` | JwtAuth | admin | Remove role |
+
+### Admin - Skills (`/api/admin/skills/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `GET` | `/api/admin/skills` | JwtAuth | admin | List all skills |
+| `POST` | `/api/admin/skills` | JwtAuth | admin | Create skill |
+| `PUT` | `/api/admin/skills/:id` | JwtAuth | admin | Update skill |
+| `DELETE` | `/api/admin/skills/:id` | JwtAuth | admin | Delete skill |
+
+### Templates (`/api/templates/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `GET` | `/api/templates` | JwtAuth | hr, admin | List templates |
+| `GET` | `/api/templates/:id` | JwtAuth | hr, admin | Get template |
+| `POST` | `/api/templates` | JwtAuth | hr, admin | Create template |
+| `PUT` | `/api/templates/:id` | JwtAuth | hr, admin | Update template |
+| `DELETE` | `/api/templates/:id` | JwtAuth | hr, admin | Delete template |
+| `POST` | `/api/templates/:id/publish` | JwtAuth | hr, admin | Publish template |
+| `POST` | `/api/templates/:id/questions` | JwtAuth | hr, admin | Add question |
+| `PUT` | `/api/templates/:id/questions/:qId` | JwtAuth | hr, admin | Update question |
+| `DELETE` | `/api/templates/:id/questions/:qId` | JwtAuth | hr, admin | Remove question |
+| `PUT` | `/api/templates/:id/questions/reorder` | JwtAuth | hr, admin | Reorder questions |
+
+### Invitations (`/api/invitations/*`)
+
+| Method | Endpoint | Guard | Roles | Description |
+|--------|----------|-------|-------|-------------|
+| `GET` | `/api/invitations` | JwtAuth | hr | List HR's invitations |
+| `GET` | `/api/invitations/candidate` | JwtAuth | candidate | Candidate's invitations |
+| `GET` | `/api/invitations/:id` | JwtAuth | hr, candidate | Get invitation |
+| `POST` | `/api/invitations` | JwtAuth | hr | Create invitation |
+| `POST` | `/api/invitations/:id/start` | JwtAuth | candidate | Start interview |
+| `POST` | `/api/invitations/:id/responses` | JwtAuth | candidate | Submit response |
+| `POST` | `/api/invitations/:id/complete` | JwtAuth | candidate | Complete interview |
+
+### Health (`/health/*`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Basic health check |
+| `GET` | `/health/live` | Liveness probe |
+| `GET` | `/health/ready` | Readiness probe |
+
+### Metrics & Docs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/api/docs` | Swagger UI |
+| `GET` | `/api/docs-json` | OpenAPI JSON spec |
 
 ---
 
-## 📨 Events
+## Kafka Integration
 
-### Published Events:
+### Published Events
 
-#### `auth-events` topic
+| Topic | Event | Trigger |
+|-------|-------|---------|
+| `user-commands` | `CREATE_USER` | New user login (RegistrationSaga) |
+| `user-commands` | `UPDATE_USER` | User profile update |
+| `user-commands` | `DELETE_USER` | User deletion |
+| `user-commands` | `SUSPEND_USER` | User suspension |
+| `user-commands` | `ACTIVATE_USER` | User activation |
 
-API Gateway публикует authentication events через `AuthEventPublisher`:
+### Event Schema
 
-**user.authenticated**
-```typescript
+**CREATE_USER Command:**
+```json
 {
-  eventId: string,
-  eventType: "user.authenticated",
-  timestamp: string,
-  userId: string,
-  data: {
-    email: string,
-    sessionId: string,
-    authMethod: "oauth2" | "jwt_refresh",
-    firstName?: string,
-    lastName?: string
+  "type": "CREATE_USER",
+  "payload": {
+    "userId": "uuid (generated by API Gateway)",
+    "externalAuthId": "keycloak-user-id",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe"
+  },
+  "metadata": {
+    "timestamp": "2025-01-01T00:00:00Z",
+    "correlationId": "uuid",
+    "source": "api-gateway"
   }
 }
 ```
-Публикуется при:
-- Успешном login через OAuth (callback)
-- JWT token refresh (если есть userInfo)
-
-**user.logged_out**
-```typescript
-{
-  eventId: string,
-  eventType: "user.logged_out", 
-  timestamp: string,
-  userId: string,
-  data: {
-    sessionId: string,
-    logoutReason: "user_action" | "token_expired" | "admin_action"
-  }
-}
-```
-Публикуется при logout пользователя.
-
-**Важно:** Kafka errors не блокируют auth flow. Если Kafka недоступен, аутентификация продолжается.
-
-### Subscribed Events:
-Нет - API Gateway не слушает события.
-
-> API Gateway фокусируется на HTTP routing и публикует только auth events.
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
 ```bash
 # Application
-PORT=3001
+PORT=8001
 NODE_ENV=development
 
-# Keycloak OAuth
-KEYCLOAK_ISSUER_URL=http://localhost:8090/realms/ai-video-interview
-KEYCLOAK_CLIENT_ID=ai-video-interview-app
+# Keycloak
+KEYCLOAK_URL=http://localhost:8090
+KEYCLOAK_REALM=ai-interview
+KEYCLOAK_CLIENT_ID=ai-interview-api
 KEYCLOAK_CLIENT_SECRET=your-secret
-KEYCLOAK_REDIRECT_URI=http://localhost:3001/auth/callback
+KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
+KEYCLOAK_ADMIN_CLIENT_SECRET=admin-secret
 
-# JWT
-JWT_SECRET=your-jwt-secret
-JWT_AUDIENCE=ai-video-interview-app
+# Frontend
+NEXT_PUBLIC_WEB_ORIGIN=http://localhost:3000
+AUTH_CALLBACK_URL=http://localhost:8001/auth/callback
 
-# Services URLs (internal)
-USER_SERVICE_URL=http://localhost:3003
-INTERVIEW_SERVICE_URL=http://localhost:3004
-MEDIA_SERVICE_URL=http://localhost:3006
-
-# Frontend URL
-FRONTEND_URL=http://localhost:3000
+# Microservices
+USER_SERVICE_URL=http://localhost:3005
+INTERVIEW_SERVICE_URL=http://localhost:3007
 
 # Kafka
 KAFKA_BROKERS=localhost:9092
 KAFKA_CLIENT_ID=api-gateway
-# Note: API Gateway only publishes events, no consumer group needed
-
-# Logging
-LOG_LEVEL=debug
 
 # Observability
+LOG_LEVEL=debug
 LOKI_HOST=http://localhost:3100
-JAEGER_ENDPOINT=http://localhost:14268/api/traces
+JAEGER_ENDPOINT=http://localhost:4318/v1/traces
 ```
 
 ---
 
-## 📊 Metrics & Health
+## Guards & Decorators
 
-### Health Check Endpoint
+### JwtAuthGuard
+
+Validates access token from cookies or Authorization header.
+
+```typescript
+@UseGuards(JwtAuthGuard)
+@Get('protected')
+async protectedRoute() {}
 ```
-GET /health
 
-Response:
-{
-  status: "ok",
-  timestamp: "2025-10-06T10:00:00Z",
-  uptime: 12345,
-  services: {
-    userService: "healthy",
-    interviewService: "healthy",
-    keycloak: "healthy"
-  }
+### RolesGuard + @Roles()
+
+Enforces role-based access control.
+
+```typescript
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'hr')
+@Get('admin-only')
+async adminRoute() {}
+```
+
+### @CurrentUser()
+
+Extracts current user from request.
+
+```typescript
+@Get('me')
+async getMe(@CurrentUser() user: UserPayload) {
+  return user;
 }
 ```
 
-### Prometheus Metrics Endpoint
-```
-GET /metrics
+---
 
-# Metrics exposed:
-- http_request_duration_seconds (histogram)
-- http_requests_total (counter)
-- http_request_errors_total (counter)
-- jwt_validation_duration_seconds (histogram)
-- service_proxy_duration_seconds (histogram by service)
-- active_connections (gauge)
-```
+## Circuit Breaker
 
-### Key Metrics to Monitor:
-- **Request latency** (P50, P95, P99)
-- **Error rate** (4xx, 5xx)
-- **JWT validation errors**
-- **Service proxy errors** (downstream failures)
-- **Rate limit hits**
+Protects against downstream service failures.
+
+```typescript
+// Configuration
+{
+  failureThreshold: 5,      // Failures before opening
+  successThreshold: 3,      // Successes to close
+  timeout: 30000,           // Time before half-open (ms)
+}
+
+// States:
+// CLOSED → Normal operation
+// OPEN → All requests fail fast
+// HALF_OPEN → Test requests allowed
+```
 
 ---
 
-## 🚨 Error Handling
+## Metrics
+
+### Prometheus Metrics Exposed
+
+```
+# HTTP Requests
+http_requests_total{method, path, status}
+http_request_duration_seconds{method, path}
+
+# Authentication
+auth_login_total{status}
+auth_refresh_total{status}
+auth_logout_total
+
+# Circuit Breaker
+circuit_breaker_state{service}
+circuit_breaker_failures_total{service}
+
+# Kafka
+kafka_messages_published_total{topic}
+```
+
+---
+
+## Logging
+
+### Log Structure
+
+```json
+{
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "level": "info",
+  "service": "api-gateway",
+  "requestId": "uuid",
+  "userId": "uuid",
+  "action": "auth.login",
+  "message": "User logged in successfully",
+  "duration": 150,
+  "metadata": {}
+}
+```
+
+### Log Levels
+
+| Level | Use Case |
+|-------|----------|
+| `error` | Exceptions, failures |
+| `warn` | Degraded states, retries |
+| `info` | Business events, requests |
+| `debug` | Detailed debugging |
+
+---
+
+## Tracing
+
+OpenTelemetry distributed tracing with Jaeger.
+
+```
+Trace spans:
+├── HTTP Request (api-gateway)
+│   ├── Auth validation
+│   ├── HTTP call to user-service
+│   │   └── Database query
+│   └── Kafka publish
+```
+
+View traces at: http://localhost:16686
+
+---
+
+## Error Handling
 
 ### Standard Error Response
-```typescript
+
+```json
 {
-  statusCode: number
-  message: string
-  error?: string          // Error type
-  timestamp: string
-  path: string
-  traceId?: string        // Jaeger trace ID
+  "statusCode": 401,
+  "error": "Unauthorized",
+  "message": "Invalid or expired token",
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "path": "/api/users/me"
 }
 ```
 
 ### Error Codes
 
-| Status | Scenario | Message |
-|--------|----------|---------|
-| 401 | Token missing/invalid | "Unauthorized" |
-| 401 | Token expired | "Token expired" |
-| 403 | Insufficient permissions | "Forbidden" |
-| 404 | Route not found | "Not found" |
-| 429 | Rate limit exceeded | "Too many requests" |
-| 500 | Internal error | "Internal server error" |
-| 502 | Service unavailable | "Bad gateway" |
-| 504 | Service timeout | "Gateway timeout" |
+| Code | Description |
+|------|-------------|
+| 400 | Bad Request - Invalid input |
+| 401 | Unauthorized - Missing/invalid token |
+| 403 | Forbidden - Insufficient permissions |
+| 404 | Not Found - Resource doesn't exist |
+| 429 | Too Many Requests - Rate limited |
+| 500 | Internal Server Error |
+| 502 | Bad Gateway - Downstream service error |
+| 503 | Service Unavailable - Circuit open |
 
 ---
 
-## 🔒 Security
+## Development
 
-### Rate Limiting
-```typescript
-// Global rate limit: 100 requests per 15 minutes
-@UseGuards(ThrottlerGuard)
+### Running Locally
 
-// Per-endpoint overrides:
-@Throttle(5, 60)  // 5 requests per minute
-async sensitiveEndpoint() {}
+```bash
+# Start dependencies
+docker-compose up -d postgres redis kafka keycloak
+
+# Start API Gateway
+npm run dev --filter=api-gateway
+
+# View Swagger docs
+open http://localhost:8001/api/docs
 ```
 
-### CORS Configuration
-```typescript
-app.enableCors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true,  // Allow cookies
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-});
-```
+### Testing Auth Flow
 
-### JWT Validation
-```typescript
-// Validates:
-- Signature (using Keycloak public key)
-- Expiration (exp claim)
-- Audience (aud claim)
-- Issuer (iss claim)
+```bash
+# 1. Get login URL
+curl http://localhost:8001/auth/login
+
+# 2. Complete login in browser
+
+# 3. Check authenticated endpoint
+curl http://localhost:8001/api/users/me \
+  -H "Cookie: access_token=..."
 ```
 
 ---
 
-## 📝 Logging
-
-### Log Levels
-- **debug:** Request/response details, JWT validation
-- **info:** Successful requests, auth events
-- **warn:** Rate limit hits, retry attempts
-- **error:** Failed requests, service errors
-
-### Log Format (JSON)
-```json
-{
-  "timestamp": "2025-10-06T10:00:00.000Z",
-  "level": "info",
-  "service": "api-gateway",
-  "message": "HTTP: GET /users/me 200",
-  "method": "GET",
-  "url": "/users/me",
-  "statusCode": 200,
-  "duration": 45,
-  "userId": "123e4567-e89b-12d3-a456-426614174000",
-  "traceId": "abc123def456"
-}
-```
-
-### Structured Logging
-```typescript
-// Все логи идут в Loki через winston-loki transport
-this.logger.info('Auth: token_refresh_success', {
-  userId: user.id,
-  action: 'token_refresh',
-  traceId: this.traceService.getTraceId()
-});
-```
-
----
-
-## 🧪 Testing
-
-### Unit Tests
-```bash
-cd apps/api-gateway
-npm run test
-```
-
-### Integration Tests
-```bash
-npm run test:e2e
-```
-
-### Key Test Cases
-- ✅ JWT validation (valid/expired/invalid tokens)
-- ✅ OAuth flow (login, callback, refresh, logout)
-- ✅ Service proxy routing
-- ✅ Rate limiting
-- ✅ Error handling
-- ✅ Health checks
-
----
-
-## 🐛 Troubleshooting
-
-### Keycloak connection issues
-```bash
-# Check Keycloak is running
-curl http://localhost:8090/realms/ai-video-interview/.well-known/openid-configuration
-
-# Verify client credentials in Keycloak Admin Console
-```
-
-### JWT validation errors
-```bash
-# Check JWT secret matches
-# Check audience claim: aud: ["ai-video-interview-app"]
-# Verify token hasn't expired
-```
-
-### Service proxy timeouts
-```bash
-# Check downstream services are running
-docker-compose ps
-
-# Check internal URLs are correct
-echo $USER_SERVICE_URL
-```
-
-### Port already in use
-```bash
-npm run cleanup:ports
-# or
-lsof -ti:3001 | xargs kill -9
-```
-
----
-
-## 📂 Project Structure
-
-```
-apps/api-gateway/
-├── src/
-│   ├── main.ts                    # Bootstrap
-│   ├── app.module.ts              # Root module
-│   │
-│   ├── auth/                      # Authentication
-│   │   ├── auth.module.ts
-│   │   ├── auth.controller.ts     # Auth endpoints
-│   │   ├── guards/
-│   │   │   └── jwt-auth.guard.ts  # JWT validation
-│   │   ├── strategies/
-│   │   │   └── jwt.strategy.ts    # Passport JWT
-│   │   └── services/
-│   │       ├── auth-orchestrator.service.ts
-│   │       ├── session-manager.service.ts
-│   │       └── token.service.ts
-│   │
-│   ├── users/                     # User endpoints
-│   │   ├── users.controller.ts
-│   │   └── users.module.ts
-│   │
-│   ├── interviews/                # Interview endpoints
-│   │   ├── interviews.controller.ts
-│   │   └── interviews.module.ts
-│   │
-│   ├── proxies/                   # Service proxies
-│   │   ├── base/
-│   │   │   └── base-service-proxy.ts
-│   │   ├── user-service.proxy.ts
-│   │   └── interview-service.proxy.ts
-│   │
-│   ├── logger/                    # Logging
-│   │   ├── logger.module.ts
-│   │   └── logger.service.ts      # Winston + Loki
-│   │
-│   ├── metrics/                   # Observability
-│   │   ├── metrics.module.ts
-│   │   └── metrics.service.ts     # Prometheus
-│   │
-│   └── tracing/                   # Distributed tracing
-│       ├── tracing.module.ts
-│       └── tracing.service.ts     # Jaeger
-│
-├── test/
-│   └── e2e/
-│       ├── auth.e2e-spec.ts
-│       └── users.e2e-spec.ts
-│
-├── package.json
-├── tsconfig.json
-└── nest-cli.json
-```
-
----
-
-## 🚀 Deployment
-
-### Development
-```bash
-npm run dev
-```
-
-### Production Build
-```bash
-npm run build
-npm run start:prod
-```
-
-### Docker
-```bash
-docker build -t ai-interview/api-gateway:latest .
-docker run -p 3001:3001 --env-file .env ai-interview/api-gateway
-```
-
----
-
-## 🔗 Dependencies
-
-### Internal Services:
-- **User Service** (3003) - user profiles, stats
-- **Interview Service** (3004) - interviews, questions
-- **Media Service** (3006) - file uploads
-
-### External Services:
-- **Keycloak** (8090) - OAuth, JWT validation
-- **Kafka** (9092) - auth events publishing
-- **Loki** (3100) - log aggregation
-- **Jaeger** (14268) - distributed tracing
-- **Prometheus** (9090) - metrics scraping
-
----
-
-## 📚 Additional Resources
-
-- [Authentication Flow](../09-security/AUTHENTICATION_FLOW.md)
-- [API Conventions](../04-api/REST_CONVENTIONS.md)
-- [Observability Guide](../08-observability/OVERVIEW.md)
-
----
-
-**Последнее обновление:** 2025-10-06
+**Last Updated:** December 2024

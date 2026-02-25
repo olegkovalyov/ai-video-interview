@@ -76,7 +76,7 @@ export interface CandidateSearchResultReadModel {
   avatarUrl: string | null; // from users table
   experienceLevel: string | null; // from candidate_profiles table
   matchScore: number; // calculated score for skill-based search
-  skills: {
+  matchedSkills: {
     skillId: string;
     skillName: string;
     proficiencyLevel: string;

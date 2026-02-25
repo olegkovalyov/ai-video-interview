@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../../src/app.module';
+import { TestAppModule } from './test-app.module';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 import { TestInternalServiceGuard } from './test-auth.guard';
 import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
+import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 
 describe('Templates API (E2E)', () => {
   let app: INestApplication;
@@ -20,7 +21,7 @@ describe('Templates API (E2E)', () => {
     dataSource = await createE2EDataSource();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [TestAppModule],
     })
       .overrideProvider(DataSource)
       .useValue(dataSource) // Override with our test DataSource
@@ -30,7 +31,7 @@ describe('Templates API (E2E)', () => {
 
     app = moduleFixture.createNestApplication();
     
-    // Setup validation pipe like in main.ts
+    // Setup validation pipe and exception filter like in main.ts
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -38,6 +39,7 @@ describe('Templates API (E2E)', () => {
         transform: true,
       }),
     );
+    app.useGlobalFilters(app.get(DomainExceptionFilter));
 
     await app.init();
 
@@ -721,7 +723,7 @@ describe('Templates API (E2E)', () => {
         .put(`/api/templates/${templateId}/publish`)
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
-        .expect(500); // Domain error
+        .expect(400); // Domain error - template has no questions
     });
 
     it('should reject publishing other HR template', async () => {

@@ -3,6 +3,7 @@ import { KeycloakTokenService } from './keycloak-token.service';
 
 export interface CreateKeycloakUserDto {
   email: string;
+  username?: string;
   firstName: string;
   lastName: string;
   password?: string;
@@ -52,7 +53,7 @@ export class KeycloakUserService {
       const createUrl = `${this.keycloakUrl}/admin/realms/${this.realm}/users`;
 
       const keycloakUser = {
-        username: userData.email, // username = email
+        username: userData.username || userData.email, // username or fallback to email
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,

@@ -61,32 +61,39 @@ export class UserSkillsController {
    */
   @Get()
   @ApiOperation({
-    summary: 'Get my skills',
-    description: 'Returns current user skills grouped by category with proficiency levels and experience.',
+    summary: 'Get my skills with experience level',
+    description: 'Returns current user skills grouped by category with proficiency levels, experience, and overall experience level.',
   })
   @ApiResponse({
     status: 200,
     description: 'Skills retrieved successfully',
-    type: [CandidateSkillsByCategoryDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid JWT token' })
   async getMySkills(
     @CurrentUser() user: CurrentUserData,
-  ): Promise<CandidateSkillsByCategoryDto[]> {
-    this.loggerService.info('User: Getting my skills', {
+  ): Promise<{ experienceLevel: string | null; skills: CandidateSkillsByCategoryDto[] }> {
+    this.loggerService.info('User: Getting my skills with profile', {
       userId: user.userId,
     });
 
     try {
-      const skills = await this.userServiceClient.getCandidateSkills(user.userId);
+      // Parallel requests for skills and profile
+      const [skills, profile] = await Promise.all([
+        this.userServiceClient.getCandidateSkills(user.userId, user.userId),
+        this.userServiceClient.getCandidateProfile(user.userId),
+      ]);
 
-      this.loggerService.info('User: Skills retrieved', {
+      this.loggerService.info('User: Skills and profile retrieved', {
         userId: user.userId,
         categoriesCount: skills.length,
         totalSkills: skills.reduce((sum, cat) => sum + cat.skills.length, 0),
+        experienceLevel: profile.experienceLevel,
       });
 
-      return skills;
+      return {
+        experienceLevel: profile.experienceLevel,
+        skills,
+      };
     } catch (error) {
       this.loggerService.error('User: Failed to get skills', error, {
         userId: user.userId,

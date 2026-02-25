@@ -1,12 +1,15 @@
 export const dynamic = 'force-dynamic';
 import { ProfileNav } from '@/features/profile';
 import { ProfileWrapper } from '@/features/profile';
+import { getUserRoles } from '@/lib/auth/get-user-roles';
 
-export default function ProfileLayout({
+export default async function ProfileLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const userRoles = await getUserRoles();
+
   return (
     <ProfileWrapper>
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
@@ -23,7 +26,7 @@ export default function ProfileLayout({
 
           <div className="flex gap-6">
             {/* Vertical Sidebar */}
-            <ProfileNav />
+            <ProfileNav userRoles={userRoles} />
 
             {/* Content Area */}
             <div className="flex-1">

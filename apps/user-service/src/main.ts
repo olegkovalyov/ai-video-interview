@@ -1,8 +1,10 @@
+import './infrastructure/tracing/tracing'; // Must be first — initializes OpenTelemetry before NestJS
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { LoggerService } from './infrastructure/logger/logger.service';
+import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -21,12 +23,18 @@ async function bootstrap() {
   // - /internal/* (service-to-service)
   // - /health (monitoring)
 
+  // Domain exception filter (maps domain exceptions to HTTP statuses)
+  app.useGlobalFilters(new DomainExceptionFilter());
+
   // Validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
@@ -66,36 +74,17 @@ async function bootstrap() {
 
   await app.listen(port);
 
-  logger.info('✅ User Service successfully started', {
+  logger.info('User Service successfully started', {
     service: 'user-service',
     action: 'startup_complete',
     port,
     url: `http://localhost:${port}`,
-    docsUrl: `http://localhost:${port}/api/docs`
+    docsUrl: `http://localhost:${port}/api/docs`,
   });
-
-  console.log(`🚀 User Service running on http://localhost:${port}`);
-  console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
-
-  // Graceful shutdown handlers (from memory - no port blocking)
-  const gracefulShutdown = async (signal: string) => {
-    console.log(`\n⚠️ Received ${signal}, shutting down User Service gracefully...`);
-    try {
-      await app.close();
-      console.log('✅ User Service closed successfully');
-      process.exit(0);
-    } catch (error) {
-      console.error('❌ Error during shutdown:', error);
-      process.exit(1);
-    }
-  };
-
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // nodemon restart
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ Failed to start User Service:', error);
+  // Logger not yet available at this point — fallback to stderr
+  process.stderr.write(`Failed to start User Service: ${error}\n`);
   process.exit(1);
 });

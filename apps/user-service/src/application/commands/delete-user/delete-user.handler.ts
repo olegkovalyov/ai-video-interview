@@ -1,11 +1,11 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { DeleteUserCommand } from './delete-user.command';
-import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
-import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
-import { v4 as uuid } from 'uuid';
+import { USER_EVENT_TYPES } from '../../../domain/constants';
+import type { IOutboxService } from '../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
 
 /**
  * Delete User Command Handler
@@ -16,42 +16,45 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
     private readonly eventBus: EventBus,
-    private readonly outboxService: OutboxService,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
   ) {}
 
   async execute(command: DeleteUserCommand): Promise<void> {
-    // 1. Find user by ID (internal ID, not external auth ID)
+    // 1. Find user by ID
     const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
     }
 
-    // 2. Publish domain event BEFORE deletion (internal only)
+    // 2. Mark as deleted (in memory, emits domain event)
     user.delete(command.deletedBy);
-    user.getUncommittedEvents().forEach(event => {
-      this.eventBus.publish(event);
-    });
 
-    // 3. Publish integration event to Kafka BEFORE deletion (for other services)
-    await this.outboxService.saveEvent(
-      'user.deleted',
-      {
-        eventId: uuid(),
-        eventType: 'user.deleted',
-        timestamp: Date.now(),
-        version: '1.0',
-        source: 'user-service',
-        payload: {
+    // 3. Atomic: outbox save + hard delete in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      const eid = await this.outboxService.saveEvent(
+        USER_EVENT_TYPES.DELETED,
+        {
           userId: user.id,
           externalAuthId: user.externalAuthId,
           email: user.email.value,
           deletedAt: new Date().toISOString(),
         },
-      },
-      user.id,
-    );
+        user.id,
+        tx,
+      );
+      await this.userRepository.delete(user.id, tx);
+      return eid;
+    });
 
-    // 4. Hard delete from database (CASCADE will delete related records)
-    await this.userRepository.delete(user.id);
+    // 4. After commit: publish domain events (internal)
+    user.getUncommittedEvents().forEach(event => {
+      this.eventBus.publish(event);
+    });
+
+    // 5. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
   }
 }

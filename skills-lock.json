@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "skills": {
+    "building-with-llms": {
+      "source": "refoundai/lenny-skills",
+      "sourceType": "github",
+      "computedHash": "d77898b4af29428fb89777b83e994776cd3a44e4216c84e03251a1e7f2b0fc2b"
+    },
+    "kafka-engineer": {
+      "source": "404kidwiz/claude-supercode-skills",
+      "sourceType": "github",
+      "computedHash": "f002695e1a70214545a05c02e9c7803cc422556a1d0ef4ffc93cc5aa1079e394"
+    },
+    "nestjs-best-practices": {
+      "source": "kadajett/agent-nestjs-skills",
+      "sourceType": "github",
+      "computedHash": "1b6f82e889d19d305e38e35594de08eca0242321f353cafa4cf5e61dd3aa1a73"
+    },
+    "postgres": {
+      "source": "planetscale/database-skills",
+      "sourceType": "github",
+      "computedHash": "b4f561e91e066eba314e69309e03b9a624bf7467f55a6a3818df4874aeee608e"
+    },
+    "typeorm": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "computedHash": "a78bf5815e02755d36eeda49e3e2e87b6e4e161cd90c6cbfb29dc447c4084b99"
+    }
+  }
+}

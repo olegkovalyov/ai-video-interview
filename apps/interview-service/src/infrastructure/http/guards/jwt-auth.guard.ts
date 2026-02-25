@@ -1,23 +1,24 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import * as jose from 'jose';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { LoggerService } from '../../logger/logger.service';
 
 /**
- * JWT Auth Guard for User Service
+ * JWT Auth Guard for Interview Service
  * Validates JWT token and populates request.user
  * Skips validation for @Public() endpoints
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  private readonly logger = new Logger(JwtAuthGuard.name);
   private jwksGetter: ReturnType<typeof jose.createRemoteJWKSet> | null = null;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly reflector: Reflector,
+    private readonly logger: LoggerService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -62,7 +63,7 @@ export class JwtAuthGuard implements CanActivate {
       // Populate request.user with JWT payload
       request.user = payload;
 
-      this.logger.log(`🔓 [User Service] JWT verified - sub=${payload.sub}, email=${payload.email}`);
+      this.logger.debug(`JWT verified`, { userId: payload.sub as string, action: 'jwt_verify' });
 
       return true;
     } catch (error: any) {

@@ -1,21 +1,22 @@
 import { DataSource } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import {
   InterviewTemplateEntity,
   QuestionEntity,
+  InvitationEntity,
+  ResponseEntity,
 } from '../../src/infrastructure/persistence/entities';
 import { OutboxEntity } from '../../src/infrastructure/persistence/entities/outbox.entity';
-import { ApplicationModule } from '../../src/application/application.module';
+import { TestApplicationModule, TestLoggerModule } from './test-application.module';
 import { DatabaseModule } from '../../src/infrastructure/persistence/database.module';
 
 /**
  * Create PostgreSQL test database connection
  * Uses REAL MIGRATIONS for production-like testing
- * 
+ *
  * Strategy:
  * - beforeAll: DROP all tables + Run migrations
  * - afterEach: TRUNCATE tables (keep schema)
@@ -28,21 +29,21 @@ export async function createTestDataSource(): Promise<DataSource> {
     username: process.env.DATABASE_USER || 'postgres',
     password: process.env.DATABASE_PASSWORD || 'postgres',
     database: 'ai_video_interview_interview_test', // ← Test database
-    entities: [InterviewTemplateEntity, QuestionEntity, OutboxEntity],
+    entities: [InterviewTemplateEntity, QuestionEntity, InvitationEntity, ResponseEntity, OutboxEntity],
     migrations: ['src/infrastructure/persistence/migrations/*.ts'],
     synchronize: false, // NEVER use synchronize in tests
     logging: false,
   });
 
   await dataSource.initialize();
-  
+
   // DROP all tables + Create extensions + Run migrations
   await dropAllTables(dataSource);
   await createExtensions(dataSource);
   await dataSource.runMigrations();
-  
+
   console.log('✅ Test database initialized with migrations');
-  
+
   return dataSource;
 }
 
@@ -72,6 +73,7 @@ async function createExtensions(dataSource: DataSource): Promise<void> {
 
 /**
  * Setup test NestJS application with test database
+ * Uses TestApplicationModule (no Redis/Kafka/Bull dependencies)
  */
 export async function setupTestApp(
   dataSource: DataSource,
@@ -82,9 +84,9 @@ export async function setupTestApp(
         isGlobal: true,
         ignoreEnvFile: true, // Don't load .env in tests
       }),
-      CqrsModule,
-      DatabaseModule, // Import full DatabaseModule
-      ApplicationModule,
+      TestLoggerModule, // Global mock LoggerService (must be before DatabaseModule)
+      DatabaseModule, // Provides repositories + IUnitOfWork
+      TestApplicationModule, // Handlers + mock IOutboxService
     ],
   })
     // Override DataSource with our test instance
@@ -108,7 +110,9 @@ export async function cleanDatabase(dataSource: DataSource): Promise<void> {
   // CASCADE removes data from dependent tables
   // RESTART IDENTITY resets auto-increment counters
   await dataSource.query(`
-    TRUNCATE TABLE 
+    TRUNCATE TABLE
+      responses,
+      invitations,
       questions,
       interview_templates,
       outbox
@@ -172,6 +176,51 @@ export async function seedTemplate(
     });
     await questionRepo.save(question);
   }
-  
+
   return templateId;
+}
+
+/**
+ * Seed invitation test data helper
+ */
+export async function seedInvitation(
+  dataSource: DataSource,
+  data: {
+    id?: string;
+    templateId: string;
+    candidateId?: string;
+    companyName?: string;
+    invitedBy?: string;
+    status?: string;
+    allowPause?: boolean;
+    showTimer?: boolean;
+    expiresAt?: Date;
+    totalQuestions?: number;
+  },
+): Promise<string> {
+  const invitationRepo = dataSource.getRepository(InvitationEntity);
+
+  const invitationId = data.id || uuidv4();
+  const candidateId = data.candidateId || uuidv4();
+  const companyName = data.companyName || 'Test Company';
+  const invitedBy = data.invitedBy || uuidv4();
+
+  const invitation = invitationRepo.create({
+    id: invitationId,
+    templateId: data.templateId,
+    candidateId,
+    companyName,
+    invitedBy,
+    status: data.status || 'pending',
+    allowPause: data.allowPause ?? true,
+    showTimer: data.showTimer ?? true,
+    expiresAt: data.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    totalQuestions: data.totalQuestions || 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  await invitationRepo.save(invitation);
+
+  return invitationId;
 }

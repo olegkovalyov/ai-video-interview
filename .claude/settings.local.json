@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm run test*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run build*)",
+      "Bash(npm run check-types*)",
+      "Bash(npm run format*)",
+      "Bash(npm run dev*)",
+      "Bash(npm run migration:show*)",
+      "Bash(npm run migration:run*)",
+      "Bash(npm run generate:types*)",
+      "Bash(npx turbo *)",
+      "Bash(npx jest *)",
+      "Bash(npx tsc *)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose logs*)",
+      "Bash(docker ps*)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(cat *)",
+      "mcp__postgres-user__*",
+      "mcp__postgres-interview__*",
+      "mcp__postgres-analysis__*",
+      "mcp__context7__*",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "WebFetch(domain:skills.sh)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(echo === DOMAIN EVENTS ===:*)",
+      "Bash(echo EXIT CODE: $?:*)",
+      "Bash(npx tsc:*)",
+      "Bash(cd /Users/oleg/www/ai-video-interview && npm dedupe rxjs 2>&1)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)*",
+      "Bash(docker compose down*)",
+      "Bash(npm run infra:reset*)",
+      "Bash(npm run kafka:reset*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "postgres-user",
+    "postgres-interview",
+    "postgres-analysis",
+    "context7"
+  ],
+  "outputStyle": "Explanatory"
+}

@@ -1,11 +1,12 @@
 import { InterviewTemplate } from '../aggregates/interview-template.aggregate';
 import { TemplateStatus } from '../value-objects/template-status.vo';
+import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 export interface IInterviewTemplateRepository {
   /**
    * Save interview template (create or update)
    */
-  save(template: InterviewTemplate): Promise<void>;
+  save(template: InterviewTemplate, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Find template by ID
@@ -45,7 +46,7 @@ export interface IInterviewTemplateRepository {
   /**
    * Delete template (soft delete - archive)
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Check if template exists
@@ -66,5 +67,5 @@ export interface IInterviewTemplateRepository {
    * Reorder questions in template (batch update)
    * Uses single SQL query with CASE WHEN for performance
    */
-  reorderQuestions(templateId: string, questionIds: string[]): Promise<void>;
+  reorderQuestions(templateId: string, questionIds: string[], tx?: ITransactionContext): Promise<void>;
 }

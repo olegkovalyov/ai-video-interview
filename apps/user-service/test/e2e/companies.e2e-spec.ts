@@ -4,7 +4,6 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
-import { OutboxService } from '../../src/infrastructure/messaging/outbox/outbox.service';
 import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 import { TestInternalServiceGuard } from './test-auth.guard';
 import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
@@ -34,7 +33,7 @@ describe('Companies API (E2E)', () => {
         disconnect: jest.fn(),
         publishEvent: jest.fn(),
       })
-      .overrideProvider(OutboxService)
+      .overrideProvider('IOutboxService')
       .useValue(mockOutboxService)
       .overrideProvider('IStorageService')
       .useValue(mockStorageService)
@@ -65,12 +64,6 @@ describe('Companies API (E2E)', () => {
       INSERT INTO users (id, external_auth_id, email, first_name, last_name, role, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
     `, [hrUserId, uuidv4(), hrEmail, 'HR', 'User', 'hr', 'active']);
-
-    // Create HR profile (without company_name and position - they were removed in AddSkillsAndCompanies migration)
-    await dataSource.query(`
-      INSERT INTO hr_profiles (user_id)
-      VALUES ($1)
-    `, [hrUserId]);
   });
 
   beforeEach(() => {
@@ -78,7 +71,7 @@ describe('Companies API (E2E)', () => {
   });
 
   afterEach(async () => {
-    // Clean only companies and user_companies, keep users and hr_profiles
+    // Clean only companies and user_companies, keep users
     await dataSource.query(`
       TRUNCATE TABLE user_companies, companies RESTART IDENTITY CASCADE
     `);

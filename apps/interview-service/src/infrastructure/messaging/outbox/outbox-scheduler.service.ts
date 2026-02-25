@@ -5,15 +5,21 @@ import { Repository, LessThan, MoreThan } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
+import {
+  BULL_QUEUE,
+  BULL_JOB,
+  OUTBOX_STATUS,
+  OUTBOX_CONFIG,
+} from '../../constants';
+import { LoggerService } from '../../logger/logger.service';
 
 /**
  * OUTBOX Scheduler Service
- * 
+ *
  * Polls outbox table for:
  * 1. Pending events that need to be published
  * 2. "Stuck" publishing events (timeout)
- * 
- * This ensures all domain events are eventually published to Kafka
+ * 3. Cleanup of old published events
  */
 @Injectable()
 export class OutboxSchedulerService {
@@ -22,7 +28,8 @@ export class OutboxSchedulerService {
   constructor(
     @InjectRepository(OutboxEntity)
     private readonly outboxRepository: Repository<OutboxEntity>,
-    @InjectQueue('outbox-publisher') private readonly outboxQueue: Queue,
+    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER) private readonly outboxQueue: Queue,
+    private readonly logger: LoggerService,
   ) {}
 
   /**
@@ -30,35 +37,29 @@ export class OutboxSchedulerService {
    */
   @Cron(CronExpression.EVERY_5_SECONDS)
   async pollPendingEvents() {
-    if (this.isPolling) {
-      console.log('⏭️  OUTBOX SCHEDULER: Already polling, skipping');
-      return;
-    }
+    if (this.isPolling) return;
 
     this.isPolling = true;
 
     try {
-      // Find pending events (not older than 5 minutes)
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const threshold = new Date(Date.now() - OUTBOX_CONFIG.STUCK_THRESHOLD_MS);
 
       const pendingEvents = await this.outboxRepository.find({
         where: {
-          status: 'pending',
-          createdAt: MoreThan(fiveMinutesAgo),
+          status: OUTBOX_STATUS.PENDING,
+          createdAt: MoreThan(threshold),
         },
-        take: 100,
-        order: {
-          createdAt: 'ASC',
-        },
+        take: OUTBOX_CONFIG.PENDING_BATCH_SIZE,
+        order: { createdAt: 'ASC' },
       });
 
       if (pendingEvents.length > 0) {
-        console.log(`🔍 OUTBOX SCHEDULER: Found ${pendingEvents.length} pending events`);
+        this.logger.info(`Found ${pendingEvents.length} pending outbox events`);
 
         for (const event of pendingEvents) {
           try {
             await this.outboxQueue.add(
-              'publish-outbox-event',
+              BULL_JOB.PUBLISH_OUTBOX_EVENT,
               { eventId: event.eventId },
               {
                 jobId: event.eventId,
@@ -66,19 +67,16 @@ export class OutboxSchedulerService {
                 removeOnFail: false,
               },
             );
-
-            console.log(`📤 OUTBOX SCHEDULER: Queued ${event.eventId}`);
           } catch (error) {
-            // Job already exists - that's OK
             if (error.message?.includes('job already exists')) {
               continue;
             }
-            console.error(`❌ OUTBOX SCHEDULER: Failed to queue ${event.eventId}:`, error);
+            this.logger.error(`Failed to queue event ${event.eventId}: ${error.message}`);
           }
         }
       }
     } catch (error) {
-      console.error('❌ OUTBOX SCHEDULER: Polling failed:', error);
+      this.logger.error(`Outbox polling failed: ${error.message}`, error.stack);
     } finally {
       this.isPolling = false;
     }
@@ -86,61 +84,56 @@ export class OutboxSchedulerService {
 
   /**
    * Poll for stuck "publishing" events every minute
-   * Events stuck in "publishing" for > 5 minutes will be retried
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async pollStuckEvents() {
     try {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const threshold = new Date(Date.now() - OUTBOX_CONFIG.STUCK_THRESHOLD_MS);
 
       const stuckEvents = await this.outboxRepository.find({
         where: {
-          status: 'publishing',
-          createdAt: LessThan(fiveMinutesAgo), // publishing for > 5 minutes
+          status: OUTBOX_STATUS.PUBLISHING,
+          createdAt: LessThan(threshold),
         },
-        take: 50,
+        take: OUTBOX_CONFIG.STUCK_BATCH_SIZE,
       });
 
       if (stuckEvents.length > 0) {
-        console.log(`⚠️  OUTBOX SCHEDULER: Found ${stuckEvents.length} stuck events`);
+        this.logger.warn(`Found ${stuckEvents.length} stuck outbox events, resetting to pending`);
 
         for (const event of stuckEvents) {
-          // Reset to pending for retry
-          event.status = 'pending';
+          event.status = OUTBOX_STATUS.PENDING;
           event.retryCount += 1;
           await this.outboxRepository.save(event);
-
-          console.log(`🔄 OUTBOX SCHEDULER: Reset stuck event ${event.eventId} to pending`);
         }
       }
     } catch (error) {
-      console.error('❌ OUTBOX SCHEDULER: Failed to process stuck events:', error);
+      this.logger.error(`Stuck event recovery failed: ${error.message}`, error.stack);
     }
   }
 
   /**
    * Cleanup old published events once per hour
-   * Keeps outbox table clean
    */
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupOldEvents() {
     try {
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const cutoff = new Date(Date.now() - OUTBOX_CONFIG.CLEANUP_RETENTION_MS);
 
       const result = await this.outboxRepository
         .createQueryBuilder()
         .delete()
-        .where('status = :status', { status: 'published' })
-        .andWhere('published_at < :date', { date: oneDayAgo })
+        .where('status = :status', { status: OUTBOX_STATUS.PUBLISHED })
+        .andWhere('published_at < :date', { date: cutoff })
         .execute();
 
       const deleted = result.affected || 0;
 
       if (deleted > 0) {
-        console.log(`🧹 OUTBOX SCHEDULER: Cleaned up ${deleted} old events`);
+        this.logger.info(`Cleaned up ${deleted} old published outbox events`);
       }
     } catch (error) {
-      console.error('❌ OUTBOX SCHEDULER: Cleanup failed:', error);
+      this.logger.error(`Outbox cleanup failed: ${error.message}`, error.stack);
     }
   }
 }

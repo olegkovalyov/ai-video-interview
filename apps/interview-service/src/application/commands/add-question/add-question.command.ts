@@ -15,5 +15,7 @@ export class AddQuestionCommand implements ICommand {
     public readonly required: boolean = true,
     public readonly hints?: string,
     public readonly options?: QuestionOptionCommand[], // For multiple_choice questions
+    public readonly userId?: string,
+    public readonly userRole?: string,
   ) {}
 }

@@ -4,8 +4,9 @@ import { FullName } from '../value-objects/full-name.vo';
 import { UserStatus } from '../value-objects/user-status.vo';
 import { UserRole } from '../value-objects/user-role.vo';
 import { UserCreatedEvent } from '../events/user-created.event';
-import { UserUpdatedEvent } from '../events/user-updated.event';
+import { UserUpdatedEvent, type UserProfileChanges } from '../events/user-updated.event';
 import { UserSuspendedEvent } from '../events/user-suspended.event';
+import { UserActivatedEvent } from '../events/user-activated.event';
 import { UserDeletedEvent } from '../events/user-deleted.event';
 import { DomainException } from '../exceptions/domain.exception';
 import {
@@ -143,7 +144,7 @@ export class User extends AggregateRoot {
     this.ensureNotDeleted();
     this.ensureNotSuspended();
 
-    const changes: any = {};
+    const changes: UserProfileChanges = {};
 
     if (!this._fullName.equals(fullName)) {
       this._fullName = fullName;
@@ -243,6 +244,7 @@ export class User extends AggregateRoot {
   /**
    * Activate user account
    * Can reactivate suspended users
+   * Emits UserActivatedEvent
    */
   public activate(): void {
     this.ensureNotDeleted();
@@ -251,14 +253,11 @@ export class User extends AggregateRoot {
       return; // Already active
     }
 
+    const previousStatus = this._status.value;
     this._status = UserStatus.active();
     this._updatedAt = new Date();
 
-    this.apply(
-      new UserUpdatedEvent(this._id, {
-        status: 'active',
-      }),
-    );
+    this.apply(new UserActivatedEvent(this._id, previousStatus));
   }
 
   /**

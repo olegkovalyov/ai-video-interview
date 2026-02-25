@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import { ICandidateProfileRepository } from '../../../domain/repositories/candidate-profile.repository.interface';
+import type { ITransactionContext } from '../../../application/interfaces/transaction-context.interface';
 import { CandidateProfile } from '../../../domain/aggregates/candidate-profile.aggregate';
 import { CandidateSkillEntity } from '../entities/candidate-skill.entity';
 import { CandidateSkillMapper } from '../mappers/candidate-skill.mapper';
@@ -20,8 +21,8 @@ export class TypeOrmCandidateProfileRepository implements ICandidateProfileRepos
     private readonly dataSource: DataSource,
   ) {}
 
-  async save(profile: CandidateProfile): Promise<void> {
-    await this.dataSource.transaction(async manager => {
+  async save(profile: CandidateProfile, tx?: ITransactionContext): Promise<void> {
+    const doSave = async (manager: EntityManager) => {
       // Save experience_level in candidate_profiles table
       await manager.query(
         `INSERT INTO candidate_profiles (user_id, experience_level, created_at, updated_at)
@@ -46,7 +47,15 @@ export class TypeOrmCandidateProfileRepository implements ICandidateProfileRepos
         );
         await manager.save(CandidateSkillEntity, skillEntities);
       }
-    });
+    };
+
+    if (tx) {
+      // Use the existing transaction from UnitOfWork
+      await doSave(tx as unknown as EntityManager);
+    } else {
+      // Create own transaction (backward compatibility)
+      await this.dataSource.transaction(doSave);
+    }
   }
 
   async findByUserId(userId: string): Promise<CandidateProfile | null> {

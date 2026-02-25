@@ -138,21 +138,13 @@ export function Header({ userRoles = [] }: HeaderProps) {
                     <Link 
                       href="/hr/dashboard" 
                       className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/dashboard') ? 'text-yellow-400' : ''
+                        pathname === '/hr/dashboard' ? 'text-yellow-400' : ''
                       }`}
                     >
                       Dashboard
                     </Link>
                     <Link 
-                      href="/hr/candidates/search" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/candidates') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Search
-                    </Link>
-                    <Link 
-                      href="/hr/interviews" 
+                      href="/hr/interviews/templates" 
                       className={`text-white hover:text-yellow-400 transition-colors font-medium ${
                         pathname.startsWith('/hr/interviews') ? 'text-yellow-400' : ''
                       }`}
@@ -183,39 +175,32 @@ export function Header({ userRoles = [] }: HeaderProps) {
                     >
                       Dashboard
                     </Link>
-                    <Link 
-                      href="/candidate/interviews" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/candidate/interviews') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      My Interviews
-                    </Link>
                   </>
                 );
               }
               
-              return null;
+              // Guest menu (no roles)
+              return (
+                <>
+                  <Link 
+                    href="/about" 
+                    className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                      pathname === '/about' ? 'text-yellow-400' : ''
+                    }`}
+                  >
+                    About
+                  </Link>
+                  <Link 
+                    href="/pricing" 
+                    className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+                      pathname === '/pricing' ? 'text-yellow-400' : ''
+                    }`}
+                  >
+                    Pricing
+                  </Link>
+                </>
+              );
             })()}
-            
-            {/* About & Pricing - для ВСЕХ (authenticated и неавтентифицированных) */}
-            <Link 
-              href="/about" 
-              className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                pathname === '/about' ? 'text-yellow-400' : ''
-              }`}
-            >
-              About
-            </Link>
-            
-            <Link 
-              href="/pricing" 
-              className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                pathname === '/pricing' ? 'text-yellow-400' : ''
-              }`}
-            >
-              Pricing
-            </Link>
           </nav>
 
           <div className="flex items-center space-x-3">

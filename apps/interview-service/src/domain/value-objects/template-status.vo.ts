@@ -1,4 +1,5 @@
 import { ValueObject } from '../base/base.value-object';
+import { InvalidTemplateStateException } from '../exceptions/interview-template.exceptions';
 
 export enum TemplateStatusEnum {
   DRAFT = 'draft',
@@ -21,8 +22,9 @@ export class TemplateStatus extends ValueObject<TemplateStatusProps> {
 
   static create(value: string): TemplateStatus {
     if (!Object.values(TemplateStatusEnum).includes(value as TemplateStatusEnum)) {
-      throw new Error(
-        `Invalid template status: ${value}. Must be one of: ${Object.values(TemplateStatusEnum).join(', ')}`,
+      throw new InvalidTemplateStateException(
+        'create',
+        `${value} (must be one of: ${Object.values(TemplateStatusEnum).join(', ')})`,
       );
     }
 

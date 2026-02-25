@@ -1,223 +1,244 @@
-# Turborepo starter
-
-This Turborepo starter is maintained by the Turborepo core team.
-
-## AI Video Interview Platform
+b# AI Video Interview Platform
 
 A scalable platform for asynchronous AI-powered video interviews built with modern microservices architecture.
 
-## Architecture Overview
+## Features
 
-This is a **Turborepo monorepo** containing:
+- **Asynchronous Video Interviews** — Candidates record responses at their convenience
+- **AI-Powered Analysis** — Automatic transcription and interview scoring (Groq LLama 3.3 70B)
+- **Template Management** — HR creates reusable interview templates with questions
+- **Multi-tenant** — Support for multiple companies and HR managers
+- **Role-based Access** — Admin, HR, and Candidate roles
+- **Real-time Notifications** — Email notifications for interview invitations
 
-### Applications
-- **`web`** - Next.js 14+ dashboard for HR managers
-- **`api-gateway`** - NestJS API Gateway with authentication
-- **`user-service`** - NestJS microservice for user management
-- **`interview-service`** - NestJS microservice for interview management
-- **`docs`** - Next.js documentation site
+---
 
-### Shared Packages
-- **`@repo/shared`** - Common types, DTOs, utilities, constants
-- **`@repo/ui`** - Shared React components with Tailwind CSS
-- **`@repo/eslint-config`** - ESLint configurations
-- **`@repo/typescript-config`** - TypeScript configurations
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FRONTEND (Next.js 14)                             │
+│                               Port: 3000                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            API GATEWAY (8001)                               │
+│         Auth (Keycloak) │ Metrics │ Tracing │ Circuit Breaker              │
+└─────────────────────────────────────────────────────────────────────────────┘
+        │                    │                    │                    │
+        ▼                    ▼                    ▼                    ▼
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ User Service │    │  Interview   │    │    Media     │    │ AI Analysis  │
+│    (3005)    │    │   Service    │    │   Service    │    │   Service    │
+│   ✅ Done    │    │    (3007)    │    │    (3006)    │    │    (3009)    │
+│              │    │   ✅ Done    │    │  🔴 Planned  │    │  🔴 Planned  │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+        │                    │                    │                    │
+        └────────────────────┴────────────────────┴────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           KAFKA (9092)                                      │
+│    Topics: user-commands, user-events, interview-events, media-events      │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Service Status
+
+| Service | Port | Status | Description |
+|---------|------|--------|-------------|
+| API Gateway | 8001 | ✅ Done | Auth, routing, metrics, tracing |
+| User Service | 3005 | ✅ Done | Users, roles, companies, skills |
+| Interview Service | 3007 | ✅ Done | Templates, questions, invitations |
+| Media Service | 3006 | 🔴 Planned | File storage, transcription |
+| AI Analysis Service | 3009 | 🔴 Planned | Interview analysis, RAG |
+| Notification Service | 3008 | 🔴 Planned | Email, webhooks |
+| Billing Service | 3010 | 🔴 Planned | Subscriptions, payments |
+
+---
+
+## Tech Stack
+
+### Backend
+- **Framework:** NestJS 10
+- **Language:** TypeScript 5.x
+- **ORM:** TypeORM
+- **Architecture:** Clean Architecture, CQRS, DDD
+- **Messaging:** Kafka with INBOX/OUTBOX pattern
+- **Queue:** BullMQ (Redis)
+
+### Frontend
+- **Framework:** Next.js 14 (App Router)
+- **Styling:** Tailwind CSS
+- **Components:** shadcn/ui
+- **State:** React Query
 
 ### Infrastructure
-- **PostgreSQL** - Main database (OLTP)
-- **Redis** - Caching and sessions
-- **MinIO** - S3-compatible object storage
-- **Kafka** - Message queue (for later phases)
-- **ClickHouse** - Analytics database (for later phases)
+- **Database:** PostgreSQL 15
+- **Cache/Queue:** Redis 7
+- **Object Storage:** MinIO (S3-compatible)
+- **Auth:** Keycloak
+- **Monitoring:** Prometheus, Grafana, Loki
+- **Tracing:** OpenTelemetry, Jaeger
 
 ---
 
 ## Quick Start
 
 ### Prerequisites
+
 ```bash
-# Required
 Node.js 18+
 npm 10+
 Docker & Docker Compose
-
-# Check versions
-node --version  # Should be 18+
-npm --version   # Should be 10+
-docker --version
-docker-compose --version
 ```
 
-### 1. Clone and Setup
+### 1. Clone and Install
+
 ```bash
-# Clone the repository
 git clone <repository-url>
-cd ai-video-interview-platform
+cd ai-video-interview
 
-# Install dependencies and start infrastructure
-npm run setup
+npm install
 ```
 
-### 2. Environment Configuration
+### 2. Start Infrastructure
+
 ```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env with your configuration
-# (Default values work for local development)
+docker-compose up -d
 ```
 
-### 3. Start Development
+### 3. Configure Environment
+
 ```bash
-# Start all services (recommended)
-npm run dev:all
-
-# Or start services separately:
-npm run dev:services  # Backend services only
-npm run dev:web       # Frontend only
+# Copy env files for each service
+cp apps/api-gateway/.env.example apps/api-gateway/.env
+cp apps/user-service/.env.example apps/user-service/.env
+cp apps/interview-service/.env.example apps/interview-service/.env
 ```
 
-### 4. Access Applications
-- **Web Dashboard:** http://localhost:3000
-- **API Gateway:** http://localhost:8000
-- **User Service:** http://localhost:8001
-- **Interview Service:** http://localhost:8002
-- **MinIO Console:** http://localhost:9001 (minioadmin/minioadmin123)
-- **Kafka UI:** http://localhost:8080 (when Kafka is running)
+### 4. Run Migrations
+
+```bash
+npm run migration:run --filter=user-service
+npm run migration:run --filter=interview-service
+```
+
+### 5. Start Development
+
+```bash
+# Start all services
+npm run dev
+
+# Or start specific service
+npm run dev --filter=api-gateway
+npm run dev --filter=user-service
+npm run dev --filter=interview-service
+npm run dev --filter=web
+```
 
 ---
 
-## Available Scripts
+## Access Points
 
-### Development
-```bash
-npm run dev:all        # Start all services
-npm run dev:services   # Start backend services only
-npm run dev:web        # Start web app only
-npm run build          # Build all packages
-npm run lint           # Lint all packages
-npm run test           # Run all tests
-```
-
-### Infrastructure Management
-```bash
-npm run infra:up       # Start infrastructure (PostgreSQL, Redis, MinIO)
-npm run infra:down     # Stop infrastructure
-npm run infra:logs     # View infrastructure logs
-npm run infra:reset    # Reset infrastructure (removes data)
-```
-
-### Kafka Management (Optional)
-```bash
-npm run kafka:up       # Start Kafka + Zookeeper + Kafka UI
-npm run kafka:down     # Stop Kafka services
-npm run kafka:logs     # View Kafka logs
-npm run kafka:reset    # Reset Kafka (removes topics and data)
-```
-
-### Utilities
-```bash
-npm run format         # Format code with Prettier
-npm run check-types    # Type check all packages
-npm run test:e2e       # Run end-to-end tests
-```
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| **Web App** | http://localhost:3000 | — |
+| **API Gateway** | http://localhost:8001 | — |
+| **Swagger Docs** | http://localhost:8001/api/docs | — |
+| **Keycloak** | http://localhost:8090 | admin/admin |
+| **Grafana** | http://localhost:3002 | admin/admin123 |
+| **Jaeger** | http://localhost:16686 | — |
+| **MinIO Console** | http://localhost:9001 | minioadmin/minioadmin123 |
 
 ---
 
 ## Project Structure
 
 ```
-ai-video-interview-platform/
+ai-video-interview/
 ├── apps/
-│   ├── api-gateway/           # Main API Gateway (NestJS)
-│   ├── user-service/          # User management service (NestJS)
-│   ├── interview-service/     # Interview management service (NestJS)
-│   ├── web/                   # HR Dashboard (Next.js)
-│   └── docs/                  # Documentation (Next.js)
+│   ├── api-gateway/           # API Gateway (NestJS)
+│   ├── user-service/          # User Service (NestJS + DDD + CQRS)
+│   ├── interview-service/     # Interview Service (NestJS + DDD + CQRS)
+│   ├── media-service/         # Media Service (planned)
+│   └── web/                   # Frontend (Next.js 14)
+│
 ├── packages/
-│   ├── shared/                # Common types, DTOs, utilities
-│   ├── ui/                    # Shared React components
-│   ├── eslint-config/         # ESLint configurations
-│   └── typescript-config/     # TypeScript configurations
+│   ├── shared/                # Shared types, events, Kafka
+│   ├── ui/                    # Shared UI components
+│   ├── eslint-config/         # ESLint config
+│   └── typescript-config/     # TypeScript config
+│
+├── infra/
+│   ├── keycloak/              # Keycloak realm & theme
+│   ├── observability/         # Grafana, Loki, Prometheus
+│   └── postgres/              # Database init scripts
+│
 ├── docs/
-│   └── architecture/          # Architecture documentation
-├── scripts/
-│   └── init-db.sql           # Database initialization
+│   ├── 01-getting-started/    # Quick start guides
+│   ├── 02-architecture/       # Architecture overview
+│   ├── 03-services/           # Service documentation
+│   └── 04-api/                # API documentation
+│
+├── scripts/                   # Utility scripts
 ├── docker-compose.yml         # Infrastructure services
-├── turbo.json                # Turborepo configuration
-└── README.md                 # This file
+└── turbo.json                 # Turborepo config
 ```
 
 ---
 
-## Technology Stack
+## Development Commands
 
-```
-cd my-turborepo
+```bash
+# Development
+npm run dev                    # Start all services
+npm run dev --filter=web       # Start specific service
+npm run build                  # Build all packages
+npm run lint                   # Lint all packages
+npm run test                   # Run tests
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+# Database
+npm run migration:run --filter=user-service
+npm run migration:generate --filter=user-service -- -n MigrationName
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+# Infrastructure
+docker-compose up -d           # Start all infrastructure
+docker-compose down            # Stop all infrastructure
+docker-compose logs -f kafka   # View specific logs
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+# Utilities
+npm run cleanup:ports          # Kill processes on service ports
 ```
 
-### Remote Caching
+---
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+## Kafka Topics
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+| Topic | Publisher | Consumers |
+|-------|-----------|-----------|
+| `user-commands` | API Gateway | User Service |
+| `user-events` | User Service | Interview, Notification, Billing |
+| `interview-events` | Interview Service | Media, AI Analysis, Notification |
+| `media-events` | Media Service | AI Analysis |
+| `analysis-events` | AI Analysis | Notification |
+| `billing-events` | Billing Service | All services |
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+---
 
-```
-cd my-turborepo
+## Documentation
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
+Detailed documentation available in `/docs`:
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
+- [Quick Start](./docs/01-getting-started/QUICK_START.md)
+- [Services Overview](./docs/02-architecture/SERVICES_OVERVIEW.md)
+- [API Gateway](./docs/03-services/API_GATEWAY.md)
+- [User Service](./docs/03-services/USER_SERVICE.md)
+- [Interview Service](./docs/03-services/INTERVIEW_SERVICE.md)
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+---
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## License
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+MIT

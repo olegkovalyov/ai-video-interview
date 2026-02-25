@@ -74,7 +74,7 @@ export class AddCandidateSkillHandler implements ICommandHandler<AddCandidateSki
     // 7. Publish domain events
     const events = profile.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
-    profile.commit();
+    profile.clearEvents();
 
     this.logger.info('Skill added to candidate profile successfully', {
       candidateId: command.candidateId,

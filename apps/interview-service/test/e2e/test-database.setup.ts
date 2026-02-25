@@ -2,6 +2,8 @@ import { DataSource } from 'typeorm';
 import {
   InterviewTemplateEntity,
   QuestionEntity,
+  InvitationEntity,
+  ResponseEntity,
 } from '../../src/infrastructure/persistence/entities';
 import { OutboxEntity } from '../../src/infrastructure/persistence/entities/outbox.entity';
 
@@ -17,7 +19,7 @@ export async function createE2EDataSource(): Promise<DataSource> {
     username: process.env.DATABASE_USER || 'postgres',
     password: process.env.DATABASE_PASSWORD || 'postgres',
     database: 'ai_video_interview_interview_test', // Test database
-    entities: [InterviewTemplateEntity, QuestionEntity, OutboxEntity],
+    entities: [InterviewTemplateEntity, QuestionEntity, InvitationEntity, ResponseEntity, OutboxEntity],
     migrations: ['src/infrastructure/persistence/migrations/*.ts'],
     synchronize: false,
     logging: false,
@@ -41,6 +43,8 @@ export async function cleanE2EDatabase(dataSource: DataSource): Promise<void> {
   try {
     await dataSource.query(`
       TRUNCATE TABLE 
+        responses,
+        invitations,
         questions,
         interview_templates,
         outbox

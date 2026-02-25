@@ -4,6 +4,9 @@ import { CreateCompanyCommand } from './create-company.command';
 import { Company } from '../../../../domain/aggregates/company.aggregate';
 import { CompanySize } from '../../../../domain/value-objects/company-size.vo';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
+import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
+import type { IOutboxService } from '../../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 import { v4 as uuid } from 'uuid';
 
@@ -17,6 +20,10 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
     @Inject('ICompanyRepository')
     private readonly companyRepository: ICompanyRepository,
     private readonly eventBus: EventBus,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
     private readonly logger: LoggerService,
   ) {}
 
@@ -34,7 +41,7 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
 
     // 2. Create Company aggregate
     const companyId = uuid();
-    const userCompanyId = uuid(); // For creator's user_companies record
+    const userCompanyId = uuid();
 
     const company = Company.create(
       companyId,
@@ -50,13 +57,29 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
       command.position,
     );
 
-    // 3. Save to repository
-    await this.companyRepository.save(company);
+    // 3. Atomic save: aggregate + outbox in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      await this.companyRepository.save(company, tx);
+      return this.outboxService.saveEvent(
+        COMPANY_EVENT_TYPES.CREATED,
+        {
+          companyId,
+          name: command.name,
+          createdBy: command.createdBy,
+          createdAt: new Date().toISOString(),
+        },
+        companyId,
+        tx,
+      );
+    });
 
-    // 4. Publish domain events
+    // 4. After commit: publish domain events (internal)
     const events = company.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
-    company.commit();
+    company.clearEvents();
+
+    // 5. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
 
     this.logger.info('Company created successfully', { companyId, name: command.name });
 

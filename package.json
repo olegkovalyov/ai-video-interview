@@ -5,7 +5,8 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "dev:api": "turbo run dev --filter='./apps/api-gateway'",
-    "dev:services": "turbo run start:dev --filter='./apps/api-gateway' --filter='./apps/user-service' --filter='./apps/interview-service' --parallel",
+    "dev:services": "turbo run start:dev --filter='./apps/api-gateway' --filter='./apps/user-service' --filter='./apps/interview-service' --filter='./apps/ai-analysis-service' --parallel",
+    "dev:analysis": "turbo run start:dev --filter='./apps/ai-analysis-service'",
     "dev:web": "turbo run dev --filter='./apps/web'",
     "dev:all": "concurrently \"npm run dev:services\" \"npm run dev:web\"",
     "lint": "turbo run lint",
@@ -41,5 +42,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "overrides": {
+    "rxjs": "7.8.2"
+  }
 }

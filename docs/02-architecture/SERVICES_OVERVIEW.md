@@ -1,478 +1,560 @@
-# Services Architecture Overview - AI Video Interview Platform
+# Services Overview
 
-**Версия:** 2.0  
-**Дата:** 2025-10-06  
-**Статус:** ACTIVE
+This document provides a comprehensive overview of the AI Video Interview platform's microservices architecture.
 
 ---
 
-## 🎯 Введение
-
-Платформа AI Video Interview построена на микросервисной архитектуре с четким разделением ответственности между сервисами согласно принципам Domain-Driven Design (DDD).
-
-Каждый сервис представляет собой **Bounded Context** с собственной доменной моделью, базой данных и бизнес-логикой.
-
----
-
-## 🏗️ Архитектура системы
+## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      API GATEWAY                         │
-│  - Routing                                               │
-│  - Authentication (JWT validation)                       │
-│  - Rate Limiting                                         │
-│  - Request/Response logging                              │
-└─────────────────────────────────────────────────────────┘
-                           │
-        ┌──────────────────┼──────────────────┬──────────────────┐
-        │                  │                  │                  │
-┌───────▼───────┐  ┌──────▼──────┐  ┌────────▼────────┐ ┌──────▼──────┐
-│ USER SERVICE  │  │  INTERVIEW   │  │   CANDIDATE     │ │   MEDIA     │
-│               │  │  SERVICE     │  │   RESPONSE      │ │   SERVICE   │
-│               │  │              │  │   SERVICE       │ │             │
-└───────────────┘  └──────────────┘  └─────────────────┘ └─────────────┘
-        │                  │                  │                  │
-        └──────────────────┼──────────────────┴──────────────────┘
-                           │
-        ┌──────────────────┼──────────────────┬──────────────────┐
-        │                  │                  │                  │
-┌───────▼───────┐  ┌──────▼──────┐  ┌────────▼────────┐ ┌──────▼──────┐
-│ AI ANALYSIS   │  │  REPORTING  │  │  NOTIFICATION   │ │   BILLING   │
-│  SERVICE      │  │  SERVICE    │  │   SERVICE       │ │   SERVICE   │
-└───────────────┘  └─────────────┘  └─────────────────┘ └─────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              FRONTEND (Next.js 15)                              │
+│                                   Port: 3000                                    │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                               API GATEWAY                                        │
+│                                 Port: 8001                                       │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐           │
+│  │     Auth     │ │   Metrics    │ │   Tracing    │ │   Circuit    │           │
+│  │ (Keycloak)   │ │ (Prometheus) │ │ (OpenTelemetry│ │   Breaker    │           │
+│  └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘           │
+└─────────────────────────────────────────────────────────────────────────────────┘
+         │                    │                    │                    │
+         ▼                    ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  USER SERVICE   │  │INTERVIEW SERVICE│  │  MEDIA SERVICE  │  │ AI ANALYSIS     │
+│   Port: 8002    │  │   Port: 8003    │  │   Port: 8004    │  │   Port: 8005    │
+│   ✅ DONE       │  │   ✅ DONE       │  │   🔴 PLANNED    │  │   ✅ DONE       │
+└─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘
+         │                    │                    │                    │
+         └────────────────────┴────────────────────┴────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              KAFKA MESSAGE BUS (KRaft)                           │
+│                                 Port: 9092                                       │
+│  Topics: user-commands, user-events, interview-events, analysis-events, etc.    │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                        │
+         ┌──────────────────────────────┼──────────────────────────────┐
+         ▼                              ▼                              ▼
+┌─────────────────┐           ┌─────────────────┐           ┌─────────────────┐
+│NOTIFICATION SVC │           │ BILLING SERVICE │           │    ANALYTICS    │
+│   🔴 PLANNED    │           │   🔴 PLANNED    │           │   (ClickHouse)  │
+│                 │           │                 │           │   🔴 PLANNED    │
+└─────────────────┘           └─────────────────┘           └─────────────────┘
 ```
 
 ---
 
-## 📋 Список сервисов
+## Service Status
 
-| # | Сервис | Статус | Приоритет | Описание |
-|---|--------|--------|-----------|----------|
-| 1 | API Gateway | ✅ Реализован | CRITICAL | Единая точка входа, routing, auth |
-| 2 | User Service | ✅ Реализован | CRITICAL | Управление пользователями, профили |
-| 3 | Interview Service | 🟡 Частично | CRITICAL | CRUD интервью, вопросы, шаблоны |
-| 4 | Candidate Response Service | ❌ Не реализован | **CRITICAL** | Публичное прохождение интервью |
-| 5 | Media Service | 🟡 Частично | HIGH | Загрузка, обработка, хранение медиа |
-| 6 | AI Analysis Service | ❌ Не реализован | **HIGH** | Транскрипция, анализ, оценка |
-| 7 | Notification Service | ❌ Не реализован | MEDIUM | Email, webhooks, templates |
-| 8 | Reporting Service | ❌ Не реализован | MEDIUM | PDF отчеты, дашборды, экспорт |
-| 9 | Billing Service | ❌ Не реализован | LOW | Stripe, подписки, квоты |
+| Service | Port | Status | Database | Description |
+|---------|------|--------|----------|-------------|
+| **API Gateway** | 8001 | ✅ Done | — | Auth (Keycloak OIDC), routing, circuit breaker, metrics, tracing |
+| **User Service** | 8002 | ✅ Done | PostgreSQL | User management, roles, profiles, companies, skills |
+| **Interview Service** | 8003 | ✅ Done | PostgreSQL | Templates, questions, invitations, responses |
+| **Media Service** | 8004 | 🔴 Planned | PostgreSQL + MinIO | File storage, video processing, transcription |
+| **AI Analysis Service** | 8005 | ✅ Done | PostgreSQL | Groq LLM interview analysis, scoring, recommendations |
+| **Notification Service** | — | 🔴 Planned | PostgreSQL | Email, webhooks |
+| **Billing Service** | — | 🔴 Planned | PostgreSQL | Subscriptions, payments |
 
 ---
 
-## 🔍 Детальное описание сервисов
+## Infrastructure Services
 
-### 1️⃣ API Gateway
-
-**Назначение:** Единая точка входа для всех клиентских запросов
-
-**Ответственность:**
-- HTTP routing к микросервисам
-- JWT token validation (Keycloak)
-- Rate limiting и throttling
-- Request/Response logging
-- CORS handling
-- Health checks aggregation
-
-**Технологии:**
-- NestJS
-- Passport JWT
-- Winston logging
-- OpenTelemetry tracing
-
-**База данных:** Нет (stateless)
-
-**Порт:** 3001
-
-**Статус:** ✅ Реализован
-
-**Детали:** См. `/services/API_GATEWAY.md`
+| Service | Port | Purpose |
+|---------|------|---------|
+| **PostgreSQL** | 5432 | Primary database (separate DB per service) |
+| **PostgreSQL (Keycloak)** | 5433 | Keycloak database |
+| **Redis** | 6379 | BullMQ queues, caching |
+| **Kafka (KRaft)** | 9092 | Event streaming (no Zookeeper) |
+| **Kafka UI** | 8080 | Kafka management dashboard |
+| **Keycloak** | 8090 | Identity & Access Management |
+| **MinIO** | 9000/9001 | Object storage (S3-compatible) |
+| **Prometheus** | 9090 | Metrics collection |
+| **Grafana** | 3002 | Dashboards & monitoring |
+| **Loki** | 3100 | Log aggregation |
+| **Promtail** | — | Log shipping to Loki |
+| **Jaeger** | 16686 | Distributed tracing |
+| **Kafka Exporter** | 9308 | Kafka metrics for Prometheus |
+| **Node Exporter** | 9100 | Host metrics for Prometheus |
 
 ---
 
-### 2️⃣ User Service
+## Technology Stack
 
-**Назначение:** Управление пользователями и их профилями
+### Backend Services
 
-**Ответственность:**
-- User profiles (CRUD)
-- Avatar management
-- User statistics (interviews created, storage used)
-- Quota tracking
-- User preferences
+| Layer | Technology |
+|-------|------------|
+| **Framework** | NestJS 11 |
+| **Language** | TypeScript 5.8 |
+| **ORM** | TypeORM 0.3.x |
+| **CQRS** | @nestjs/cqrs |
+| **Validation** | class-validator, class-transformer |
+| **API Docs** | Swagger/OpenAPI |
 
-**Что НЕ входит:**
-- ❌ Аутентификация (это зона Keycloak)
-- ❌ Авторизация на уровне permissions (это API Gateway)
-- ❌ Billing и подписки (это Billing Service)
+### Architecture Patterns
 
-**Технологии:**
-- NestJS
-- TypeORM
-- PostgreSQL
-- MinIO (avatars)
-- Kafka (events)
+| Pattern | Implementation |
+|---------|----------------|
+| **Clean Architecture** | Domain → Application → Infrastructure |
+| **CQRS** | Commands/Queries separation via @nestjs/cqrs |
+| **DDD** | Aggregates, Value Objects, Domain Events |
+| **OUTBOX** | Reliable messaging with BullMQ + PostgreSQL |
+| **Event-Driven** | Kafka event streaming (KRaft mode) |
 
-**База данных:** PostgreSQL (`users`, `user_profiles`, `user_stats`)
+### Frontend
 
-**Порт:** 3003
-
-**Статус:** ✅ Реализован
-
-**Детали:** См. `/services/USER_SERVICE.md`
-
----
-
-### 3️⃣ Interview Service
-
-**Назначение:** Управление интервью со стороны HR/рекрутера
-
-**Ответственность:**
-- CRUD интервью (создание, редактирование, удаление)
-- Управление вопросами (добавление, порядок, настройки)
-- Шаблоны интервью (библиотека, клонирование)
-- Генерация публичных ссылок (UUID)
-- Настройки интервью (дедлайны, брендинг, требования)
-- Tracking кандидатов (статусы: invited, in_progress, completed)
-- Метаданные прохождения (когда начал, сколько времени)
-
-**Что НЕ входит:**
-- ❌ Прохождение интервью кандидатом (Candidate Response Service)
-- ❌ Запись видео/аудио (Candidate Response Service)
-- ❌ Хранение медиафайлов (Media Service)
-- ❌ AI анализ (AI Analysis Service)
-- ❌ Отчеты и PDF (Reporting Service)
-
-**Технологии:**
-- NestJS
-- TypeORM
-- PostgreSQL
-- Kafka (events)
-
-**База данных:** PostgreSQL (`interviews`, `questions`, `templates`, `candidate_sessions`)
-
-**Порт:** 3004
-
-**Статус:** 🟡 Частично реализован (базовый CRUD есть, нужны templates, questions ordering)
-
-**Детали:** См. `/services/INTERVIEW_SERVICE.md`
+| Technology | Version |
+|------------|---------|
+| **Framework** | Next.js 15 (App Router) |
+| **UI Library** | React 19 |
+| **Styling** | Tailwind CSS 4 |
+| **Components** | shadcn/ui + Radix UI |
+| **Data Fetching** | React Query (TanStack) |
+| **Forms** | React Hook Form + Zod |
+| **Auth** | Keycloak OIDC (httpOnly cookies) |
 
 ---
 
-### 4️⃣ Candidate Response Service
+## Service Communication
 
-**Назначение:** Публичная часть для прохождения интервью кандидатами
+### Synchronous (HTTP)
 
-**Ответственность:**
-- Публичная страница интервью (БЕЗ авторизации)
-- Валидация публичной ссылки
-- WebRTC запись видео/аудио в браузере
-- Сохранение промежуточных ответов (resume later)
-- Submission финальных ответов
-- Candidate profile (имя, email, resume, доп. инфо)
-- Прогресс-бар прохождения
-- Thank you screen
+```
+Frontend ──HTTP──► API Gateway ──HTTP──► Microservices
+                      │
+                      ├── /users/*       ──► User Service (8002)
+                      ├── /templates/*   ──► Interview Service (8003)
+                      ├── /invitations/* ──► Interview Service (8003)
+                      ├── /analysis/*    ──► AI Analysis Service (8005)
+                      └── /media/*       ──► Media Service (8004)
+```
 
-**Что НЕ входит:**
-- ❌ Создание интервью (Interview Service)
-- ❌ Просмотр результатов (Reporting Service)
-- ❌ Обработка медиа (Media Service)
+### Asynchronous (Kafka)
 
-**Технологии:**
-- Next.js (отдельный frontend)
-- NestJS backend
-- PostgreSQL
-- WebRTC (MediaRecorder API)
-- MinIO pre-signed URLs
-
-**База данных:** PostgreSQL (`candidate_sessions`, `responses`, `candidate_profiles`)
-
-**Порт:** 3005 (backend), 3100 (frontend)
-
-**Статус:** ❌ НЕ РЕАЛИЗОВАН
-
-**Приоритет:** **КРИТИЧЕСКИЙ** (без этого кандидаты не могут проходить интервью!)
-
-**Детали:** См. `/services/CANDIDATE_RESPONSE_SERVICE.md`
-
----
-
-### 5️⃣ Media Service
-
-**Назначение:** Обработка и хранение медиафайлов
-
-**Ответственность:**
-- Pre-signed URLs для прямой загрузки в S3/MinIO
-- Метаданные файлов (duration, size, format)
-- FFmpeg processing (конвертация, сжатие)
-- Генерация thumbnails
-- Streaming URLs
-- CDN integration
-- Cleanup старых файлов
-
-**Что НЕ входит:**
-- ❌ Бизнес-логика интервью (Interview Service)
-- ❌ AI анализ контента (AI Analysis Service)
-
-**Технологии:**
-- NestJS
-- FFmpeg
-- MinIO/S3
-- PostgreSQL (metadata)
-- Kafka (processing jobs)
-
-**База данных:** PostgreSQL (`media_files`, `processing_jobs`)
-
-**Хранилище:** MinIO/S3
-
-**Порт:** 3006
-
-**Статус:** 🟡 Частично реализован (базовая загрузка есть, нужен FFmpeg processing)
-
-**Детали:** См. `/services/MEDIA_SERVICE.md`
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                             KAFKA TOPICS                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  auth-events         API Gateway ────────────────► User Service                 │
+│  (user.authenticated)                                                            │
+│                                                                                  │
+│  user-commands        API Gateway ──────────────────────► User Service          │
+│  (user.create, etc.)                                                             │
+│                                                                                  │
+│  user-events          User Service ────► Interview Service                      │
+│  (user.created, etc.)                                                            │
+│                                                                                  │
+│  interview-events     Interview Service ──► AI Analysis Service                 │
+│  (invitation.completed)                                                          │
+│                                                                                  │
+│  analysis-events      AI Analysis ────────► Interview Service                   │
+│  (analysis.completed)                                                            │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-### 6️⃣ AI Analysis Service
+## Implemented Services Detail
 
-**Назначение:** AI-анализ ответов кандидатов
+### API Gateway (Port: 8001)
 
-**Ответственность:**
-- Speech-to-text транскрипция (Whisper API)
-- Content analysis (GPT-4)
-- Skills extraction
-- Sentiment analysis
-- Job description matching (embeddings + LlamaIndex)
-- Scoring algorithms
-- Comparative analysis
+**Architecture:**
+```
+src/
+├── core/
+│   ├── auth/           # Keycloak integration, JWT, guards
+│   ├── circuit-breaker/# Resilience patterns
+│   ├── health/         # Health checks
+│   ├── logging/        # Winston + Loki
+│   ├── metrics/        # Prometheus metrics
+│   └── tracing/        # OpenTelemetry
+├── kafka/
+│   └── producers/      # Event publishing
+├── modules/
+│   ├── user-service/   # User Service proxy
+│   ├── interview-service/ # Interview Service proxy
+│   └── analysis-service/  # Analysis Service proxy
+└── proxies/            # HTTP proxies with circuit breaker
+```
 
-**Что НЕ входит:**
-- ❌ Хранение медиафайлов (Media Service)
-- ❌ Генерация PDF отчетов (Reporting Service)
-
-**Технологии:**
-- **Python** (FastAPI) - лучше для ML
-- OpenAI API (Whisper, GPT-4)
-- LlamaIndex
-- PostgreSQL (results)
-- Vector DB (Pinecone/Qdrant для embeddings)
-- Kafka (async processing)
-
-**База данных:** 
-- PostgreSQL (`analysis_results`, `transcriptions`)
-- Vector DB для embeddings
-
-**Порт:** 3007
-
-**Статус:** ❌ НЕ РЕАЛИЗОВАН
-
-**Приоритет:** **HIGH** (это core value proposition платформы!)
-
-**Детали:** См. `/services/AI_ANALYSIS_SERVICE.md`
+**Key Features:**
+- OAuth2/OIDC authentication via Keycloak
+- JWT token validation (JWKS) & httpOnly cookie sessions
+- Circuit breaker for downstream services (CLOSED/OPEN/HALF_OPEN)
+- Registration saga with compensation pattern
+- Prometheus metrics endpoint (`/metrics`)
+- OpenTelemetry distributed tracing
+- Swagger API documentation at `/api/docs`
+- Kafka event publishing (auth-events, user-commands)
 
 ---
 
-### 7️⃣ Notification Service
+### User Service (Port: 8002)
 
-**Назначение:** Отправка уведомлений и интеграций
+**Architecture:**
+```
+src/
+├── domain/
+│   ├── aggregates/     # User, Company, CandidateProfile
+│   ├── entities/       # Skill, SkillCategory, CandidateSkill
+│   ├── events/         # Domain events
+│   ├── repositories/   # Repository interfaces
+│   └── value-objects/  # Email, FullName, UserStatus, UserRole
+├── application/
+│   ├── commands/       # create-user, update-user, suspend, etc.
+│   ├── queries/        # get-user, list-users, get-permissions
+│   └── dto/            # Request/Response DTOs
+└── infrastructure/
+    ├── persistence/    # TypeORM entities, repositories, migrations
+    ├── kafka/          # Event consumers/producers
+    ├── messaging/      # OUTBOX pattern
+    ├── http/           # Controllers
+    └── storage/        # MinIO avatar storage
+```
 
-**Ответственность:**
-- Email отправка (Resend/SendGrid)
-- Email templates (invite, reminder, completion)
-- Webhook интеграции (ATS системы)
-- Retry logic для failed deliveries
-- Delivery tracking и статусы
-- Push notifications (в будущем)
+**CQRS Commands:**
+- `CreateUser` - Create new user from Kafka event
+- `UpdateUser` - Update user profile
+- `SuspendUser` / `ActivateUser` - Account status management
+- `SelectRole` - HR/Candidate role selection
+- `UploadAvatar` - Profile picture upload to MinIO
+- `CreateCompany` / `UpdateCompany` / `DeleteCompany` - Company management
+- `CreateSkill` / `UpdateSkill` / `DeleteSkill` - Skill taxonomy (admin)
+- `AddCandidateSkill` / `RemoveCandidateSkill` - Candidate skills management
 
-**Что НЕ входит:**
-- ❌ Бизнес-логика триггеров (сервисы сами решают когда отправлять)
+**CQRS Queries:**
+- `GetUser` - Get user by ID
+- `GetUserByExternalAuthId` - Find by Keycloak ID
+- `ListUsers` - Paginated user list (admin)
+- `GetUserPermissions` - Role-based permissions
+- `GetUserStats` - User statistics
+- `GetCompany` / `ListCompanies` - Company queries
+- `ListSkills` / `GetSkill` - Skill taxonomy queries
+- `GetCandidateProfile` / `GetCandidateSkills` - Candidate queries
 
-**Технологии:**
-- NestJS
-- Resend/SendGrid
-- Handlebars (templates)
-- PostgreSQL (logs, templates)
-- Redis (queue)
-- Kafka (events)
-
-**База данных:** PostgreSQL (`notifications`, `templates`, `delivery_logs`)
-
-**Порт:** 3008
-
-**Статус:** ❌ НЕ РЕАЛИЗОВАН
-
-**Приоритет:** MEDIUM (нужен для приглашений кандидатов)
-
-**Детали:** См. `/services/NOTIFICATION_SERVICE.md`
-
----
-
-### 8️⃣ Reporting Service
-
-**Назначение:** Отчеты и аналитика для HR
-
-**Ответственность:**
-- PDF reports generation (Puppeteer)
-- Candidate comparison
-- HR dashboards (metrics, charts)
-- Data export (CSV, Excel)
-- Analytics aggregation
-- Custom report templates
-
-**Что НЕ входит:**
-- ❌ Сырые данные интервью (Interview Service)
-- ❌ AI анализ (AI Analysis Service)
-
-**Технологии:**
-- NestJS
-- Puppeteer (PDF)
-- PostgreSQL (reports)
-- ClickHouse (analytics, optional)
-- Chart.js/D3.js
-
-**База данных:** 
-- PostgreSQL (`reports`, `dashboards`)
-- ClickHouse (опционально для больших объемов)
-
-**Порт:** 3009
-
-**Статус:** ❌ НЕ РЕАЛИЗОВАН
-
-**Приоритет:** MEDIUM
-
-**Детали:** См. `/services/REPORTING_SERVICE.md`
+**Database Tables:**
+- `users` - User profiles
+- `companies` - Company entities
+- `candidate_profiles` - Extended candidate data
+- `skills` / `skill_categories` - Skill taxonomy
+- `candidate_skills` - Candidate skill self-assessment
+- `user_companies` - User-company relationships
+- `outbox` - Outbox pattern
 
 ---
 
-### 9️⃣ Billing Service
+### Interview Service (Port: 8003)
 
-**Назначение:** Подписки, платежи, квоты
+**Architecture:**
+```
+src/
+├── domain/
+│   ├── aggregates/     # InterviewTemplate, Invitation
+│   ├── entities/       # Question, Response
+│   ├── events/         # Domain events
+│   └── value-objects/  # TemplateStatus, InvitationStatus, QuestionType
+├── application/
+│   ├── commands/       # Templates, Questions, Invitations
+│   ├── queries/        # Get/List templates, invitations
+│   └── dto/            # Request/Response DTOs
+└── infrastructure/
+    ├── persistence/    # TypeORM, migrations
+    ├── kafka/          # Event handling (producer + consumer)
+    ├── messaging/      # OUTBOX pattern
+    └── http/
+        └── controllers/ # Templates, Invitations
+```
 
-**Ответственность:**
+**CQRS Commands:**
+- `CreateTemplate` - Create interview template
+- `UpdateTemplate` - Modify template
+- `DeleteTemplate` - Remove template
+- `PublishTemplate` - Make template available (draft → active)
+- `AddQuestion` / `RemoveQuestion` - Manage questions
+- `ReorderQuestions` - Question ordering via drag-and-drop
+- `CreateInvitation` - Invite candidate
+- `StartInvitation` - Begin interview
+- `SubmitResponse` - Record answer
+- `CompleteInvitation` - Finish interview (triggers AI analysis)
+
+**CQRS Queries:**
+- `GetTemplate` - Single template
+- `ListTemplates` - HR's templates
+- `GetTemplateQuestions` - Template questions
+- `GetInvitation` - Invitation details
+- `ListHrInvitations` - HR's sent invitations
+- `ListCandidateInvitations` - Candidate's invitations
+
+**Database Tables:**
+- `interview_templates` - Interview templates (draft/active/archived)
+- `questions` - Template questions with options
+- `invitations` - Candidate invitations with analysis results
+- `responses` - Interview responses
+- `outbox` - Outbox pattern
+
+---
+
+### AI Analysis Service (Port: 8005)
+
+**Architecture:**
+```
+src/
+├── domain/
+│   ├── aggregates/     # AnalysisResult
+│   ├── entities/       # QuestionAnalysis
+│   ├── events/         # Domain events
+│   ├── repositories/   # IAnalysisResultRepository
+│   └── value-objects/  # Score, Recommendation, AnalysisStatus
+├── application/
+│   ├── commands/       # AnalyzeInterview, RetryAnalysis
+│   ├── queries/        # GetAnalysisResult, ListAnalyses
+│   ├── ports/          # IAnalysisEngine, IEventPublisher, IPromptLoader
+│   └── dto/
+└── infrastructure/
+    ├── persistence/    # TypeORM entities, repositories, migrations
+    ├── groq/           # GroqAnalysisEngine (LLM adapter)
+    ├── kafka/          # Consumer (interview-events), publisher
+    └── http/           # Controllers
+```
+
+**Key Features:**
+- Groq LLM integration (configurable model, default: `openai/gpt-oss-120b`)
+- Per-question scoring on 4 criteria: relevance, completeness, clarity, depth
+- Overall score (0-100) with recommendation (hire/consider/reject)
+- Kafka consumer for `interview-events` with idempotency via `processed_events`
+- Sequential processing with 5s rate limit between Groq API calls
+- JSON mode for structured LLM responses
+
+See [AI Analysis Service](../03-services/AI_ANALYSIS_SERVICE.md) for full documentation.
+
+---
+
+## Planned Services
+
+### Media Service (Port: 8004)
+- Video/audio file storage (MinIO)
+- FFmpeg video processing
+- Groq Whisper transcription
+- Presigned URL generation
+
+### Notification Service
+- Email delivery (Resend)
+- Template-based notifications
+- Webhook integrations for ATS
+
+### Billing Service
 - Stripe integration
-- Subscription management (create, upgrade, cancel)
-- Usage tracking (interviews, storage, API calls)
-- Quota enforcement
-- Invoicing
-- Payment webhooks
-- Billing history
-
-**Что НЕ входит:**
-- ❌ User management (User Service)
-- ❌ Feature access control (API Gateway)
-
-**Технологии:**
-- NestJS
-- Stripe API
-- PostgreSQL (subscriptions, invoices)
-- Redis (quota cache)
-- Kafka (usage events)
-
-**База данных:** PostgreSQL (`subscriptions`, `plans`, `invoices`, `usage`)
-
-**Порт:** 3010
-
-**Статус:** ❌ НЕ РЕАЛИЗОВАН
-
-**Приоритет:** LOW (можно стартовать с Free tier)
-
-**Детали:** См. `/services/BILLING_SERVICE.md`
+- Freemium model (Free/Plus/Pro)
+- Usage tracking & quotas
 
 ---
 
-## 🔗 Взаимодействие между сервисами
+## Event Flow Examples
 
-### Синхронное взаимодействие (REST/HTTP)
-- Клиент → API Gateway → Микросервисы
-- Service-to-service через API Gateway (прямые вызовы запрещены)
+### User Registration Flow
 
-### Асинхронное взаимодействие (Kafka Events)
-
-**Основные топики:**
 ```
-user-events               # User created/updated/deleted
-interview-events          # Interview created/published/completed
-candidate-events          # Candidate started/completed interview
-media-events              # File uploaded/processed/ready
-analysis-events           # Analysis completed
-notification-events       # Notification sent/failed
-billing-events            # Subscription created/payment received
-```
-
-**Примеры event flow:**
-
-#### Flow 1: Создание интервью
-```
-1. HR создает interview (Interview Service)
-   ↓
-2. Публикует event: interview.created
-   ↓
-3. User Service обновляет quota
-4. Notification Service (опционально) отправляет подтверждение
+1. User signs up via Frontend
+   │
+   ▼
+2. Keycloak creates account
+   │
+   ▼
+3. API Gateway receives callback
+   │
+   ▼
+4. API Gateway publishes to user-commands topic
+   { type: "user.create", userId: "uuid", externalAuthId: "keycloak-id" }
+   │
+   ▼
+5. User Service receives command
+   │
+   ▼
+6. User Service creates user record
+   │
+   ▼
+7. User Service publishes to user-events topic (OUTBOX)
+   { type: "user.created", userId: "uuid", email: "...", roles: [...] }
 ```
 
-#### Flow 2: Кандидат проходит интервью
+### Interview Analysis Flow
+
 ```
-1. Candidate записывает ответ (Candidate Response Service)
-   ↓
-2. Публикует event: response.submitted
-   ↓
-3. Media Service получает файл, обрабатывает
-   ↓
-4. Публикует event: media.ready
-   ↓
-5. AI Analysis Service анализирует
-   ↓
-6. Публикует event: analysis.completed
-   ↓
-7. Interview Service обновляет статус
-8. Notification Service уведомляет HR
+1. HR creates template with questions
+   │
+   ▼
+2. HR invites candidate (creates invitation)
+   │
+   ▼
+3. Candidate starts and completes interview
+   │
+   ▼
+4. Interview Service publishes invitation.completed event (OUTBOX → Kafka)
+   Includes: all questions + all responses in the event payload
+   │
+   ▼
+5. AI Analysis Service consumes event (idempotency check)
+   │
+   ▼
+6. For each question: Groq LLM analyzes response (5s rate limit)
+   │
+   ▼
+7. Groq LLM generates overall summary
+   │
+   ▼
+8. AI Analysis Service publishes analysis.completed event
+   │
+   ▼
+9. Interview Service consumes event, updates invitation with results
+   │
+   ▼
+10. Frontend displays AI review to HR
 ```
 
 ---
 
-## 📊 Приоритеты разработки
+## Database Architecture
 
-### **MVP (Минимально жизнеспособный продукт):**
-1. ✅ **API Gateway** - DONE
-2. ✅ **User Service** - DONE
-3. 🟡 **Interview Service** - Частично DONE (нужны templates, questions)
-4. 🔴 **Candidate Response Service** - **КРИТИЧНО!**
-5. 🟡 **Media Service** - Частично DONE (нужен FFmpeg)
-6. 🔴 **AI Analysis Service** - **КРИТИЧНО!** (хотя бы транскрипция)
+### Database Per Service
 
-### **Phase 1 - Public Launch:**
-7. **Notification Service** - для email invites
-8. **Billing Service** - для monetization
-9. **Reporting Service** - базовые PDF
+| Service | Database Name | Port |
+|---------|--------------|------|
+| User Service | `ai_video_interview_user` | 5432 |
+| Interview Service | `ai_video_interview_interview` | 5432 |
+| AI Analysis Service | `ai_video_interview_analysis` | 5432 |
+| Keycloak | `keycloak` | 5433 |
 
-### **Phase 2 - Scale:**
-10. AI Analysis улучшения (GPT-4 evaluation, embeddings)
-11. Advanced analytics и dashboards
-12. Webhook integrations для ATS
-13. Mobile app
+### Shared Infrastructure
+
+- **Redis (6379)**: BullMQ queues for outbox processing
+- **MinIO (9000)**: Shared object storage (avatars, media)
+- **Kafka (9092)**: Event bus for all services (KRaft mode, no Zookeeper)
 
 ---
 
-## 🎯 Следующие шаги
+## Security Model
 
-1. **IMMEDIATE:** Начать разработку **Candidate Response Service** (критический gap)
-2. **HIGH:** Доделать **Interview Service** (templates, questions ordering)
-3. **HIGH:** Реализовать **AI Analysis Service** (базовая транскрипция Whisper)
-4. **MEDIUM:** Добавить FFmpeg processing в **Media Service**
-5. **MEDIUM:** Создать **Notification Service** для invites
+### Authentication
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Authentication Flow                          │
+│                                                                 │
+│  1. Frontend → Keycloak login page                             │
+│  2. User authenticates with Keycloak                           │
+│  3. Keycloak returns tokens to API Gateway (callback)          │
+│  4. API Gateway sets httpOnly cookies (access + refresh)       │
+│  5. Frontend sends requests with cookies                       │
+│  6. API Gateway validates JWT via JWKS                         │
+│  7. API Gateway forwards request to service                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Authorization (RBAC)
+
+| Role | Capabilities |
+|------|-------------|
+| **admin** | Full system access, user management, skill taxonomy |
+| **hr** | Create templates, invite candidates, view results, manage companies |
+| **candidate** | Complete interviews, manage profile & skills |
+
+### Service-to-Service Auth
+
+- Internal services communicate via Kafka (no HTTP auth needed)
+- Internal HTTP endpoints protected by `X-Internal-Service-Token`
+- API Gateway is the single entry point for external requests
 
 ---
 
-## 📚 Дополнительная документация
+## Observability Stack
 
-- **Детали каждого сервиса:** `/docs/v2/services/<SERVICE_NAME>.md`
-- **API спецификации:** `/docs/v2/api/<SERVICE_NAME>_API.md`
-- **Event schemas:** `/docs/v2/events/EVENT_CATALOG.md`
-- **Database schemas:** `/docs/v2/database/<SERVICE_NAME>_SCHEMA.md`
+### Logging
+
+```
+Services ──Winston──► Loki (via Promtail) ──► Grafana
+                       │
+                       └── Structured JSON logs
+                           - requestId
+                           - userId
+                           - service
+                           - action
+                           - duration
+```
+
+### Metrics
+
+```
+Services ──Prometheus Client──► Prometheus ──► Grafana
+                                    │
+                                    └── Metrics:
+                                        - http_requests_total
+                                        - http_request_duration_seconds
+                                        - kafka_messages_processed
+                                        - auth_requests_total
+                                        - circuit_breaker_state
+```
+
+### Tracing
+
+```
+Services ──OpenTelemetry──► Jaeger
+               │
+               └── Distributed traces across:
+                   - API Gateway
+                   - User Service
+                   - Interview Service
+                   - AI Analysis Service
+                   - Kafka consumers (trace propagation via headers)
+```
 
 ---
 
-**Последнее обновление:** 2025-10-06  
-**Автор:** AI Video Interview Team
+## Development Commands
+
+```bash
+# Start infrastructure
+npm run infra:up             # PostgreSQL, Redis, MinIO
+npm run kafka:up             # Kafka + UI
+
+# Start all services (Turborepo)
+npm run dev:all              # All services + web
+npm run dev:services         # Backend services only
+npm run dev:web              # Frontend only
+
+# Start individual service
+npm run dev:api              # API Gateway
+npm run dev --filter=user-service
+npm run dev --filter=interview-service
+npm run dev:analysis         # AI Analysis Service
+
+# Run migrations (from service directory)
+npm run migration:run
+npm run migration:generate -- src/infrastructure/persistence/migrations/MigrationName
+
+# Testing
+npm run test                 # All tests
+npm run test --filter=<svc>  # Tests for specific service
+```
+
+---
+
+## API Documentation
+
+- **API Gateway Swagger**: http://localhost:8001/api/docs
+- **Grafana Dashboards**: http://localhost:3002 (admin/admin123)
+- **Jaeger Tracing**: http://localhost:16686
+- **MinIO Console**: http://localhost:9001
+- **Kafka UI**: http://localhost:8080
+- **Keycloak Admin**: http://localhost:8090
+
+---
+
+**Last Updated:** February 2026

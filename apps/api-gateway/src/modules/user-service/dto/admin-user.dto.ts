@@ -11,6 +11,13 @@ export class CreateUserDto {
   email: string;
 
   @ApiProperty({
+    description: 'Username for login (optional, defaults to email)',
+    example: 'johndoe',
+    required: false,
+  })
+  username?: string;
+
+  @ApiProperty({
     description: 'First name',
     example: 'John',
   })

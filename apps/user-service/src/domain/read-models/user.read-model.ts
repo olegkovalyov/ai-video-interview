@@ -48,15 +48,6 @@ export interface UserWithProfileReadModel extends UserReadModel {
     githubUrl: string | null;
     portfolioUrl: string | null;
   } | null;
-
-  // HR profile info (if role = HR)
-  hrProfile?: {
-    id: string;
-    position: string | null;
-    department: string | null;
-    companyId: string | null;
-    companyName: string | null;
-  } | null;
 }
 
 /**

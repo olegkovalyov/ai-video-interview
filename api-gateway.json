@@ -356,24 +356,98 @@
         ]
       }
     },
+    "/api/users/me/experience-level": {
+      "put": {
+        "description": "Updates the experience level of the current user (junior, mid, senior, lead). Candidate only.",
+        "operationId": "UsersController_updateExperienceLevel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Experience level updated successfully"
+          },
+          "400": {
+            "description": "Invalid experience level"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Candidate profile not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update my experience level",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/me/permissions": {
+      "get": {
+        "description": "Retrieves roles and permissions for the current user based on their assigned role.",
+        "operationId": "UsersController_getMyPermissions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Permissions retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my permissions",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/me/companies": {
+      "get": {
+        "description": "Retrieves all companies associated with the current user. Typically used by HR users.",
+        "operationId": "UsersController_getMyCompanies",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Companies retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to view companies"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my companies",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/api/me/skills": {
       "get": {
-        "description": "Returns current user skills grouped by category with proficiency levels and experience.",
+        "description": "Returns current user skills grouped by category with proficiency levels, experience, and overall experience level.",
         "operationId": "UserSkillsController_getMySkills",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Skills retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CandidateSkillsByCategoryDto"
-                  }
-                }
-              }
-            }
+            "description": "Skills retrieved successfully"
           },
           "401": {
             "description": "Unauthorized - Invalid JWT token"
@@ -384,7 +458,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get my skills",
+        "summary": "Get my skills with experience level",
         "tags": [
           "Users - Skills"
         ]
@@ -556,6 +630,392 @@
         "summary": "Get skill categories",
         "tags": [
           "Skills"
+        ]
+      }
+    },
+    "/api/hr/candidates/search": {
+      "get": {
+        "description": "Search for candidates based on skills, proficiency level, experience. HR and Admin only.",
+        "operationId": "HRController_searchCandidates",
+        "parameters": [
+          {
+            "name": "minProficiency",
+            "required": false,
+            "in": "query",
+            "description": "Minimum proficiency level",
+            "schema": {
+              "enum": [
+                "beginner",
+                "intermediate",
+                "advanced",
+                "expert"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "minYears",
+            "required": false,
+            "in": "query",
+            "description": "Minimum years of experience",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "experienceLevel",
+            "required": false,
+            "in": "query",
+            "description": "Candidate experience level",
+            "schema": {
+              "enum": [
+                "junior",
+                "mid",
+                "senior",
+                "lead"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "skillIds",
+            "required": false,
+            "in": "query",
+            "description": "Array of skill IDs to search for",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results with pagination"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - HR or Admin role required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search candidates by skills",
+        "tags": [
+          "HR"
+        ]
+      }
+    },
+    "/api/hr/companies": {
+      "post": {
+        "description": "Creates a new company for the current HR user. The company will be associated with the user who created it. HR users can only manage their own companies, while Admin users can manage all companies.",
+        "operationId": "HRCompaniesController_createCompany",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Company created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data - validation failed for required fields"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - HR or Admin role required"
+          },
+          "409": {
+            "description": "Company with this name already exists for this user"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create company",
+        "tags": [
+          "HR - Companies"
+        ]
+      },
+      "get": {
+        "description": "Returns a paginated list of companies. HR users see only companies they created, while Admin users see all companies in the system.",
+        "operationId": "HRCompaniesController_listCompanies",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20, max: 100)",
+            "schema": {
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by company name (partial match)",
+            "schema": {
+              "example": "Tech",
+              "type": "string"
+            }
+          },
+          {
+            "name": "industry",
+            "required": false,
+            "in": "query",
+            "description": "Filter by exact industry name",
+            "schema": {
+              "example": "Software Development",
+              "type": "string"
+            }
+          },
+          {
+            "name": "isActive",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active status (true/false)",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Companies list retrieved successfully with pagination info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompaniesListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - HR or Admin role required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List my companies",
+        "tags": [
+          "HR - Companies"
+        ]
+      }
+    },
+    "/api/hr/companies/{id}": {
+      "get": {
+        "description": "Retrieves detailed information about a specific company. HR users can only view companies they created, Admin users can view any company.",
+        "operationId": "HRCompaniesController_getCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to view this company (not the owner)"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get company by ID",
+        "tags": [
+          "HR - Companies"
+        ]
+      },
+      "put": {
+        "description": "Updates company details. All fields are optional - only provided fields will be updated. HR users can only update companies they created, Admin users can update any company.",
+        "operationId": "HRCompaniesController_updateCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Company updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data - validation failed"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to update this company (not the owner)"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update company",
+        "tags": [
+          "HR - Companies"
+        ]
+      },
+      "delete": {
+        "description": "Permanently deletes a company. This action cannot be undone. HR users can only delete companies they created, Admin users can delete any company.",
+        "operationId": "HRCompaniesController_deleteCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyDeleteResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to delete this company (not the owner)"
+          },
+          "404": {
+            "description": "Company not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete company",
+        "tags": [
+          "HR - Companies"
         ]
       }
     },
@@ -1334,14 +1794,7 @@
         },
         "responses": {
           "200": {
-            "description": "Skill updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SkillDto"
-                }
-              }
-            }
+            "description": "Skill updated successfully"
           },
           "400": {
             "description": "Invalid input data"
@@ -1459,6 +1912,102 @@
           }
         ],
         "summary": "Toggle skill active status",
+        "tags": [
+          "Admin - Skills"
+        ]
+      }
+    },
+    "/api/admin/skills/{id}/activate": {
+      "post": {
+        "description": "Activates a deactivated skill, making it visible and available for candidates (Admin only).",
+        "operationId": "AdminSkillsController_activateSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activate skill",
+        "tags": [
+          "Admin - Skills"
+        ]
+      }
+    },
+    "/api/admin/skills/{id}/deactivate": {
+      "post": {
+        "description": "Deactivates an active skill, hiding it from candidates. Existing candidate skills remain intact (Admin only).",
+        "operationId": "AdminSkillsController_deactivateSkill",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Skill ID (UUID)",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill deactivated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin role required"
+          },
+          "404": {
+            "description": "Skill not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate skill",
         "tags": [
           "Admin - Skills"
         ]
@@ -1980,11 +2529,546 @@
           "Templates"
         ]
       }
+    },
+    "/api/invitations": {
+      "post": {
+        "description": "HR creates an interview invitation for a candidate. Template must be active (published).",
+        "operationId": "InvitationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateInvitationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or duplicate invitation"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create invitation",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/start": {
+      "post": {
+        "description": "Candidate starts the interview. Sets status to \"in_progress\".",
+        "operationId": "InvitationsController_start",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Interview started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already started or expired"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not the invited candidate"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start interview",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/responses": {
+      "post": {
+        "description": "Candidate submits an answer to a question. Interview must be in progress.",
+        "operationId": "InvitationsController_submitResponse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitResponseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Response submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitResponseResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not in progress or duplicate response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not the invited candidate"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit response",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/complete": {
+      "post": {
+        "description": "Candidate completes the interview. All questions must be answered.",
+        "operationId": "InvitationsController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Interview completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not in progress or questions not answered"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not the invited candidate"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Complete interview",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}/heartbeat": {
+      "post": {
+        "description": "Update last activity for non-pausable interviews (allowPause=false). Used to detect if candidate left.",
+        "operationId": "InvitationsController_heartbeat",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not the invited candidate"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Heartbeat",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/candidate": {
+      "get": {
+        "description": "Get paginated list of invitations for the current candidate.",
+        "operationId": "InvitationsController_listCandidateInvitations",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by invitation status",
+            "schema": {
+              "enum": [
+                "pending",
+                "in_progress",
+                "completed",
+                "expired"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 10, max: 100)",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedInvitationsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List candidate invitations",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/hr": {
+      "get": {
+        "description": "Get paginated list of invitations created by current HR.",
+        "operationId": "InvitationsController_listHRInvitations",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by invitation status",
+            "schema": {
+              "enum": [
+                "pending",
+                "in_progress",
+                "completed",
+                "expired"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "templateId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by template UUID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 10, max: 100)",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedInvitationsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List HR invitations",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/invitations/{id}": {
+      "get": {
+        "description": "Get invitation details. Only candidate, inviter, or admin can view. Use includeTemplate=true to get full template with questions for interview.",
+        "operationId": "InvitationsController_getOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invitation ID (UUID)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeTemplate",
+            "required": false,
+            "in": "query",
+            "description": "Include template with questions (returns InvitationWithTemplateDto)",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation details (InvitationResponseDto or InvitationWithTemplateDto if includeTemplate=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not authorized to view"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get invitation",
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/api/analysis/{invitationId}": {
+      "get": {
+        "description": "Returns complete analysis results including overall score, summary, strengths, weaknesses, recommendation, and individual question analyses.",
+        "operationId": "AnalysisController_getAnalysisByInvitation",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "description": "Invitation UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis results with question analyses"
+          },
+          "404": {
+            "description": "Analysis not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get full analysis results",
+        "tags": [
+          "Analysis"
+        ]
+      }
+    },
+    "/api/analysis/status/{invitationId}": {
+      "get": {
+        "description": "Returns the processing status of an analysis. Candidates can check if their interview has been analyzed.",
+        "operationId": "AnalysisController_getAnalysisStatus",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "description": "Invitation UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis status"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get analysis status",
+        "tags": [
+          "Analysis"
+        ]
+      }
     }
   },
   "info": {
     "title": "AI Video Interview - API Gateway",
-    "description": "API Gateway for AI Video Interview Platform",
+    "description": "API Gateway for AI Video Interview Platform. \n    \n**Services:**\n- User Service (port 8002) - User management\n- Interview Service (port 8003) - Templates & Invitations\n- AI Analysis Service (port 8005) - Interview analysis",
     "version": "1.0",
     "contact": {}
   },
@@ -2008,6 +3092,14 @@
     {
       "name": "Templates",
       "description": "Interview templates management (HR & Admin)"
+    },
+    {
+      "name": "Invitations",
+      "description": "Interview invitations (HR creates, Candidate completes)"
+    },
+    {
+      "name": "Analysis",
+      "description": "AI-powered interview analysis results (HR & Admin)"
     }
   ],
   "servers": [],
@@ -2131,85 +3223,6 @@
         },
         "required": [
           "role"
-        ]
-      },
-      "CandidateSkillDto": {
-        "type": "object",
-        "properties": {
-          "skillId": {
-            "type": "string",
-            "description": "Skill ID",
-            "example": "123e4567-e89b-12d3-a456-426614174000",
-            "format": "uuid"
-          },
-          "skillName": {
-            "type": "string",
-            "description": "Skill name",
-            "example": "React",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "description": "Skill description or notes",
-            "example": "Built 10+ production React apps",
-            "nullable": true
-          },
-          "proficiencyLevel": {
-            "type": "string",
-            "description": "Proficiency level",
-            "enum": [
-              "beginner",
-              "intermediate",
-              "advanced",
-              "expert"
-            ],
-            "example": "expert",
-            "nullable": true
-          },
-          "yearsOfExperience": {
-            "type": "number",
-            "description": "Years of experience",
-            "example": 5,
-            "nullable": true
-          },
-          "addedAt": {
-            "type": "string",
-            "description": "When skill was added to profile",
-            "example": "2024-01-15T10:00:00Z",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "skillId",
-          "addedAt"
-        ]
-      },
-      "CandidateSkillsByCategoryDto": {
-        "type": "object",
-        "properties": {
-          "categoryId": {
-            "type": "string",
-            "description": "Category ID",
-            "example": "123e4567-e89b-12d3-a456-426614174000",
-            "format": "uuid",
-            "nullable": true
-          },
-          "categoryName": {
-            "type": "string",
-            "description": "Category name",
-            "example": "Frontend",
-            "nullable": true
-          },
-          "skills": {
-            "description": "Skills in this category",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CandidateSkillDto"
-            }
-          }
-        },
-        "required": [
-          "skills"
         ]
       },
       "AddCandidateSkillDto": {
@@ -2343,6 +3356,213 @@
           "createdAt"
         ]
       },
+      "CreateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry",
+            "example": "Software Development",
+            "maxLength": 100
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees",
+            "maxLength": 50
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company",
+            "maxLength": 1000
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name",
+          "industry",
+          "size"
+        ]
+      },
+      "CompanyResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Company ID",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry",
+            "example": "Software Development"
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees"
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company"
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is company active",
+            "example": true
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User ID who created this company",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp",
+            "example": "2024-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp",
+            "example": "2024-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "industry",
+          "size",
+          "isActive",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CompaniesListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "List of companies",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyResponseDto"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "description": "Pagination info",
+            "example": {
+              "total": 100,
+              "page": 1,
+              "limit": 20,
+              "totalPages": 5
+            }
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ]
+      },
+      "UpdateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry",
+            "example": "Software Development",
+            "maxLength": 100
+          },
+          "size": {
+            "type": "string",
+            "description": "Company size",
+            "example": "50-100 employees",
+            "maxLength": 50
+          },
+          "website": {
+            "type": "string",
+            "description": "Company website URL",
+            "example": "https://techcorp.com"
+          },
+          "description": {
+            "type": "string",
+            "description": "Company description",
+            "example": "Leading software development company",
+            "maxLength": 1000
+          },
+          "location": {
+            "type": "string",
+            "description": "Company location",
+            "example": "San Francisco, CA",
+            "maxLength": 200
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is company active",
+            "example": true
+          }
+        }
+      },
+      "CompanyDeleteResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Success status",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Success message",
+            "example": "Company deleted successfully"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -2350,6 +3570,11 @@
             "type": "string",
             "description": "User email address",
             "example": "john.doe@example.com"
+          },
+          "username": {
+            "type": "string",
+            "description": "Username for login (optional, defaults to email)",
+            "example": "johndoe"
           },
           "firstName": {
             "type": "string",
@@ -2640,16 +3865,12 @@
         "properties": {
           "success": {
             "type": "boolean",
+            "description": "Operation success status",
             "example": true
-          },
-          "message": {
-            "type": "string",
-            "example": "Operation completed successfully"
           }
         },
         "required": [
-          "success",
-          "message"
+          "success"
         ]
       },
       "CreateSkillDto": {
@@ -3366,6 +4587,484 @@
         },
         "required": [
           "questionIds"
+        ]
+      },
+      "CreateInvitationDto": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "description": "Interview template ID (must be active/published)",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "candidateId": {
+            "type": "string",
+            "description": "Candidate user ID who will take the interview",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc.",
+            "maxLength": 200
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Deadline for completing the interview (ISO 8601 format)",
+            "example": "2025-01-15T23:59:59Z"
+          },
+          "allowPause": {
+            "type": "boolean",
+            "description": "Allow candidate to pause and resume the interview",
+            "default": true,
+            "example": true
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show countdown timer during interview",
+            "default": true,
+            "example": true
+          }
+        },
+        "required": [
+          "templateId",
+          "candidateId",
+          "companyName",
+          "expiresAt"
+        ]
+      },
+      "CreateInvitationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Created invitation UUID",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "SubmitResponseDto": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string",
+            "description": "Question ID being answered",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
+          },
+          "questionIndex": {
+            "type": "number",
+            "description": "Question index (0-based)",
+            "example": 0,
+            "minimum": 0
+          },
+          "questionText": {
+            "type": "string",
+            "description": "Question text snapshot (for record keeping)",
+            "example": "What is your experience with React?"
+          },
+          "responseType": {
+            "type": "string",
+            "description": "Type of response being submitted",
+            "enum": [
+              "text",
+              "code",
+              "video"
+            ],
+            "example": "text"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Time spent on this question (seconds)",
+            "example": 60,
+            "minimum": 0
+          },
+          "textAnswer": {
+            "type": "string",
+            "description": "Text answer (required when responseType is \"text\")",
+            "example": "I have 5 years of experience with React..."
+          },
+          "codeAnswer": {
+            "type": "string",
+            "description": "Code answer (required when responseType is \"code\")",
+            "example": "function fibonacci(n) { return n <= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }"
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "Video URL (required when responseType is \"video\")",
+            "example": "https://storage.example.com/videos/response-abc123.webm"
+          }
+        },
+        "required": [
+          "questionId",
+          "questionIndex",
+          "questionText",
+          "responseType",
+          "duration"
+        ]
+      },
+      "SubmitResponseResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Created response UUID",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "CompleteInvitationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Reason for completing the interview",
+            "enum": [
+              "manual",
+              "auto_timeout"
+            ],
+            "default": "manual",
+            "example": "manual"
+          }
+        }
+      },
+      "InvitationProgressDto": {
+        "type": "object",
+        "properties": {
+          "answered": {
+            "type": "number",
+            "description": "Number of answered questions",
+            "example": 2
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of questions",
+            "example": 5
+          },
+          "percentage": {
+            "type": "number",
+            "description": "Progress percentage (0-100)",
+            "example": 40
+          }
+        },
+        "required": [
+          "answered",
+          "total",
+          "percentage"
+        ]
+      },
+      "InvitationListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Invitation UUID",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Template ID",
+            "format": "uuid"
+          },
+          "templateTitle": {
+            "type": "string",
+            "description": "Template title",
+            "example": "Frontend Developer Interview"
+          },
+          "candidateId": {
+            "type": "string",
+            "description": "Candidate ID",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string",
+            "description": "Candidate name"
+          },
+          "candidateEmail": {
+            "type": "string",
+            "description": "Candidate email"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "expired"
+            ],
+            "example": "pending"
+          },
+          "allowPause": {
+            "type": "boolean",
+            "description": "Can pause?",
+            "example": true
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Deadline"
+          },
+          "progress": {
+            "description": "Progress",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvitationProgressDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Created at"
+          }
+        },
+        "required": [
+          "id",
+          "templateId",
+          "templateTitle",
+          "candidateId",
+          "companyName",
+          "status",
+          "allowPause",
+          "expiresAt",
+          "progress",
+          "createdAt"
+        ]
+      },
+      "PaginatedInvitationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "List of invitations",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvitationListItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total count",
+            "example": 25
+          },
+          "page": {
+            "type": "number",
+            "description": "Current page",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "description": "Items per page",
+            "example": 10
+          },
+          "totalPages": {
+            "type": "number",
+            "description": "Total pages",
+            "example": 3
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "ResponseItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Response UUID",
+            "format": "uuid"
+          },
+          "questionId": {
+            "type": "string",
+            "description": "Question ID",
+            "format": "uuid"
+          },
+          "questionIndex": {
+            "type": "number",
+            "description": "Question index (0-based)",
+            "example": 0
+          },
+          "questionText": {
+            "type": "string",
+            "description": "Question text snapshot",
+            "example": "What is your experience?"
+          },
+          "responseType": {
+            "type": "string",
+            "description": "Response type",
+            "enum": [
+              "text",
+              "code",
+              "video"
+            ],
+            "example": "text"
+          },
+          "textAnswer": {
+            "type": "string",
+            "description": "Text answer"
+          },
+          "codeAnswer": {
+            "type": "string",
+            "description": "Code answer"
+          },
+          "videoUrl": {
+            "type": "string",
+            "description": "Video URL"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Time spent (seconds)",
+            "example": 60
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Submission timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "questionId",
+          "questionIndex",
+          "questionText",
+          "responseType",
+          "duration",
+          "submittedAt"
+        ]
+      },
+      "InvitationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Invitation UUID",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Template ID",
+            "format": "uuid"
+          },
+          "candidateId": {
+            "type": "string",
+            "description": "Candidate user ID",
+            "format": "uuid"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Company name",
+            "example": "TechCorp Inc."
+          },
+          "invitedBy": {
+            "type": "string",
+            "description": "HR user ID who created invitation",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "description": "Current invitation status",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "expired"
+            ],
+            "example": "pending"
+          },
+          "allowPause": {
+            "type": "boolean",
+            "description": "Can candidate pause?",
+            "example": true
+          },
+          "showTimer": {
+            "type": "boolean",
+            "description": "Show timer?",
+            "example": true
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Deadline"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When started"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When completed"
+          },
+          "completedReason": {
+            "type": "string",
+            "description": "Completion reason",
+            "enum": [
+              "manual",
+              "auto_timeout",
+              "expired"
+            ]
+          },
+          "progress": {
+            "description": "Progress",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvitationProgressDto"
+              }
+            ]
+          },
+          "responses": {
+            "description": "Responses",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseItemDto"
+            }
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Created at"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Updated at"
+          }
+        },
+        "required": [
+          "id",
+          "templateId",
+          "candidateId",
+          "companyName",
+          "invitedBy",
+          "status",
+          "allowPause",
+          "showTimer",
+          "expiresAt",
+          "progress",
+          "responses",
+          "createdAt",
+          "updatedAt"
         ]
       }
     }

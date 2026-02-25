@@ -5,7 +5,7 @@ import { YearsOfExperience } from '../value-objects/years-of-experience.vo';
 import { CandidateSkill } from '../entities/candidate-skill.entity';
 import { DomainException } from '../exceptions/domain.exception';
 import { CandidateSkillAddedEvent } from '../events/candidate-skill-added.event';
-import { CandidateSkillUpdatedEvent } from '../events/candidate-skill-updated.event';
+import { CandidateSkillUpdatedEvent, type CandidateSkillChanges } from '../events/candidate-skill-updated.event';
 import { CandidateSkillRemovedEvent } from '../events/candidate-skill-removed.event';
 
 /**
@@ -125,7 +125,7 @@ export class CandidateProfile extends AggregateRoot {
       throw new DomainException('Skill not found in profile');
     }
 
-    const changes: any = {};
+    const changes: CandidateSkillChanges = {};
     
     if (description !== skill.description) {
       skill.updateDescription(description || '');

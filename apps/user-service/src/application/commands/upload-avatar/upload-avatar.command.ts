@@ -5,6 +5,6 @@
 export class UploadAvatarCommand {
   constructor(
     public readonly userId: string,
-    public readonly file: any, // Multer.File type
+    public readonly file: Express.Multer.File,
   ) {}
 }

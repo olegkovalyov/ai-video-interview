@@ -4,7 +4,6 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
-import { OutboxService } from '../../src/infrastructure/messaging/outbox/outbox.service';
 import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 import { TestInternalServiceGuard } from './test-auth.guard';
 import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
@@ -35,7 +34,7 @@ describe('Candidates API (E2E)', () => {
         disconnect: jest.fn(),
         publishEvent: jest.fn(),
       })
-      .overrideProvider(OutboxService)
+      .overrideProvider('IOutboxService')
       .useValue(mockOutboxService)
       .overrideProvider('IStorageService')
       .useValue(mockStorageService)
@@ -408,32 +407,94 @@ describe('Candidates API (E2E)', () => {
       expect(Array.isArray(response.body.data)).toBe(true);
     });
 
-    it('should search with multiple skill filters', async () => {
+    it('should search candidates by single skillId', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/candidates/search?minProficiency=intermediate`)
+        .get(`/candidates/search?skillIds=${skillId}`)
         .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].userId).toBe(candidateUserId);
+    });
+
+    it('should search candidates by multiple skillIds', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/candidates/search?skillIds=${skillId}&skillIds=${secondSkillId}`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(1);
+    });
+
+    it('should search candidates with skillIds and pagination', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/candidates/search?skillIds=${skillId}&page=1&limit=5`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.pagination.page).toBe(1);
+      expect(response.body.pagination.limit).toBe(5);
+    });
+
+    it('should filter by minProficiency - include higher levels', async () => {
+      // Candidate has skillId at 'advanced' level
+      // minProficiency=intermediate should include advanced and expert
+      const response = await request(app.getHttpServer())
+        .get(`/candidates/search?skillIds=${skillId}&minProficiency=intermediate`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(1); // advanced >= intermediate
+    });
+
+    it('should filter by minProficiency - exclude lower levels', async () => {
+      // Candidate has secondSkillId at 'intermediate' level
+      // minProficiency=expert should NOT include intermediate
+      const response = await request(app.getHttpServer())
+        .get(`/candidates/search?skillIds=${secondSkillId}&minProficiency=expert`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(0); // intermediate < expert
     });
 
     it('should filter by minimum years', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/candidates/search?minYears=2`)
+        .get(`/candidates/search?skillIds=${skillId}&minYears=2`)
         .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(1); // 3 years >= 2
     });
 
-    it('should filter by experience level', async () => {
+    it('should filter by experienceLevel - exact match', async () => {
+      // Candidate profile has experience_level = 'mid' (set in beforeAll)
       const response = await request(app.getHttpServer())
-        .get(`/candidates/search?experienceLevel=mid`)
+        .get(`/candidates/search?skillIds=${skillId}&experienceLevel=mid`)
         .set('x-internal-token', 'test-token')
         .expect(200);
 
       expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].experienceLevel).toBe('mid');
+    });
+
+    it('should filter by experienceLevel - no match for different level', async () => {
+      // Candidate profile has experience_level = 'mid'
+      // Search for 'senior' should return empty
+      const response = await request(app.getHttpServer())
+        .get(`/candidates/search?skillIds=${skillId}&experienceLevel=senior`)
+        .set('x-internal-token', 'test-token')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(0); // mid != senior
     });
 
     it('should support pagination', async () => {

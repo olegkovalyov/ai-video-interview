@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, type FindOptionsWhere } from 'typeorm';
 import {
   ISkillReadRepository,
   PaginatedResult,
@@ -54,7 +54,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     limit: number,
     filters?: SkillListFilters,
   ): Promise<PaginatedResult<SkillReadModel>> {
-    const where: any = {};
+    const where: FindOptionsWhere<SkillEntity> = {};
 
     if (filters?.categoryId) {
       where.categoryId = filters.categoryId;
@@ -163,7 +163,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
   }
 
   async count(filters?: SkillListFilters): Promise<number> {
-    const where: any = {};
+    const where: FindOptionsWhere<SkillEntity> = {};
 
     if (filters?.categoryId) {
       where.categoryId = filters.categoryId;

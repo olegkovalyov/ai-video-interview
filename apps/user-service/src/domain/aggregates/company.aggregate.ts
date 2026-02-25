@@ -3,7 +3,7 @@ import { CompanySize } from '../value-objects/company-size.vo';
 import { UserCompany } from '../entities/user-company.entity';
 import { DomainException } from '../exceptions/domain.exception';
 import { CompanyCreatedEvent } from '../events/company-created.event';
-import { CompanyUpdatedEvent } from '../events/company-updated.event';
+import { CompanyUpdatedEvent, type CompanyChanges } from '../events/company-updated.event';
 import { CompanyDeactivatedEvent } from '../events/company-deactivated.event';
 
 /**
@@ -154,7 +154,7 @@ export class Company extends AggregateRoot {
       throw new DomainException('Company name is too long (max 255 characters)');
     }
 
-    const changes: any = {};
+    const changes: CompanyChanges = {};
 
     if (name.trim() !== this._name) {
       this._name = name.trim();
@@ -224,10 +224,10 @@ export class Company extends AggregateRoot {
       throw new DomainException('User already associated with this company');
     }
 
-    // If setting as primary, unset other primary
+    // If setting as primary, unset other primary users
     if (isPrimary) {
       this._users
-        .filter(uc => uc.userId === userId)
+        .filter(uc => uc.isPrimary)
         .forEach(uc => uc.unsetAsPrimary());
     }
 

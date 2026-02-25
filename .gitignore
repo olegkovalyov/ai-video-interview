@@ -50,3 +50,36 @@ apps/*/logs/*.json
 
 # Development plans (personal notes)
 docs/plan/
+
+# AI agent skills (installed via npx skills)
+.agents/
+.claude/skills/
+.windsurf/
+.cline/
+.continue/
+.crush/
+.junie/
+.mux/
+.qwen/
+.openhands/
+.trae/
+.mcpjam/
+.qoder/
+.roo/
+.goose/
+.neovate/
+.zencoder/
+.kilocode/
+.commandcode/
+.agent/
+.factory/
+.kiro/
+.codebuddy/
+.pi/
+skills/
+
+# Legacy
+.windsurf
+
+# One-off scripts
+oracle_a1_auto_create.py

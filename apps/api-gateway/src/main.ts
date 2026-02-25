@@ -28,7 +28,12 @@ async function bootstrap() {
   // Swagger Documentation Setup
   const config = new DocumentBuilder()
     .setTitle('AI Video Interview - API Gateway')
-    .setDescription(`API Gateway for AI Video Interview Platform`)
+    .setDescription(`API Gateway for AI Video Interview Platform. 
+    
+**Services:**
+- User Service (port 8002) - User management
+- Interview Service (port 8003) - Templates & Invitations
+- AI Analysis Service (port 8005) - Interview analysis`)
     .setVersion('1.0')
     .addBearerAuth({
       type: 'http',
@@ -43,6 +48,8 @@ async function bootstrap() {
     .addTag('Admin - User Actions', 'Admin user action operations (suspend/activate)')
     .addTag('Admin - Roles', 'Admin role management operations')
     .addTag('Templates', 'Interview templates management (HR & Admin)')
+    .addTag('Invitations', 'Interview invitations (HR creates, Candidate completes)')
+    .addTag('Analysis', 'AI-powered interview analysis results (HR & Admin)')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

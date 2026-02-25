@@ -1,23 +1,24 @@
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Logger } from '@nestjs/common';
 import { ListTemplatesQuery } from './list-templates.query';
 import { PaginatedTemplatesResponseDto } from '../../dto/template.response.dto';
-import { InterviewTemplateReadRepository } from '../../../infrastructure/persistence/repositories/interview-template-read.repository';
+import type { IInterviewTemplateReadRepository } from '../../../domain/repositories/interview-template-read.repository.interface';
+import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
 @QueryHandler(ListTemplatesQuery)
 export class ListTemplatesHandler
   implements IQueryHandler<ListTemplatesQuery>
 {
-  private readonly logger = new Logger(ListTemplatesHandler.name);
-
   constructor(
-    private readonly readRepository: InterviewTemplateReadRepository,
+    @Inject('IInterviewTemplateReadRepository')
+    private readonly readRepository: IInterviewTemplateReadRepository,
+    private readonly logger: LoggerService,
   ) {}
 
   async execute(
     query: ListTemplatesQuery,
   ): Promise<PaginatedTemplatesResponseDto> {
-    this.logger.log(
+    this.logger.info(
       `Listing templates - page: ${query.page}, limit: ${query.limit}`,
     );
 

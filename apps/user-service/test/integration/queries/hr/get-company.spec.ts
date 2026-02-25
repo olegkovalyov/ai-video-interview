@@ -47,11 +47,6 @@ describe('GetCompanyQuery Integration', () => {
         role: 'hr',
       });
 
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
-
       const createCommand = new CreateCompanyCommand(
         'Tech Corp',
         'Leading tech company',
@@ -89,11 +84,6 @@ describe('GetCompanyQuery Integration', () => {
         lastName: 'Manager',
         role: 'hr',
       });
-
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
 
       const createCommand = new CreateCompanyCommand(
         'Complete Company',
@@ -135,11 +125,6 @@ describe('GetCompanyQuery Integration', () => {
         role: 'hr',
       });
 
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
-
       const createCommand = new CreateCompanyCommand(
         'Minimal Company',
         null,
@@ -177,11 +162,6 @@ describe('GetCompanyQuery Integration', () => {
         lastName: 'Manager',
         role: 'hr',
       });
-
-      await dataSource.query(
-        'INSERT INTO hr_profiles (user_id) VALUES ($1)',
-        [hrId],
-      );
 
       const createCommand = new CreateCompanyCommand(
         'My Company',

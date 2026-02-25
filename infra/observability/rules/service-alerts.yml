@@ -1,0 +1,136 @@
+groups:
+  - name: service-health
+    interval: 30s
+    rules:
+      # Service is unreachable for > 1 min
+      - alert: ServiceDown
+        expr: up{job=~"api-gateway|user-service|interview-service|ai-analysis-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "Prometheus cannot scrape {{ $labels.job }} ({{ $labels.instance }}) for more than 1 minute."
+
+      # HTTP 5xx error rate > 5% over 5 min
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum by (job) (rate({__name__=~".*http_requests_total", status=~"5.."}[5m]))
+            / sum by (job) (rate({__name__=~".*http_requests_total"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} has > 5% HTTP 5xx error rate for 5 minutes. Current: {{ $value | humanizePercentage }}"
+
+      # P99 latency > 5 seconds
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le, job) (rate({__name__=~".*http_request_duration_seconds_bucket"}[5m]))
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P99 latency on {{ $labels.job }}"
+          description: "{{ $labels.job }} P99 latency exceeds 5s. Current: {{ $value | humanizeDuration }}"
+
+  - name: kafka-health
+    interval: 30s
+    rules:
+      # Consumer group lag > 1000 messages
+      - alert: KafkaConsumerLag
+        expr: sum by (consumergroup, topic) (kafka_consumergroup_lag) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Consumer group {{ $labels.consumergroup }} on topic {{ $labels.topic }} has lag > 1000. Current: {{ $value }}"
+
+      # Any messages in DLQ topics
+      - alert: KafkaDLQMessages
+        expr: sum by (topic) (kafka_topic_partition_current_offset{topic=~".*-dlq"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Messages in DLQ topic {{ $labels.topic }}"
+          description: "Dead letter queue {{ $labels.topic }} has {{ $value }} messages. Investigate failed event processing."
+
+  - name: analysis-health
+    interval: 30s
+    rules:
+      # LLM rate limit hits sustained over 5 min
+      - alert: LLMRateLimited
+        expr: rate(analysis_service_llm_requests_total{status="rate_limited"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Groq API rate limiting active"
+          description: "AI Analysis Service is being rate limited by Groq API. LLM requests are delayed."
+
+      # Analysis failure rate > 10%
+      - alert: HighAnalysisFailureRate
+        expr: |
+          (
+            rate(analysis_service_analysis_total{status="failed"}[10m])
+            / rate(analysis_service_analysis_total[10m])
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High analysis failure rate"
+          description: "More than 10% of AI analyses are failing. Current failure rate: {{ $value | humanizePercentage }}"
+
+      # Analysis taking > 5 minutes (P95)
+      - alert: SlowAnalysis
+        expr: |
+          histogram_quantile(0.95,
+            rate(analysis_service_analysis_duration_seconds_bucket[15m])
+          ) > 300
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI analyses running slowly"
+          description: "P95 analysis duration exceeds 5 minutes. Current: {{ $value | humanizeDuration }}"
+
+  - name: infrastructure-health
+    interval: 60s
+    rules:
+      # High CPU usage > 85%
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 85% for 10 minutes. Current: {{ $value }}%"
+
+      # High memory usage > 85%
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 85% for 10 minutes. Current: {{ $value }}%"
+
+      # Disk usage > 80%
+      - alert: HighDiskUsage
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage on {{ $labels.mountpoint }} is above 80%. Current: {{ $value }}%"

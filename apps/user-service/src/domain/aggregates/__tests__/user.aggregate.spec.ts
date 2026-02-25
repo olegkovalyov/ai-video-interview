@@ -6,6 +6,7 @@ import { UserRole } from '../../value-objects/user-role.vo';
 import { UserCreatedEvent } from '../../events/user-created.event';
 import { UserUpdatedEvent } from '../../events/user-updated.event';
 import { UserSuspendedEvent } from '../../events/user-suspended.event';
+import { UserActivatedEvent } from '../../events/user-activated.event';
 import { UserDeletedEvent } from '../../events/user-deleted.event';
 import {
   UserDeletedException,
@@ -333,7 +334,7 @@ describe('User Aggregate', () => {
         expect(user.isSuspended).toBe(false);
       });
 
-      it('should emit UserUpdatedEvent', () => {
+      it('should emit UserActivatedEvent', () => {
         const user = User.create(userId, externalAuthId, email, fullName);
         user.suspend('Reason', 'admin-123');
         user.clearEvents();
@@ -342,7 +343,7 @@ describe('User Aggregate', () => {
 
         const events = user.getUncommittedEvents();
         expect(events).toHaveLength(1);
-        expect(events[0]).toBeInstanceOf(UserUpdatedEvent);
+        expect(events[0]).toBeInstanceOf(UserActivatedEvent);
       });
 
       it('should not emit event if already active', () => {

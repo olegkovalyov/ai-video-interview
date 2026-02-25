@@ -1,7 +1,11 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { DeleteCompanyCommand } from './delete-company.command';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
+import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../../domain/exceptions/company.exceptions';
+import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
+import type { IOutboxService } from '../../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 /**
@@ -14,6 +18,10 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
   constructor(
     @Inject('ICompanyRepository')
     private readonly companyRepository: ICompanyRepository,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
     private readonly logger: LoggerService,
   ) {}
 
@@ -26,16 +34,32 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
     // 1. Find company
     const company = await this.companyRepository.findById(command.companyId);
     if (!company) {
-      throw new NotFoundException(`Company with ID "${command.companyId}" not found`);
+      throw new CompanyNotFoundException(command.companyId);
     }
 
     // 2. Check permissions - only creator can delete
     if (company.createdBy !== command.userId) {
-      throw new ForbiddenException('Only company creator can delete the company');
+      throw new CompanyAccessDeniedException('Only company creator can delete the company');
     }
 
-    // 3. Hard delete (CASCADE removes user_companies)
-    await this.companyRepository.delete(command.companyId);
+    // 3. Atomic: outbox save + hard delete in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      const eid = await this.outboxService.saveEvent(
+        COMPANY_EVENT_TYPES.DELETED,
+        {
+          companyId: command.companyId,
+          deletedBy: command.userId,
+          deletedAt: new Date().toISOString(),
+        },
+        command.companyId,
+        tx,
+      );
+      await this.companyRepository.delete(command.companyId, tx);
+      return eid;
+    });
+
+    // 4. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
 
     this.logger.warn('Company deleted permanently', { companyId: command.companyId });
   }

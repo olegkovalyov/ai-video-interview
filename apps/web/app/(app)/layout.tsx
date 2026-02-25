@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/header';
 import { getUserRoles } from '@/lib/auth/get-user-roles';
 import { redirect } from 'next/navigation';
+import { TokenRefreshProvider } from '@/components/auth/TokenRefreshProvider';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
  * Layout для authenticated страниц
  * - Получает роли через getUserRoles (с auto-refresh)
  * - Редиректит pending пользователей на /select-role
+ * - Включает TokenRefreshProvider для proactive refresh (каждые 4 мин)
  * 
  * Role-based protection происходит в middleware
  */
@@ -31,9 +33,9 @@ export default async function AppLayout({
   }
 
   return (
-    <>
+    <TokenRefreshProvider>
       <Header userRoles={userRoles} />
       {children}
-    </>
+    </TokenRefreshProvider>
   );
 }

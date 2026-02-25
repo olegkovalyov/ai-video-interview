@@ -7,14 +7,14 @@ import type { IRoleRepository } from '../../../domain/repositories/role.reposito
 import { Email } from '../../../domain/value-objects/email.vo';
 import { FullName } from '../../../domain/value-objects/full-name.vo';
 import { UserAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
-import { OutboxService } from '../../../infrastructure/messaging/outbox/outbox.service';
+import { USER_EVENT_TYPES } from '../../../domain/constants';
+import type { IOutboxService } from '../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
-import { v4 as uuid } from 'uuid';
 
 /**
  * Create User Command Handler
  * Orchestrates user creation use case
- * Auto-assigns 'candidate' role to new users
  */
 @CommandHandler(CreateUserCommand)
 export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
@@ -24,7 +24,10 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     @Inject('IRoleRepository')
     private readonly roleRepository: IRoleRepository,
     private readonly eventBus: EventBus,
-    private readonly outboxService: OutboxService,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
     private readonly logger: LoggerService,
   ) {}
 
@@ -62,36 +65,12 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
       fullName,
     );
 
-    // 4. Save to repository
-    await this.userRepository.save(user);
-
-    this.logger.info('User created successfully', {
-      userId: user.id,
-      email: user.email.value,
-      role: user.role.toString(),
-      status: user.status.value,
-    });
-
-    // 5. Auto-assign 'candidate' role - REMOVED
-    // Role assignment should be done explicitly via Admin API or separate saga step
-    // to avoid transaction conflicts and ensure proper orchestration
-    
-    // 6. Publish domain events (internal only - logging, metrics, etc.)
-    user.getUncommittedEvents().forEach(event => {
-      this.eventBus.publish(event);
-    });
-    user.clearEvents();
-
-    // 7. Publish integration event to Kafka (for other services)
-    await this.outboxService.saveEvent(
-      'user.created',
-      {
-        eventId: uuid(),
-        eventType: 'user.created',
-        timestamp: Date.now(),
-        version: '1.0',
-        source: 'user-service',
-        payload: {
+    // 4. Atomic save: aggregate + outbox in same transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      await this.userRepository.save(user, tx);
+      return this.outboxService.saveEvent(
+        USER_EVENT_TYPES.CREATED,
+        {
           userId: user.id,
           externalAuthId: user.externalAuthId,
           email: user.email.value,
@@ -101,9 +80,26 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
           role: user.role.toString(),
           createdAt: user.createdAt.toISOString(),
         },
-      },
-      user.id,
-    );
+        user.id,
+        tx,
+      );
+    });
+
+    // 5. After commit: publish domain events (internal)
+    user.getUncommittedEvents().forEach(event => {
+      this.eventBus.publish(event);
+    });
+    user.clearEvents();
+
+    // 6. Schedule BullMQ job for Kafka publishing
+    await this.outboxService.schedulePublishing([eventId]);
+
+    this.logger.info('User created successfully', {
+      userId: user.id,
+      email: user.email.value,
+      role: user.role.toString(),
+      status: user.status.value,
+    });
 
     return user;
   }

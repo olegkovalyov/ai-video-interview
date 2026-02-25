@@ -1,9 +1,12 @@
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { OptimisticLockVersionMismatchError } from 'typeorm';
 import { AddQuestionCommand } from './add-question.command';
 import type { IInterviewTemplateRepository } from '../../../domain/repositories/interview-template.repository.interface';
+import type { IOutboxService } from '../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
+import { LoggerService } from '../../../infrastructure/logger/logger.service';
+import { TemplateNotFoundException, TemplateUnauthorizedException } from '../../../domain/exceptions/interview-template.exceptions';
 import { Question } from '../../../domain/entities/question.entity';
 import { QuestionType } from '../../../domain/value-objects/question-type.vo';
 import { QuestionOption } from '../../../domain/value-objects/question-option.vo';
@@ -12,25 +15,31 @@ import { QuestionOption } from '../../../domain/value-objects/question-option.vo
 export class AddQuestionHandler
   implements ICommandHandler<AddQuestionCommand>
 {
-  private readonly logger = new Logger(AddQuestionHandler.name);
-
   constructor(
     @Inject('IInterviewTemplateRepository')
     private readonly templateRepository: IInterviewTemplateRepository,
     private readonly eventBus: EventBus,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
+    private readonly logger: LoggerService,
   ) {}
 
   async execute(command: AddQuestionCommand): Promise<string> {
-    this.logger.log(
-      `Adding question to template: ${command.templateId}`,
-    );
+    this.logger.info('Adding question to template', { action: 'AddQuestion', templateId: command.templateId });
 
     // Load template aggregate
     const template = await this.templateRepository.findById(command.templateId);
     if (!template) {
-      throw new NotFoundException(
-        `Template with ID ${command.templateId} not found`,
-      );
+      throw new TemplateNotFoundException(command.templateId);
+    }
+
+    // Ownership check: HR can only modify their own templates
+    if (command.userRole && command.userRole !== 'admin' && command.userId) {
+      if (template.createdBy !== command.userId) {
+        throw new TemplateUnauthorizedException(command.userId, command.templateId);
+      }
     }
 
     // Generate UUID for question
@@ -38,7 +47,7 @@ export class AddQuestionHandler
 
     // Create Question entity
     const questionType = QuestionType.create(command.type);
-    
+
     // Map options if present (for multiple_choice questions)
     const questionOptions = command.options?.map((opt) =>
       QuestionOption.create({
@@ -61,30 +70,31 @@ export class AddQuestionHandler
     // Add question to template (domain logic)
     template.addQuestion(question);
 
-    // Save aggregate (with optimistic lock protection)
-    try {
-      await this.templateRepository.save(template);
-    } catch (error) {
-      if (error instanceof OptimisticLockVersionMismatchError) {
-        this.logger.warn(
-          `Optimistic lock conflict for template ${command.templateId}`,
-        );
-        throw new ConflictException(
-          'Template was modified by another user. Please refresh and try again.',
-        );
-      }
-      throw error;
-    }
+    // Atomic write: save aggregate + outbox event in single transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      await this.templateRepository.save(template, tx);
+      return this.outboxService.saveEvent(
+        'template.question.added',
+        {
+          templateId: command.templateId,
+          questionId,
+          questionText: command.text,
+          questionType: command.type,
+          order: command.order,
+        },
+        command.templateId,
+        tx,
+      );
+    });
 
-    // Publish domain events
+    // Post-commit: publish domain events + schedule BullMQ
     const events = template.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
     template.commit();
+    await this.outboxService.schedulePublishing([eventId]);
 
-    this.logger.log(
-      `Question ${questionId} added to template ${command.templateId}`,
-    );
-    
+    this.logger.info('Question added to template', { action: 'AddQuestion', templateId: command.templateId, questionId });
+
     return questionId;
   }
 }

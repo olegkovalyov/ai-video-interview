@@ -1,4 +1,5 @@
 import { CandidateProfile } from '../aggregates/candidate-profile.aggregate';
+import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 /**
  * CandidateProfile Repository Interface (Write operations)
@@ -7,8 +8,9 @@ import { CandidateProfile } from '../aggregates/candidate-profile.aggregate';
 export interface ICandidateProfileRepository {
   /**
    * Save candidate profile (create or update with skills CASCADE)
+   * @param tx - optional transaction context from UnitOfWork
    */
-  save(profile: CandidateProfile): Promise<void>;
+  save(profile: CandidateProfile, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Find candidate profile by user ID (with skills loaded)

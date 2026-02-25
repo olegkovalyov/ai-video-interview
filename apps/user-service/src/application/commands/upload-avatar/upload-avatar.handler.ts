@@ -4,12 +4,13 @@ import { UploadAvatarCommand } from './upload-avatar.command';
 import { User } from '../../../domain/aggregates/user.aggregate';
 import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
 import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
+import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
 /**
  * Storage Service Interface (will be implemented in infrastructure)
  */
 export interface IStorageService {
-  uploadFile(file: any, bucket: string): Promise<string>; // Multer.File type
+  uploadFile(file: Express.Multer.File, bucket: string): Promise<string>;
   deleteFile(url: string): Promise<void>;
 }
 
@@ -24,6 +25,7 @@ export class UploadAvatarHandler implements ICommandHandler<UploadAvatarCommand>
     @Inject('IStorageService')
     private readonly storageService: IStorageService,
     private readonly eventBus: EventBus,
+    private readonly logger: LoggerService,
   ) {}
 
   async execute(command: UploadAvatarCommand): Promise<User> {
@@ -44,8 +46,11 @@ export class UploadAvatarHandler implements ICommandHandler<UploadAvatarCommand>
       try {
         await this.storageService.deleteFile(user.avatarUrl);
       } catch (error) {
-        // Log error but don't fail the operation
-        console.error('Failed to delete old avatar:', error);
+        this.logger.error('Failed to delete old avatar', {
+          userId: command.userId,
+          oldAvatarUrl: user.avatarUrl,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 

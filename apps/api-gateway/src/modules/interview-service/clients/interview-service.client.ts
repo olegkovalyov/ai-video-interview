@@ -16,6 +16,14 @@ import type {
   QuestionResponseDto,
 } from '../dto/question.dto';
 import type { InterviewSettingsDto } from '../dto/settings.dto';
+import type {
+  CreateInvitationDto,
+  SubmitResponseDto,
+  CompleteInvitationDto,
+  InvitationResponseDto,
+  InvitationWithTemplateDto,
+  PaginatedInvitationsResponseDto,
+} from '../dto/invitation.dto';
 
 // ════════════════════════════════════════════════════════════════
 // Re-export types for convenience
@@ -31,10 +39,24 @@ export type {
   PaginatedTemplatesResponseDto,
   QuestionResponseDto,
   InterviewSettingsDto,
+  // Invitation types
+  CreateInvitationDto,
+  SubmitResponseDto,
+  CompleteInvitationDto,
+  InvitationResponseDto,
+  InvitationWithTemplateDto,
+  PaginatedInvitationsResponseDto,
 };
 
 export interface ListTemplatesQuery {
   status?: 'draft' | 'active' | 'archived';
+  page?: number;
+  limit?: number;
+}
+
+export interface ListInvitationsQuery {
+  status?: 'pending' | 'in_progress' | 'completed' | 'expired';
+  templateId?: string;
   page?: number;
   limit?: number;
 }
@@ -55,7 +77,7 @@ export class InterviewServiceClient {
     private readonly loggerService: LoggerService,
   ) {
     this.baseUrl =
-      this.configService.get<string>('INTERVIEW_SERVICE_URL') || 'http://localhost:3004';
+      this.configService.get<string>('INTERVIEW_SERVICE_URL') || 'http://localhost:8003';
     this.internalToken = this.configService.get<string>('INTERNAL_SERVICE_TOKEN') || '';
   }
 
@@ -445,6 +467,325 @@ export class InterviewServiceClient {
   }
 
   // ════════════════════════════════════════════════════════════════
+  // Invitations API
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * POST /api/invitations
+   * Create a new invitation
+   */
+  async createInvitation(
+    dto: CreateInvitationDto,
+    userId: string,
+    role: string,
+  ): Promise<{ id: string }> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Creating invitation', {
+        userId,
+        templateId: dto.templateId,
+        candidateId: dto.candidateId,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post<{ id: string }>(`${this.baseUrl}/api/invitations`, dto, {
+          headers: {
+            'x-internal-token': this.internalToken,
+            'x-user-id': userId,
+            'x-user-role': role,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to create invitation', error, {
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * GET /api/invitations/:id
+   * Get invitation by ID
+   */
+  async getInvitation(
+    invitationId: string,
+    userId: string,
+    role: string,
+    includeTemplate?: boolean,
+  ): Promise<InvitationResponseDto | InvitationWithTemplateDto> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Getting invitation', {
+        invitationId,
+        userId,
+        includeTemplate,
+      });
+
+      const params = new URLSearchParams();
+      if (includeTemplate) params.append('includeTemplate', 'true');
+
+      const url = `${this.baseUrl}/api/invitations/${invitationId}${params.toString() ? `?${params}` : ''}`;
+
+      const response = await firstValueFrom(
+        this.httpService.get<InvitationResponseDto | InvitationWithTemplateDto>(url, {
+          headers: {
+            'x-internal-token': this.internalToken,
+            'x-user-id': userId,
+            'x-user-role': role,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to get invitation', error, {
+        invitationId,
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * GET /api/invitations/candidate
+   * List invitations for current candidate
+   */
+  async listCandidateInvitations(
+    userId: string,
+    role: string,
+    query?: ListInvitationsQuery,
+  ): Promise<PaginatedInvitationsResponseDto> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Listing candidate invitations', {
+        userId,
+        query,
+      });
+
+      const params = new URLSearchParams();
+      if (query?.status) params.append('status', query.status);
+      if (query?.page) params.append('page', String(query.page));
+      if (query?.limit) params.append('limit', String(query.limit));
+
+      const url = `${this.baseUrl}/api/invitations/candidate${params.toString() ? `?${params}` : ''}`;
+
+      const response = await firstValueFrom(
+        this.httpService.get<PaginatedInvitationsResponseDto>(url, {
+          headers: {
+            'x-internal-token': this.internalToken,
+            'x-user-id': userId,
+            'x-user-role': role,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to list candidate invitations', error, {
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * GET /api/invitations/hr
+   * List invitations created by current HR
+   */
+  async listHRInvitations(
+    userId: string,
+    role: string,
+    query?: ListInvitationsQuery,
+  ): Promise<PaginatedInvitationsResponseDto> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Listing HR invitations', {
+        userId,
+        query,
+      });
+
+      const params = new URLSearchParams();
+      if (query?.status) params.append('status', query.status);
+      if (query?.templateId) params.append('templateId', query.templateId);
+      if (query?.page) params.append('page', String(query.page));
+      if (query?.limit) params.append('limit', String(query.limit));
+
+      const url = `${this.baseUrl}/api/invitations/hr${params.toString() ? `?${params}` : ''}`;
+
+      const response = await firstValueFrom(
+        this.httpService.get<PaginatedInvitationsResponseDto>(url, {
+          headers: {
+            'x-internal-token': this.internalToken,
+            'x-user-id': userId,
+            'x-user-role': role,
+          },
+        }),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to list HR invitations', error, {
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * POST /api/invitations/:id/start
+   * Start interview
+   */
+  async startInvitation(
+    invitationId: string,
+    userId: string,
+    role: string,
+  ): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Starting invitation', {
+        invitationId,
+        userId,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post<{ success: boolean }>(
+          `${this.baseUrl}/api/invitations/${invitationId}/start`,
+          {},
+          {
+            headers: {
+              'x-internal-token': this.internalToken,
+              'x-user-id': userId,
+              'x-user-role': role,
+            },
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to start invitation', error, {
+        invitationId,
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * POST /api/invitations/:id/responses
+   * Submit response to a question
+   */
+  async submitResponse(
+    invitationId: string,
+    dto: SubmitResponseDto,
+    userId: string,
+    role: string,
+  ): Promise<{ id: string }> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Submitting response', {
+        invitationId,
+        userId,
+        questionId: dto.questionId,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post<{ id: string }>(
+          `${this.baseUrl}/api/invitations/${invitationId}/responses`,
+          dto,
+          {
+            headers: {
+              'x-internal-token': this.internalToken,
+              'x-user-id': userId,
+              'x-user-role': role,
+            },
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to submit response', error, {
+        invitationId,
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * POST /api/invitations/:id/complete
+   * Complete interview
+   */
+  async completeInvitation(
+    invitationId: string,
+    dto: CompleteInvitationDto,
+    userId: string,
+    role: string,
+  ): Promise<{ success: boolean }> {
+    try {
+      this.loggerService.info('InterviewServiceClient: Completing invitation', {
+        invitationId,
+        userId,
+        reason: dto.reason,
+      });
+
+      const response = await firstValueFrom(
+        this.httpService.post<{ success: boolean }>(
+          `${this.baseUrl}/api/invitations/${invitationId}/complete`,
+          dto,
+          {
+            headers: {
+              'x-internal-token': this.internalToken,
+              'x-user-id': userId,
+              'x-user-role': role,
+            },
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to complete invitation', error, {
+        invitationId,
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * POST /api/invitations/:id/heartbeat
+   * Update activity timestamp
+   */
+  async heartbeat(
+    invitationId: string,
+    userId: string,
+    role: string,
+  ): Promise<{ success: boolean }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<{ success: boolean }>(
+          `${this.baseUrl}/api/invitations/${invitationId}/heartbeat`,
+          {},
+          {
+            headers: {
+              'x-internal-token': this.internalToken,
+              'x-user-id': userId,
+              'x-user-role': role,
+            },
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error: any) {
+      this.loggerService.error('InterviewServiceClient: Failed to send heartbeat', error, {
+        invitationId,
+        userId,
+      });
+      throw this.handleError(error);
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
   // Error Handling
   // ════════════════════════════════════════════════════════════════
 
@@ -452,13 +793,24 @@ export class InterviewServiceClient {
     if (error.response) {
       // Interview Service returned an error response
       const status = error.response.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const message = error.response.data?.message || 'Interview Service error';
+      const data = error.response.data;
+
+      // Extract message safely - handle string, object, or array
+      let message = 'Interview Service error';
+      if (typeof data === 'string') {
+        message = data;
+      } else if (data?.message) {
+        // NestJS validation errors return array of messages
+        message = Array.isArray(data.message) ? data.message.join(', ') : String(data.message);
+      } else if (data?.error && typeof data.error === 'string') {
+        message = data.error;
+      }
 
       return new HttpException(
         {
           success: false,
           error: message,
-          details: error.response.data?.details || error.response.data,
+          statusCode: status,
         },
         status,
       );

@@ -10,12 +10,12 @@ interface SkillsTableProps {
   loadingSkills?: Set<string>;
 }
 
-export function SkillsTable({ 
-  skills, 
-  onToggleStatus, 
-  onEdit, 
-  onDelete, 
-  loadingSkills = new Set() 
+export function SkillsTable({
+  skills,
+  onToggleStatus,
+  onEdit,
+  onDelete,
+  loadingSkills = new Set()
 }: SkillsTableProps) {
   if (skills.length === 0) {
     return (
@@ -47,7 +47,7 @@ export function SkillsTable({
               {skills.map((skill, index) => {
                 const isLoading = loadingSkills.has(skill.id);
                 return (
-                  <tr 
+                  <tr
                     key={skill.id || `skill-${index}`}
                     className={`
                       border-b border-white/10 hover:bg-white/5 transition-all duration-200
@@ -99,7 +99,7 @@ export function SkillsTable({
                         <button
                           onClick={() => onEdit(skill.id)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4 text-blue-400" />
@@ -107,7 +107,7 @@ export function SkillsTable({
                         <button
                           onClick={() => onDelete(skill.id)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4 text-red-400" />

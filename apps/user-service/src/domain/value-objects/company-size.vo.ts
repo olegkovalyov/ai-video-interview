@@ -1,10 +1,11 @@
+import { ValueObject } from '../base/base.value-object';
 import { DomainException } from '../exceptions/domain.exception';
 
 /**
  * CompanySize Value Object
  * Represents company size ranges
  */
-export class CompanySize {
+export class CompanySize extends ValueObject<{ value: string }> {
   private static readonly VALID_SIZES = [
     '1-10',
     '11-50',
@@ -17,11 +18,12 @@ export class CompanySize {
   public static readonly LARGE = '51-200';
   public static readonly ENTERPRISE = '200+';
 
-  private constructor(private readonly _value: string) {
-    this.validate(_value);
+  private constructor(value: string) {
+    CompanySize.validate(value);
+    super({ value });
   }
 
-  private validate(value: string): void {
+  private static validate(value: string): void {
     if (!CompanySize.VALID_SIZES.includes(value as any)) {
       throw new DomainException(
         `Invalid company size: ${value}. Must be one of: ${CompanySize.VALID_SIZES.join(', ')}`
@@ -50,40 +52,43 @@ export class CompanySize {
     return new CompanySize(value);
   }
 
-  // Comparison methods
+  // Type guards
   public isSmall(): boolean {
-    return this._value === CompanySize.SMALL;
+    return this.value === CompanySize.SMALL;
   }
 
   public isMedium(): boolean {
-    return this._value === CompanySize.MEDIUM;
+    return this.value === CompanySize.MEDIUM;
   }
 
   public isLarge(): boolean {
-    return this._value === CompanySize.LARGE;
+    return this.value === CompanySize.LARGE;
   }
 
   public isEnterprise(): boolean {
-    return this._value === CompanySize.ENTERPRISE;
+    return this.value === CompanySize.ENTERPRISE;
   }
 
   public equals(other: CompanySize): boolean {
-    return this._value === other._value;
+    if (!(other instanceof CompanySize)) {
+      return false;
+    }
+    return this.value === other.value;
   }
 
   public get value(): string {
-    return this._value;
+    return this.props.value;
   }
 
   public toString(): string {
-    return this._value;
+    return this.value;
   }
 
   /**
    * Get human-readable description
    */
   public getDescription(): string {
-    switch (this._value) {
+    switch (this.value) {
       case CompanySize.SMALL:
         return '1-10 employees';
       case CompanySize.MEDIUM:
@@ -93,7 +98,7 @@ export class CompanySize {
       case CompanySize.ENTERPRISE:
         return '200+ employees';
       default:
-        return this._value;
+        return this.value;
     }
   }
 }

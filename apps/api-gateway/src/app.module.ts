@@ -16,6 +16,7 @@ import { TracingModule } from './core/tracing/tracing.module';
 import { CircuitBreakerModule } from './core/circuit-breaker/circuit-breaker.module';
 import { UserServiceModule } from './modules/user-service/user-service.module';
 import { InterviewServiceModule } from './modules/interview-service/interview-service.module';
+import { AnalysisServiceModule } from './modules/analysis-service/analysis-service.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { InterviewServiceModule } from './modules/interview-service/interview-se
     // Microservice modules
     UserServiceModule,
     InterviewServiceModule,
+    AnalysisServiceModule,
   ],
   controllers: [
     AppController,

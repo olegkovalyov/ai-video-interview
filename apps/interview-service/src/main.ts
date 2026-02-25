@@ -1,8 +1,10 @@
+import './infrastructure/tracing/tracing'; // Must be first — initializes OpenTelemetry before NestJS
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { LoggerService } from './infrastructure/logger/logger.service';
+import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -21,6 +23,11 @@ async function bootstrap() {
   // - /invitations (proxied by API Gateway)
   // - /internal/* (service-to-service)
   // - /health (monitoring)
+
+  // Domain exception filter (maps DomainException → HTTP status)
+  // Resolved from DI container so it receives LoggerService injection
+  const domainFilter = app.get(DomainExceptionFilter);
+  app.useGlobalFilters(domainFilter);
 
   // Validation pipe
   app.useGlobalPipes(
@@ -75,28 +82,11 @@ async function bootstrap() {
     docsUrl: `http://localhost:${port}/api/docs`
   });
 
-  console.log(`🚀 Interview Service running on http://localhost:${port}`);
-  console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
-
-  // Graceful shutdown handlers
-  const gracefulShutdown = async (signal: string) => {
-    console.log(`\n⚠️ Received ${signal}, shutting down Interview Service gracefully...`);
-    try {
-      await app.close();
-      console.log('✅ Interview Service closed successfully');
-      process.exit(0);
-    } catch (error) {
-      console.error('❌ Error during shutdown:', error);
-      process.exit(1);
-    }
-  };
-
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // nodemon restart
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ Failed to start Interview Service:', error);
+  // Logger may not be available if bootstrap fails before DI resolution
+  // eslint-disable-next-line no-console
+  console.error('Failed to start Interview Service:', error);
   process.exit(1);
 });

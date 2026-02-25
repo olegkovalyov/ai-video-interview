@@ -55,7 +55,6 @@ import { GetCandidateSkillsHandler } from '../../src/application/queries/candida
 import { SearchCandidatesBySkillsHandler } from '../../src/application/queries/candidate/search-candidates-by-skills.handler';
 
 // Services
-import { OutboxService } from '../../src/infrastructure/messaging/outbox/outbox.service';
 import { LoggerService } from '../../src/infrastructure/logger/logger.service';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 
@@ -69,8 +68,10 @@ export const mockKafkaService = {
 
 export const mockOutboxService = {
   save: jest.fn().mockResolvedValue(undefined),
-  saveEvent: jest.fn().mockResolvedValue(undefined),
+  saveEvent: jest.fn().mockResolvedValue('mock-event-id'),
+  saveEvents: jest.fn().mockResolvedValue(['mock-event-id']),
   publishPendingEvents: jest.fn().mockResolvedValue(undefined),
+  schedulePublishing: jest.fn().mockResolvedValue(undefined),
 };
 
 export const mockLoggerService = {
@@ -165,7 +166,7 @@ export const mockStorageService = {
       useValue: mockKafkaService,
     },
     {
-      provide: OutboxService,
+      provide: 'IOutboxService',
       useValue: mockOutboxService,
     },
     {
