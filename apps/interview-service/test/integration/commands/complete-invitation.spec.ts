@@ -244,7 +244,7 @@ describe('CompleteInvitationCommand Integration', () => {
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow(
-        'All questions must be answered before completing',
+        /Cannot complete.*questions answered/,
       );
     });
 

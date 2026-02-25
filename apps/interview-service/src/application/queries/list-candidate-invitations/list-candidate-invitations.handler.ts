@@ -1,28 +1,30 @@
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Logger, ForbiddenException } from '@nestjs/common';
 import { ListCandidateInvitationsQuery } from './list-candidate-invitations.query';
 import { PaginatedInvitationsResponseDto } from '../../dto/invitation.response.dto';
-import { InvitationReadRepository } from '../../../infrastructure/persistence/repositories/invitation-read.repository';
+import { IInvitationReadRepository } from '../../../domain/repositories/invitation-read.repository.interface';
+import { InvitationAccessDeniedException } from '../../../domain/exceptions/invitation.exceptions';
+import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
 @QueryHandler(ListCandidateInvitationsQuery)
 export class ListCandidateInvitationsHandler
   implements IQueryHandler<ListCandidateInvitationsQuery>
 {
-  private readonly logger = new Logger(ListCandidateInvitationsHandler.name);
-
   constructor(
-    private readonly readRepository: InvitationReadRepository,
+    @Inject('IInvitationReadRepository')
+    private readonly readRepository: IInvitationReadRepository,
+    private readonly logger: LoggerService,
   ) {}
 
   async execute(
     query: ListCandidateInvitationsQuery,
   ): Promise<PaginatedInvitationsResponseDto> {
-    this.logger.log(`Listing invitations for candidate: ${query.candidateId}`);
+    this.logger.info(`Listing invitations for candidate: ${query.candidateId}`);
 
     // RBAC: candidate can only see their own invitations
     // Admin can see any candidate's invitations
     if (query.userRole !== 'admin' && query.candidateId !== query.userId) {
-      throw new ForbiddenException(
+      throw new InvitationAccessDeniedException(
         'You can only view your own invitations',
       );
     }

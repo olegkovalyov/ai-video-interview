@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 import { TestInternalServiceGuard } from './test-auth.guard';
 import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
+import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 
 describe('Invitations API (E2E)', () => {
   let app: INestApplication;
@@ -39,6 +40,7 @@ describe('Invitations API (E2E)', () => {
         transform: true,
       }),
     );
+    app.useGlobalFilters(app.get(DomainExceptionFilter));
 
     await app.init();
 
@@ -175,7 +177,7 @@ describe('Invitations API (E2E)', () => {
           companyName,
           expiresAt,
         })
-        .expect(400); // Duplicate invitation
+        .expect(409); // Duplicate invitation
     });
 
     it('should reject non-existent template', async () => {
@@ -291,7 +293,7 @@ describe('Invitations API (E2E)', () => {
         .post(`/api/invitations/${invitationId}/start`)
         .set('x-user-id', candidateId)
         .set('x-user-role', 'candidate')
-        .expect(400); // BadRequestException - already started
+        .expect(422); // InvalidInvitationStateException - already started
     });
 
     it('should reject non-existent invitation', async () => {
@@ -416,7 +418,7 @@ describe('Invitations API (E2E)', () => {
           duration: 60,
           textAnswer: 'Second answer',
         })
-        .expect(400); // BadRequestException - duplicate
+        .expect(409); // DuplicateResponseException
     });
 
     it('should reject invalid response type', async () => {
@@ -554,7 +556,7 @@ describe('Invitations API (E2E)', () => {
         .set('x-user-id', candidate2Id)
         .set('x-user-role', 'candidate')
         .send({})
-        .expect(400); // All questions must be answered
+        .expect(422); // InvitationIncompleteException
     });
   });
 

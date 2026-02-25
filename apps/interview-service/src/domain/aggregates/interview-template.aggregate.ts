@@ -11,6 +11,15 @@ import {
   TemplatePublishedEvent,
   TemplateArchivedEvent,
 } from '../events';
+import {
+  InvalidTemplateMetadataException,
+  TemplateArchivedException,
+  DuplicateQuestionOrderException,
+  QuestionNotFoundException,
+  InvalidTemplateStateException,
+  TemplateCannotBePublishedException,
+  InvalidQuestionException,
+} from '../exceptions/interview-template.exceptions';
 
 export interface InterviewTemplateProps {
   id: string;
@@ -79,11 +88,11 @@ export class InterviewTemplate extends AggregateRoot {
   ): InterviewTemplate {
     // Domain validation
     if (!title || title.trim().length === 0) {
-      throw new Error('Template title cannot be empty');
+      throw new InvalidTemplateMetadataException('title', 'cannot be empty');
     }
 
     if (!description || description.trim().length === 0) {
-      throw new Error('Template description cannot be empty');
+      throw new InvalidTemplateMetadataException('description', 'cannot be empty');
     }
 
     const template = new InterviewTemplate({
@@ -119,7 +128,7 @@ export class InterviewTemplate extends AggregateRoot {
    */
   addQuestion(question: Question): void {
     if (this.status.isArchived()) {
-      throw new Error('Cannot add questions to archived template');
+      throw new TemplateArchivedException(this.id);
     }
 
     // Check for duplicate order
@@ -127,7 +136,7 @@ export class InterviewTemplate extends AggregateRoot {
       (q) => q.order === question.order,
     );
     if (existingQuestion) {
-      throw new Error(`Question with order ${question.order} already exists`);
+      throw new DuplicateQuestionOrderException(question.order);
     }
 
     this.props.questions.push(question);
@@ -151,7 +160,7 @@ export class InterviewTemplate extends AggregateRoot {
    */
   removeQuestion(questionId: string): void {
     if (this.status.isArchived()) {
-      throw new Error('Cannot remove questions from archived template');
+      throw new TemplateArchivedException(this.id);
     }
 
     const questionIndex = this.props.questions.findIndex(
@@ -159,7 +168,7 @@ export class InterviewTemplate extends AggregateRoot {
     );
 
     if (questionIndex === -1) {
-      throw new Error(`Question with id ${questionId} not found`);
+      throw new QuestionNotFoundException(questionId);
     }
 
     this.props.questions.splice(questionIndex, 1);
@@ -179,11 +188,11 @@ export class InterviewTemplate extends AggregateRoot {
    */
   publish(): void {
     if (!this.status.canBePublished()) {
-      throw new Error('Only draft templates can be published');
+      throw new InvalidTemplateStateException('publish', this.status.toString());
     }
 
     if (this.props.questions.length === 0) {
-      throw new Error('Cannot publish template without questions');
+      throw new TemplateCannotBePublishedException('no questions');
     }
 
     this.props.status = TemplateStatus.active();
@@ -205,7 +214,7 @@ export class InterviewTemplate extends AggregateRoot {
    */
   archive(): void {
     if (this.status.isArchived()) {
-      throw new Error('Template is already archived');
+      throw new InvalidTemplateStateException('archive', 'archived');
     }
 
     this.props.status = TemplateStatus.archived();
@@ -221,25 +230,25 @@ export class InterviewTemplate extends AggregateRoot {
    */
   updateMetadata(title?: string, description?: string): void {
     if (this.status.isArchived()) {
-      throw new Error('Cannot modify archived template');
+      throw new TemplateArchivedException(this.id);
     }
 
     if (title !== undefined) {
       if (title.trim().length === 0) {
-        throw new Error('Title cannot be empty');
+        throw new InvalidTemplateMetadataException('title', 'cannot be empty');
       }
       if (title.length > 200) {
-        throw new Error('Title cannot exceed 200 characters');
+        throw new InvalidTemplateMetadataException('title', 'cannot exceed 200 characters');
       }
       this.props.title = title.trim();
     }
 
     if (description !== undefined) {
       if (description.trim().length === 0) {
-        throw new Error('Description cannot be empty');
+        throw new InvalidTemplateMetadataException('description', 'cannot be empty');
       }
       if (description.length > 1000) {
-        throw new Error('Description cannot exceed 1000 characters');
+        throw new InvalidTemplateMetadataException('description', 'cannot exceed 1000 characters');
       }
       this.props.description = description.trim();
     }
@@ -253,7 +262,7 @@ export class InterviewTemplate extends AggregateRoot {
    */
   updateSettings(settings: InterviewSettings): void {
     if (this.status.isArchived()) {
-      throw new Error('Cannot modify archived template');
+      throw new TemplateArchivedException(this.id);
     }
 
     this.props.settings = settings;
@@ -268,28 +277,26 @@ export class InterviewTemplate extends AggregateRoot {
    */
   reorderQuestionsByIds(questionIds: string[]): void {
     if (this.status.isArchived()) {
-      throw new Error('Cannot reorder questions in archived template');
+      throw new TemplateArchivedException(this.id);
     }
 
     // Validate that all question IDs exist
     const existingIds = this.props.questions.map((q) => q.id);
     const allIdsValid = questionIds.every((id) => existingIds.includes(id));
-    
+
     if (!allIdsValid) {
-      throw new Error('One or more question IDs do not exist');
+      throw new QuestionNotFoundException('one or more question IDs');
     }
 
     // Validate that all questions are provided
     if (questionIds.length !== this.props.questions.length) {
-      throw new Error(
-        `Must provide all question IDs. Expected ${this.props.questions.length}, got ${questionIds.length}`,
-      );
+      throw new InvalidQuestionException('must provide all question IDs');
     }
 
     // Check for duplicates
     const uniqueIds = new Set(questionIds);
     if (uniqueIds.size !== questionIds.length) {
-      throw new Error('Duplicate question IDs are not allowed');
+      throw new InvalidQuestionException('duplicate question IDs');
     }
 
     // Reorder questions based on provided IDs

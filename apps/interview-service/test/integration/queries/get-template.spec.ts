@@ -1,4 +1,5 @@
-import { INestApplication, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { TemplateNotFoundException, TemplateUnauthorizedException } from '../../../src/domain/exceptions/interview-template.exceptions';
 import { QueryBus } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -157,7 +158,7 @@ describe('GetTemplateQuery Integration', () => {
       // Act & Assert - HR-2 trying to access HR-1's template
       const query = new GetTemplateQuery(templateId, hr2UserId, 'hr');
       
-      await expect(queryBus.execute(query)).rejects.toThrow(ForbiddenException);
+      await expect(queryBus.execute(query)).rejects.toThrow(TemplateUnauthorizedException);
     });
 
     it('should allow access without userId for public query', async () => {
@@ -184,7 +185,7 @@ describe('GetTemplateQuery Integration', () => {
       const nonExistentId = uuidv4();
       const query = new GetTemplateQuery(nonExistentId);
       
-      await expect(queryBus.execute(query)).rejects.toThrow(NotFoundException);
+      await expect(queryBus.execute(query)).rejects.toThrow(TemplateNotFoundException);
     });
 
     it('should throw error for invalid template ID format', async () => {

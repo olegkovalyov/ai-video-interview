@@ -7,5 +7,7 @@ export class UpdateTemplateCommand implements ICommand {
     public readonly title?: string,
     public readonly description?: string,
     public readonly settings?: InterviewSettings,
+    public readonly userId?: string,
+    public readonly userRole?: string,
   ) {}
 }

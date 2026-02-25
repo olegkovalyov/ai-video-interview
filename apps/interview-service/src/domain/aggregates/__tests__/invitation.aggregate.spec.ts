@@ -8,6 +8,14 @@ import {
   ResponseSubmittedEvent,
   InvitationCompletedEvent,
 } from '../../events';
+import {
+  InvalidInvitationDataException,
+  InvitationAccessDeniedException,
+  InvitationExpiredException,
+  InvalidInvitationStateException,
+  DuplicateResponseException,
+  InvitationIncompleteException,
+} from '../../exceptions/invitation.exceptions';
 
 describe('Invitation Aggregate', () => {
   const templateId = 'template-123';
@@ -95,7 +103,7 @@ describe('Invitation Aggregate', () => {
           futureDate,
           totalQuestions,
         ),
-      ).toThrow('Template ID is required');
+      ).toThrow('Invalid invitation data: Template ID is required');
     });
 
     it('should throw error for missing candidateId', () => {
@@ -109,7 +117,7 @@ describe('Invitation Aggregate', () => {
           futureDate,
           totalQuestions,
         ),
-      ).toThrow('Candidate ID is required');
+      ).toThrow('Invalid invitation data: Candidate ID is required');
     });
 
     it('should throw error for past expiration date', () => {
@@ -124,7 +132,7 @@ describe('Invitation Aggregate', () => {
           pastDate,
           totalQuestions,
         ),
-      ).toThrow('Expiration date must be in the future');
+      ).toThrow('Invalid invitation data: Expiration date must be in the future');
     });
 
     it('should throw error for missing companyName', () => {
@@ -138,7 +146,7 @@ describe('Invitation Aggregate', () => {
           futureDate,
           totalQuestions,
         ),
-      ).toThrow('Company name is required');
+      ).toThrow('Invalid invitation data: Company name is required');
     });
 
     it('should throw error for whitespace-only companyName', () => {
@@ -152,7 +160,7 @@ describe('Invitation Aggregate', () => {
           futureDate,
           totalQuestions,
         ),
-      ).toThrow('Company name is required');
+      ).toThrow('Invalid invitation data: Company name is required');
     });
 
     it('should trim companyName', () => {
@@ -179,7 +187,7 @@ describe('Invitation Aggregate', () => {
           futureDate,
           0,
         ),
-      ).toThrow('Template must have at least one question');
+      ).toThrow('Invalid invitation data: Template must have at least one question');
     });
   });
 
@@ -220,7 +228,7 @@ describe('Invitation Aggregate', () => {
       invitation.start(candidateId);
 
       expect(() => invitation.start(candidateId)).toThrow(
-        'Interview can only be started from pending status',
+        'Cannot start invitation in in_progress state',
       );
     });
 
@@ -241,7 +249,7 @@ describe('Invitation Aggregate', () => {
       jest.advanceTimersByTime(200);
 
       expect(() => invitation.start(candidateId)).toThrow(
-        'This invitation has expired',
+        'Invitation inv-1 has expired',
       );
 
       jest.useRealTimers();
@@ -294,7 +302,7 @@ describe('Invitation Aggregate', () => {
 
       const response = createResponse('q1', 0);
       expect(() => invitation.submitResponse(candidateId, response)).toThrow(
-        'Can only submit responses when interview is in progress',
+        'Cannot submit response invitation in pending state',
       );
     });
 
@@ -307,7 +315,7 @@ describe('Invitation Aggregate', () => {
 
       const response2 = createResponse('q1', 0);
       expect(() => invitation.submitResponse(candidateId, response2)).toThrow(
-        'Response for this question already exists',
+        'Response for question q1 already exists',
       );
     });
   });
@@ -374,7 +382,7 @@ describe('Invitation Aggregate', () => {
       invitation.submitResponse(candidateId, createResponse('q1', 0));
 
       expect(() => invitation.complete(createCompleteData(candidateId, 'manual'))).toThrow(
-        'All questions must be answered before completing. Answered: 1/3',
+        'Cannot complete: 1/3 questions answered',
       );
     });
 
@@ -420,7 +428,7 @@ describe('Invitation Aggregate', () => {
       const invitation = createValidInvitation();
 
       expect(() => invitation.complete(createCompleteData(candidateId, 'manual'))).toThrow(
-        'Interview can only be completed when in progress',
+        'Cannot complete invitation in pending state',
       );
     });
   });

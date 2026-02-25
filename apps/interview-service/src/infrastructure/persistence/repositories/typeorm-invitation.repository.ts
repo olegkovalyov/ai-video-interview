@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan } from 'typeorm';
+import { Repository, EntityManager, LessThan, MoreThan } from 'typeorm';
 import { IInvitationRepository, InvitationFilters } from '../../../domain/repositories/invitation.repository.interface';
+import type { ITransactionContext } from '../../../application/interfaces/transaction-context.interface';
 import { Invitation } from '../../../domain/aggregates/invitation.aggregate';
 import { InvitationEntity } from '../entities/invitation.entity';
 import { ResponseEntity } from '../entities/response.entity';
@@ -16,15 +17,20 @@ export class TypeOrmInvitationRepository implements IInvitationRepository {
     private readonly responseRepository: Repository<ResponseEntity>,
   ) {}
 
-  async save(invitation: Invitation): Promise<void> {
+  async save(invitation: Invitation, tx?: ITransactionContext): Promise<void> {
     const entity = InvitationMapper.toEntity(invitation);
-    
-    // Save invitation
-    await this.repository.save(entity);
-    
-    // Save responses separately to handle cascade properly
-    if (entity.responses && entity.responses.length > 0) {
-      await this.responseRepository.save(entity.responses);
+
+    if (tx) {
+      const manager = tx as unknown as EntityManager;
+      await manager.save(InvitationEntity, entity);
+      if (entity.responses && entity.responses.length > 0) {
+        await manager.save(ResponseEntity, entity.responses);
+      }
+    } else {
+      await this.repository.save(entity);
+      if (entity.responses && entity.responses.length > 0) {
+        await this.responseRepository.save(entity.responses);
+      }
     }
   }
 
@@ -234,8 +240,12 @@ export class TypeOrmInvitationRepository implements IInvitationRepository {
     });
   }
 
-  async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+  async delete(id: string, tx?: ITransactionContext): Promise<void> {
+    if (tx) {
+      await (tx as unknown as EntityManager).delete(InvitationEntity, id);
+    } else {
+      await this.repository.delete(id);
+    }
   }
 
   async exists(id: string): Promise<boolean> {

@@ -5,96 +5,88 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KafkaService, KAFKA_TOPICS, injectTraceContext } from '@repo/shared';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
+import {
+  BULL_QUEUE,
+  BULL_JOB,
+  OUTBOX_STATUS,
+  OUTBOX_CONFIG,
+} from '../../constants';
+import { LoggerService } from '../../logger/logger.service';
 
 /**
  * OUTBOX Publisher Processor
- * 
- * Publishes integration events from outbox to appropriate Kafka topics:
+ *
+ * Publishes integration events from outbox to Kafka:
  * 1. Fetches event from outbox table
- * 2. Determines target topic based on event type
- * 3. Publishes to Kafka with trace context
- * 4. Updates outbox status
- * 
- * Topic routing:
- * - invitation.* events → interview-events (consumed by AI Analysis Service)
- * - user.* events → user-events (consumed by other services)
- * 
- * Runs with concurrency for parallel publishing
+ * 2. Publishes to interview-events topic
+ * 3. Updates outbox status
+ *
+ * ALL interview-service events go to KAFKA_TOPICS.INTERVIEW_EVENTS.
  */
-@Processor('outbox-publisher')
+@Processor(BULL_QUEUE.OUTBOX_PUBLISHER)
 @Injectable()
 export class OutboxPublisherProcessor {
   constructor(
     @InjectRepository(OutboxEntity)
     private readonly outboxRepository: Repository<OutboxEntity>,
     @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
+    private readonly logger: LoggerService,
   ) {}
 
   @Process({
-    name: 'publish-outbox-event',
-    concurrency: 2, // Publish 2 events in parallel
+    name: BULL_JOB.PUBLISH_OUTBOX_EVENT,
+    concurrency: OUTBOX_CONFIG.PUBLISHER_CONCURRENCY,
   })
   async publishOutboxEvent(job: Job) {
     const { eventId } = job.data;
 
-    console.log(`📤 OUTBOX PUBLISHER: Publishing ${eventId}`);
+    this.logger.info(`Publishing outbox event: ${eventId}`);
 
     // 1. Fetch from outbox table
     const outbox = await this.outboxRepository.findOne({
-      where: { eventId, status: 'pending' },
+      where: { eventId, status: OUTBOX_STATUS.PENDING },
     });
 
     if (!outbox) {
-      console.log(`⏭️  OUTBOX PUBLISHER: Event ${eventId} already published or not found`);
+      this.logger.debug(`Event ${eventId} already published or not found`);
       return;
     }
 
     // 2. Mark as publishing
-    outbox.status = 'publishing';
+    outbox.status = OUTBOX_STATUS.PUBLISHING;
     await this.outboxRepository.save(outbox);
 
-    // 3. Determine target topic based on event type
-    const topic = this.getTopicForEventType(outbox.eventType);
-
     try {
-      // 4. Publish to Kafka with trace context and partition key
+      // 3. Publish to Kafka — ALL interview-service events go to interview-events
       await this.kafkaService.publishEvent(
-        topic,
+        KAFKA_TOPICS.INTERVIEW_EVENTS,
         outbox.payload,
         injectTraceContext(),
         { partitionKey: outbox.aggregateId },
       );
 
-      // 5. Mark as published
-      outbox.status = 'published';
+      // 4. Mark as published
+      outbox.status = OUTBOX_STATUS.PUBLISHED;
       outbox.publishedAt = new Date();
       await this.outboxRepository.save(outbox);
 
-      console.log(`✅ OUTBOX PUBLISHER: Successfully published ${eventId} (${outbox.eventType}) to ${topic}`);
+      this.logger.info(
+        `Published ${eventId} (${outbox.eventType}) to ${KAFKA_TOPICS.INTERVIEW_EVENTS}`,
+      );
     } catch (error) {
-      // 6. Handle failure
-      outbox.status = 'failed';
+      // 5. Handle failure
+      outbox.status = OUTBOX_STATUS.FAILED;
       outbox.errorMessage = error.message;
       outbox.retryCount += 1;
       await this.outboxRepository.save(outbox);
 
-      console.error(`❌ OUTBOX PUBLISHER: Failed to publish ${eventId}:`, error);
+      this.logger.error(`Failed to publish ${eventId}: ${error.message}`, error.stack);
 
-      // Re-throw if haven't exceeded retry limit
-      if (outbox.retryCount < 3) {
-        throw error; // BullMQ will retry
+      if (outbox.retryCount < OUTBOX_CONFIG.RETRY_ATTEMPTS) {
+        throw error; // Bull will retry
       }
 
-      console.log(`💀 OUTBOX PUBLISHER: Max retries reached for ${eventId}`);
+      this.logger.warn(`Max retries reached for ${eventId}, event marked as failed`);
     }
-  }
-
-  private getTopicForEventType(eventType: string): string {
-    // Interview domain events go to interview-events topic
-    if (eventType.startsWith('invitation.')) {
-      return KAFKA_TOPICS.INTERVIEW_EVENTS;
-    }
-    // Default to user-events for other events
-    return KAFKA_TOPICS.USER_EVENTS;
   }
 }

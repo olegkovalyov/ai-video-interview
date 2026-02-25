@@ -12,13 +12,14 @@ import {
   InvitationProgressDto,
   AnalysisResultDto,
 } from '../../../application/dto/invitation.response.dto';
+import { IInvitationReadRepository } from '../../../domain/repositories/invitation-read.repository.interface';
 
 /**
  * Read Repository для Query side (CQRS)
  * Работает напрямую с TypeORM entities без Domain aggregates
  */
 @Injectable()
-export class InvitationReadRepository {
+export class InvitationReadRepository implements IInvitationReadRepository {
   constructor(
     @InjectRepository(InvitationEntity)
     private readonly invitationRepository: Repository<InvitationEntity>,

@@ -11,6 +11,14 @@ import {
   QuestionData,
   ResponseData,
 } from '../events';
+import {
+  InvalidInvitationDataException,
+  InvitationAccessDeniedException,
+  InvitationExpiredException,
+  InvalidInvitationStateException,
+  DuplicateResponseException,
+  InvitationIncompleteException,
+} from '../exceptions/invitation.exceptions';
 
 export interface CompleteInvitationData {
   userId: string | null;
@@ -131,27 +139,27 @@ export class Invitation extends AggregateRoot {
   ): Invitation {
     // Domain validation
     if (!templateId) {
-      throw new Error('Template ID is required');
+      throw new InvalidInvitationDataException('Template ID is required');
     }
 
     if (!candidateId) {
-      throw new Error('Candidate ID is required');
+      throw new InvalidInvitationDataException('Candidate ID is required');
     }
 
     if (!companyName || companyName.trim() === '') {
-      throw new Error('Company name is required');
+      throw new InvalidInvitationDataException('Company name is required');
     }
 
     if (!invitedBy) {
-      throw new Error('Inviter ID is required');
+      throw new InvalidInvitationDataException('Inviter ID is required');
     }
 
     if (expiresAt <= new Date()) {
-      throw new Error('Expiration date must be in the future');
+      throw new InvalidInvitationDataException('Expiration date must be in the future');
     }
 
     if (totalQuestions < 1) {
-      throw new Error('Template must have at least one question');
+      throw new InvalidInvitationDataException('Template must have at least one question');
     }
 
     const invitation = new Invitation({
@@ -207,16 +215,16 @@ export class Invitation extends AggregateRoot {
    */
   start(userId: string): void {
     if (this.candidateId !== userId) {
-      throw new Error('Only the invited candidate can start this interview');
+      throw new InvitationAccessDeniedException('Only the invited candidate can start this interview');
     }
 
     if (this.isExpired()) {
       this.props.status = InvitationStatus.expired();
-      throw new Error('This invitation has expired');
+      throw new InvitationExpiredException(this.id);
     }
 
     if (!this.status.canBeStarted()) {
-      throw new Error('Interview can only be started from pending status');
+      throw new InvalidInvitationStateException('start', this.status.toString());
     }
 
     this.props.status = InvitationStatus.inProgress();
@@ -246,15 +254,15 @@ export class Invitation extends AggregateRoot {
     response: Response,
   ): void {
     if (this.candidateId !== userId) {
-      throw new Error('Only the invited candidate can submit responses');
+      throw new InvitationAccessDeniedException('Only the invited candidate can submit responses');
     }
 
     if (this.isExpired()) {
-      throw new Error('Cannot submit response to expired invitation');
+      throw new InvitationExpiredException(this.id);
     }
 
     if (!this.status.canSubmitResponse()) {
-      throw new Error('Can only submit responses when interview is in progress');
+      throw new InvalidInvitationStateException('submit response', this.status.toString());
     }
 
     // Check for duplicate response
@@ -262,7 +270,7 @@ export class Invitation extends AggregateRoot {
       (r) => r.questionId === response.questionId,
     );
     if (existingResponse) {
-      throw new Error('Response for this question already exists');
+      throw new DuplicateResponseException(response.questionId);
     }
 
     this.props.responses.push(response);
@@ -294,19 +302,17 @@ export class Invitation extends AggregateRoot {
     // For manual completion, verify user
     if (reason === 'manual') {
       if (!userId || this.candidateId !== userId) {
-        throw new Error('Only the invited candidate can complete this interview');
+        throw new InvitationAccessDeniedException('Only the invited candidate can complete this interview');
       }
     }
 
     if (!this.status.canBeCompleted()) {
-      throw new Error('Interview can only be completed when in progress');
+      throw new InvalidInvitationStateException('complete', this.status.toString());
     }
 
     // For manual completion, verify all questions are answered
     if (reason === 'manual' && this.props.responses.length < this.totalQuestions) {
-      throw new Error(
-        `All questions must be answered before completing. Answered: ${this.props.responses.length}/${this.totalQuestions}`,
-      );
+      throw new InvitationIncompleteException(this.props.responses.length, this.totalQuestions);
     }
 
     this.props.status = InvitationStatus.completed();

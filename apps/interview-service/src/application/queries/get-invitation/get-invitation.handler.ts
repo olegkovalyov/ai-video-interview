@@ -1,21 +1,23 @@
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { GetInvitationQuery } from './get-invitation.query';
 import { InvitationResponseDto, InvitationWithTemplateDto } from '../../dto/invitation.response.dto';
-import { InvitationReadRepository } from '../../../infrastructure/persistence/repositories/invitation-read.repository';
+import { IInvitationReadRepository } from '../../../domain/repositories/invitation-read.repository.interface';
+import { InvitationNotFoundException, InvitationAccessDeniedException } from '../../../domain/exceptions/invitation.exceptions';
+import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
 @QueryHandler(GetInvitationQuery)
 export class GetInvitationHandler implements IQueryHandler<GetInvitationQuery> {
-  private readonly logger = new Logger(GetInvitationHandler.name);
-
   constructor(
-    private readonly readRepository: InvitationReadRepository,
+    @Inject('IInvitationReadRepository')
+    private readonly readRepository: IInvitationReadRepository,
+    private readonly logger: LoggerService,
   ) {}
 
   async execute(
     query: GetInvitationQuery,
   ): Promise<InvitationResponseDto | InvitationWithTemplateDto> {
-    this.logger.log(`Getting invitation: ${query.invitationId}`);
+    this.logger.info(`Getting invitation: ${query.invitationId}`);
 
     if (query.includeTemplate) {
       const invitation = await this.readRepository.findByIdWithTemplate(
@@ -23,9 +25,7 @@ export class GetInvitationHandler implements IQueryHandler<GetInvitationQuery> {
       );
 
       if (!invitation) {
-        throw new NotFoundException(
-          `Invitation with ID ${query.invitationId} not found`,
-        );
+        throw new InvitationNotFoundException(query.invitationId);
       }
 
       // RBAC check
@@ -37,9 +37,7 @@ export class GetInvitationHandler implements IQueryHandler<GetInvitationQuery> {
     const invitation = await this.readRepository.findById(query.invitationId);
 
     if (!invitation) {
-      throw new NotFoundException(
-        `Invitation with ID ${query.invitationId} not found`,
-      );
+      throw new InvitationNotFoundException(query.invitationId);
     }
 
     // RBAC check
@@ -58,7 +56,7 @@ export class GetInvitationHandler implements IQueryHandler<GetInvitationQuery> {
     const isInviter = invitation.invitedBy === userId;
 
     if (!isAdmin && !isCandidate && !isInviter) {
-      throw new ForbiddenException(
+      throw new InvitationAccessDeniedException(
         'You do not have permission to view this invitation',
       );
     }

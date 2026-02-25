@@ -1,7 +1,13 @@
 import { ArgumentsHost, HttpStatus } from '@nestjs/common';
 import { DomainExceptionFilter } from '../domain-exception.filter';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
-import { UserNotFoundException } from '../../../../domain/exceptions/user.exceptions';
+import {
+  UserNotFoundException,
+  UserAlreadyExistsException,
+  UserSuspendedException,
+  UserDeletedException,
+  InvalidUserOperationException,
+} from '../../../../domain/exceptions/user.exceptions';
 import {
   CompanyNotFoundException,
   CompanyAccessDeniedException,
@@ -126,5 +132,65 @@ describe('DomainExceptionFilter', () => {
     expect(typeof responseBody.timestamp).toBe('string');
     expect(responseBody.timestamp >= before).toBe(true);
     expect(responseBody.timestamp <= after).toBe(true);
+  });
+
+  it('should map UserAlreadyExistsException to 409 Conflict', () => {
+    const exception = new UserAlreadyExistsException('test@example.com');
+    const host = createMockHost();
+
+    filter.catch(exception, host);
+
+    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.CONFLICT,
+        error: 'Conflict',
+      }),
+    );
+  });
+
+  it('should map UserSuspendedException to 403 Forbidden', () => {
+    const exception = new UserSuspendedException('user-123');
+    const host = createMockHost();
+
+    filter.catch(exception, host);
+
+    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.FORBIDDEN,
+        error: 'Forbidden',
+      }),
+    );
+  });
+
+  it('should map UserDeletedException to 410 Gone', () => {
+    const exception = new UserDeletedException('user-123');
+    const host = createMockHost();
+
+    filter.catch(exception, host);
+
+    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.GONE);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.GONE,
+        error: 'Gone',
+      }),
+    );
+  });
+
+  it('should map InvalidUserOperationException to 422 Unprocessable Entity', () => {
+    const exception = new InvalidUserOperationException('User is already suspended');
+    const host = createMockHost();
+
+    filter.catch(exception, host);
+
+    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.UNPROCESSABLE_ENTITY);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        error: 'Unprocessable Entity',
+      }),
+    );
   });
 });

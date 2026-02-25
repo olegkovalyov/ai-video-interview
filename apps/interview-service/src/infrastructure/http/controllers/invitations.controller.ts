@@ -68,7 +68,8 @@ export class InvitationsController {
     description: 'HR creates an interview invitation for a candidate. Template must be active (published). Cannot create duplicate invitations for same candidate+template combination.',
   })
   @ApiResponse({ status: 201, description: 'Invitation created successfully', type: CreateInvitationResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error, duplicate invitation, or draft template' })
+  @ApiResponse({ status: 400, description: 'Validation error or template is not active' })
+  @ApiResponse({ status: 409, description: 'Invitation for this candidate+template already exists' })
   @ApiResponse({ status: 404, description: 'Template not found' })
   async create(
     @Body() dto: CreateInvitationDto,
@@ -97,7 +98,8 @@ export class InvitationsController {
   })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
   @ApiResponse({ status: 200, description: 'Interview started successfully', type: SuccessResponseDto })
-  @ApiResponse({ status: 400, description: 'Already started or invitation expired' })
+  @ApiResponse({ status: 410, description: 'Invitation has expired' })
+  @ApiResponse({ status: 422, description: 'Invitation cannot be started (already in progress or completed)' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async start(
@@ -118,7 +120,8 @@ export class InvitationsController {
   })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
   @ApiResponse({ status: 201, description: 'Response submitted successfully', type: SubmitResponseResponseDto })
-  @ApiResponse({ status: 400, description: 'Interview not in progress or duplicate response to same question' })
+  @ApiResponse({ status: 409, description: 'Response for this question already submitted' })
+  @ApiResponse({ status: 422, description: 'Interview is not in progress' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async submitResponse(
@@ -152,7 +155,7 @@ export class InvitationsController {
   })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
   @ApiResponse({ status: 200, description: 'Interview completed successfully', type: SuccessResponseDto })
-  @ApiResponse({ status: 400, description: 'Interview not in progress or not all questions answered' })
+  @ApiResponse({ status: 422, description: 'Interview is not in progress, or not all questions answered' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async complete(

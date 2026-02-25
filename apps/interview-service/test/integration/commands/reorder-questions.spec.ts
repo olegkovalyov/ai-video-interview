@@ -269,7 +269,7 @@ describe('ReorderQuestionsCommand Integration', () => {
             'invalid-id',
           ]),
         ),
-      ).rejects.toThrow(/do not exist/i);
+      ).rejects.toThrow(/not found/i);
     });
 
     it('should throw error if not all questions provided', async () => {

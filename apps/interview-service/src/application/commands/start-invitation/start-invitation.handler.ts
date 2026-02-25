@@ -1,53 +1,71 @@
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { StartInvitationCommand } from './start-invitation.command';
 import type { IInvitationRepository } from '../../../domain/repositories/invitation.repository.interface';
+import type { IOutboxService } from '../../interfaces/outbox-service.interface';
+import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
+import { LoggerService } from '../../../infrastructure/logger/logger.service';
+import { InvitationNotFoundException } from '../../../domain/exceptions/invitation.exceptions';
 
 @CommandHandler(StartInvitationCommand)
 export class StartInvitationHandler
   implements ICommandHandler<StartInvitationCommand>
 {
-  private readonly logger = new Logger(StartInvitationHandler.name);
-
   constructor(
     @Inject('IInvitationRepository')
     private readonly invitationRepository: IInvitationRepository,
     private readonly eventBus: EventBus,
+    @Inject('IOutboxService')
+    private readonly outboxService: IOutboxService,
+    @Inject('IUnitOfWork')
+    private readonly unitOfWork: IUnitOfWork,
+    private readonly logger: LoggerService,
   ) {}
 
   async execute(command: StartInvitationCommand): Promise<void> {
-    this.logger.log(
-      `Starting invitation ${command.invitationId} by user ${command.userId}`,
-    );
+    this.logger.info('Starting invitation', {
+      action: 'StartInvitation',
+      invitationId: command.invitationId,
+      userId: command.userId,
+    });
 
     // Find invitation
     const invitation = await this.invitationRepository.findById(
       command.invitationId,
     );
     if (!invitation) {
-      throw new NotFoundException(
-        `Invitation with id ${command.invitationId} not found`,
-      );
+      throw new InvitationNotFoundException(command.invitationId);
     }
 
     // Start the invitation (domain method handles validation)
-    try {
-      invitation.start(command.userId);
-    } catch (error: any) {
-      if (error.message.includes('Only the invited candidate')) {
-        throw new ForbiddenException(error.message);
-      }
-      throw new BadRequestException(error.message);
-    }
+    // Domain exceptions (InvitationAccessDeniedException, InvitationExpiredException,
+    // InvalidInvitationStateException) propagate to DomainExceptionFilter
+    invitation.start(command.userId);
 
-    // Save to repository
-    await this.invitationRepository.save(invitation);
+    // Atomic write: save aggregate + outbox event in single transaction
+    const eventId = await this.unitOfWork.execute(async (tx) => {
+      await this.invitationRepository.save(invitation, tx);
+      return this.outboxService.saveEvent(
+        'invitation.started',
+        {
+          invitationId: invitation.id,
+          candidateId: invitation.candidateId,
+          startedAt: invitation.startedAt!.toISOString(),
+        },
+        invitation.id,
+        tx,
+      );
+    });
 
-    // Publish domain events
+    // Post-commit: publish domain events + schedule BullMQ
     const events = invitation.getUncommittedEvents();
     events.forEach((event) => this.eventBus.publish(event));
     invitation.commit();
+    await this.outboxService.schedulePublishing([eventId]);
 
-    this.logger.log(`Invitation ${invitation.id} started successfully`);
+    this.logger.info('Invitation started successfully', {
+      action: 'StartInvitation',
+      invitationId: invitation.id,
+    });
   }
 }

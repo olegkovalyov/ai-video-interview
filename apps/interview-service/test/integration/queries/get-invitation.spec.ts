@@ -1,4 +1,5 @@
-import { INestApplication, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { InvitationNotFoundException, InvitationAccessDeniedException } from '../../../src/domain/exceptions/invitation.exceptions';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -222,7 +223,7 @@ describe('GetInvitationQuery Integration', () => {
 
       // Act & Assert
       const query = new GetInvitationQuery(fakeInvitationId, userId, 'candidate', false);
-      await expect(queryBus.execute(query)).rejects.toThrow(NotFoundException);
+      await expect(queryBus.execute(query)).rejects.toThrow(InvitationNotFoundException);
     });
 
     it('should throw ForbiddenException for unauthorized access', async () => {
@@ -249,7 +250,7 @@ describe('GetInvitationQuery Integration', () => {
 
       // Act & Assert
       const query = new GetInvitationQuery(invitationId, unauthorizedUserId, 'hr', false);
-      await expect(queryBus.execute(query)).rejects.toThrow(ForbiddenException);
+      await expect(queryBus.execute(query)).rejects.toThrow(InvitationAccessDeniedException);
     });
   });
 });

@@ -1,4 +1,5 @@
-import { INestApplication, ForbiddenException } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { InvitationAccessDeniedException } from '../../../src/domain/exceptions/invitation.exceptions';
 import { QueryBus } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -280,7 +281,7 @@ describe('ListHRInvitationsQuery Integration', () => {
 
       // Act & Assert
       const query = new ListHRInvitationsQuery(hrUserId1, hrUserId2, 'hr');
-      await expect(queryBus.execute(query)).rejects.toThrow(ForbiddenException);
+      await expect(queryBus.execute(query)).rejects.toThrow(InvitationAccessDeniedException);
     });
   });
 });

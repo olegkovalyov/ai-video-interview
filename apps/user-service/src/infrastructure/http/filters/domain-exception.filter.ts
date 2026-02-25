@@ -7,7 +7,13 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
-import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
+import {
+  UserNotFoundException,
+  UserAlreadyExistsException,
+  UserSuspendedException,
+  UserDeletedException,
+  InvalidUserOperationException,
+} from '../../../domain/exceptions/user.exceptions';
 import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../domain/exceptions/company.exceptions';
 
 /**
@@ -15,8 +21,11 @@ import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../..
  * Catches domain-level exceptions and maps them to appropriate HTTP statuses.
  *
  * Mapping:
- * - *NotFoundException → 404 Not Found
- * - *AccessDeniedException → 403 Forbidden
+ * - UserNotFoundException, CompanyNotFoundException → 404 Not Found
+ * - CompanyAccessDeniedException, UserSuspendedException → 403 Forbidden
+ * - UserAlreadyExistsException → 409 Conflict
+ * - UserDeletedException → 410 Gone
+ * - InvalidUserOperationException → 422 Unprocessable Entity
  * - DomainException (default) → 400 Bad Request
  */
 @Catch(DomainException)
@@ -48,8 +57,20 @@ export class DomainExceptionFilter implements ExceptionFilter {
       return { status: HttpStatus.NOT_FOUND, error: 'Not Found' };
     }
 
-    if (exception instanceof CompanyAccessDeniedException) {
+    if (exception instanceof CompanyAccessDeniedException || exception instanceof UserSuspendedException) {
       return { status: HttpStatus.FORBIDDEN, error: 'Forbidden' };
+    }
+
+    if (exception instanceof UserAlreadyExistsException) {
+      return { status: HttpStatus.CONFLICT, error: 'Conflict' };
+    }
+
+    if (exception instanceof UserDeletedException) {
+      return { status: HttpStatus.GONE, error: 'Gone' };
+    }
+
+    if (exception instanceof InvalidUserOperationException) {
+      return { status: HttpStatus.UNPROCESSABLE_ENTITY, error: 'Unprocessable Entity' };
     }
 
     return { status: HttpStatus.BAD_REQUEST, error: 'Bad Request' };

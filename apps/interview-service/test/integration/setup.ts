@@ -1,7 +1,6 @@
 import { DataSource } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -11,13 +10,13 @@ import {
   ResponseEntity,
 } from '../../src/infrastructure/persistence/entities';
 import { OutboxEntity } from '../../src/infrastructure/persistence/entities/outbox.entity';
-import { ApplicationModule } from '../../src/application/application.module';
+import { TestApplicationModule, TestLoggerModule } from './test-application.module';
 import { DatabaseModule } from '../../src/infrastructure/persistence/database.module';
 
 /**
  * Create PostgreSQL test database connection
  * Uses REAL MIGRATIONS for production-like testing
- * 
+ *
  * Strategy:
  * - beforeAll: DROP all tables + Run migrations
  * - afterEach: TRUNCATE tables (keep schema)
@@ -37,14 +36,14 @@ export async function createTestDataSource(): Promise<DataSource> {
   });
 
   await dataSource.initialize();
-  
+
   // DROP all tables + Create extensions + Run migrations
   await dropAllTables(dataSource);
   await createExtensions(dataSource);
   await dataSource.runMigrations();
-  
+
   console.log('✅ Test database initialized with migrations');
-  
+
   return dataSource;
 }
 
@@ -74,6 +73,7 @@ async function createExtensions(dataSource: DataSource): Promise<void> {
 
 /**
  * Setup test NestJS application with test database
+ * Uses TestApplicationModule (no Redis/Kafka/Bull dependencies)
  */
 export async function setupTestApp(
   dataSource: DataSource,
@@ -84,9 +84,9 @@ export async function setupTestApp(
         isGlobal: true,
         ignoreEnvFile: true, // Don't load .env in tests
       }),
-      CqrsModule,
-      DatabaseModule, // Import full DatabaseModule
-      ApplicationModule,
+      TestLoggerModule, // Global mock LoggerService (must be before DatabaseModule)
+      DatabaseModule, // Provides repositories + IUnitOfWork
+      TestApplicationModule, // Handlers + mock IOutboxService
     ],
   })
     // Override DataSource with our test instance
@@ -110,7 +110,7 @@ export async function cleanDatabase(dataSource: DataSource): Promise<void> {
   // CASCADE removes data from dependent tables
   // RESTART IDENTITY resets auto-increment counters
   await dataSource.query(`
-    TRUNCATE TABLE 
+    TRUNCATE TABLE
       responses,
       invitations,
       questions,
@@ -176,7 +176,7 @@ export async function seedTemplate(
     });
     await questionRepo.save(question);
   }
-  
+
   return templateId;
 }
 

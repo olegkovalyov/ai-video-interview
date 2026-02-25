@@ -11,7 +11,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
   Headers,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -136,15 +135,14 @@ export class TemplatesController {
   @ApiResponse({ status: 201, description: 'Question added', schema: { properties: { id: { type: 'string', format: 'uuid' } } } })
   @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
   @ApiResponse({ status: 404, description: 'Template not found' })
+  @ApiResponse({ status: 409, description: 'Question with this order already exists' })
+  @ApiResponse({ status: 422, description: 'Template is archived and cannot be modified' })
   async addQuestion(
     @Param('id') templateId: string,
     @Body() dto: AddQuestionDto,
     @Headers('x-user-id') userId: string,
     @Headers('x-user-role') role: string,
   ): Promise<{ id: string }> {
-    // Check ownership first
-    await this.checkOwnership(templateId, userId, role);
-
     const command = new AddQuestionCommand(
       templateId,
       dto.text,
@@ -153,7 +151,9 @@ export class TemplatesController {
       dto.timeLimit,
       dto.required,
       dto.hints,
-      dto.options, // Pass options to command
+      dto.options,
+      userId,
+      role,
     );
 
     const questionId = await this.commandBus.execute(command);
@@ -175,18 +175,15 @@ export class TemplatesController {
     @Headers('x-user-id') userId: string,
     @Headers('x-user-role') role: string,
   ): Promise<void> {
-    // Check ownership first
-    await this.checkOwnership(templateId, userId, role);
-
-    const command = new RemoveQuestionCommand(templateId, questionId);
+    const command = new RemoveQuestionCommand(templateId, questionId, userId, role);
     await this.commandBus.execute(command);
   }
 
   @Patch(':id/questions/reorder')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ 
-    summary: 'Reorder questions in template', 
-    description: 'Reorder all questions by providing question IDs in desired order. Uses batch UPDATE for performance.' 
+  @ApiOperation({
+    summary: 'Reorder questions in template',
+    description: 'Reorder all questions by providing question IDs in desired order. Uses batch UPDATE for performance.'
   })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
   @ApiResponse({ status: 204, description: 'Questions reordered successfully' })
@@ -199,10 +196,7 @@ export class TemplatesController {
     @Headers('x-user-id') userId: string,
     @Headers('x-user-role') role: string,
   ): Promise<void> {
-    // Check ownership first
-    await this.checkOwnership(templateId, userId, role);
-
-    const command = new ReorderQuestionsCommand(templateId, dto.questionIds);
+    const command = new ReorderQuestionsCommand(templateId, dto.questionIds, userId, role);
     await this.commandBus.execute(command);
   }
 
@@ -212,15 +206,13 @@ export class TemplatesController {
   @ApiResponse({ status: 200, description: 'Template published', schema: { properties: { status: { type: 'string', enum: ['active'] } } } })
   @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
   @ApiResponse({ status: 404, description: 'Template not found' })
+  @ApiResponse({ status: 409, description: 'Template is already published' })
   async publish(
     @Param('id') templateId: string,
     @Headers('x-user-id') userId: string,
     @Headers('x-user-role') role: string,
   ): Promise<{ status: string }> {
-    // Check ownership first
-    await this.checkOwnership(templateId, userId, role);
-
-    const command = new PublishTemplateCommand(templateId);
+    const command = new PublishTemplateCommand(templateId, userId, role);
     await this.commandBus.execute(command);
 
     return { status: 'active' };
@@ -232,15 +224,13 @@ export class TemplatesController {
   @ApiResponse({ status: 200, description: 'Template updated', type: TemplateResponseDto })
   @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
   @ApiResponse({ status: 404, description: 'Template not found' })
+  @ApiResponse({ status: 422, description: 'Template is archived and cannot be modified' })
   async update(
     @Param('id') templateId: string,
     @Body() dto: UpdateTemplateDto,
     @Headers('x-user-id') userId: string,
     @Headers('x-user-role') role: string,
   ): Promise<TemplateResponseDto> {
-    // Check ownership first
-    await this.checkOwnership(templateId, userId, role);
-
     const settings = dto.settings
       ? InterviewSettings.create(dto.settings)
       : undefined;
@@ -250,6 +240,8 @@ export class TemplatesController {
       dto.title,
       dto.description,
       settings,
+      userId,
+      role,
     );
 
     await this.commandBus.execute(command);
@@ -273,10 +265,7 @@ export class TemplatesController {
     @Headers('x-user-id') userId: string,
     @Headers('x-user-role') role: string,
   ): Promise<void> {
-    // Check ownership first
-    await this.checkOwnership(templateId, userId, role);
-
-    const command = new DeleteTemplateCommand(templateId);
+    const command = new DeleteTemplateCommand(templateId, userId, role);
     await this.commandBus.execute(command);
   }
 
@@ -284,36 +273,13 @@ export class TemplatesController {
   @ApiOperation({ summary: 'Get template questions', description: 'Retrieve all questions for a template' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Template ID' })
   @ApiResponse({ status: 200, description: 'List of questions', schema: { properties: { questions: { type: 'array' } } } })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not the owner' })
   @ApiResponse({ status: 404, description: 'Template not found' })
   async getQuestions(
     @Param('id') templateId: string,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-user-role') role: string,
   ) {
-    // Check ownership first
-    await this.checkOwnership(templateId, userId, role);
-
     const query = new GetTemplateQuestionsQuery(templateId);
     const questions = await this.queryBus.execute(query);
 
     return { questions };
-  }
-
-  private async checkOwnership(templateId: string, userId: string, role: string): Promise<void> {
-    // Admin can access everything
-    if (role === 'admin') {
-      return;
-    }
-
-    // HR can only access their own templates
-    const query = new GetTemplateQuery(templateId, userId, role);
-
-    try {
-      await this.queryBus.execute(query);
-    } catch (error) {
-      // GetTemplateQuery will throw ForbiddenException if not owner
-      throw error;
-    }
   }
 }

@@ -11,6 +11,15 @@ import {
   TemplatePublishedEvent,
   TemplateArchivedEvent,
 } from '../../events';
+import {
+  TemplateArchivedException,
+  DuplicateQuestionOrderException,
+  QuestionNotFoundException,
+  InvalidTemplateStateException,
+  TemplateCannotBePublishedException,
+  InvalidTemplateMetadataException,
+  InvalidQuestionException,
+} from '../../exceptions/interview-template.exceptions';
 
 describe('InterviewTemplate Aggregate', () => {
   const createValidQuestion = (id: string, order: number) => {
@@ -290,7 +299,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.addQuestion(createValidQuestion('q2', 2));
-      }).toThrow('Cannot add questions to archived template');
+      }).toThrow('Template id is archived and cannot be modified');
     });
 
     it('should throw error when question order already exists', () => {
@@ -304,7 +313,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.addQuestion(createValidQuestion('q2', 1)); // Same order
-      }).toThrow('Question with order 1 already exists');
+      }).toThrow('Question with order 1 already exists in template');
     });
 
     it('should allow different orders', () => {
@@ -406,7 +415,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.removeQuestion('q1');
-      }).toThrow('Cannot remove questions from archived template');
+      }).toThrow('Template id is archived and cannot be modified');
     });
 
     it('should throw error when question not found', () => {
@@ -419,7 +428,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.removeQuestion('non-existent');
-      }).toThrow('Question with id non-existent not found');
+      }).toThrow('Question with id non-existent not found in template');
     });
   });
 
@@ -488,7 +497,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.publish();
-      }).toThrow('Only draft templates can be published');
+      }).toThrow('Cannot publish template in active state');
     });
 
     it('should throw error when publishing archived template', () => {
@@ -506,7 +515,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.publish();
-      }).toThrow('Only draft templates can be published');
+      }).toThrow('Cannot publish template in archived state');
     });
 
     it('should throw error when publishing without questions', () => {
@@ -519,7 +528,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.publish();
-      }).toThrow('Cannot publish template without questions');
+      }).toThrow('Template cannot be published: no questions');
     });
 
     it('should publish with exactly 1 question (boundary)', () => {
@@ -612,7 +621,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.archive();
-      }).toThrow('Template is already archived');
+      }).toThrow('Cannot archive template in archived state');
     });
   });
 
@@ -706,7 +715,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateMetadata('New Title');
-      }).toThrow('Cannot modify archived template');
+      }).toThrow('Template id is archived and cannot be modified');
     });
 
     it('should throw error for empty title', () => {
@@ -719,7 +728,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateMetadata('');
-      }).toThrow('Title cannot be empty');
+      }).toThrow('Invalid template title: cannot be empty');
     });
 
     it('should throw error for whitespace-only title', () => {
@@ -732,7 +741,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateMetadata('   ');
-      }).toThrow('Title cannot be empty');
+      }).toThrow('Invalid template title: cannot be empty');
     });
 
     it('should throw error for title > 200 characters', () => {
@@ -746,7 +755,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateMetadata(longTitle);
-      }).toThrow('Title cannot exceed 200 characters');
+      }).toThrow('Invalid template title: cannot exceed 200 characters');
     });
 
     it('should accept title at boundary (200 chars)', () => {
@@ -774,7 +783,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateMetadata(undefined, longDesc);
-      }).toThrow('Description cannot exceed 1000 characters');
+      }).toThrow('Invalid template description: cannot exceed 1000 characters');
     });
 
     it('should accept description at boundary (1000 chars)', () => {
@@ -840,7 +849,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateSettings(InterviewSettings.default());
-      }).toThrow('Cannot modify archived template');
+      }).toThrow('Template id is archived and cannot be modified');
     });
   });
 
@@ -1098,7 +1107,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q2', 'q1']);
-      }).toThrow('Cannot reorder questions in archived template');
+      }).toThrow('Template id is archived and cannot be modified');
     });
 
     it('should throw error if question ID does not exist', () => {
@@ -1113,7 +1122,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q1', 'q-invalid']);
-      }).toThrow('One or more question IDs do not exist');
+      }).toThrow('Question with id one or more question IDs not found in template');
     });
 
     it('should throw error if not all question IDs provided', () => {
@@ -1129,7 +1138,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q1', 'q2']); // Missing q3
-      }).toThrow('Must provide all question IDs. Expected 3, got 2');
+      }).toThrow('Invalid question: must provide all question IDs');
     });
 
     it('should throw error if too many IDs provided', () => {
@@ -1144,7 +1153,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q1', 'q2', 'q3']); // Extra q3
-      }).toThrow('One or more question IDs do not exist');
+      }).toThrow('Question with id one or more question IDs not found in template');
     });
 
     it('should throw error if duplicate IDs provided', () => {
@@ -1159,7 +1168,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q1', 'q1']); // Duplicate
-      }).toThrow('Duplicate question IDs are not allowed');
+      }).toThrow('Invalid question: duplicate question IDs');
     });
 
     it('should work with single question', () => {

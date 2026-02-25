@@ -1,26 +1,26 @@
-import { AggregateRoot as NestAggregateRoot } from '@nestjs/cqrs';
+import type { IDomainEvent } from '../events/domain-event.interface';
 
 /**
  * Base class for Aggregate Roots
- * Aggregate Roots are Entities that act as entry points to aggregates
- * They manage domain events and ensure consistency within the aggregate boundary
+ * Pure domain — no framework dependencies.
+ * Aggregate Roots are Entities that act as entry points to aggregates.
+ * They collect domain events and ensure consistency within the aggregate boundary.
  */
-export abstract class AggregateRoot extends NestAggregateRoot {
-  private _domainEvents: any[] = [];
+export abstract class AggregateRoot {
+  private _domainEvents: IDomainEvent[] = [];
 
   /**
-   * Apply a domain event (overriding parent)
+   * Apply a domain event (collect for later publishing)
    */
-  public apply(event: any): void {
+  public apply(event: IDomainEvent): void {
     this._domainEvents.push(event);
-    super.apply(event);
   }
 
   /**
-   * Get uncommitted domain events
+   * Get uncommitted domain events (defensive copy)
    */
-  public getUncommittedEvents(): any[] {
-    return this._domainEvents;
+  public getUncommittedEvents(): IDomainEvent[] {
+    return [...this._domainEvents];
   }
 
   /**

@@ -11,6 +11,7 @@ import { InterviewTemplateReadRepository } from './repositories/interview-templa
 import { TypeOrmQuestionRepository } from './repositories/typeorm-question.repository';
 import { TypeOrmInvitationRepository } from './repositories/typeorm-invitation.repository';
 import { InvitationReadRepository } from './repositories/invitation-read.repository';
+import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
 
 @Module({
   imports: [
@@ -61,17 +62,29 @@ import { InvitationReadRepository } from './repositories/invitation-read.reposit
       provide: 'IInvitationRepository',
       useClass: TypeOrmInvitationRepository,
     },
-    // Read Repositories (для Queries)
-    InterviewTemplateReadRepository,
-    InvitationReadRepository,
+    // Read Repositories (для Queries) — через DI tokens
+    {
+      provide: 'IInterviewTemplateReadRepository',
+      useClass: InterviewTemplateReadRepository,
+    },
+    {
+      provide: 'IInvitationReadRepository',
+      useClass: InvitationReadRepository,
+    },
+    // UnitOfWork
+    {
+      provide: 'IUnitOfWork',
+      useClass: TypeOrmUnitOfWork,
+    },
   ],
   exports: [
     TypeOrmModule,
     'IInterviewTemplateRepository',
     'IQuestionRepository',
     'IInvitationRepository',
-    InterviewTemplateReadRepository,
-    InvitationReadRepository,
+    'IInterviewTemplateReadRepository',
+    'IInvitationReadRepository',
+    'IUnitOfWork',
   ],
 })
 export class DatabaseModule {}

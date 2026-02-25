@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 import { TestInternalServiceGuard } from './test-auth.guard';
 import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
+import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 
 describe('Templates API (E2E)', () => {
   let app: INestApplication;
@@ -30,7 +31,7 @@ describe('Templates API (E2E)', () => {
 
     app = moduleFixture.createNestApplication();
     
-    // Setup validation pipe like in main.ts
+    // Setup validation pipe and exception filter like in main.ts
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -38,6 +39,7 @@ describe('Templates API (E2E)', () => {
         transform: true,
       }),
     );
+    app.useGlobalFilters(app.get(DomainExceptionFilter));
 
     await app.init();
 
@@ -721,7 +723,7 @@ describe('Templates API (E2E)', () => {
         .put(`/api/templates/${templateId}/publish`)
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
-        .expect(500); // Domain error
+        .expect(400); // Domain error - template has no questions
     });
 
     it('should reject publishing other HR template', async () => {

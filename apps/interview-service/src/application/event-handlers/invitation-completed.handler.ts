@@ -1,54 +1,29 @@
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InvitationCompletedEvent } from '../../domain/events/invitation-completed.event';
-import { OutboxService } from '../../infrastructure/messaging/outbox/outbox.service';
-import { v4 as uuidv4 } from 'uuid';
+import { LoggerService } from '../../infrastructure/logger/logger.service';
 
 /**
  * Event handler for InvitationCompletedEvent
- * 
- * Saves the event to outbox for publishing to interview-events Kafka topic.
- * This event will be consumed by AI Analysis Service to perform candidate analysis.
+ *
+ * Internal side effects only (logging, metrics).
+ * Outbox save is now handled atomically inside CompleteInvitationHandler
+ * via UnitOfWork (aggregate save + outbox save in same transaction).
  */
 @Injectable()
 @EventsHandler(InvitationCompletedEvent)
 export class InvitationCompletedHandler implements IEventHandler<InvitationCompletedEvent> {
-  private readonly logger = new Logger(InvitationCompletedHandler.name);
-
-  constructor(private readonly outboxService: OutboxService) {}
+  constructor(private readonly logger: LoggerService) {}
 
   async handle(event: InvitationCompletedEvent): Promise<void> {
-    this.logger.log(`Handling InvitationCompletedEvent for invitation: ${event.aggregateId}`);
-
-    // Build Kafka event payload (format expected by AI Analysis Service)
-    const kafkaEvent = {
-      eventId: uuidv4(),
-      eventType: 'invitation.completed',
-      timestamp: event.occurredOn.toISOString(),
-      version: 1,
-      payload: {
+    this.logger.info(
+      `InvitationCompleted: ${event.aggregateId}, questions: ${event.questions.length}, responses: ${event.responses.length}`,
+      {
+        action: 'invitation.completed',
         invitationId: event.aggregateId,
         candidateId: event.candidateId,
         templateId: event.templateId,
-        templateTitle: event.templateTitle,
-        companyName: event.companyName,
-        completedAt: event.completedAt.toISOString(),
-        language: event.language,
-        questions: event.questions,
-        responses: event.responses,
       },
-    };
-
-    // Save to outbox for reliable publishing
-    await this.outboxService.saveEvent(
-      'invitation.completed',
-      kafkaEvent,
-      event.aggregateId,
-    );
-
-    this.logger.log(
-      `InvitationCompletedEvent saved to outbox for invitation: ${event.aggregateId}, ` +
-      `questions: ${event.questions.length}, responses: ${event.responses.length}`,
     );
   }
 }

@@ -1,6 +1,4 @@
-import { createParamDecorator, ExecutionContext, Logger } from '@nestjs/common';
-
-const logger = new Logger('CurrentUserDecorator');
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 /**
  * Current User Decorator
@@ -10,11 +8,6 @@ const logger = new Logger('CurrentUserDecorator');
 export const CurrentUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    
-    const user = request.user;
-    
-    logger.log(`🎯 CurrentUser decorator - userId=${user?.userId}, role=${user?.role}`);
-    
-    return user;
+    return request.user;
   },
 );

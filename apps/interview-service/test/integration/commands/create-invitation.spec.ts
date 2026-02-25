@@ -172,7 +172,7 @@ describe('CreateInvitationCommand Integration', () => {
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow(
-        'Cannot create invitation for non-active template',
+        'Invalid invitation data: Template is not active',
       );
     });
 
@@ -205,7 +205,7 @@ describe('CreateInvitationCommand Integration', () => {
 
       // Act & Assert: Second invitation should fail
       await expect(commandBus.execute(command)).rejects.toThrow(
-        'Invitation for this candidate and template already exists',
+        /already exists/,
       );
     });
   });

@@ -1,5 +1,6 @@
 import { Invitation } from '../aggregates/invitation.aggregate';
 import { InvitationStatus } from '../value-objects/invitation-status.vo';
+import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 export interface InvitationFilters {
   candidateId?: string;
@@ -13,7 +14,7 @@ export interface IInvitationRepository {
   /**
    * Save invitation (create or update)
    */
-  save(invitation: Invitation): Promise<void>;
+  save(invitation: Invitation, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Find invitation by ID
@@ -98,7 +99,7 @@ export interface IInvitationRepository {
   /**
    * Delete invitation
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, tx?: ITransactionContext): Promise<void>;
 
   /**
    * Check if invitation exists

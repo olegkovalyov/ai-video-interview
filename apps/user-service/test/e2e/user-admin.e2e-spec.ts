@@ -161,7 +161,7 @@ describe('User Admin API (E2E)', () => {
         .send({
           reason: 'Second suspension',
         })
-        .expect(400); // Domain exception -> BadRequest
+        .expect(422); // InvalidUserOperationException -> Unprocessable Entity
     });
   });
 
