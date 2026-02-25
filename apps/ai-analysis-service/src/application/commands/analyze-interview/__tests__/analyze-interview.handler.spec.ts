@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { AnalyzeInterviewHandler } from '../analyze-interview.handler';
 import { AnalyzeInterviewCommand } from '../analyze-interview.command';
 import { IAnalysisResultRepository } from '../../../ports';
@@ -81,6 +82,8 @@ describe('AnalyzeInterviewHandler', () => {
       findAll: jest.fn(),
       existsByInvitationId: jest.fn().mockResolvedValue(false),
       delete: jest.fn(),
+      saveSourceEventData: jest.fn().mockResolvedValue(undefined),
+      getSourceEventData: jest.fn().mockResolvedValue(null),
     };
 
     mockAnalysisEngine = {
@@ -104,11 +107,16 @@ describe('AnalyzeInterviewHandler', () => {
       getSystemPrompt: jest.fn().mockReturnValue('You are an AI interviewer...'),
     };
 
+    const mockConfigService = {
+      get: jest.fn().mockReturnValue('test-model'),
+    } as unknown as ConfigService;
+
     handler = new AnalyzeInterviewHandler(
       mockRepository,
       mockAnalysisEngine,
       mockEventPublisher,
       mockPromptLoader,
+      mockConfigService,
     );
   });
 
@@ -146,12 +154,12 @@ describe('AnalyzeInterviewHandler', () => {
       expect(mockEventPublisher.publish).toHaveBeenCalledTimes(2);
       expect(mockEventPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventType: 'AnalysisStartedEvent',
+          eventType: 'analysis.started',
         }),
       );
       expect(mockEventPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventType: 'AnalysisCompletedEvent',
+          eventType: 'analysis.completed',
         }),
       );
     });
@@ -181,7 +189,7 @@ describe('AnalyzeInterviewHandler', () => {
 
       expect(mockEventPublisher.publish).toHaveBeenCalledWith(
         expect.objectContaining({
-          eventType: 'AnalysisFailedEvent',
+          eventType: 'analysis.failed',
         }),
       );
     });

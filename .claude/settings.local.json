@@ -29,7 +29,9 @@
       "WebFetch(domain:skills.sh)",
       "Bash(tail:*)",
       "Bash(grep:*)",
-      "Bash(echo === DOMAIN EVENTS ===:*)"
+      "Bash(echo === DOMAIN EVENTS ===:*)",
+      "Bash(echo EXIT CODE: $?:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [
       "Bash(rm -rf /)*",

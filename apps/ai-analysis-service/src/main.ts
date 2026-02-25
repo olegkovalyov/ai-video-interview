@@ -46,24 +46,10 @@ async function bootstrap() {
   logger.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
   logger.log(`🧪 Sandbox mode - use POST /sandbox/analyze to test`);
 
-  const gracefulShutdown = async (signal: string) => {
-    logger.log(`⚠️ Received ${signal}, shutting down gracefully...`);
-    try {
-      await app.close();
-      logger.log('✅ AI Analysis Service closed successfully');
-      process.exit(0);
-    } catch (error) {
-      logger.error('❌ Error during shutdown:', error);
-      process.exit(1);
-    }
-  };
-
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2'));
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ Failed to start AI Analysis Service:', error);
+  const logger = new Logger('Bootstrap');
+  logger.error('Failed to start AI Analysis Service', error);
   process.exit(1);
 });

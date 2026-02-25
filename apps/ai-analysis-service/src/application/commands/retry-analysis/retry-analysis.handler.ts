@@ -4,7 +4,7 @@ import { RetryAnalysisCommand } from './retry-analysis.command';
 import { AnalyzeInterviewCommand } from '../analyze-interview/analyze-interview.command';
 import { ANALYSIS_RESULT_REPOSITORY } from '../../ports';
 import type { IAnalysisResultRepository } from '../../ports';
-import { AnalysisNotFoundException } from '../../../domain/exceptions/analysis.exceptions';
+import { AnalysisNotFoundException, InvalidStatusTransitionException } from '../../../domain/exceptions/analysis.exceptions';
 import { AnalysisResultResponse } from '../../dto/responses/analysis-result.response';
 import { InvitationCompletedEventData } from '../../dto/kafka/invitation-completed.event';
 
@@ -30,23 +30,22 @@ export class RetryAnalysisHandler implements ICommandHandler<RetryAnalysisComman
     }
 
     if (!existingAnalysis.status.isFailed) {
-      throw new Error(`Cannot retry analysis with status: ${existingAnalysis.status.value}`);
+      throw new InvalidStatusTransitionException(existingAnalysis.status.value, 'retry');
+    }
+
+    // Retrieve stored event data from initial analysis run
+    const sourceEventData = await this.repository.getSourceEventData(analysisId);
+    if (!sourceEventData) {
+      throw new AnalysisNotFoundException(
+        `${analysisId} (source event data not available — analysis was created before event data storage was implemented)`,
+      );
     }
 
     await this.repository.delete(analysisId);
 
-    this.logger.log(`Deleted failed analysis: ${analysisId}, restarting...`);
+    this.logger.log(`Deleted failed analysis: ${analysisId}, restarting with stored event data...`);
 
-    const eventData: InvitationCompletedEventData = {
-      invitationId: existingAnalysis.invitationId,
-      candidateId: existingAnalysis.candidateId,
-      templateId: existingAnalysis.templateId,
-      templateTitle: existingAnalysis.templateTitle,
-      companyName: existingAnalysis.companyName,
-      completedAt: new Date(),
-      questions: [],
-      responses: [],
-    };
+    const eventData = sourceEventData as unknown as InvitationCompletedEventData;
 
     return this.commandBus.execute(new AnalyzeInterviewCommand(eventData));
   }

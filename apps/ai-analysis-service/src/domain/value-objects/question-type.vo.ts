@@ -1,4 +1,5 @@
 import { ValueObject } from '../../shared/base/value-object';
+import { InvalidQuestionTypeException } from '../exceptions/analysis.exceptions';
 
 export enum QuestionTypeEnum {
   TEXT = 'text',
@@ -35,7 +36,7 @@ export class QuestionType extends ValueObject<QuestionTypeProps> {
   public static fromString(value: string): QuestionType {
     const type = Object.values(QuestionTypeEnum).find((t) => t === value);
     if (!type) {
-      throw new Error(`Invalid question type: ${value}`);
+      throw new InvalidQuestionTypeException(value);
     }
     return new QuestionType({ value: type });
   }

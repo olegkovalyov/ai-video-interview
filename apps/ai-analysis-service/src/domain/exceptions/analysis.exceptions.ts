@@ -35,3 +35,33 @@ export class QuestionAnalysisNotFoundException extends DomainException {
     super(`Question analysis not found for question: ${questionId}`);
   }
 }
+
+export class NoQuestionsAnalyzedException extends DomainException {
+  constructor(analysisId: string) {
+    super(`Cannot complete analysis ${analysisId}: no questions were analyzed.`);
+  }
+}
+
+export class InvalidCriterionTypeException extends DomainException {
+  constructor(criterion: string) {
+    super(`Invalid criterion type: '${criterion}'. Valid values: relevance, completeness, clarity, depth.`);
+  }
+}
+
+export class InvalidAnalysisStatusException extends DomainException {
+  constructor(status: string) {
+    super(`Invalid analysis status: '${status}'. Valid values: pending, in_progress, completed, failed.`);
+  }
+}
+
+export class InvalidQuestionTypeException extends DomainException {
+  constructor(type: string) {
+    super(`Invalid question type: '${type}'. Valid values: text, multiple_choice, coding, video.`);
+  }
+}
+
+export class InvalidRecommendationException extends DomainException {
+  constructor(value: string) {
+    super(`Invalid recommendation: '${value}'. Valid values: hire, consider, reject.`);
+  }
+}

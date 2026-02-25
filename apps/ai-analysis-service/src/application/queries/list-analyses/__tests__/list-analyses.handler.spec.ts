@@ -26,6 +26,8 @@ describe('ListAnalysesHandler', () => {
       findAll: jest.fn(),
       existsByInvitationId: jest.fn(),
       delete: jest.fn(),
+      saveSourceEventData: jest.fn(),
+      getSourceEventData: jest.fn(),
     };
 
     handler = new ListAnalysesHandler(mockRepository);

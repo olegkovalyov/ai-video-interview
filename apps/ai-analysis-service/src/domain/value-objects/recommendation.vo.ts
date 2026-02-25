@@ -1,4 +1,5 @@
 import { ValueObject } from '../../shared/base/value-object';
+import { InvalidRecommendationException } from '../exceptions/analysis.exceptions';
 
 export enum RecommendationEnum {
   HIRE = 'hire',
@@ -30,7 +31,7 @@ export class Recommendation extends ValueObject<RecommendationProps> {
   public static fromString(value: string): Recommendation {
     const rec = Object.values(RecommendationEnum).find((r) => r === value);
     if (!rec) {
-      throw new Error(`Invalid recommendation: ${value}`);
+      throw new InvalidRecommendationException(value);
     }
     return new Recommendation({ value: rec });
   }

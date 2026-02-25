@@ -1,4 +1,4 @@
-import { Controller, Get, Param, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, Logger, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -35,7 +35,7 @@ export class AnalysisController {
       },
     },
   })
-  async getStatus(@Param('invitationId') invitationId: string) {
+  async getStatus(@Param('invitationId', ParseUUIDPipe) invitationId: string) {
     this.logger.debug(`Getting status for invitation: ${invitationId}`);
 
     const analysis = await this.analysisResultRepo.findOne({
@@ -84,7 +84,7 @@ export class AnalysisController {
         summary: { type: 'string', example: 'Strong candidate with excellent technical skills...' },
         strengths: { type: 'array', items: { type: 'string' }, example: ['Technical knowledge', 'Problem solving'] },
         weaknesses: { type: 'array', items: { type: 'string' }, example: ['Communication', 'Time management'] },
-        recommendation: { type: 'string', enum: ['strongly_recommend', 'recommend', 'consider', 'not_recommend'] },
+        recommendation: { type: 'string', enum: ['hire', 'consider', 'reject'] },
         language: { type: 'string', example: 'en' },
         modelUsed: { type: 'string', example: 'llama-3.3-70b-versatile' },
         totalTokensUsed: { type: 'number', example: 5000 },
@@ -114,7 +114,7 @@ export class AnalysisController {
     },
   })
   @ApiResponse({ status: 404, description: 'Analysis not found' })
-  async getAnalysis(@Param('invitationId') invitationId: string) {
+  async getAnalysis(@Param('invitationId', ParseUUIDPipe) invitationId: string) {
     this.logger.debug(`Getting analysis for invitation: ${invitationId}`);
 
     const analysis = await this.analysisResultRepo.findOne({

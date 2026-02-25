@@ -20,7 +20,7 @@ export interface PaginatedResult<T> {
 export const ANALYSIS_RESULT_REPOSITORY = Symbol('IAnalysisResultRepository');
 
 export interface IAnalysisResultRepository {
-  save(analysisResult: AnalysisResult): Promise<void>;
+  save(analysisResult: AnalysisResult, sourceEventData?: Record<string, unknown>): Promise<void>;
 
   findById(id: string): Promise<AnalysisResult | null>;
 
@@ -31,4 +31,10 @@ export interface IAnalysisResultRepository {
   existsByInvitationId(invitationId: string): Promise<boolean>;
 
   delete(id: string): Promise<void>;
+
+  /** Store original Kafka event data for retry purposes */
+  saveSourceEventData(analysisId: string, data: Record<string, unknown>): Promise<void>;
+
+  /** Retrieve stored event data for retry */
+  getSourceEventData(analysisId: string): Promise<Record<string, unknown> | null>;
 }

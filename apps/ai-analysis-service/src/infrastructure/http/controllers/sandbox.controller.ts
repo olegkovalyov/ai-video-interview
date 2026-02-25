@@ -38,11 +38,7 @@ export class SandboxController {
     const duration = Date.now() - startTime;
 
     this.logger.log(`Groq test completed in ${duration}ms`);
-    console.log('\n' + '='.repeat(60));
-    console.log('GROQ TEST RESULT:');
-    console.log('='.repeat(60));
-    console.log(JSON.stringify(result, null, 2));
-    console.log('='.repeat(60) + '\n');
+    this.logger.debug(`Groq test result: ${JSON.stringify(result)}`);
 
     return {
       status: 'success',
@@ -162,15 +158,12 @@ export class SandboxController {
       questionAnalyses,
     };
 
-    console.log('\n' + '='.repeat(60));
-    console.log('FINAL ANALYSIS RESULT:');
-    console.log('='.repeat(60));
-    console.log(JSON.stringify(finalResult, null, 2));
-    console.log('='.repeat(60));
-    console.log(`\nTotal processing time: ${processingTime}ms`);
-    console.log(`Total tokens used: ${totalTokensUsed}`);
-    console.log(`Recommendation: ${summaryResult.recommendation.toUpperCase()}`);
-    console.log('='.repeat(60) + '\n');
+    this.logger.log(
+      `Analysis completed: score=${overallScore}, ` +
+      `tokens=${totalTokensUsed}, time=${processingTime}ms, ` +
+      `recommendation=${summaryResult.recommendation}`,
+    );
+    this.logger.debug(`Full analysis result: ${JSON.stringify(finalResult)}`);
 
     return finalResult;
   }

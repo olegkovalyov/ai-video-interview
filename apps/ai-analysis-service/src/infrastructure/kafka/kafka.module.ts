@@ -1,21 +1,26 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { KafkaService } from '@repo/shared';
 import { InvitationCompletedConsumer } from './consumers/invitation-completed.consumer';
-import { LlmModule } from '../llm/llm.module';
+import { KafkaEventPublisher } from './adapters/kafka-event-publisher.adapter';
+import { EVENT_PUBLISHER } from '../../application/ports/event-publisher.port';
 import { AnalysisResultEntity } from '../persistence/entities/analysis-result.entity';
-import { QuestionAnalysisEntity } from '../persistence/entities/question-analysis.entity';
 import { ProcessedEventEntity } from '../persistence/entities/processed-event.entity';
 
 @Module({
   imports: [
     ConfigModule,
-    LlmModule,
-    TypeOrmModule.forFeature([AnalysisResultEntity, QuestionAnalysisEntity, ProcessedEventEntity]),
+    CqrsModule,
+    TypeOrmModule.forFeature([AnalysisResultEntity, ProcessedEventEntity]),
   ],
   providers: [
     InvitationCompletedConsumer,
+    {
+      provide: EVENT_PUBLISHER,
+      useClass: KafkaEventPublisher,
+    },
     {
       provide: 'KAFKA_CONFIG',
       useFactory: (configService: ConfigService) => ({
@@ -33,6 +38,6 @@ import { ProcessedEventEntity } from '../persistence/entities/processed-event.en
       inject: [ConfigService],
     },
   ],
-  exports: ['KAFKA_SERVICE'],
+  exports: ['KAFKA_SERVICE', EVENT_PUBLISHER],
 })
 export class KafkaModule {}

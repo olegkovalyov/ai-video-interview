@@ -7,7 +7,7 @@ import { QuestionAnalysis, CreateQuestionAnalysisParams } from '../entities/ques
 import { AnalysisStartedEvent } from '../events/analysis-started.event';
 import { AnalysisCompletedEvent } from '../events/analysis-completed.event';
 import { AnalysisFailedEvent } from '../events/analysis-failed.event';
-import { AnalysisAlreadyCompletedException } from '../exceptions/analysis.exceptions';
+import { AnalysisAlreadyCompletedException, NoQuestionsAnalyzedException, InvalidStatusTransitionException } from '../exceptions/analysis.exceptions';
 
 interface AnalysisResultProps {
   invitationId: string;
@@ -159,9 +159,17 @@ export class AnalysisResult extends AggregateRoot<AnalysisResultProps> {
   }
 
   public complete(params: CompleteAnalysisParams): void {
+    if (!this.props.status.canTransitionTo(AnalysisStatus.completed())) {
+      throw new InvalidStatusTransitionException(this.props.status.value, 'completed');
+    }
+
+    if (this.props.questionAnalyses.length === 0) {
+      throw new NoQuestionsAnalyzedException(this.id);
+    }
+
     const overallScore = this.calculateOverallScore();
 
-    this.props.status = this.props.status.transitionTo(AnalysisStatus.completed());
+    this.props.status = AnalysisStatus.completed();
     this.props.overallScore = overallScore;
     this.props.summary = params.summary;
     this.props.strengths = params.strengths;

@@ -1,17 +1,17 @@
 import { Injectable, Inject, OnModuleInit, Logger } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { KafkaService, KAFKA_TOPICS, AnalysisCompletedEvent } from '@repo/shared';
-import { ANALYSIS_ENGINE } from '../../../application/ports/analysis-engine.port';
-import type { IAnalysisEngine, QuestionAnalysisInput } from '../../../application/ports/analysis-engine.port';
+import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
+import { AnalyzeInterviewCommand } from '../../../application/commands/analyze-interview/analyze-interview.command';
+import { InvitationCompletedEventData } from '../../../application/dto/kafka/invitation-completed.event';
+import { AnalysisAlreadyExistsException } from '../../../domain/exceptions/analysis.exceptions';
 import { AnalysisResultEntity } from '../../persistence/entities/analysis-result.entity';
-import { QuestionAnalysisEntity } from '../../persistence/entities/question-analysis.entity';
 import { ProcessedEventEntity } from '../../persistence/entities/processed-event.entity';
-import { randomUUID } from 'crypto';
 
-interface InvitationCompletedEvent {
+interface InvitationCompletedKafkaEvent {
   eventId: string;
-  eventType: 'invitation.completed';
+  eventType: string;
   timestamp: string;
   version: number;
   payload: {
@@ -26,11 +26,7 @@ interface InvitationCompletedEvent {
       text: string;
       type: string;
       orderIndex: number;
-      options?: Array<{
-        id: string;
-        text: string;
-        isCorrect: boolean;
-      }>;
+      options?: Array<{ id: string; text: string; isCorrect: boolean }>;
     }>;
     responses: Array<{
       id: string;
@@ -42,13 +38,24 @@ interface InvitationCompletedEvent {
   };
 }
 
+/**
+ * Kafka consumer for invitation.completed events.
+ *
+ * Responsibilities (thin consumer):
+ * 1. Parse and validate Kafka message
+ * 2. Idempotency check (processed_events table)
+ * 3. Delegate to CommandBus → AnalyzeInterviewHandler
+ * 4. Mark event as processed
+ *
+ * All analysis logic lives in AnalyzeInterviewHandler (application layer).
+ */
 @Injectable()
 export class InvitationCompletedConsumer implements OnModuleInit {
   private readonly logger = new Logger(InvitationCompletedConsumer.name);
 
   constructor(
     @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
-    @Inject(ANALYSIS_ENGINE) private readonly analysisEngine: IAnalysisEngine,
+    private readonly commandBus: CommandBus,
     @InjectRepository(AnalysisResultEntity)
     private readonly analysisResultRepo: Repository<AnalysisResultEntity>,
     @InjectRepository(ProcessedEventEntity)
@@ -68,28 +75,28 @@ export class InvitationCompletedConsumer implements OnModuleInit {
             return;
           }
 
-          const event: InvitationCompletedEvent = JSON.parse(message.value.toString());
+          const event: InvitationCompletedKafkaEvent = JSON.parse(message.value.toString());
 
           if (event.eventType === 'invitation.completed') {
             await this.handleInvitationCompleted(event);
           } else {
             this.logger.debug(`Ignoring event type: ${event.eventType}`);
           }
-        } catch (error: any) {
-          this.logger.error(`Failed to process interview event: ${error.message}`, error.stack);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(`Failed to process interview event: ${message}`, error instanceof Error ? error.stack : undefined);
         }
       },
       { fromBeginning: true, autoCommit: true },
     );
 
-    this.logger.log('✅ Subscribed to interview-events topic');
+    this.logger.log('Subscribed to interview-events topic');
   }
 
-  private async handleInvitationCompleted(event: InvitationCompletedEvent): Promise<void> {
+  private async handleInvitationCompleted(event: InvitationCompletedKafkaEvent): Promise<void> {
     const { payload } = event;
-    const startTime = Date.now();
 
-    // Check idempotency
+    // 1. Idempotency check (best-effort — race condition possible during long analysis)
     const alreadyProcessed = await this.processedEventRepo.findOne({
       where: { eventId: event.eventId, serviceName: 'ai-analysis-service' },
     });
@@ -98,7 +105,7 @@ export class InvitationCompletedConsumer implements OnModuleInit {
       return;
     }
 
-    // Check if analysis already exists for this invitation
+    // 2. Check if analysis already exists for this invitation
     const existingAnalysis = await this.analysisResultRepo.findOne({
       where: { invitationId: payload.invitationId },
     });
@@ -107,210 +114,64 @@ export class InvitationCompletedConsumer implements OnModuleInit {
       return;
     }
 
-    this.logger.log('='.repeat(60));
-    this.logger.log(`📥 RECEIVED: invitation.completed`);
-    this.logger.log(`   Invitation: ${payload.invitationId}`);
-    this.logger.log(`   Template: ${payload.templateTitle}`);
-    this.logger.log(`   Questions: ${payload.questions.length}`);
-    this.logger.log('='.repeat(60));
+    this.logger.log(
+      `Received invitation.completed: invitation=${payload.invitationId}, ` +
+      `template="${payload.templateTitle}", questions=${payload.questions.length}`,
+    );
 
-    // Create analysis result entity
-    const analysisResult = new AnalysisResultEntity();
-    analysisResult.invitationId = payload.invitationId;
-    analysisResult.candidateId = payload.candidateId;
-    analysisResult.templateId = payload.templateId;
-    analysisResult.templateTitle = payload.templateTitle;
-    analysisResult.companyName = payload.companyName;
-    analysisResult.status = 'in_progress';
-    analysisResult.language = payload.language || 'en';
-    analysisResult.modelUsed = 'openai/gpt-oss-120b';
-
-    // Save initial record
-    await this.analysisResultRepo.save(analysisResult);
-    this.logger.log(`Created analysis record: ${analysisResult.id}`);
-
-    let totalTokensUsed = 0;
-    const questionAnalysisEntities: QuestionAnalysisEntity[] = [];
+    // 3. Delegate to CQRS handler
+    const eventData: InvitationCompletedEventData = {
+      invitationId: payload.invitationId,
+      candidateId: payload.candidateId,
+      templateId: payload.templateId,
+      templateTitle: payload.templateTitle,
+      companyName: payload.companyName,
+      completedAt: new Date(payload.completedAt),
+      questions: payload.questions.map((q) => ({
+        id: q.id,
+        text: q.text,
+        type: q.type,
+        orderIndex: q.orderIndex,
+        options: q.options,
+      })),
+      responses: payload.responses.map((r) => ({
+        id: r.id,
+        questionId: r.questionId,
+        textAnswer: r.textAnswer,
+        selectedOptionId: r.selectedOptionId,
+        submittedAt: new Date(),
+      })),
+      language: payload.language,
+    };
 
     try {
-      for (const response of payload.responses) {
-        const question = payload.questions.find(q => q.id === response.questionId);
-        if (!question) {
-          this.logger.warn(`Question not found for response: ${response.questionId}`);
-          continue;
-        }
-
-        const responseText = this.getResponseText(response, question);
-        if (!responseText) {
-          this.logger.warn(`Empty response for question: ${question.id}`);
-          continue;
-        }
-
-        const correctAnswer = this.getCorrectAnswer(question);
-
-        const input: QuestionAnalysisInput = {
-          questionId: question.id,
-          questionText: question.text,
-          questionType: question.type,
-          responseText,
-          correctAnswer,
-        };
-
-        this.logger.log(`\n--- Analyzing Question: ${question.id} ---`);
-        this.logger.log(`Q: ${question.text.substring(0, 80)}...`);
-
-        // Rate limit: wait between LLM calls to avoid 429 errors (Groq free tier: 8000 TPM)
-        await this.delay(5000);
-
-        const result = await this.analysisEngine.analyzeResponse(input);
-        totalTokensUsed += result.tokensUsed;
-
-        this.logger.log(`Score: ${result.score}/100 | Tokens: ${result.tokensUsed}`);
-
-        const qaEntity = new QuestionAnalysisEntity();
-        qaEntity.analysisResultId = analysisResult.id;
-        qaEntity.questionId = question.id;
-        qaEntity.questionText = question.text;
-        qaEntity.questionType = question.type as any;
-        qaEntity.responseText = responseText;
-        qaEntity.score = result.score;
-        qaEntity.feedback = result.feedback;
-        qaEntity.criteriaScores = result.criteriaScores;
-        qaEntity.tokensUsed = result.tokensUsed;
-        qaEntity.isCorrect = question.type === 'multiple_choice' ? result.score >= 90 : null;
-
-        questionAnalysisEntities.push(qaEntity);
+      await this.commandBus.execute(new AnalyzeInterviewCommand(eventData));
+    } catch (error) {
+      // Race condition: duplicate message arrived during long-running analysis.
+      // Handler's existsByInvitationId check caught it — treat as idempotent success.
+      if (error instanceof AnalysisAlreadyExistsException) {
+        this.logger.log(`Duplicate analysis for invitation ${payload.invitationId} detected, treating as success`);
+      } else {
+        throw error;
       }
+    }
 
-      this.logger.log('\n' + '='.repeat(60));
-      this.logger.log('GENERATING SUMMARY...');
-
-      const summaryResult = await this.analysisEngine.generateSummary({
-        questionAnalyses: questionAnalysisEntities.map(qa => ({
-          questionText: qa.questionText,
-          responseText: qa.responseText,
-          score: qa.score,
-          feedback: qa.feedback,
-        })),
-        templateTitle: payload.templateTitle,
-        companyName: payload.companyName,
-      });
-
-      totalTokensUsed += summaryResult.tokensUsed;
-      const processingTime = Date.now() - startTime;
-
-      const overallScore = questionAnalysisEntities.length > 0
-        ? Math.round(questionAnalysisEntities.reduce((sum, qa) => sum + qa.score, 0) / questionAnalysisEntities.length)
-        : 0;
-
-      // Update analysis result with final data
-      analysisResult.status = 'completed';
-      analysisResult.overallScore = overallScore;
-      analysisResult.summary = summaryResult.summary;
-      analysisResult.strengths = summaryResult.strengths;
-      analysisResult.weaknesses = summaryResult.weaknesses;
-      analysisResult.recommendation = summaryResult.recommendation as any;
-      analysisResult.totalTokensUsed = totalTokensUsed;
-      analysisResult.processingTimeMs = processingTime;
-      analysisResult.completedAt = new Date();
-      analysisResult.questionAnalyses = questionAnalysisEntities;
-
-      await this.analysisResultRepo.save(analysisResult);
-
-      // Mark event as processed
+    // 4. Mark event as processed — use INSERT with conflict handling for race safety
+    try {
       const processedEvent = new ProcessedEventEntity();
       processedEvent.eventId = event.eventId;
       processedEvent.serviceName = 'ai-analysis-service';
       await this.processedEventRepo.save(processedEvent);
-
-      this.logger.log('='.repeat(60));
-      this.logger.log('✅ ANALYSIS COMPLETED & SAVED TO DATABASE');
-      this.logger.log(`   Analysis ID: ${analysisResult.id}`);
-      this.logger.log(`   Invitation: ${payload.invitationId}`);
-      this.logger.log(`   Overall Score: ${overallScore}/100`);
-      this.logger.log(`   Recommendation: ${summaryResult.recommendation.toUpperCase()}`);
-      this.logger.log(`   Processing Time: ${processingTime}ms`);
-      this.logger.log(`   Tokens Used: ${totalTokensUsed}`);
-      this.logger.log('='.repeat(60));
-
-      // Publish analysis.completed event
-      await this.publishAnalysisCompletedEvent(analysisResult, questionAnalysisEntities.length);
-
-    } catch (error: any) {
-      // Update status to failed
-      analysisResult.status = 'failed';
-      analysisResult.errorMessage = error.message;
-      analysisResult.processingTimeMs = Date.now() - startTime;
-      await this.analysisResultRepo.save(analysisResult);
-
-      this.logger.error(`Analysis failed for ${payload.invitationId}: ${error.message}`, error.stack);
-      throw error;
+    } catch (error: unknown) {
+      // Unique constraint violation (23505) = another consumer instance already marked it
+      const isUniqueViolation = error instanceof Error && 'code' in error && (error as any).code === '23505';
+      if (isUniqueViolation) {
+        this.logger.log(`Event ${event.eventId} already marked as processed by another instance`);
+      } else {
+        throw error;
+      }
     }
-  }
 
-  private getResponseText(
-    response: { textAnswer?: string; selectedOptionId?: string },
-    question: { options?: Array<{ id: string; text: string }> },
-  ): string {
-    if (response.textAnswer) {
-      return response.textAnswer;
-    }
-    if (response.selectedOptionId && question.options) {
-      const selectedOption = question.options.find(o => o.id === response.selectedOptionId);
-      return selectedOption?.text || '';
-    }
-    return '';
-  }
-
-  private getCorrectAnswer(
-    question: { type: string; options?: Array<{ text: string; isCorrect: boolean }> },
-  ): string | undefined {
-    if (question.type === 'multiple_choice' && question.options) {
-      const correctOption = question.options.find(o => o.isCorrect);
-      return correctOption?.text;
-    }
-    return undefined;
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private async publishAnalysisCompletedEvent(
-    analysis: AnalysisResultEntity,
-    questionsAnalyzed: number,
-  ): Promise<void> {
-    const event: AnalysisCompletedEvent = {
-      eventId: `analysis-${randomUUID()}`,
-      eventType: 'analysis.completed',
-      timestamp: new Date().toISOString(),
-      version: 1,
-      payload: {
-        analysisId: analysis.id,
-        invitationId: analysis.invitationId,
-        candidateId: analysis.candidateId,
-        templateId: analysis.templateId,
-        templateTitle: analysis.templateTitle,
-        companyName: analysis.companyName,
-        status: analysis.status as 'completed' | 'failed',
-        overallScore: analysis.overallScore,
-        recommendation: analysis.recommendation,
-        questionsAnalyzed,
-        processingTimeMs: analysis.processingTimeMs,
-        totalTokensUsed: analysis.totalTokensUsed,
-      },
-    };
-
-    try {
-      await this.kafkaService.publishEvent(
-        KAFKA_TOPICS.ANALYSIS_EVENTS,
-        event,
-        undefined,
-        { partitionKey: analysis.candidateId },
-      );
-      this.logger.log(`📤 Published analysis.completed event to ${KAFKA_TOPICS.ANALYSIS_EVENTS}`);
-    } catch (error: any) {
-      this.logger.error(`Failed to publish analysis.completed event: ${error.message}`);
-    }
+    this.logger.log(`Event ${event.eventId} processed successfully`);
   }
 }

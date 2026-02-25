@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   IAnalysisEngine,
@@ -8,6 +8,25 @@ import {
   SummaryOutput,
   ANALYSIS_ENGINE,
 } from '../../application/ports/analysis-engine.port';
+import { MetricsService } from '../metrics/metrics.service';
+
+/** Rate limit delay between LLM calls (Groq free tier: 8000 TPM) */
+const RATE_LIMIT_DELAY_MS = 5000;
+
+/** Buffer added to retry delay parsed from Groq error message */
+const RETRY_BUFFER_MS = 500;
+
+/** Threshold for switching to chunked summary generation */
+const CHUNKED_SUMMARY_THRESHOLD = 30;
+
+/** Maximum questions per chunk in chunked summary */
+const MAX_QUESTIONS_PER_CHUNK = 15;
+
+/** Maximum retries on rate limit errors */
+const MAX_RETRIES = 3;
+
+/** Maximum length for question/response text sent to LLM */
+const MAX_INPUT_TEXT_LENGTH = 2000;
 
 interface GroqMessage {
   role: 'system' | 'user' | 'assistant';
@@ -34,11 +53,18 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
   private readonly model: string;
   private readonly baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() private readonly metricsService?: MetricsService,
+  ) {
     this.apiKey = this.configService.get<string>('GROQ_API_KEY', '');
     this.model = this.configService.get<string>('GROQ_MODEL', 'openai/gpt-oss-120b');
 
     if (!this.apiKey) {
+      const env = this.configService.get<string>('NODE_ENV', 'development');
+      if (env === 'production') {
+        throw new Error('GROQ_API_KEY is required in production. Set the environment variable and restart.');
+      }
       this.logger.warn('GROQ_API_KEY is not set! LLM calls will fail.');
     } else {
       this.logger.log(`Groq initialized with model: ${this.model}`);
@@ -62,13 +88,10 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
     };
   }
 
-  private readonly MAX_QUESTIONS_PER_SUMMARY = 15;
-
   async generateSummary(input: SummaryInput): Promise<SummaryOutput> {
     const questionsCount = input.questionAnalyses.length;
 
-    // For <= 30 questions, use single summary
-    if (questionsCount <= 30) {
+    if (questionsCount <= CHUNKED_SUMMARY_THRESHOLD) {
       return this.generateSingleSummary(input);
     }
 
@@ -95,7 +118,7 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
   }
 
   private async generateChunkedSummary(input: SummaryInput): Promise<SummaryOutput> {
-    const chunks = this.chunkArray(input.questionAnalyses, this.MAX_QUESTIONS_PER_SUMMARY);
+    const chunks = this.chunkArray(input.questionAnalyses, MAX_QUESTIONS_PER_CHUNK);
     
     this.logger.debug(`Split into ${chunks.length} chunks for summary generation`);
 
@@ -113,7 +136,7 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
       // Rate limit: wait between chunks (Groq free tier: 8000 TPM)
       if (i > 0) {
         this.logger.debug('Waiting 5s for rate limit...');
-        await this.delay(5000);
+        await this.delay(RATE_LIMIT_DELAY_MS);
       }
 
       this.logger.debug(`Generating mini-summary for chunk ${i + 1}/${chunks.length} (${chunk.length} questions)`);
@@ -122,7 +145,14 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
       const userPrompt = this.buildMiniSummaryPrompt(chunkInput, i + 1, chunks.length);
 
       const response = await this.callGroq(systemPrompt, userPrompt);
-      const parsed = JSON.parse(response.content);
+
+      let parsed: { summary?: string };
+      try {
+        parsed = JSON.parse(response.content);
+      } catch {
+        this.logger.error(`Failed to parse mini-summary JSON for chunk ${i + 1}: ${response.content}`);
+        parsed = { summary: response.content };
+      }
 
       const avgScore = chunk.reduce((sum, q) => sum + q.score, 0) / chunk.length;
 
@@ -136,8 +166,8 @@ export class GroqAnalysisEngine implements IAnalysisEngine {
     }
 
     // Generate final summary from mini-summaries
-    this.logger.debug('Waiting 5s before final summary...');
-    await this.delay(5000);
+    this.logger.debug(`Waiting ${RATE_LIMIT_DELAY_MS}ms before final summary...`);
+    await this.delay(RATE_LIMIT_DELAY_MS);
     this.logger.debug('Generating final summary from mini-summaries...');
 
     const finalSystemPrompt = this.getFinalSummarySystemPrompt();
@@ -230,7 +260,6 @@ Combine these into a comprehensive final assessment as JSON.`;
     userPrompt: string,
     retryCount = 0,
   ): Promise<{ content: string; tokensUsed: number }> {
-    const MAX_RETRIES = 3;
     const messages: GroqMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -267,6 +296,7 @@ Combine these into a comprehensive final assessment as JSON.`;
         
         if (isDailyLimit) {
           this.logger.error(`Daily token limit (TPD) reached. Reset at midnight UTC.`);
+          this.metricsService?.recordLlmRequest('daily_limit', 'llm_call');
           throw new Error(`Daily token limit (TPD) reached. Please try again tomorrow or upgrade to Developer tier.`);
         }
         
@@ -279,12 +309,13 @@ Combine these into a comprehensive final assessment as JSON.`;
           const msMatch = errorText.match(/try again in ([\d.]+)\s*ms/i);
           
           if (secMatch) {
-            retryDelay = Math.ceil(parseFloat(secMatch[1]) * 1000) + 500; // Add 500ms buffer
+            retryDelay = Math.ceil(parseFloat(secMatch[1]) * 1000) + RETRY_BUFFER_MS;
           } else if (msMatch) {
-            retryDelay = Math.ceil(parseFloat(msMatch[1])) + 500;
+            retryDelay = Math.ceil(parseFloat(msMatch[1])) + RETRY_BUFFER_MS;
           }
           
           this.logger.warn(`Rate limited (TPM/RPM). Retry ${retryCount + 1}/${MAX_RETRIES} after ${retryDelay}ms`);
+          this.metricsService?.recordLlmRequest('rate_limited', 'llm_call');
           await this.delay(retryDelay);
           
           return this.callGroq(systemPrompt, userPrompt, retryCount + 1);
@@ -292,12 +323,14 @@ Combine these into a comprehensive final assessment as JSON.`;
       }
       
       this.logger.error(`Groq API error: ${response.status} - ${errorText}`);
+      this.metricsService?.recordLlmRequest('error', 'llm_call');
       throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
     const data: GroqResponse = await response.json();
 
     this.logger.debug(`Groq call completed in ${duration}ms, tokens: ${data.usage.total_tokens}`);
+    this.metricsService?.recordLlmRequest('success', 'llm_call', data.usage.total_tokens);
 
     return {
       content: data.choices[0].message.content,
@@ -335,19 +368,27 @@ Be fair, objective, and provide actionable feedback.`;
   }
 
   private buildQuestionAnalysisPrompt(input: QuestionAnalysisInput): string {
+    const questionText = this.truncateText(input.questionText, MAX_INPUT_TEXT_LENGTH);
+    const responseText = this.truncateText(input.responseText, MAX_INPUT_TEXT_LENGTH);
+
     let prompt = `Analyze this interview response:
 
-**Question:** ${input.questionText}
+**Question:** ${questionText}
 **Question Type:** ${input.questionType}
-**Candidate's Response:** ${input.responseText}`;
+**Candidate's Response:** ${responseText}`;
 
     if (input.correctAnswer) {
-      prompt += `\n**Correct Answer:** ${input.correctAnswer}`;
+      prompt += `\n**Correct Answer:** ${this.truncateText(input.correctAnswer, MAX_INPUT_TEXT_LENGTH)}`;
     }
 
     prompt += '\n\nProvide your analysis as JSON.';
 
     return prompt;
+  }
+
+  private truncateText(text: string, maxLength: number): string {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '... [truncated]';
   }
 
   private parseQuestionAnalysisResponse(content: string): Omit<QuestionAnalysisOutput, 'tokensUsed'> {

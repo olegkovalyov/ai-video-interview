@@ -1,5 +1,6 @@
 import { AnalysisResult } from '../../domain/aggregates/analysis-result.aggregate';
 import { QuestionAnalysis } from '../../domain/entities/question-analysis.entity';
+import { CriteriaScore } from '../../domain/value-objects/criteria-score.vo';
 import {
   AnalysisResultResponse,
   AnalysisResultWithQuestionsResponse,
@@ -59,12 +60,7 @@ export class AnalysisResultMapper {
     };
   }
 
-  private static toCriteriaScoreResponse(cs: {
-    criterion: string;
-    score: { value: number };
-    weight: number;
-    criterionLabel: string;
-  }): CriteriaScoreResponse {
+  private static toCriteriaScoreResponse(cs: CriteriaScore): CriteriaScoreResponse {
     return {
       criterion: cs.criterion,
       criterionLabel: cs.criterionLabel,

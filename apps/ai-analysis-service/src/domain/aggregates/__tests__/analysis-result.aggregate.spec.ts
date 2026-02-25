@@ -8,8 +8,11 @@ import { CriterionType } from '../../value-objects/criteria-score.vo';
 import { AnalysisStartedEvent } from '../../events/analysis-started.event';
 import { AnalysisCompletedEvent } from '../../events/analysis-completed.event';
 import { AnalysisFailedEvent } from '../../events/analysis-failed.event';
-import { AnalysisAlreadyCompletedException } from '../../exceptions/analysis.exceptions';
-import { InvalidStatusTransitionException } from '../../exceptions/analysis.exceptions';
+import {
+  AnalysisAlreadyCompletedException,
+  InvalidStatusTransitionException,
+  NoQuestionsAnalyzedException,
+} from '../../exceptions/analysis.exceptions';
 
 describe('AnalysisResult Aggregate', () => {
   const createParams: CreateAnalysisParams = {
@@ -385,12 +388,11 @@ describe('AnalysisResult Aggregate', () => {
   });
 
   describe('overall score calculation', () => {
-    it('should return zero score when no questions', () => {
+    it('should throw NoQuestionsAnalyzedException when completing with no questions', () => {
       const analysis = AnalysisResult.create(createParams);
       analysis.start();
-      analysis.complete(completeParams);
 
-      expect(analysis.overallScore?.value).toBe(0);
+      expect(() => analysis.complete(completeParams)).toThrow(NoQuestionsAnalyzedException);
     });
 
     it('should calculate average of question scores', () => {

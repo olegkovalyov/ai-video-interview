@@ -1,5 +1,5 @@
 import { ValueObject } from '../../shared/base/value-object';
-import { InvalidStatusTransitionException } from '../exceptions/analysis.exceptions';
+import { InvalidStatusTransitionException, InvalidAnalysisStatusException } from '../exceptions/analysis.exceptions';
 
 export enum AnalysisStatusEnum {
   PENDING = 'pending',
@@ -36,7 +36,7 @@ export class AnalysisStatus extends ValueObject<AnalysisStatusProps> {
   public static fromString(value: string): AnalysisStatus {
     const status = Object.values(AnalysisStatusEnum).find((s) => s === value);
     if (!status) {
-      throw new Error(`Invalid analysis status: ${value}`);
+      throw new InvalidAnalysisStatusException(value);
     }
     return new AnalysisStatus({ value: status });
   }

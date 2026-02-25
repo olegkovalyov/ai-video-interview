@@ -75,7 +75,6 @@ export class AnalysisResultEntity {
 
   @OneToMany(() => QuestionAnalysisEntity, (qa) => qa.analysisResult, {
     cascade: true,
-    eager: true,
   })
   questionAnalyses: QuestionAnalysisEntity[];
 
@@ -85,6 +84,9 @@ export class AnalysisResultEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @Column({ type: 'jsonb', nullable: true, name: 'source_event_data' })
+  sourceEventData: Record<string, unknown> | null;
 
   @Column({ type: 'timestamp', nullable: true, name: 'completed_at' })
   completedAt: Date | null;
