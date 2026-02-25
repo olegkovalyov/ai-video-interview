@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { ApplicationModule } from './application/application.module';
@@ -8,6 +9,7 @@ import { HttpModule } from './infrastructure/http/http.module';
 import { LoggerModule } from './infrastructure/logger/logger.module';
 import { MessagingModule } from './infrastructure/messaging/messaging.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
+import { MetricsInterceptor } from './infrastructure/metrics/metrics.interceptor';
 
 @Module({
   imports: [
@@ -34,6 +36,9 @@ import { MetricsModule } from './infrastructure/metrics/metrics.module';
     
     // Metrics (Prometheus)
     MetricsModule,
+  ],
+  providers: [
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
 })
 export class AppModule {}

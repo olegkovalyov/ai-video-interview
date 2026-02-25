@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
@@ -7,6 +8,7 @@ import { HttpModule } from './infrastructure/http/http.module';
 import { LoggerModule } from './infrastructure/logger/logger.module';
 import { MessagingModule } from './infrastructure/messaging/messaging.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
+import { MetricsInterceptor } from './infrastructure/metrics/metrics.interceptor';
 import { ApplicationModule } from './application/application.module';
 import { TemplatesModule } from './infrastructure/http/modules/templates.module';
 import { InvitationsModule } from './infrastructure/http/modules/invitations.module';
@@ -46,6 +48,8 @@ import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exce
     ...EventHandlers,
     // Global filters resolved from DI (for LoggerService injection)
     DomainExceptionFilter,
+    // Global HTTP metrics interceptor
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
 })
 export class AppModule {}

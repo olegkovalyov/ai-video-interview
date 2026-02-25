@@ -3,6 +3,7 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
@@ -37,4 +38,11 @@ datasources:
             value: service
         filterByTraceID: true
         filterBySpanID: true
+      nodeGraph:
+        enabled: true
+      traceToMetrics:
+        datasourceUid: prometheus
+        tags:
+          - key: service.name
+            value: job
     editable: true

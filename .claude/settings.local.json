@@ -31,7 +31,8 @@
       "Bash(grep:*)",
       "Bash(echo === DOMAIN EVENTS ===:*)",
       "Bash(echo EXIT CODE: $?:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(cd /Users/oleg/www/ai-video-interview && npm dedupe rxjs 2>&1)"
     ],
     "deny": [
       "Bash(rm -rf /)*",
