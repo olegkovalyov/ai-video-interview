@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { ListTemplatesQuery } from './list-templates.query';
 import { PaginatedTemplatesResponseDto } from '../../dto/template.response.dto';
-import { IInterviewTemplateReadRepository } from '../../../domain/repositories/interview-template-read.repository.interface';
+import type { IInterviewTemplateReadRepository } from '../../../domain/repositories/interview-template-read.repository.interface';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
 @QueryHandler(ListTemplatesQuery)

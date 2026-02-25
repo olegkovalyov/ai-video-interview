@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetTemplateQuery } from './get-template.query';
 import { TemplateResponseDto } from '../../dto/template.response.dto';
-import { IInterviewTemplateReadRepository } from '../../../domain/repositories/interview-template-read.repository.interface';
+import type { IInterviewTemplateReadRepository } from '../../../domain/repositories/interview-template-read.repository.interface';
 import { TemplateNotFoundException, TemplateUnauthorizedException } from '../../../domain/exceptions/interview-template.exceptions';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
 

@@ -423,7 +423,7 @@ export class TypeOrmCandidateProfileReadRepository
     return results.map((r: { candidate_id: string; skill_id?: string; skill_name?: string; count?: string }) => ({
       skillId: r.skill_id,
       skillName: r.skill_name,
-      count: parseInt(r.count),
+      count: parseInt(r.count ?? '0', 10),
     }));
   }
 }

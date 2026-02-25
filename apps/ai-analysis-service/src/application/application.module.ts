@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { DatabaseModule } from '../infrastructure/persistence/database.module';
+import { LlmModule } from '../infrastructure/llm/llm.module';
+import { KafkaModule } from '../infrastructure/kafka/kafka.module';
 import { MetricsModule } from '../infrastructure/metrics/metrics.module';
 
 // Commands
@@ -27,7 +30,7 @@ const QueryHandlers = [
  * (DatabaseModule, LlmModule, KafkaModule).
  */
 @Module({
-  imports: [CqrsModule, MetricsModule],
+  imports: [CqrsModule, DatabaseModule, LlmModule, KafkaModule, MetricsModule],
   providers: [...CommandHandlers, ...QueryHandlers],
   exports: [CqrsModule],
 })

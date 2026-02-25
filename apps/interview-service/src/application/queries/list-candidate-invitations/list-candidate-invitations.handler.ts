@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { ListCandidateInvitationsQuery } from './list-candidate-invitations.query';
 import { PaginatedInvitationsResponseDto } from '../../dto/invitation.response.dto';
-import { IInvitationReadRepository } from '../../../domain/repositories/invitation-read.repository.interface';
+import type { IInvitationReadRepository } from '../../../domain/repositories/invitation-read.repository.interface';
 import { InvitationAccessDeniedException } from '../../../domain/exceptions/invitation.exceptions';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
 
