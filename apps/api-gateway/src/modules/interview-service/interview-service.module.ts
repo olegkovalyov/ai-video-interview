@@ -3,26 +3,23 @@ import { HttpModule } from '@nestjs/axios';
 import { InterviewServiceClient } from './clients/interview-service.client';
 import { TemplatesController } from './controllers/templates.controller';
 import { InvitationsController } from './controllers/invitations.controller';
-import { LoggerService } from '../../core/logging/logger.service';
 import { UserServiceModule } from '../user-service/user-service.module';
 
 /**
  * Interview Service Module
  * Aggregates all interview-service related functionality
- * 
+ *
  * Structure:
- * - InterviewServiceClient: Typed HTTP client for templates & invitations API
+ * - InterviewServiceClient: Typed HTTP client (extends BaseServiceProxy — circuit breaker, retry, metrics)
  * - TemplatesController: REST API endpoints for templates management
  * - InvitationsController: REST API endpoints for invitations management
- * 
- * This module encapsulates all API Gateway interactions with Interview Service.
- * 
- * Note: JwtAuthGuard is available globally from AuthModule (@Global)
+ *
+ * Dependencies (via @Global modules): LoggerService, MetricsService, CircuitBreakerRegistry
  */
 @Module({
   imports: [
     HttpModule,
-    UserServiceModule, // For enriching invitations with candidate info
+    UserServiceModule,
   ],
   controllers: [
     TemplatesController,
@@ -30,7 +27,6 @@ import { UserServiceModule } from '../user-service/user-service.module';
   ],
   providers: [
     InterviewServiceClient,
-    LoggerService,
   ],
   exports: [
     InterviewServiceClient,

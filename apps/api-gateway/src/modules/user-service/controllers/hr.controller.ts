@@ -12,6 +12,7 @@ import { RolesGuard } from '../../../core/auth/guards/roles.guard';
 import { Roles } from '../../../core/auth/guards/roles.decorator';
 import { UserServiceClient } from '../clients/user-service.client';
 import { LoggerService } from '../../../core/logging/logger.service';
+import { SearchCandidatesQueryDto } from '../dto/search-candidates-query.dto';
 
 /**
  * HR Controller
@@ -48,36 +49,29 @@ export class HRController {
   @ApiResponse({ status: 403, description: 'Forbidden - HR or Admin role required' })
   async searchCandidates(
     @Req() req: Request & { user?: any },
-    @Query('skillIds') skillIds?: string | string[],
-    @Query('minProficiency') minProficiency?: 'beginner' | 'intermediate' | 'advanced' | 'expert',
-    @Query('minYears') minYears?: string,
-    @Query('experienceLevel') experienceLevel?: 'junior' | 'mid' | 'senior' | 'lead',
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: SearchCandidatesQueryDto,
   ) {
     const userId = req.user?.userId;
 
     this.loggerService.info('HR: Searching candidates', {
       userId,
-      skillIds,
-      minProficiency,
-      minYears,
-      experienceLevel,
+      skillIds: query.skillIds,
+      minProficiency: query.minProficiency,
+      experienceLevel: query.experienceLevel,
     });
 
     try {
-      // Normalize skillIds to array
-      const skillIdsArray = skillIds
-        ? (Array.isArray(skillIds) ? skillIds : [skillIds])
+      const skillIdsArray = query.skillIds
+        ? (Array.isArray(query.skillIds) ? query.skillIds : [query.skillIds])
         : [];
 
       const result = await this.userServiceClient.searchCandidates({
         skillIds: skillIdsArray,
-        minProficiency,
-        minYears: minYears ? parseInt(minYears, 10) : undefined,
-        experienceLevel,
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 20,
+        minProficiency: query.minProficiency,
+        minYears: query.minYears,
+        experienceLevel: query.experienceLevel,
+        page: query.page,
+        limit: query.limit,
       });
 
       this.loggerService.info('HR: Candidates search completed', {

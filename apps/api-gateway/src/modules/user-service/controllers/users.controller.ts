@@ -14,6 +14,7 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { UserServiceClient } from '../clients/user-service.client';
 import { LoggerService } from '../../../core/logging/logger.service';
+import { maskEmail } from '../../../core/logging/pii-mask.util';
 import { KeycloakRoleService } from '../admin/keycloak';
 import { UpdateProfileDto, SelectRoleDto, UserProfileResponseDto } from '../dto/user-profile.dto';
 
@@ -65,7 +66,7 @@ export class UsersController {
       // Internal call to User Service using userId
       const user = await this.userServiceClient.getUserById(userId);
       
-      this.loggerService.log(`✅ [API Gateway] Received from User Service: userId=${user.id}, email=${user.email}`);
+      this.loggerService.log(`✅ [API Gateway] Received from User Service: userId=${user.id}, email=${maskEmail(user.email)}`);
       
       return user;
     } catch (error) {

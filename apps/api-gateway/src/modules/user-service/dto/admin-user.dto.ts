@@ -214,17 +214,6 @@ export class CreateUserResponseDto {
 }
 
 /**
- * Generic success response
- */
-export class SuccessResponseDto {
-  @ApiProperty({ example: true })
-  success: boolean;
-
-  @ApiProperty({ example: 'Operation completed successfully' })
-  message: string;
-}
-
-/**
  * Role response DTO
  */
 export class RoleDto {

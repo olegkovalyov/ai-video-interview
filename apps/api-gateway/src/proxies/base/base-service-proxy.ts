@@ -6,11 +6,13 @@ import { LoggerService } from '../../core/logging/logger.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../../core/circuit-breaker/circuit-breaker-registry.service';
 import { CircuitBreaker, CircuitBreakerOptions } from '../../core/circuit-breaker/circuit-breaker';
+import { correlationStore } from '../../core/middleware/correlation-id.store';
 
 export interface ProxyRequestOptions {
   timeout?: number;
   retries?: number;
   headers?: Record<string, string>;
+  params?: Record<string, any>;
   bypassCircuitBreaker?: boolean; // Для критичных операций
 }
 
@@ -267,6 +269,22 @@ export abstract class BaseServiceProxy {
   }
 
   /**
+   * Возвращает дефолтные headers для всех запросов.
+   * Наследники могут переопределить для добавления service-specific headers
+   * (e.g., x-internal-token).
+   */
+  protected getDefaultHeaders(): Record<string, string> {
+    const store = correlationStore.getStore();
+    return {
+      'Content-Type': 'application/json',
+      'x-internal-request': 'true',
+      ...(store?.correlationId && {
+        'x-correlation-id': store.correlationId,
+      }),
+    };
+  }
+
+  /**
    * Строит Axios конфигурацию
    */
   private buildAxiosConfig(
@@ -277,12 +295,12 @@ export abstract class BaseServiceProxy {
     return {
       method,
       data,
-      timeout: options?.timeout || 5000, // 5 seconds default
+      timeout: options?.timeout || this.circuitBreakerOptions.timeout || 5000,
       headers: {
-        'Content-Type': 'application/json',
-        'x-internal-request': 'true', // Маркер internal запроса
+        ...this.getDefaultHeaders(),
         ...options?.headers,
       },
+      ...(options?.params && { params: options.params }),
     };
   }
 
@@ -291,19 +309,38 @@ export abstract class BaseServiceProxy {
    */
   private handleError(error: any): Error {
     if (error.response) {
-      // HTTP error
+      // HTTP error — извлекаем сообщение из response data
+      const data = error.response.data;
+      let message: string;
+      if (typeof data === 'string') {
+        message = data;
+      } else if (data?.message) {
+        message = Array.isArray(data.message) ? data.message.join(', ') : String(data.message);
+      } else if (data?.error && typeof data.error === 'string') {
+        message = data.error;
+      } else {
+        message = error.message;
+      }
+
       return new ServiceProxyError(
         this.serviceName,
         error.response.status,
-        error.response.data?.message || error.message,
+        message,
         error.response.data,
       );
-    } else if (error.request) {
-      // Network error
+    } else if (error.code === 'ECONNABORTED') {
+      // Timeout error
       return new ServiceProxyError(
         this.serviceName,
         0,
-        'Network error: Service unavailable',
+        `Service timeout: ${this.serviceName} did not respond in time`,
+      );
+    } else if (error.request) {
+      // Network error (ECONNREFUSED, etc.)
+      return new ServiceProxyError(
+        this.serviceName,
+        0,
+        `Network error: ${this.serviceName} unavailable`,
       );
     } else {
       // Unknown error

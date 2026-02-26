@@ -1,11 +1,10 @@
-import {Injectable, HttpException, HttpStatus} from '@nestjs/common';
-import {HttpService} from '@nestjs/axios';
-import {ConfigService} from '@nestjs/config';
-import {firstValueFrom} from 'rxjs';
-import {BaseServiceProxy} from '../../../proxies/base/base-service-proxy';
-import {LoggerService} from '../../../core/logging/logger.service';
-import {MetricsService} from '../../../core/metrics/metrics.service';
-import {CircuitBreakerRegistry} from '../../../core/circuit-breaker/circuit-breaker-registry.service';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { BaseServiceProxy, ServiceProxyError } from '../../../proxies/base/base-service-proxy';
+import { LoggerService } from '../../../core/logging/logger.service';
+import { MetricsService } from '../../../core/metrics/metrics.service';
+import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
 import type {
   CreateUserInternalDto,
   UpdateUserInternalDto,
@@ -19,7 +18,7 @@ import type {
   UserStatsResponseDto,
   SuspendUserDto,
 } from '../dto/admin-user.dto';
-import type {SelectRoleDto} from '../dto/user-profile.dto';
+import type { SelectRoleDto } from '../dto/user-profile.dto';
 import type {
   CandidateSkillsByCategoryDto,
   AddCandidateSkillDto,
@@ -44,9 +43,9 @@ import type {
 
 export type CreateUserDto = CreateUserInternalDto;
 export type UpdateUserDto = UpdateUserInternalDto;
-export {UserResponseDto, UserListResponseDto, UserStatsResponseDto};
-export {SuspendUserDto, SelectRoleDto};
-export {UserPermissionsResponseDto, UpdateCandidateProfileDto, UpdateHRProfileDto};
+export { UserResponseDto, UserListResponseDto, UserStatsResponseDto };
+export { SuspendUserDto, SelectRoleDto };
+export { UserPermissionsResponseDto, UpdateCandidateProfileDto, UpdateHRProfileDto };
 
 // ============================================================================
 // Unified User Service Client
@@ -55,25 +54,19 @@ export {UserPermissionsResponseDto, UpdateCandidateProfileDto, UpdateHRProfileDt
 /**
  * Unified User Service Client
  *
- * Communicates with User Service using:
- * - Internal service token (X-Internal-Token header)
- * - Type-safe DTOs from generated OpenAPI contracts
- * - Updated endpoints: /users/* (no /internal prefix)
- *
- * All methods use internal authentication and direct HTTP calls.
+ * Extends BaseServiceProxy for circuit breaker, retry, metrics, and error handling.
+ * Uses internal service token (X-Internal-Token header) for all requests.
  */
 @Injectable()
 export class UserServiceClient extends BaseServiceProxy {
   protected readonly serviceName = 'user-service';
   protected readonly baseUrl: string;
-  private readonly timeout: number = 5000;
   private readonly internalToken: string;
 
-  // Circuit breaker configuration
   protected circuitBreakerOptions = {
     failureThreshold: 5,
     successThreshold: 2,
-    timeout: 3000,
+    timeout: 5000,
     resetTimeout: 30000,
   };
 
@@ -95,149 +88,67 @@ export class UserServiceClient extends BaseServiceProxy {
       'internal-secret',
     );
 
-    // Initialize circuit breaker
     this.initCircuitBreaker();
+  }
+
+  protected getDefaultHeaders(): Record<string, string> {
+    return {
+      ...super.getDefaultHeaders(),
+      'X-Internal-Token': this.internalToken,
+    };
   }
 
   // ==========================================================================
   // USER CRUD OPERATIONS
   // ==========================================================================
 
-  /**
-   * Create user
-   * Route: POST /users
-   * Body: CreateUserInternalDto
-   * Response: 201 Created
-   */
+  /** POST /users — Create user */
   async createUser(dto: CreateUserDto): Promise<{ success: boolean; userId: string }> {
     try {
-      this.loggerService.info('UserServiceClient: Creating user', {
-        userId: dto.userId,
-        email: dto.email,
-      });
-
-      await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/users`, dto, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: User created successfully', {
-        userId: dto.userId,
-      });
-
-      return {success: true, userId: dto.userId};
+      await this.post<void>('/users', dto);
+      return { success: true, userId: dto.userId };
     } catch (error) {
-      return this.handleInternalError(error, 'create user', {
-        userId: dto.userId,
-        email: dto.email,
-      });
+      throw this.mapUserError(error, 'create user', { userId: dto.userId });
     }
   }
 
-  /**
-   * Get user by ID
-   * Route: GET /users/:userId
-   * Response: UserResponseDto
-   */
+  /** GET /users/:userId — Get user by ID */
   async getUserById(userId: string): Promise<UserResponseDto> {
     try {
-      this.loggerService.info('UserServiceClient: Getting user by ID', {userId});
-
-      const response = await firstValueFrom(
-        this.httpService.get<UserResponseDto>(`${this.baseUrl}/users/${userId}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      return response.data;
+      return await this.get<UserResponseDto>(`/users/${userId}`);
     } catch (error) {
-      return this.handleInternalError(error, 'get user by ID', {userId});
+      throw this.mapUserError(error, 'get user by ID', { userId });
     }
   }
 
-  /**
-   * Get user by external auth ID (Keycloak ID)
-   * Route: GET /users/by-external-auth/:externalAuthId
-   * Response: UserResponseDto | null (404)
-   */
+  /** GET /users/by-external-auth/:externalAuthId — Get by Keycloak ID (returns null if 404) */
   async getUserByExternalAuthId(externalAuthId: string): Promise<UserResponseDto | null> {
     try {
-      this.loggerService.info('UserServiceClient: Getting user by external auth ID', {
-        externalAuthId,
-      });
-
-      const response = await firstValueFrom(
-        this.httpService.get<UserResponseDto>(
-          `${this.baseUrl}/users/by-external-auth/${externalAuthId}`,
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      return response.data;
+      return await this.get<UserResponseDto>(`/users/by-external-auth/${externalAuthId}`);
     } catch (error) {
-      // Return null if not found (404) - expected during first login
-      if (error.response?.status === 404) {
+      if (error instanceof ServiceProxyError && error.statusCode === 404) {
         return null;
       }
-
-      return this.handleInternalError(error, 'get user by external auth ID', {
-        externalAuthId,
-      });
+      throw this.mapUserError(error, 'get user by external auth ID', { externalAuthId });
     }
   }
 
-  /**
-   * Update user profile
-   * Route: PUT /users/:userId
-   * Body: UpdateUserInternalDto
-   * Response: UserResponseDto
-   */
+  /** PUT /users/:userId — Update user profile */
   async updateUser(userId: string, dto: UpdateUserDto): Promise<UserResponseDto> {
     try {
-      this.loggerService.info('UserServiceClient: Updating user', {userId});
-
-      const response = await firstValueFrom(
-        this.httpService.put<UserResponseDto>(`${this.baseUrl}/users/${userId}`, dto, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: User updated successfully', {userId});
-
-      return response.data;
+      return await this.put<UserResponseDto>(`/users/${userId}`, dto);
     } catch (error) {
-      return this.handleInternalError(error, 'update user', {userId});
+      throw this.mapUserError(error, 'update user', { userId });
     }
   }
 
-  /**
-   * Delete user
-   * Route: DELETE /users/:userId
-   * Response: 200 OK
-   */
+  /** DELETE /users/:userId — Delete user */
   async deleteUser(userId: string): Promise<{ success: boolean }> {
     try {
-      this.loggerService.info('UserServiceClient: Deleting user', {userId});
-
-      await firstValueFrom(
-        this.httpService.delete(`${this.baseUrl}/users/${userId}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: User deleted successfully', {userId});
-
-      return {success: true};
+      await this.delete<void>(`/users/${userId}`);
+      return { success: true };
     } catch (error) {
-      return this.handleInternalError(error, 'delete user', {userId});
+      throw this.mapUserError(error, 'delete user', { userId });
     }
   }
 
@@ -245,11 +156,7 @@ export class UserServiceClient extends BaseServiceProxy {
   // USER QUERY METHODS
   // ==========================================================================
 
-  /**
-   * List users with pagination and filters
-   * Route: GET /users
-   * Response: UserListResponseDto
-   */
+  /** GET /users — List users with pagination and filters */
   async listUsers(params?: {
     page?: number;
     limit?: number;
@@ -257,114 +164,40 @@ export class UserServiceClient extends BaseServiceProxy {
     status?: 'active' | 'suspended' | 'deleted';
     role?: string;
   }): Promise<UserListResponseDto> {
-    try {
-      const query = new URLSearchParams();
-      if (params?.page) query.append('page', String(params.page));
-      if (params?.limit) query.append('limit', String(params.limit));
-      if (params?.search) query.append('search', params.search);
-      if (params?.status) query.append('status', params.status);
-      if (params?.role) query.append('role', params.role);
+    const queryParams: Record<string, any> = {};
+    if (params?.page) queryParams.page = params.page;
+    if (params?.limit) queryParams.limit = params.limit;
+    if (params?.search) queryParams.search = params.search;
+    if (params?.status) queryParams.status = params.status;
+    if (params?.role) queryParams.role = params.role;
 
-      const url = `${this.baseUrl}/users${query.toString() ? '?' + query.toString() : ''}`;
-
-      this.loggerService.info('UserServiceClient: Listing users', {params});
-
-      const response = await firstValueFrom(
-        this.httpService.get<UserListResponseDto>(url, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      return this.handleInternalError(error, 'list users', {params});
-    }
+    return this.get<UserListResponseDto>('/users', { params: queryParams });
   }
 
-  /**
-   * Get user statistics
-   * Route: GET /users/stats
-   * Response: UserStatsResponseDto
-   */
+  /** GET /users/stats — Get user statistics */
   async getUserStats(): Promise<UserStatsResponseDto> {
-    try {
-      this.loggerService.info('UserServiceClient: Getting user statistics');
-
-      const response = await firstValueFrom(
-        this.httpService.get<UserStatsResponseDto>(`${this.baseUrl}/users/stats`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      return this.handleInternalError(error, 'get user statistics', {});
-    }
+    return this.get<UserStatsResponseDto>('/users/stats');
   }
 
   // ==========================================================================
   // ADMIN OPERATIONS
   // ==========================================================================
 
-  /**
-   * Suspend user (admin operation)
-   * Route: POST /users/:userId/suspend
-   * Body: SuspendUserDto { reason: string }
-   * Response: UserResponseDto
-   */
+  /** POST /users/:userId/suspend — Suspend user (admin operation) */
   async suspendUser(userId: string, dto: SuspendUserDto): Promise<UserResponseDto> {
     try {
-      this.loggerService.info('UserServiceClient: Suspending user', {
-        userId,
-        reason: dto.reason,
-      });
-
-      const response = await firstValueFrom(
-        this.httpService.post<UserResponseDto>(
-          `${this.baseUrl}/users/${userId}/suspend`,
-          dto,
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info('UserServiceClient: User suspended successfully', {userId});
-
-      return response.data;
+      return await this.post<UserResponseDto>(`/users/${userId}/suspend`, dto);
     } catch (error) {
-      return this.handleInternalError(error, 'suspend user', {userId});
+      throw this.mapUserError(error, 'suspend user', { userId });
     }
   }
 
-  /**
-   * Activate user (admin operation)
-   * Route: POST /users/:userId/activate
-   * Response: UserResponseDto
-   */
+  /** POST /users/:userId/activate — Activate user (admin operation) */
   async activateUser(userId: string): Promise<UserResponseDto> {
     try {
-      this.loggerService.info('UserServiceClient: Activating user', {userId});
-
-      const response = await firstValueFrom(
-        this.httpService.post<UserResponseDto>(
-          `${this.baseUrl}/users/${userId}/activate`,
-          {},
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info('UserServiceClient: User activated successfully', {userId});
-
-      return response.data;
+      return await this.post<UserResponseDto>(`/users/${userId}/activate`, {});
     } catch (error) {
-      return this.handleInternalError(error, 'activate user', {userId});
+      throw this.mapUserError(error, 'activate user', { userId });
     }
   }
 
@@ -372,40 +205,19 @@ export class UserServiceClient extends BaseServiceProxy {
   // ROLES & PERMISSIONS
   // ==========================================================================
 
-  /**
-   * Assign role to user
-   * Route: POST /users/:userId/roles
-   * Body: SelectRoleDto { role: 'candidate' | 'hr' | 'admin' }
-   * Response: 200 OK
-   */
+  /** POST /users/:userId/roles — Assign role to user */
   async assignRole(
     userId: string,
     dto: SelectRoleDto,
   ): Promise<{ success: boolean; message: string; role: string }> {
     try {
-      this.loggerService.info('UserServiceClient: Assigning role', {
-        userId,
-        role: dto.role,
-      });
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/users/${userId}/roles`, dto, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
+      const result = await this.post<{ success: boolean; message: string; role: string }>(
+        `/users/${userId}/roles`,
+        dto,
       );
-
-      this.loggerService.info('UserServiceClient: Role assigned successfully', {
-        userId,
-        role: dto.role,
-      });
-
-      return response.data || {success: true, message: 'Role assigned', role: dto.role};
+      return result || { success: true, message: 'Role assigned', role: dto.role };
     } catch (error) {
-      return this.handleInternalError(error, 'assign role', {
-        userId,
-        role: dto.role,
-      });
+      throw this.mapUserError(error, 'assign role', { userId, role: dto.role });
     }
   }
 
@@ -413,159 +225,29 @@ export class UserServiceClient extends BaseServiceProxy {
   // PROFILE MANAGEMENT
   // ==========================================================================
 
-  /**
-   * Update candidate profile
-   * Route: PUT /users/:userId/profiles/candidate
-   * Body: UpdateCandidateProfileDto
-   * Response: 200 OK
-   */
+  /** PUT /users/:userId/profiles/candidate — Update candidate profile */
   async updateCandidateProfile(
     userId: string,
     dto: UpdateCandidateProfileDto,
   ): Promise<{ success: boolean }> {
-    try {
-      this.loggerService.info('UserServiceClient: Updating candidate profile', {userId});
-
-      await firstValueFrom(
-        this.httpService.put(`${this.baseUrl}/users/${userId}/profiles/candidate`, dto, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: Candidate profile updated', {userId});
-
-      return {success: true};
-    } catch (error) {
-      return this.handleInternalError(error, 'update candidate profile', {userId});
-    }
+    await this.put<void>(`/users/${userId}/profiles/candidate`, dto);
+    return { success: true };
   }
 
-  /**
-   * Update HR profile
-   * Route: PUT /users/:userId/profiles/hr
-   * Body: UpdateHRProfileDto
-   * Response: 200 OK
-   */
+  /** PUT /users/:userId/profiles/hr — Update HR profile */
   async updateHRProfile(
     userId: string,
     dto: UpdateHRProfileDto,
   ): Promise<{ success: boolean }> {
-    try {
-      this.loggerService.info('UserServiceClient: Updating HR profile', {userId});
-
-      await firstValueFrom(
-        this.httpService.put(`${this.baseUrl}/users/${userId}/profiles/hr`, dto, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: HR profile updated', {userId});
-
-      return {success: true};
-    } catch (error) {
-      return this.handleInternalError(error, 'update HR profile', {userId});
-    }
-  }
-
-  // ==========================================================================
-  // PRIVATE HELPERS
-  // ==========================================================================
-
-  /**
-   * Get headers for internal service communication
-   */
-  private getInternalHeaders(): Record<string, string> {
-    return {
-      'Content-Type': 'application/json',
-      'X-Internal-Token': this.internalToken,
-    };
-  }
-
-  /**
-   * Handle errors for internal methods
-   */
-  private handleInternalError(
-    error: any,
-    operation: string,
-    context: Record<string, any>,
-  ): never {
-    this.loggerService.error(`UserServiceClient: Failed to ${operation}`, error, {
-      errorResponse: error.response?.data,
-      errorStatus: error.response?.status,
-      errorStatusText: error.response?.statusText,
-      errorCode: error.code,
-      errorUrl: error.config?.url,
-      errorMethod: error.config?.method,
-      baseUrl: this.baseUrl,
-      timeout: this.timeout,
-      ...context,
-    });
-
-    // Handle specific HTTP errors
-    if (error.response?.status === 409) {
-      throw new HttpException(
-        {
-          success: false,
-          error: `User already exists in User Service`,
-          code: 'USER_ALREADY_EXISTS',
-        },
-        HttpStatus.CONFLICT,
-      );
-    }
-
-    if (error.response?.status === 404) {
-      throw new HttpException(
-        {
-          success: false,
-          error: 'User not found in User Service',
-          code: 'USER_NOT_FOUND',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (error.code === 'ECONNABORTED') {
-      throw new HttpException(
-        {
-          success: false,
-          error: 'User Service timeout',
-          code: 'USER_SERVICE_TIMEOUT',
-        },
-        HttpStatus.REQUEST_TIMEOUT,
-      );
-    }
-
-    if (error.code === 'ECONNREFUSED') {
-      throw new HttpException(
-        {
-          success: false,
-          error: 'User Service unavailable',
-          code: 'USER_SERVICE_UNAVAILABLE',
-        },
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-
-    throw new HttpException(
-      {
-        success: false,
-        error: `Failed to ${operation} in User Service`,
-        details: error.message,
-      },
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
+    await this.put<void>(`/users/${userId}/profiles/hr`, dto);
+    return { success: true };
   }
 
   // ==========================================================================
   // SKILLS (Admin)
   // ==========================================================================
 
-  /**
-   * List skills with filters (Admin)
-   * Route: GET /skills
-   */
+  /** GET /skills — List skills with filters */
   async listSkills(filters: {
     page?: number;
     limit?: number;
@@ -573,185 +255,62 @@ export class UserServiceClient extends BaseServiceProxy {
     categoryId?: string;
     isActive?: boolean;
   }): Promise<SkillsListResponseDto> {
-    try {
-      const params = new URLSearchParams();
-      if (filters.page) params.append('page', String(filters.page));
-      if (filters.limit) params.append('limit', String(filters.limit));
-      if (filters.search) params.append('search', filters.search);
-      if (filters.categoryId) params.append('categoryId', filters.categoryId);
-      if (filters.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    const params: Record<string, any> = {};
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    if (filters.search) params.search = filters.search;
+    if (filters.categoryId) params.categoryId = filters.categoryId;
+    if (filters.isActive !== undefined) params.isActive = filters.isActive;
 
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/skills?${params}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      // User Service returns { success, data, pagination }
-      // Data is already Read Models (plain objects) - no mapping needed
-      const {data, pagination} = response.data;
-      return {data, pagination};
-    } catch (error) {
-      throw this.handleInternalError(error, 'list skills', {});
-    }
+    const response = await this.get<{ data: any; pagination: any }>('/skills', { params });
+    return { data: response.data, pagination: response.pagination };
   }
 
-  /**
-   * Get skill by ID (Admin)
-   * Route: GET /skills/:id
-   */
+  /** GET /skills/:id — Get skill by ID */
   async getSkill(id: string): Promise<SkillDto> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/skills/${id}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      // Extract data from success wrapper (already Read Model)
-      return response.data.data;
-    } catch (error) {
-      this.handleInternalError(error, 'get skill', {skillId: id});
-    }
+    const response = await this.get<{ data: SkillDto }>(`/skills/${id}`);
+    return response.data;
   }
 
-  /**
-   * Create skill (Admin)
-   * Route: POST /skills
-   */
+  /** POST /skills — Create skill */
   async createSkill(dto: CreateSkillDto, adminId: string): Promise<SkillDto> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/skills`, {...dto, adminId}, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      // Extract data from success wrapper (already Read Model)
-      return response.data.data;
-    } catch (error) {
-      this.handleInternalError(error, 'create skill', {adminId});
-    }
+    const response = await this.post<{ data: SkillDto }>('/skills', { ...dto, adminId });
+    return response.data;
   }
 
-  /**
-   * Update skill (Admin)
-   * Route: PUT /skills/:id
-   *
-   * User Service возвращает SkillSuccessResponseDto вида:
-   * { success: true }
-   */
+  /** PUT /skills/:id — Update skill */
   async updateSkill(id: string, dto: UpdateSkillDto, adminId: string): Promise<{ success: boolean }> {
-    try {
-      this.loggerService.info('UserServiceClient: Updating skill', {skillId: id, adminId});
-      const response = await firstValueFrom(
-        this.httpService.put(`${this.baseUrl}/skills/${id}`, {...dto, adminId}, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.debug('UserServiceClient: Update skill response', {
-        status: response.status,
-        dataKeys: Object.keys(response.data || {}),
-        data: response.data,
-      });
-
-      const result = response.data as { success: boolean };
-
-      if (!result || typeof result.success !== 'boolean') {
-        this.loggerService.error('UserServiceClient: Unexpected update skill response shape', {
-          responseData: response.data,
-        });
-      }
-
-      return result;
-    } catch (error) {
-      this.handleInternalError(error, 'update skill', {skillId: id, adminId});
-      throw error;
-    }
+    return this.put<{ success: boolean }>(`/skills/${id}`, { ...dto, adminId });
   }
 
-  /**
-   * Toggle skill active status (Admin)
-   * Uses activate/deactivate commands based on current status
-   */
+  /** Toggle skill active status — activate/deactivate based on current state */
   async toggleSkillStatus(id: string, adminId: string): Promise<SkillDto> {
-    try {
-      this.loggerService.info('UserServiceClient: Toggling skill status', {skillId: id, adminId});
+    const currentSkill = await this.getSkill(id);
 
-      // Step 1: Get current skill to check isActive status
-      const currentSkill = await this.getSkill(id);
+    const result = currentSkill.isActive
+      ? await this.deactivateSkill(id, adminId)
+      : await this.activateSkill(id, adminId);
 
-      // Step 2: Call activate or deactivate based on current status
-      let result: { success: boolean; data: SkillDto };
-      if (currentSkill.isActive) {
-        // Currently active -> deactivate
-        result = await this.deactivateSkill(id, adminId);
-      } else {
-        // Currently inactive -> activate
-        result = await this.activateSkill(id, adminId);
-      }
-
-      this.loggerService.info('UserServiceClient: Skill status toggled', {
-        skillId: id,
-        wasActive: currentSkill.isActive,
-        nowActive: result.data.isActive,
-      });
-
-      return result.data;
-    } catch (error) {
-      throw this.handleInternalError(error, 'toggle skill status', {skillId: id, adminId});
-    }
+    return result.data;
   }
 
-  /**
-   * Delete skill (Admin)
-   * Route: DELETE /skills/:id
-   */
+  /** DELETE /skills/:id — Delete skill */
   async deleteSkill(id: string, adminId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.delete(`${this.baseUrl}/skills/${id}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-          params: {adminId},
-        }),
-      );
-      return response.data || {success: true, message: 'Skill deleted successfully'};
-    } catch (error) {
-      this.handleInternalError(error, 'delete skill', {skillId: id, adminId});
-    }
+    await this.delete<void>(`/skills/${id}`, { params: { adminId } });
+    return { success: true, message: 'Skill deleted successfully' };
   }
 
-  /**
-   * List skill categories
-   * Route: GET /skills/categories
-   */
+  /** GET /skills/categories — List skill categories */
   async listSkillCategories(): Promise<SkillCategoryDto[]> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/skills/categories`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      // Extract data from success wrapper (already Read Models)
-      return response.data.data || [];
-    } catch (error) {
-      this.handleInternalError(error, 'list skill categories', {});
-    }
+    const response = await this.get<{ data: SkillCategoryDto[] }>('/skills/categories');
+    return response.data || [];
   }
 
   // ==========================================================================
   // CANDIDATE SEARCH (HR)
   // ==========================================================================
 
-  /**
-   * Search candidates by skills (HR)
-   * Route: GET /candidates/search
-   */
+  /** GET /candidates/search — Search candidates by skills */
   async searchCandidates(filters: {
     skillIds?: string[];
     minProficiency?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -761,89 +320,41 @@ export class UserServiceClient extends BaseServiceProxy {
     limit?: number;
   }): Promise<{
     data: any[];
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
+    pagination: { total: number; page: number; limit: number; totalPages: number };
   }> {
-    try {
-      // Use axios params with paramsSerializer to properly format arrays
-      const params: Record<string, any> = {};
-      
-      if (filters.skillIds && filters.skillIds.length > 0) {
-        params.skillIds = filters.skillIds;
-      }
-      if (filters.minProficiency) params.minProficiency = filters.minProficiency;
-      if (filters.minYears !== undefined) params.minYears = filters.minYears;
-      if (filters.experienceLevel) params.experienceLevel = filters.experienceLevel;
-      if (filters.page) params.page = filters.page;
-      if (filters.limit) params.limit = filters.limit;
-
-      this.loggerService.info('UserServiceClient: Searching candidates', { filters, params });
-
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/candidates/search`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-          params,
-          paramsSerializer: {
-            serialize: (p) => {
-              const parts: string[] = [];
-              for (const key in p) {
-                const value = p[key];
-                if (Array.isArray(value)) {
-                  // Format: skillIds=uuid1&skillIds=uuid2
-                  value.forEach(v => parts.push(`${key}=${encodeURIComponent(v)}`));
-                } else if (value !== undefined && value !== null) {
-                  parts.push(`${key}=${encodeURIComponent(value)}`);
-                }
-              }
-              return parts.join('&');
-            }
-          }
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: Candidates search completed', {
-        total: response.data.pagination?.total,
-      });
-
-      return {
-        data: response.data.data || [],
-        pagination: response.data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
-      };
-    } catch (error) {
-      throw this.handleInternalError(error, 'search candidates', { filters });
+    // Build query string manually for proper array serialization (skillIds=a&skillIds=b)
+    const qs = new URLSearchParams();
+    if (filters.skillIds?.length) {
+      filters.skillIds.forEach((id) => qs.append('skillIds', id));
     }
+    if (filters.minProficiency) qs.append('minProficiency', filters.minProficiency);
+    if (filters.minYears !== undefined) qs.append('minYears', String(filters.minYears));
+    if (filters.experienceLevel) qs.append('experienceLevel', filters.experienceLevel);
+    if (filters.page) qs.append('page', String(filters.page));
+    if (filters.limit) qs.append('limit', String(filters.limit));
+
+    const path = `/candidates/search${qs.toString() ? `?${qs}` : ''}`;
+    const response = await this.get<{ data: any[]; pagination: any }>(path);
+
+    return {
+      data: response.data || [],
+      pagination: response.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
+    };
   }
 
   // ==========================================================================
   // CANDIDATE PROFILE
   // ==========================================================================
 
-  /**
-   * Get candidate profile (includes experienceLevel)
-   * Route: GET /candidates/:userId/profile
-   */
+  /** GET /candidates/:userId/profile — Get candidate profile */
   async getCandidateProfile(userId: string): Promise<{ experienceLevel: string | null }> {
     try {
-      const params = new URLSearchParams();
-      params.append('currentUserId', userId); // Own profile
-
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/candidates/${userId}/profile?${params}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
+      const response = await this.get<{ data: { experienceLevel: string | null } }>(
+        `/candidates/${userId}/profile`,
+        { params: { currentUserId: userId } },
       );
-      return {
-        experienceLevel: response.data?.data?.experienceLevel || null,
-      };
-    } catch (error) {
-      // If profile not found, return null experienceLevel
-      this.loggerService.warn('getCandidateProfile: Profile not found, returning null', { userId });
+      return { experienceLevel: response.data?.experienceLevel || null };
+    } catch {
       return { experienceLevel: null };
     }
   }
@@ -852,371 +363,205 @@ export class UserServiceClient extends BaseServiceProxy {
   // CANDIDATE SKILLS
   // ==========================================================================
 
-  /**
-   * Get candidate skills grouped by category
-   * Route: GET /candidates/:userId/skills
-   * @param userId - Candidate ID to get skills for
-   * @param currentUserId - Current user ID for permission check (pass same as userId for own profile)
-   */
+  /** GET /candidates/:userId/skills — Get candidate skills grouped by category */
   async getCandidateSkills(userId: string, currentUserId: string): Promise<CandidateSkillsByCategoryDto[]> {
-    try {
-      const params = new URLSearchParams();
-      params.append('currentUserId', currentUserId);
-
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/candidates/${userId}/skills?${params}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      // Extract data from success wrapper (already Read Models)
-      return response.data.data || [];
-    } catch (error) {
-      this.handleInternalError(error, 'get candidate skills', {userId});
-    }
+    const response = await this.get<{ data: CandidateSkillsByCategoryDto[] }>(
+      `/candidates/${userId}/skills`,
+      { params: { currentUserId } },
+    );
+    return response.data || [];
   }
 
-  /**
-   * Add skill to candidate profile
-   * Route: POST /candidates/:userId/skills
-   */
+  /** POST /candidates/:userId/skills — Add skill to candidate profile */
   async addCandidateSkill(userId: string, dto: AddCandidateSkillDto): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/candidates/${userId}/skills`, dto, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      // Command returns { success, message }
-      return response.data;
-    } catch (error) {
-      this.handleInternalError(error, 'add candidate skill', {userId, skillId: dto.skillId});
-    }
+    return this.post<{ success: boolean; message: string }>(`/candidates/${userId}/skills`, dto);
   }
 
-  /**
-   * Update candidate skill
-   * Route: PUT /candidates/:userId/skills/:skillId
-   */
-  async updateCandidateSkill(userId: string, skillId: string, dto: UpdateCandidateSkillDto): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.put(`${this.baseUrl}/candidates/${userId}/skills/${skillId}`, dto, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      // Command returns { success, message }
-      return response.data;
-    } catch (error) {
-      this.handleInternalError(error, 'update candidate skill', {userId, skillId});
-    }
+  /** PUT /candidates/:userId/skills/:skillId — Update candidate skill */
+  async updateCandidateSkill(
+    userId: string,
+    skillId: string,
+    dto: UpdateCandidateSkillDto,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.put<{ success: boolean; message: string }>(
+      `/candidates/${userId}/skills/${skillId}`,
+      dto,
+    );
   }
 
-  /**
-   * Remove skill from candidate profile
-   * Route: DELETE /candidates/:userId/skills/:skillId
-   */
+  /** DELETE /candidates/:userId/skills/:skillId — Remove skill from candidate profile */
   async removeCandidateSkill(userId: string, skillId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.delete(`${this.baseUrl}/candidates/${userId}/skills/${skillId}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-      return response.data || {success: true, message: 'Skill removed successfully'};
-    } catch (error) {
-      this.handleInternalError(error, 'remove candidate skill', {userId, skillId});
-    }
+    await this.delete<void>(`/candidates/${userId}/skills/${skillId}`);
+    return { success: true, message: 'Skill removed successfully' };
   }
 
   // ==========================================================================
   // ADMIN SKILL OPERATIONS
   // ==========================================================================
 
-  /**
-   * Activate a skill (ADMIN ONLY)
-   * Route: POST /skills/:id/activate?adminId=xxx
-   */
+  /** POST /skills/:id/activate — Activate a skill (Admin) */
   async activateSkill(skillId: string, adminId: string): Promise<{ success: boolean; data: SkillDto }> {
-    try {
-      this.loggerService.info('UserServiceClient: Activating skill', {skillId, adminId});
-
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.baseUrl}/skills/${skillId}/activate`,
-          {},
-          {
-            headers: this.getInternalHeaders(),
-            params: {adminId},
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info('UserServiceClient: Skill activated', {skillId});
-      return response.data;
-    } catch (error) {
-      throw this.handleInternalError(error, 'activate skill', {skillId, adminId});
-    }
+    return this.post<{ success: boolean; data: SkillDto }>(
+      `/skills/${skillId}/activate`,
+      {},
+      { params: { adminId } },
+    );
   }
 
-  /**
-   * Deactivate a skill (ADMIN ONLY)
-   * Route: POST /skills/:id/deactivate?adminId=xxx
-   */
+  /** POST /skills/:id/deactivate — Deactivate a skill (Admin) */
   async deactivateSkill(skillId: string, adminId: string): Promise<{ success: boolean; data: SkillDto }> {
-    try {
-      this.loggerService.info('UserServiceClient: Deactivating skill', {skillId, adminId});
-
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.baseUrl}/skills/${skillId}/deactivate`,
-          {},
-          {
-            headers: this.getInternalHeaders(),
-            params: {adminId},
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info('UserServiceClient: Skill deactivated', {skillId});
-      return response.data;
-    } catch (error) {
-      throw this.handleInternalError(error, 'deactivate skill', {skillId, adminId});
-    }
+    return this.post<{ success: boolean; data: SkillDto }>(
+      `/skills/${skillId}/deactivate`,
+      {},
+      { params: { adminId } },
+    );
   }
 
   // ==========================================================================
   // CANDIDATE PROFILE OPERATIONS
   // ==========================================================================
 
-  /**
-   * Update candidate experience level
-   * Route: PUT /candidates/:userId/experience-level
-   */
+  /** PUT /candidates/:userId/experience-level — Update candidate experience level */
   async updateExperienceLevel(
     userId: string,
     experienceLevel: 'junior' | 'mid' | 'senior' | 'lead',
   ): Promise<{ success: boolean; data: any }> {
-    try {
-      this.loggerService.info('UserServiceClient: Updating experience level', {userId, experienceLevel});
-
-      const response = await firstValueFrom(
-        this.httpService.put(
-          `${this.baseUrl}/candidates/${userId}/experience-level`,
-          {experienceLevel},
-          {
-            headers: this.getInternalHeaders(),
-            timeout: this.timeout,
-          },
-        ),
-      );
-
-      this.loggerService.info('UserServiceClient: Experience level updated', {userId});
-      return response.data;
-    } catch (error) {
-      throw this.handleInternalError(error, 'update experience level', {userId, experienceLevel});
-    }
+    return this.put<{ success: boolean; data: any }>(
+      `/candidates/${userId}/experience-level`,
+      { experienceLevel },
+    );
   }
 
   // ==========================================================================
   // USER PERMISSIONS & COMPANIES
   // ==========================================================================
 
-  /**
-   * Get user permissions
-   * Route: GET /users/:userId/permissions
-   */
+  /** GET /users/:userId/permissions — Get user permissions */
   async getUserPermissions(userId: string): Promise<UserPermissionsResponseDto> {
-    try {
-      this.loggerService.info('UserServiceClient: Getting user permissions', {userId});
-
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/users/${userId}/permissions`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: Permissions retrieved', {userId});
-      return response.data.data; // Unwrap { success, data }
-    } catch (error) {
-      throw this.handleInternalError(error, 'get user permissions', {userId});
-    }
+    const response = await this.get<{ data: UserPermissionsResponseDto }>(
+      `/users/${userId}/permissions`,
+    );
+    return response.data;
   }
 
-  /**
-   * Get user companies
-   * Route: GET /users/:userId/companies?currentUserId=xxx&isAdmin=true
-   */
+  /** GET /users/:userId/companies — Get user companies */
   async getUserCompanies(
     userId: string,
     currentUserId: string,
     isAdmin: boolean,
   ): Promise<any[]> {
-    try {
-      this.loggerService.info('UserServiceClient: Getting user companies', {userId, currentUserId, isAdmin});
-
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/users/${userId}/companies`, {
-          headers: this.getInternalHeaders(),
-          params: {currentUserId, isAdmin},
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: Companies retrieved', {userId, count: response.data.data?.length});
-      return response.data.data; // Unwrap { success, data }
-    } catch (error) {
-      throw this.handleInternalError(error, 'get user companies', {userId, currentUserId, isAdmin});
-    }
+    const response = await this.get<{ data: any[] }>(
+      `/users/${userId}/companies`,
+      { params: { currentUserId, isAdmin } },
+    );
+    return response.data;
   }
 
   // ==========================================================================
   // COMPANIES CRUD (HR)
   // ==========================================================================
 
-  /**
-   * Create company
-   * Route: POST /companies
-   */
+  /** POST /companies — Create company */
   async createCompany(dto: CreateCompanyDto, userId: string): Promise<CompanyResponseDto> {
-    try {
-      this.loggerService.info('UserServiceClient: Creating company', {name: dto.name, userId});
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/companies`, {...dto, createdBy: userId}, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: Company created', {companyId: response.data.data?.id});
-      return response.data.data;
-    } catch (error) {
-      throw this.handleInternalError(error, 'create company', {name: dto.name, userId});
-    }
+    const response = await this.post<{ data: CompanyResponseDto }>('/companies', {
+      ...dto,
+      createdBy: userId,
+    });
+    return response.data;
   }
 
-  /**
-   * List companies with filters
-   * Route: GET /companies
-   */
+  /** GET /companies — List companies with filters */
   async listCompanies(
     filters: CompanyFilters,
     currentUserId: string,
     isAdmin: boolean,
   ): Promise<CompaniesListResponseDto> {
-    try {
-      const params = new URLSearchParams();
-      if (filters.page) params.append('page', String(filters.page));
-      if (filters.limit) params.append('limit', String(filters.limit));
-      if (filters.search) params.append('search', filters.search);
-      if (filters.industry) params.append('industry', filters.industry);
-      if (filters.isActive !== undefined) params.append('isActive', String(filters.isActive));
-      params.append('currentUserId', currentUserId);
-      params.append('isAdmin', String(isAdmin));
-      // For HR: filter by createdBy to show only their companies
-      if (!isAdmin) {
-        params.append('createdBy', currentUserId);
-      }
+    const params: Record<string, any> = {
+      currentUserId,
+      isAdmin,
+    };
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    if (filters.search) params.search = filters.search;
+    if (filters.industry) params.industry = filters.industry;
+    if (filters.isActive !== undefined) params.isActive = filters.isActive;
+    if (!isAdmin) params.createdBy = currentUserId;
 
-      this.loggerService.info('UserServiceClient: Listing companies', {filters, currentUserId, isAdmin});
+    const response = await this.get<{ data: any[]; pagination: any }>('/companies', { params });
 
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/companies?${params}`, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      const {data, pagination} = response.data;
-      return {data: data || [], pagination: pagination || {total: 0, page: 1, limit: 20, totalPages: 0}};
-    } catch (error) {
-      throw this.handleInternalError(error, 'list companies', {filters});
-    }
+    return {
+      data: response.data || [],
+      pagination: response.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
+    };
   }
 
-  /**
-   * Get company by ID
-   * Route: GET /companies/:id
-   */
+  /** GET /companies/:id — Get company by ID */
   async getCompanyById(
     id: string,
     currentUserId: string,
     isAdmin: boolean,
   ): Promise<CompanyResponseDto> {
-    try {
-      this.loggerService.info('UserServiceClient: Getting company', {companyId: id});
-
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/companies/${id}`, {
-          headers: this.getInternalHeaders(),
-          params: {userId: currentUserId, isAdmin},
-          timeout: this.timeout,
-        }),
-      );
-
-      return response.data.data;
-    } catch (error) {
-      throw this.handleInternalError(error, 'get company', {companyId: id});
-    }
+    const response = await this.get<{ data: CompanyResponseDto }>(
+      `/companies/${id}`,
+      { params: { userId: currentUserId, isAdmin } },
+    );
+    return response.data;
   }
 
-  /**
-   * Update company
-   * Route: PUT /companies/:id
-   */
+  /** PUT /companies/:id — Update company */
   async updateCompany(
     id: string,
     dto: UpdateCompanyDto,
     currentUserId: string,
     isAdmin: boolean,
   ): Promise<CompanyResponseDto> {
-    try {
-      this.loggerService.info('UserServiceClient: Updating company', {companyId: id});
-
-      const response = await firstValueFrom(
-        this.httpService.put(`${this.baseUrl}/companies/${id}`, {...dto, updatedBy: currentUserId}, {
-          headers: this.getInternalHeaders(),
-          timeout: this.timeout,
-        }),
-      );
-
-      this.loggerService.info('UserServiceClient: Company updated', {companyId: id});
-      return response.data.data;
-    } catch (error) {
-      throw this.handleInternalError(error, 'update company', {companyId: id});
-    }
+    const response = await this.put<{ data: CompanyResponseDto }>(
+      `/companies/${id}`,
+      { ...dto, updatedBy: currentUserId },
+    );
+    return response.data;
   }
 
-  /**
-   * Delete company
-   * Route: DELETE /companies/:id
-   */
+  /** DELETE /companies/:id — Delete company */
   async deleteCompany(
     id: string,
     currentUserId: string,
-  ): Promise<{success: boolean; message: string}> {
-    try {
-      this.loggerService.info('UserServiceClient: Deleting company', {companyId: id});
+  ): Promise<{ success: boolean; message: string }> {
+    await this.delete<void>(`/companies/${id}`, {
+      params: { userId: currentUserId },
+    });
+    return { success: true, message: 'Company deleted successfully' };
+  }
 
-      await firstValueFrom(
-        this.httpService.delete(`${this.baseUrl}/companies/${id}`, {
-          headers: this.getInternalHeaders(),
-          params: {userId: currentUserId},
-          timeout: this.timeout,
-        }),
-      );
+  // ==========================================================================
+  // PRIVATE — Error mapping for User Service specific codes
+  // ==========================================================================
 
-      this.loggerService.info('UserServiceClient: Company deleted', {companyId: id});
-      return {success: true, message: 'Company deleted successfully'};
-    } catch (error) {
-      throw this.handleInternalError(error, 'delete company', {companyId: id});
+  /**
+   * Maps ServiceProxyError to domain-specific HttpExceptions.
+   * Used only for methods that need special error handling (409, 404, timeouts).
+   */
+  private mapUserError(
+    error: unknown,
+    operation: string,
+    context: Record<string, any>,
+  ): never {
+    if (error instanceof ServiceProxyError) {
+      if (error.statusCode === 409) {
+        throw new HttpException(
+          { success: false, error: 'User already exists in User Service', code: 'USER_ALREADY_EXISTS' },
+          HttpStatus.CONFLICT,
+        );
+      }
+      if (error.statusCode === 404) {
+        throw new HttpException(
+          { success: false, error: 'User not found in User Service', code: 'USER_NOT_FOUND' },
+          HttpStatus.NOT_FOUND,
+        );
+      }
     }
+
+    // Let ServiceProxyExceptionFilter handle the rest
+    throw error;
   }
 }

@@ -32,7 +32,12 @@
       "Bash(echo === DOMAIN EVENTS ===:*)",
       "Bash(echo EXIT CODE: $?:*)",
       "Bash(npx tsc:*)",
-      "Bash(cd /Users/oleg/www/ai-video-interview && npm dedupe rxjs 2>&1)"
+      "Bash(cd /Users/oleg/www/ai-video-interview && npm dedupe rxjs 2>&1)",
+      "Bash(curl -s 'http://localhost:8001/api/docs-json')",
+      "Bash(echo User Service swagger saved:*)",
+      "Bash(echo Interview Service swagger saved:*)",
+      "Bash(echo Analysis Service swagger saved:*)",
+      "Bash(curl:*)"
     ],
     "deny": [
       "Bash(rm -rf /)*",

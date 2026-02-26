@@ -93,18 +93,17 @@ async function bootstrap() {
     features: ['authentication', 'tracing', 'metrics', 'kafka_events', 'swagger_docs']
   });
 
-  console.log(`🚀 API Gateway is running on http://localhost:${port}`);
-  console.log(`📚 Swagger documentation available at http://localhost:${port}/api/docs`);
-
   // Graceful shutdown handlers
   const gracefulShutdown = async (signal: string) => {
-    console.log(`\n⚠️ Received ${signal}, shutting down API Gateway gracefully...`);
+    logger.warn(`Received ${signal}, shutting down API Gateway gracefully...`, {
+      action: 'shutdown',
+    });
     try {
       await app.close();
-      console.log('✅ API Gateway closed successfully');
+      logger.info('API Gateway closed successfully', { action: 'shutdown_complete' });
       process.exit(0);
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      logger.error('Error during shutdown', error, { action: 'shutdown_error' });
       process.exit(1);
     }
   };
@@ -115,6 +114,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ Failed to start API Gateway:', error);
+  process.stderr.write(`Failed to start API Gateway: ${error}\n`);
   process.exit(1);
 });

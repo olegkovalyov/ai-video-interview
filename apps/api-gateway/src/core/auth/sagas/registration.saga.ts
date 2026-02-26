@@ -1,8 +1,9 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, OnModuleDestroy } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { UserServiceClient } from '../../../modules/user-service/clients/user-service.client';
 import { KeycloakUserService, KeycloakRoleService } from '../../../modules/user-service/admin/keycloak';
 import { LoggerService } from '../../logging/logger.service';
+import { maskEmail } from '../../logging/pii-mask.util';
 
 export interface EnsureUserExistsDto {
   keycloakId: string;
@@ -30,14 +31,39 @@ export interface UserResult {
  * 3. If not - create user synchronously
  * 4. Return user profile (with isNew flag for onboarding)
  */
+interface CachedUser {
+  result: UserResult;
+  expiresAt: number;
+}
+
 @Injectable()
-export class RegistrationSaga {
+export class RegistrationSaga implements OnModuleDestroy {
+  private readonly userCache = new Map<string, CachedUser>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
+  private cleanupTimer: ReturnType<typeof setInterval>;
+
   constructor(
     private readonly userServiceClient: UserServiceClient,
     private readonly keycloakUserService: KeycloakUserService,
     private readonly keycloakRoleService: KeycloakRoleService,
     private readonly logger: LoggerService,
-  ) {}
+  ) {
+    this.cleanupTimer = setInterval(() => this.evictExpired(), this.CLEANUP_INTERVAL);
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.cleanupTimer);
+  }
+
+  private evictExpired(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.userCache) {
+      if (entry.expiresAt <= now) {
+        this.userCache.delete(key);
+      }
+    }
+  }
 
   /**
    * Ensure user exists in User Service
@@ -47,10 +73,22 @@ export class RegistrationSaga {
   async ensureUserExists(dto: EnsureUserExistsDto): Promise<UserResult> {
     const operationId = uuid();
 
+    // ═══════════════════════════════════════════════════════════
+    // CACHE HIT: Return cached result if fresh (avoids HTTP to user-service)
+    // ═══════════════════════════════════════════════════════════
+    const cached = this.userCache.get(dto.keycloakId);
+    if (cached && cached.expiresAt > Date.now()) {
+      this.logger.debug('RegistrationSaga: Cache hit for user', {
+        operationId,
+        keycloakId: dto.keycloakId,
+      });
+      return cached.result;
+    }
+
     this.logger.info('RegistrationSaga: Ensuring user exists', {
       operationId,
       keycloakId: dto.keycloakId,
-      email: dto.email,
+      email: maskEmail(dto.email),
     });
 
     // ═══════════════════════════════════════════════════════════
@@ -84,16 +122,21 @@ export class RegistrationSaga {
       this.logger.info('RegistrationSaga: User already exists', {
         operationId,
         userId: existingUser.userId,
-        email: existingUser.email,
+        email: maskEmail(existingUser.email),
       });
 
-      return {
+      const result: UserResult = {
         userId: existingUser.userId,
         email: existingUser.email,
         firstName: existingUser.firstName,
         lastName: existingUser.lastName,
-        isNew: false, // Returning user
+        isNew: false,
       };
+      this.userCache.set(dto.keycloakId, {
+        result,
+        expiresAt: Date.now() + this.CACHE_TTL,
+      });
+      return result;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -104,7 +147,7 @@ export class RegistrationSaga {
     this.logger.info('RegistrationSaga: Creating new user (first login)', {
       operationId,
       keycloakId: dto.keycloakId,
-      email: dto.email,
+      email: maskEmail(dto.email),
     });
 
     const userId = uuid();
@@ -122,7 +165,7 @@ export class RegistrationSaga {
       this.logger.info('RegistrationSaga: User created successfully', {
         operationId,
         userId,
-        email: dto.email,
+        email: maskEmail(dto.email),
         isFirstLogin: true,
       });
 
@@ -153,13 +196,18 @@ export class RegistrationSaga {
       // Get full user details after creation
       const fullUser = await this.userServiceClient.getUserById(userId);
 
-      return {
+      const newUserResult: UserResult = {
         userId: fullUser.id,
         email: fullUser.email,
         firstName: fullUser.firstName,
         lastName: fullUser.lastName,
         isNew: true, // First login - can show onboarding!
       };
+      this.userCache.set(dto.keycloakId, {
+        result: { ...newUserResult, isNew: false }, // Subsequent hits should not trigger onboarding
+        expiresAt: Date.now() + this.CACHE_TTL,
+      });
+      return newUserResult;
     } catch (createError) {
       // ═══════════════════════════════════════════════════════════
       // COMPENSATION: Failed to create user in User Service
@@ -169,14 +217,14 @@ export class RegistrationSaga {
       this.logger.error('RegistrationSaga: Failed to create user in User Service', createError, {
         operationId,
         keycloakId: dto.keycloakId,
-        email: dto.email,
+        email: maskEmail(dto.email),
       });
 
       try {
         this.logger.warn('RegistrationSaga: COMPENSATION - Deleting user from Keycloak (failed to create in user-service)', {
           operationId,
           keycloakId: dto.keycloakId,
-          email: dto.email,
+          email: maskEmail(dto.email),
         });
 
         await this.keycloakUserService.deleteUser(dto.keycloakId);
@@ -189,7 +237,7 @@ export class RegistrationSaga {
         this.logger.error('RegistrationSaga: CRITICAL - Compensation failed! ORPHANED USER in Keycloak', compensationError, {
           operationId,
           keycloakId: dto.keycloakId,
-          email: dto.email,
+          email: maskEmail(dto.email),
           action: 'MANUAL_CLEANUP_REQUIRED',
         });
       }

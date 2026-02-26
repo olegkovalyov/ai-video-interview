@@ -24,10 +24,11 @@ import {
   CompleteInvitationDto,
   CreateInvitationResponseDto,
   SubmitResponseResponseDto,
-  SuccessResponseDto,
   InvitationResponseDto,
   PaginatedInvitationsResponseDto,
 } from '../dto/invitation.dto';
+import { SuccessResponseDto } from '../../../common/dto/success-response.dto';
+import { ListInvitationsQueryDto } from '../dto/list-invitations-query.dto';
 
 /**
  * Invitations Controller
@@ -191,18 +192,16 @@ export class InvitationsController {
   @ApiResponse({ status: 200, description: 'Paginated list of invitations', type: PaginatedInvitationsResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listCandidateInvitations(
-    @Query('status') status?: 'pending' | 'in_progress' | 'completed' | 'expired',
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query() query: ListInvitationsQueryDto,
     @CurrentUser() user?: CurrentUserData,
   ): Promise<PaginatedInvitationsResponseDto> {
     const role = extractPrimaryRole(user!);
-    const query: ListInvitationsQuery = {
-      status,
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
+    const listQuery: ListInvitationsQuery = {
+      status: query.status,
+      page: query.page,
+      limit: query.limit,
     };
-    return this.interviewService.listCandidateInvitations(user!.userId, role, query);
+    return this.interviewService.listCandidateInvitations(user!.userId, role, listQuery);
   }
 
   /**
@@ -221,22 +220,19 @@ export class InvitationsController {
   @ApiResponse({ status: 200, description: 'Paginated list of invitations', type: PaginatedInvitationsResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listHRInvitations(
-    @Query('status') status?: 'pending' | 'in_progress' | 'completed' | 'expired',
-    @Query('templateId') templateId?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query() query: ListInvitationsQueryDto,
     @CurrentUser() user?: CurrentUserData,
   ): Promise<PaginatedInvitationsResponseDto> {
     const role = extractPrimaryRole(user!);
-    const query: ListInvitationsQuery = {
-      status,
-      templateId,
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
+    const listQuery: ListInvitationsQuery = {
+      status: query.status,
+      templateId: query.templateId,
+      page: query.page,
+      limit: query.limit,
     };
     
     // Get invitations from interview-service
-    const result = await this.interviewService.listHRInvitations(user!.userId, role, query);
+    const result = await this.interviewService.listHRInvitations(user!.userId, role, listQuery);
     
     // Enrich with candidate info from user-service
     if (result.items && result.items.length > 0) {

@@ -24,6 +24,7 @@ import { RolesGuard } from '../../../core/auth/guards/roles.guard';
 import { Roles } from '../../../core/auth/guards/roles.decorator';
 import { UserServiceClient } from '../clients/user-service.client';
 import { LoggerService } from '../../../core/logging/logger.service';
+import { ListCompaniesQueryDto } from '../dto/list-companies-query.dto';
 import {
   CreateCompanyDto,
   UpdateCompanyDto,
@@ -109,11 +110,7 @@ export class HRCompaniesController {
   @ApiResponse({ status: 403, description: 'Forbidden - HR or Admin role required' })
   async listCompanies(
     @Req() req: Request & { user?: any },
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-    @Query('industry') industry?: string,
-    @Query('isActive') isActive?: string,
+    @Query() query: ListCompaniesQueryDto,
   ): Promise<CompaniesListResponseDto> {
     const userId = req.user?.userId;
     const isAdmin = req.user?.roles?.includes('admin') || false;
@@ -121,18 +118,18 @@ export class HRCompaniesController {
     this.loggerService.info('HR: Listing companies', {
       userId,
       isAdmin,
-      page,
-      limit,
-      search,
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
     });
 
     const result = await this.userServiceClient.listCompanies(
       {
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 20,
-        search,
-        industry,
-        isActive: isActive !== undefined ? isActive === 'true' : undefined,
+        page: query.page,
+        limit: query.limit,
+        search: query.search,
+        industry: query.industry,
+        isActive: query.isActive !== undefined ? query.isActive === 'true' : undefined,
       },
       userId,
       isAdmin,

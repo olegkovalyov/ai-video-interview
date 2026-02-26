@@ -170,14 +170,6 @@ export class SubmitResponseResponseDto {
   id: string;
 }
 
-export class SuccessResponseDto {
-  @ApiProperty({
-    description: 'Operation success status',
-    example: true,
-  })
-  success: boolean;
-}
-
 export class InvitationProgressDto {
   @ApiProperty({ description: 'Number of answered questions', example: 2 })
   answered: number;
