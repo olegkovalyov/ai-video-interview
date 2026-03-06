@@ -1,48 +1,28 @@
-"use client";
-import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+'use client';
+
+import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useUsers } from '@/lib/query/hooks/use-users';
 
 export default function AdminDashboardPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [stats] = useState({ totalUsers: 127, activeInterviews: 15, totalCandidates: 89, totalHRs: 12 });
+  const { data: users = [] } = useUsers();
 
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        await apiGet("/protected");
-      } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        if (errorMessage.includes('401')) {
-          router.replace("/login");
-        } else {
-          setError("Failed to load user data");
-        }
-      }
-    };
-
-    loadUserData();
-  }, [router]);
-
+  const stats = {
+    totalUsers: users.length,
+    activeInterviews: 0,
+    totalCandidates: 0,
+    totalHRs: 0,
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
 
-      <main className="container mx-auto px-6 py-12">
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-8">
-            {error}
-          </div>
-        )}
-
+      <div className="container mx-auto px-6 py-12">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Admin Dashboard 👨‍💼
+            Admin Dashboard
           </h1>
           <p className="text-lg text-white/80">
             System overview and user management
@@ -79,7 +59,6 @@ export default function AdminDashboardPage() {
 
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          {/* Manage Users */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
               <div className="text-5xl mb-4">👥</div>
@@ -93,7 +72,6 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* System Settings */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
               <div className="text-5xl mb-4">⚙️</div>
@@ -107,7 +85,6 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Analytics */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-8 text-center flex flex-col h-full">
               <div className="text-5xl mb-4">📊</div>
@@ -134,7 +111,7 @@ export default function AdminDashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

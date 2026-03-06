@@ -5,6 +5,7 @@
 
 import { Template } from '../types/template.types';
 import { MOCK_TEMPLATES } from './mock-data';
+import { logger } from '@/lib/logger';
 
 const STORAGE_KEY = 'ai-interview-templates';
 const STORAGE_VERSION = '1.0';
@@ -29,7 +30,7 @@ function initializeStorage(): void {
       lastUpdated: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    console.log('[Storage] Initialized with mock data:', data.templates.length, 'templates');
+    logger.debug('[Storage] Initialized with mock data', { count: data.templates.length });
   }
 }
 
@@ -45,10 +46,10 @@ export function getTemplatesFromStorage(): Template[] {
     if (!stored) return MOCK_TEMPLATES;
     
     const data: StorageData = JSON.parse(stored);
-    console.log('[Storage] Loaded', data.templates.length, 'templates from localStorage');
+    logger.debug('[Storage] Loaded templates from localStorage', { count: data.templates.length });
     return data.templates;
   } catch (error) {
-    console.error('[Storage] Error loading templates:', error);
+    logger.error('[Storage] Error loading templates', error);
     return MOCK_TEMPLATES;
   }
 }
@@ -66,9 +67,9 @@ export function saveTemplatesToStorage(templates: Template[]): void {
       lastUpdated: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    console.log('[Storage] Saved', templates.length, 'templates to localStorage');
+    logger.debug('[Storage] Saved templates to localStorage', { count: templates.length });
   } catch (error) {
-    console.error('[Storage] Error saving templates:', error);
+    logger.error('[Storage] Error saving templates', error);
   }
 }
 
@@ -127,7 +128,7 @@ export function deleteTemplateFromStorage(id: string): boolean {
 export function clearStorage(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
-  console.log('[Storage] Cleared all data');
+  logger.debug('[Storage] Cleared all data');
 }
 
 /**
@@ -137,5 +138,5 @@ export function resetToMockData(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
   initializeStorage();
-  console.log('[Storage] Reset to mock data');
+  logger.debug('[Storage] Reset to mock data');
 }

@@ -1,107 +1,83 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { UserStatsCards } from './UserStatsCards';
 import { UserFilters } from './UserFilters';
 import { UsersTable } from './UsersTable';
-import { listUsers, suspendUser, activateUser, deleteUser, getUserRoles, type KeycloakUser } from '@/lib/api/users';
+import { useUsers, useSuspendUser, useActivateUser, useDeleteUser } from '@/lib/query/hooks/use-users';
+import { getUserRoles } from '@/lib/api/users';
+import { userKeys } from '@/lib/query/query-keys';
 import { toast } from 'sonner';
 
 export function UsersList() {
-  const [users, setUsers] = useState<KeycloakUser[]>([]);
-  const [userRoles, setUserRoles] = useState<Map<string, string>>(new Map()); // userId -> roleName
-  const [loading, setLoading] = useState(true);
-  const [loadingUsers, setLoadingUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'hr' | 'candidate'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended' | 'deleted'>('all');
 
-  // Fetch users with their roles
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const data = await listUsers({ search: searchQuery, max: 100 });
-      setUsers(data);
+  // Main users query
+  const { data: users = [], isPending } = useUsers({ search: searchQuery });
 
-      // Fetch roles for each user
-      const rolesMap = new Map<string, string>();
-      await Promise.all(
-        data.map(async (user) => {
-          try {
-            const roles = await getUserRoles(user.id);
-            // Get first role (users should have only one primary role)
-            const primaryRole = roles.find(r =>
-              ['admin', 'hr', 'candidate'].includes(r.name.toLowerCase())
-            );
-            if (primaryRole) {
-              rolesMap.set(user.id, primaryRole.name.toLowerCase());
-            } else {
-              rolesMap.set(user.id, 'candidate'); // default
-            }
-          } catch (error) {
-            console.error(`Failed to fetch roles for user ${user.id}:`, error);
-            rolesMap.set(user.id, 'candidate'); // default on error
-          }
-        })
-      );
-      setUserRoles(rolesMap);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-      toast.error('Failed to load users');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Parallel role queries for each user
+  const roleQueries = useQueries({
+    queries: users.map(user => ({
+      queryKey: userKeys.roles(user.id),
+      queryFn: () => getUserRoles(user.id),
+      staleTime: 5 * 60_000,
+      enabled: users.length > 0,
+    })),
+  });
 
-  useEffect(() => {
-    fetchUsers();
-  }, [searchQuery]);
+  const rolesLoading = roleQueries.some(q => q.isPending);
 
-  // Row-level locking helper
-  const withUserLock = async <T,>(userId: string, action: () => Promise<T>): Promise<T | void> => {
-    setLoadingUsers(prev => new Set(prev).add(userId));
-    try {
-      const result = await action();
-      await fetchUsers(); // Refresh data
-      return result;
-    } catch (error: any) {
-      console.error('Operation failed:', error);
-      toast.error(error.message || 'Operation failed');
-    } finally {
-      setLoadingUsers(prev => {
-        const next = new Set(prev);
-        next.delete(userId);
-        return next;
-      });
-    }
-  };
+  // Build roles map from query results
+  const userRoles = useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach((user, i) => {
+      const roles = roleQueries[i]?.data;
+      if (roles) {
+        const primaryRole = roles.find(r =>
+          ['admin', 'hr', 'candidate'].includes(r.name.toLowerCase())
+        );
+        map.set(user.id, primaryRole?.name.toLowerCase() || 'candidate');
+      } else {
+        map.set(user.id, 'candidate');
+      }
+    });
+    return map;
+  }, [users, roleQueries]);
+
+  // Mutations
+  const suspendMutation = useSuspendUser();
+  const activateMutation = useActivateUser();
+  const deleteMutation = useDeleteUser();
+
+  // Compute loading users from active mutations
+  const loadingUsers = new Set<string>(
+    [suspendMutation, activateMutation, deleteMutation]
+      .filter(m => m.isPending && m.variables)
+      .map(m => m.variables as string)
+  );
 
   // Handle status toggle
-  const handleStatusToggle = async (userId: string) => {
+  const handleStatusToggle = (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (!user) return;
 
-    await withUserLock(userId, async () => {
-      if (user.enabled) {
-        await suspendUser(userId);
-        toast.success('User suspended');
-      } else {
-        await activateUser(userId);
-        toast.success('User activated');
-      }
-    });
+    if (user.enabled) {
+      suspendMutation.mutate(userId);
+    } else {
+      activateMutation.mutate(userId);
+    }
   };
 
   // Handle delete
-  const handleDelete = async (userId: string) => {
+  const handleDelete = (userId: string) => {
     if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       return;
     }
 
-    await withUserLock(userId, async () => {
-      await deleteUser(userId);
-      toast.success('User deleted');
-    });
+    deleteMutation.mutate(userId);
   };
 
   // Convert KeycloakUser to User format for table
@@ -137,7 +113,7 @@ export function UsersList() {
     hrs: Array.from(userRoles.values()).filter(role => role === 'hr').length,
   };
 
-  if (loading) {
+  if (isPending || rolesLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-white/80">Loading users...</div>

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 import { Header } from "@/components/layout/header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,7 @@ export default function CreateInterviewPage() {
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      console.log('Creating interview:', { ...form, status: asDraft ? 'draft' : 'active' });
+      logger.debug('Creating interview', { ...form, status: asDraft ? 'draft' : 'active' });
       
       // Redirect to interviews list
       router.push('/dashboard/interviews');
@@ -451,7 +452,7 @@ export default function CreateInterviewPage() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
       <Header />
 
-      <main className="container mx-auto px-6 py-12 max-w-4xl">
+      <div className="container mx-auto px-6 py-12 max-w-4xl">
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-8">
             {error}
@@ -547,7 +548,7 @@ export default function CreateInterviewPage() {
             </div>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

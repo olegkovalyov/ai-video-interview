@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, 
-  Clock, 
-  CheckCircle, 
-  Play, 
-  FileText, 
-  Code, 
+import {
+  ArrowLeft,
+  Clock,
+  CheckCircle,
+  Play,
+  FileText,
+  Code,
   Video,
   Bot,
   User,
@@ -20,8 +19,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { getInvitation, listHRInvitations, InvitationWithDetails, InvitationResponse, Question } from '@/lib/api/invitations';
+import { useInvitation, useHRInvitations } from '@/lib/query/hooks/use-invitations';
+import type { InvitationResponse, Question } from '@/lib/api/invitations';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -64,43 +63,13 @@ export default function ReviewDetailPage() {
   const router = useRouter();
   const invitationId = params.id as string;
 
-  const [invitation, setInvitation] = useState<InvitationWithDetails | null>(null);
-  const [candidateName, setCandidateName] = useState<string | null>(null);
-  const [candidateEmail, setCandidateEmail] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: invitation, isPending, error } = useInvitation(invitationId, true);
+  const { data: listData } = useHRInvitations({ status: 'completed', limit: 100 });
 
-  useEffect(() => {
-    loadInvitation();
-  }, [invitationId]);
-
-  const loadInvitation = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Load invitation details and candidate info in parallel
-      const [invitationData, listResponse] = await Promise.all([
-        getInvitation(invitationId, true),
-        listHRInvitations({ status: 'completed', limit: 100 })
-      ]);
-      
-      setInvitation(invitationData);
-      
-      // Find candidate info from list
-      const listItem = listResponse.items?.find(item => item.id === invitationId);
-      if (listItem) {
-        setCandidateName(listItem.candidateName || null);
-        setCandidateEmail(listItem.candidateEmail || null);
-      }
-    } catch (err: any) {
-      console.error('Failed to load invitation:', err);
-      setError(err.message || 'Failed to load interview details');
-      toast.error('Failed to load interview details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Find candidate info from list
+  const listItem = listData?.items?.find(item => item.id === invitationId);
+  const candidateName = listItem?.candidateName || null;
+  const candidateEmail = listItem?.candidateEmail || null;
 
   // Get questions from invitation (handle both formats)
   const getQuestions = (): Question[] => {
@@ -121,7 +90,7 @@ export default function ReviewDetailPage() {
     return invitation.responses.reduce((sum, r) => sum + r.duration, 0);
   };
 
-  if (loading) {
+  if (isPending) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -138,7 +107,7 @@ export default function ReviewDetailPage() {
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Failed to load interview</h2>
-          <p className="text-white/60 mb-4">{error || 'Interview not found'}</p>
+          <p className="text-white/60 mb-4">{error instanceof Error ? error.message : 'Interview not found'}</p>
           <Button onClick={() => router.back()} variant="outline" className="border-white/20 text-white">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Go Back
@@ -156,8 +125,8 @@ export default function ReviewDetailPage() {
     <div className="space-y-6 print:space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between print:hidden">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={() => router.back()}
           className="text-white/70 hover:text-white hover:bg-white/10"
         >
@@ -252,10 +221,10 @@ export default function ReviewDetailPage() {
         ) : (
           questions.map((question, index) => {
             const response = getResponseForQuestion(question.id);
-            
+
             return (
-              <Card 
-                key={question.id} 
+              <Card
+                key={question.id}
                 className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all print:break-inside-avoid"
               >
                 <CardContent className="pt-6">
@@ -297,13 +266,13 @@ export default function ReviewDetailPage() {
                   {response ? (
                     <div className="space-y-3">
                       <p className="text-sm text-white/70 font-medium">Candidate Response:</p>
-                      
+
                       {/* Video Response */}
                       {response.responseType === 'video' && response.videoUrl && (
                         <div className="bg-black/30 rounded-lg p-4 border border-white/10">
                           <div className="aspect-video bg-black/50 rounded-lg flex items-center justify-center mb-3">
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               className="border-white/30 text-white"
                               onClick={() => window.open(response.videoUrl, '_blank')}
                             >

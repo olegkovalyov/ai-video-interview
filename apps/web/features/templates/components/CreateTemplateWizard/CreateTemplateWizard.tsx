@@ -9,6 +9,7 @@ import { Step1BasicInfo } from './Step1BasicInfo';
 import { Step2Questions } from './Step2Questions';
 import { Step3SettingsReview } from './Step3SettingsReview';
 import { createTemplate, updateTemplate, publishTemplate } from '../../services/templates-api';
+import { logger } from '@/lib/logger';
 
 export function CreateTemplateWizard() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export function CreateTemplateWizard() {
       toast.success('Template created as draft');
       
     } catch (error: any) {
-      console.error('🔴 Error creating template:', error);
+      logger.error('Error creating template', error);
       const errorMessage = error?.message || 'Failed to create template. Please try again.';
       toast.error(errorMessage);
     } finally {
@@ -66,10 +67,7 @@ export function CreateTemplateWizard() {
   // ═══════════════════════════════════════════════════════════
 
   const handleStep2Next = () => {
-    console.log('╔════════════════════════════════════════════════════════');
-    console.log('║ ℹ️  Step 2 → Step 3: No API call');
-    console.log('║ Questions already added via Step2Questions component');
-    console.log('╚════════════════════════════════════════════════════════');
+    logger.debug('Step 2 -> Step 3: No API call, questions already added via Step2Questions');
     setCurrentStep(3);
   };
 
@@ -92,14 +90,12 @@ export function CreateTemplateWizard() {
       
       toast.success('Template published!');
       
-      console.log('✅ Template published successfully!');
-      console.log('   Template ID:', templateId);
-      console.log('   Total questions:', wizardData.questions.length);
+      logger.debug('Template published successfully', { templateId, totalQuestions: wizardData.questions.length });
       
       router.push('/hr/templates');
       
     } catch (error: any) {
-      console.error('🔴 Error publishing template:', error);
+      logger.error('Error publishing template', error);
       const errorMessage = error?.message || 'Failed to publish template. Please try again.';
       toast.error(errorMessage);
     } finally {
@@ -119,14 +115,12 @@ export function CreateTemplateWizard() {
       
       toast.success('Draft saved');
       
-      console.log('✅ Draft saved successfully!');
-      console.log('   Template ID:', templateId);
-      console.log('   Status: draft');
+      logger.debug('Draft saved successfully', { templateId, status: 'draft' });
       
       router.push('/hr/templates');
       
     } catch (error: any) {
-      console.error('🔴 Error saving draft:', error);
+      logger.error('Error saving draft', error);
       const errorMessage = error?.message || 'Failed to save draft. Please try again.';
       toast.error(errorMessage);
     } finally {
@@ -140,10 +134,10 @@ export function CreateTemplateWizard() {
 
   const handleCancel = () => {
     if (templateId) {
-      console.log('ℹ️  Cancelling wizard. Draft saved (ID:', templateId, ')');
+      logger.debug('Cancelling wizard, draft saved', { templateId });
       toast.info('Draft saved. You can edit it later.');
     } else {
-      console.log('ℹ️  Cancelling wizard. No template created.');
+      logger.debug('Cancelling wizard, no template created');
     }
     router.push('/hr/templates');
   };

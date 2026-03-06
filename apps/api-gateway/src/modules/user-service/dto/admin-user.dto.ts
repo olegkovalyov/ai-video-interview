@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsBoolean, IsIn } from 'class-validator';
 
 /**
  * DTO for creating user (POST /api/admin/users)
@@ -8,6 +9,8 @@ export class CreateUserDto {
     description: 'User email address',
     example: 'john.doe@example.com',
   })
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @ApiProperty({
@@ -15,18 +18,24 @@ export class CreateUserDto {
     example: 'johndoe',
     required: false,
   })
+  @IsString()
+  @IsOptional()
   username?: string;
 
   @ApiProperty({
     description: 'First name',
     example: 'John',
   })
+  @IsString()
+  @IsNotEmpty()
   firstName: string;
 
   @ApiProperty({
     description: 'Last name',
     example: 'Doe',
   })
+  @IsString()
+  @IsNotEmpty()
   lastName: string;
 
   @ApiProperty({
@@ -34,6 +43,8 @@ export class CreateUserDto {
     example: 'SecurePassword123',
     required: false,
   })
+  @IsString()
+  @IsOptional()
   password?: string;
 }
 
@@ -46,6 +57,8 @@ export class UpdateUserDto {
     example: 'John',
     required: false,
   })
+  @IsString()
+  @IsOptional()
   firstName?: string;
 
   @ApiProperty({
@@ -53,6 +66,8 @@ export class UpdateUserDto {
     example: 'Doe',
     required: false,
   })
+  @IsString()
+  @IsOptional()
   lastName?: string;
 
   @ApiProperty({
@@ -60,6 +75,8 @@ export class UpdateUserDto {
     example: 'john.doe@example.com',
     required: false,
   })
+  @IsEmail()
+  @IsOptional()
   email?: string;
 
   @ApiProperty({
@@ -67,6 +84,8 @@ export class UpdateUserDto {
     example: true,
     required: false,
   })
+  @IsBoolean()
+  @IsOptional()
   enabled?: boolean;
 }
 
@@ -78,6 +97,8 @@ export class SuspendUserDto {
     description: 'Reason for suspension',
     example: 'Policy violation',
   })
+  @IsString()
+  @IsNotEmpty()
   reason: string;
 }
 
@@ -90,6 +111,9 @@ export class AssignRoleDto {
     enum: ['candidate', 'hr', 'admin', 'pending'],
     example: 'candidate',
   })
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(['candidate', 'hr', 'admin', 'pending'])
   roleName: string;
 }
 

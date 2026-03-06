@@ -27,9 +27,9 @@ export default async function InterviewLayout({
 
   return (
     <TokenRefreshProvider>
-      <div className="min-h-screen">
+      <main className="min-h-screen">
         {children}
-      </div>
+      </main>
     </TokenRefreshProvider>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function InterviewsError({
   error,
@@ -11,7 +12,7 @@ export default function InterviewsError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('🔴 Interviews page error:', error);
+    logger.error('Interviews page error:', error);
   }, [error]);
 
   return (

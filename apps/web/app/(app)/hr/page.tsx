@@ -1,44 +1,23 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useHRInvitations } from "@/lib/query/hooks/use-invitations";
 
 export default function HRDashboardPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [stats] = useState({ myInterviews: 8, activeCandidates: 23, pendingReviews: 12 });
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        await apiGet("/protected");
-      } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        if (errorMessage.includes('401')) {
-          router.replace("/login");
-        } else {
-          setError("Failed to load user data");
-        }
-      }
-    };
-
-    loadUserData();
-  }, [router]);
+  const { data } = useHRInvitations({ limit: 100 });
+  const invitations = data?.items ?? [];
+  const stats = {
+    myInterviews: invitations.length,
+    activeCandidates: invitations.filter(i => i.status === 'in_progress' || i.status === 'pending').length,
+    pendingReviews: invitations.filter(i => i.status === 'completed').length,
+  };
 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
 
-      <main className="container mx-auto px-6 py-12">
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-8">
-            {error}
-          </div>
-        )}
-
+      <div className="container mx-auto px-6 py-12">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
@@ -128,7 +107,7 @@ export default function HRDashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

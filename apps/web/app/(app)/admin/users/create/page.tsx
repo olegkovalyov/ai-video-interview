@@ -69,7 +69,7 @@ export default function CreateUserPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <main className="container mx-auto px-6 py-12 max-w-3xl">
+      <div className="container mx-auto px-6 py-12 max-w-3xl">
         {/* Back Button */}
         <Link 
           href="/admin/users"
@@ -238,7 +238,7 @@ export default function CreateUserPage() {
             </CardContent>
           </Card>
         </form>
-      </main>
+      </div>
     </div>
   );
 }

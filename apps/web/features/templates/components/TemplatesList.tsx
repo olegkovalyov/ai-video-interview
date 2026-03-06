@@ -1,96 +1,44 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { TemplateStatsCards } from './TemplateStatsCards';
 import { TemplateFilters } from './TemplateFilters';
 import { TemplatesTable } from './TemplatesTable';
 import { EmptyState } from './EmptyState';
 import {
-  listTemplates,
-  getTemplateStats,
-  publishTemplate,
-  deleteTemplate,
-  duplicateTemplate,
-} from '../services/templates-api';
-import { Template, TemplateStats, TemplateStatus } from '../types/template.types';
+  useTemplates,
+  useTemplateStats,
+  usePublishTemplate,
+  useDeleteTemplate,
+  useDuplicateTemplate,
+} from '@/lib/query/hooks/use-templates';
+import { TemplateStatus } from '../types/template.types';
 
 export function TemplatesList() {
   const router = useRouter();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [stats, setStats] = useState<TemplateStats>({
-    total: 0,
-    active: 0,
-    draft: 0,
-    archived: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [loadingTemplates, setLoadingTemplates] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TemplateStatus | 'all'>('all');
-  const isFetchingRef = useRef(false);
 
-  // Fetch templates and stats
-  const fetchData = useCallback(async () => {
-    // Prevent duplicate requests
-    if (isFetchingRef.current) {
-      console.log('⏭️ Skipping duplicate fetch request');
-      return;
-    }
+  const { data: templatesData, isPending, isFetching } = useTemplates({
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    search: searchQuery,
+  });
 
-    try {
-      isFetchingRef.current = true;
-      setLoading(true);
-      const [templatesData, statsData] = await Promise.all([
-        listTemplates(1, 100, {
-          status: statusFilter === 'all' ? undefined : statusFilter,
-          search: searchQuery,
-        }),
-        getTemplateStats(),
-      ]);
-      setTemplates(templatesData.items);
-      setStats(statsData);
-    } catch (error: any) {
-      console.error('🔴 Failed to fetch templates:', error);
-      
-      // Show user-friendly message
-      const errorMessage = error?.message || 'Failed to load templates. Please try again.';
-      toast.error(errorMessage);
-      
-      // Set empty state gracefully
-      setTemplates([]);
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
-    }
-  }, [searchQuery, statusFilter]);
+  const { data: stats = { total: 0, active: 0, draft: 0, archived: 0 }, isPending: isStatsPending } =
+    useTemplateStats();
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const templates = templatesData?.items ?? [];
 
-  // Row-level locking helper
-  const withTemplateLock = async <T,>(
-    templateId: string,
-    action: () => Promise<T>,
-  ): Promise<T | void> => {
-    setLoadingTemplates((prev) => new Set(prev).add(templateId));
-    try {
-      const result = await action();
-      await fetchData(); // Refresh data
-      return result;
-    } catch (error: any) {
-      console.error('Operation failed:', error);
-      toast.error(error.message || 'Operation failed');
-    } finally {
-      setLoadingTemplates((prev) => {
-        const next = new Set(prev);
-        next.delete(templateId);
-        return next;
-      });
-    }
-  };
+  const publishMutation = usePublishTemplate();
+  const deleteMutation = useDeleteTemplate();
+  const duplicateMutation = useDuplicateTemplate();
+
+  const loadingTemplates = new Set<string>(
+    [publishMutation, deleteMutation, duplicateMutation]
+      .filter((m) => m.isPending && m.variables)
+      .map((m) => m.variables as string),
+  );
 
   // Handlers
   const handleView = (templateId: string) => {
@@ -101,37 +49,24 @@ export function TemplatesList() {
     router.push(`/hr/templates/${templateId}/edit`);
   };
 
-  const handleDuplicate = async (templateId: string) => {
-    await withTemplateLock(templateId, async () => {
-      const result = await duplicateTemplate(templateId);
-      toast.success('Template duplicated successfully');
-      return result;
-    });
+  const handleDuplicate = (templateId: string) => {
+    duplicateMutation.mutate(templateId);
   };
 
-  const handlePublish = async (templateId: string) => {
-    await withTemplateLock(templateId, async () => {
-      await publishTemplate(templateId);
-      toast.success('Template published successfully');
-    });
+  const handlePublish = (templateId: string) => {
+    publishMutation.mutate(templateId);
   };
 
-  const handleArchive = async (templateId: string) => {
-    await withTemplateLock(templateId, async () => {
-      await deleteTemplate(templateId);
-      toast.success('Template archived');
-    });
+  const handleArchive = (templateId: string) => {
+    deleteMutation.mutate(templateId);
   };
 
-  const handleDelete = async (templateId: string) => {
+  const handleDelete = (templateId: string) => {
     if (!confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
       return;
     }
 
-    await withTemplateLock(templateId, async () => {
-      await deleteTemplate(templateId);
-      toast.success('Template deleted');
-    });
+    deleteMutation.mutate(templateId);
   };
 
   const handleCreateClick = () => {
@@ -141,7 +76,7 @@ export function TemplatesList() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <TemplateStatsCards stats={stats} loading={loading} />
+      <TemplateStatsCards stats={stats} loading={isStatsPending} />
 
       {/* Filters */}
       <TemplateFilters
@@ -153,7 +88,7 @@ export function TemplatesList() {
       />
 
       {/* Results count */}
-      {!loading && (
+      {!isPending && (
         <div className="text-white/80 text-sm">
           Showing {templates.length} of {stats.total} template
           {stats.total !== 1 ? 's' : ''}
@@ -164,7 +99,7 @@ export function TemplatesList() {
       )}
 
       {/* Table */}
-      {loading ? (
+      {isPending ? (
         <div className="flex items-center justify-center p-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>

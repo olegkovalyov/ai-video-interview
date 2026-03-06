@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/header';
 import { getUserRoles } from '@/lib/auth/get-user-roles';
 import { redirect } from 'next/navigation';
 import { TokenRefreshProvider } from '@/components/auth/TokenRefreshProvider';
+import { QueryClientProvider } from '@/lib/query/query-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,9 +34,11 @@ export default async function AppLayout({
   }
 
   return (
-    <TokenRefreshProvider>
-      <Header userRoles={userRoles} />
-      {children}
-    </TokenRefreshProvider>
+    <QueryClientProvider>
+      <TokenRefreshProvider>
+        <Header userRoles={userRoles} />
+        <main>{children}</main>
+      </TokenRefreshProvider>
+    </QueryClientProvider>
   );
 }

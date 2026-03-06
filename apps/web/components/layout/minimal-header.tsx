@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { apiPost } from "@/lib/api";
+import { logger } from '@/lib/logger';
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut, ChevronDown } from "lucide-react";
@@ -45,7 +46,7 @@ export function MinimalHeader({ userEmail }: MinimalHeaderProps) {
       
       router.replace("/");
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
       router.replace("/");
     } finally {
       setIsLoggingOut(false);

@@ -1,3 +1,6 @@
+import { logger } from './logger';
+import { API_TIMEOUT_MS } from './constants/app';
+
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8001';
 
 interface RequestOptions {
@@ -5,6 +8,7 @@ interface RequestOptions {
   headers?: Record<string, string>;
   body?: string;
   credentials: 'include';
+  signal?: AbortSignal;
 }
 
 /**
@@ -22,47 +26,37 @@ export class ApiError extends Error {
   }
 }
 
+const AUTH_ENDPOINTS = ['/auth/refresh', '/auth/logout', '/auth/login', '/auth/register'];
+
 async function makeRequest<T>(path: string, options: RequestOptions): Promise<T> {
-  // Don't log /protected requests - they're auth checks
   if (path !== '/protected') {
-    console.log('📤 API Request:', {
-      url: `${API_BASE}${path}`,
-      method: options.method,
-    });
+    logger.debug('API Request:', options.method, path);
   }
-  
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const requestOptions = { ...options, signal: controller.signal };
+
   try {
-    // Первая попытка
-    let res = await fetch(`${API_BASE}${path}`, options);
-    
-    // Если 401 и это не auth endpoints, пытаемся обновить токены
-    const isAuthEndpoint = path.includes('/auth/refresh') || 
-                          path.includes('/auth/logout') || 
-                          path.includes('/auth/login') || 
-                          path.includes('/auth/register');
-                          
+    let res = await fetch(`${API_BASE}${path}`, requestOptions);
+
+    // Auto-refresh on 401 (skip auth endpoints to avoid loops)
+    const isAuthEndpoint = AUTH_ENDPOINTS.some(ep => path.includes(ep));
     if (res.status === 401 && !isAuthEndpoint) {
       const refreshSuccess = await attemptTokenRefresh();
-      
       if (refreshSuccess) {
-        // Повторяем исходный запрос
         res = await fetch(`${API_BASE}${path}`, options);
       }
     }
-    
+
     if (!res.ok) {
       let text = '';
-      try {
-        text = await res.text();
-      } catch (textError) {
-        console.error('Failed to read response text:', textError);
-      }
-      
+      try { text = await res.text(); } catch { /* ignore */ }
+
       let errorMessage = `Request failed with status ${res.status}`;
       let errorCode = 'UNKNOWN_ERROR';
       let errorDetails = null;
 
-      // Try to parse JSON error response
       if (text) {
         try {
           const errorData = JSON.parse(text);
@@ -70,77 +64,59 @@ async function makeRequest<T>(path: string, options: RequestOptions): Promise<T>
           errorCode = errorData.code || errorCode;
           errorDetails = errorData;
         } catch {
-          // If not JSON, use text as message
           errorMessage = text || errorMessage;
         }
       }
 
-      // Don't log 401 errors for /protected - это нормальная проверка auth
-      const isAuthCheck = path === '/protected' && res.status === 401;
-      
-      if (!isAuthCheck) {
-        console.error('🔴 API Error:', {
-          fullUrl: `${API_BASE}${path}`,
-          path,
-          method: options.method,
-          status: res.status,
-          statusText: res.statusText,
-          code: errorCode,
-          message: errorMessage,
-          responseText: text.substring(0, 500), // First 500 chars
-          details: errorDetails,
-        });
+      // Don't log 401 for /protected — normal auth check
+      if (!(path === '/protected' && res.status === 401)) {
+        logger.error('API Error:', res.status, options.method, path, errorCode);
       }
 
       throw new ApiError(errorMessage, res.status, errorCode, errorDetails);
     }
-    
-    // Проверяем есть ли тело ответа
+
+    // Handle empty responses
     const contentType = res.headers.get('content-type');
     const contentLength = res.headers.get('content-length');
-    
-    // Если нет контента (204 No Content или пустое тело)
+
     if (res.status === 204 || contentLength === '0') {
       return {} as T;
     }
-    
-    // Если контент не JSON, возвращаем пустой объект
+
     if (!contentType || !contentType.includes('application/json')) {
       const text = await res.text();
-      if (!text || text.trim() === '') {
-        return {} as T;
-      }
-      // Пытаемся распарсить если есть текст
+      if (!text || text.trim() === '') return {} as T;
       try {
         return JSON.parse(text);
       } catch {
-        console.warn('⚠️ Response is not JSON:', text);
+        logger.warn('Response is not JSON:', path);
         return {} as T;
       }
     }
-    
+
     return res.json();
   } catch (error) {
-    // Network error, CORS, timeout, etc.
-    if (error instanceof ApiError) {
-      // Пробрасываем API ошибки как есть
-      throw error;
+    if (error instanceof ApiError) throw error;
+
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiError(
+        `Request timed out after ${API_TIMEOUT_MS / 1000}s`,
+        0,
+        'TIMEOUT_ERROR',
+      );
     }
-    
-    // Network/CORS/other fetch errors
-    console.error('🔴 Network Error:', {
-      url: `${API_BASE}${path}`,
-      method: options.method,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      details: error,
-    });
-    
+
+    logger.error('Network Error:', options.method, path, error instanceof Error ? error.message : error);
+
     throw new ApiError(
       'Network error. Please check your connection and ensure the API server is running.',
       0,
       'NETWORK_ERROR',
-      error
+      error,
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

@@ -59,7 +59,7 @@
 
 **Volumes:**
 - `postgres_data:/var/lib/postgresql/data` - персистентное хранилище
-- `./scripts/init-db.sql` - инициализация схем при первом запуске
+- `./scripts/setup/init-db.sql` - инициализация схем при первом запуске
 
 **Health Check:** `pg_isready -U postgres`
 

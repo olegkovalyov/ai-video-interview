@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { apiPost } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { Briefcase, UserCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,28 +20,28 @@ export default function SelectRolePage() {
     }
 
     setIsSubmitting(true);
-    console.log('🎯 [SELECT-ROLE] Step 1: Starting role selection...', { role: selectedRole });
+    logger.debug('[SELECT-ROLE] Step 1: Starting role selection', { role: selectedRole });
     
     try {
       // Step 1: Assign role
-      console.log('🎯 [SELECT-ROLE] Step 2: Calling /api/users/me/select-role...');
+      logger.debug('[SELECT-ROLE] Step 2: Calling /api/users/me/select-role');
       const selectResponse = await apiPost('/api/users/me/select-role', { role: selectedRole });
-      console.log('🎯 [SELECT-ROLE] Step 3: Role assigned successfully:', selectResponse);
+      logger.debug('[SELECT-ROLE] Step 3: Role assigned successfully', selectResponse);
       toast.success(`Role selected: ${selectedRole === 'hr' ? 'HR Manager' : 'Candidate'}`);
       
       // Step 2: Refresh token to get new JWT with updated role from Keycloak
-      console.log('🎯 [SELECT-ROLE] Step 4: Refreshing token...');
+      logger.debug('[SELECT-ROLE] Step 4: Refreshing token');
       toast.info('Updating your session...');
       const refreshResponse = await apiPost('/auth/refresh');
-      console.log('🎯 [SELECT-ROLE] Step 5: Token refreshed:', refreshResponse);
+      logger.debug('[SELECT-ROLE] Step 5: Token refreshed', refreshResponse);
       
       // Step 3: Redirect to dashboard with updated role
-      console.log('🎯 [SELECT-ROLE] Step 6: Redirecting to dashboard...');
+      logger.debug('[SELECT-ROLE] Step 6: Redirecting to dashboard');
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 500);
     } catch (error: unknown) {
-      console.error('❌ [SELECT-ROLE] Error:', error);
+      logger.error('[SELECT-ROLE] Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to select role');
       setIsSubmitting(false);
     }

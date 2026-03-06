@@ -69,15 +69,23 @@ export class LoggerService implements NestLoggerService {
           })
         ] : []),
         // Loki transport - прямая отправка в Loki (РЕАЛЬНОЕ ВРЕМЯ)
-        new LokiTransport({
-          host: 'http://localhost:3100',
-          labels: { service: 'user-service', environment: process.env.NODE_ENV || 'development' },
-          json: true,
-          format: fileFormat,
-          replaceTimestamp: true,
-          level: 'debug', // Отправляем все логи включая debug
-          onConnectionError: (err) => console.error('Loki connection error:', err)
-        }),
+        // Включается только если LOKI_HOST задан в env
+        ...(process.env.LOKI_HOST ? [
+          new LokiTransport({
+            host: process.env.LOKI_HOST,
+            labels: { service: 'user-service', environment: process.env.NODE_ENV || 'development' },
+            json: true,
+            format: fileFormat,
+            replaceTimestamp: true,
+            level: 'debug',
+            onConnectionError: (err: unknown) => {
+              if (!(this as any)._lokiErrorLogged) {
+                console.error('Loki connection error (further errors suppressed):', err instanceof Error ? err.message : err);
+                (this as any)._lokiErrorLogged = true;
+              }
+            }
+          })
+        ] : []),
         // Файл в папке по дате: logs/2025-10-02/user-service.log (fallback)
         new winston.transports.File({
           filename: path.join(logsDir, 'user-service.log'),

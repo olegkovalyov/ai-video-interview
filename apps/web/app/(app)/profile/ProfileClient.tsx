@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { Loader2, Edit2, Save, X, Upload } from 'lucide-react';
+import { Loader2, Edit2, Save, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, updateCurrentUser, type User } from '@/lib/api/users';
 import { TIMEZONES, LANGUAGES } from '@/lib/constants/timezones';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
+import { AvatarSection } from './_components/AvatarSection';
 
-// Validation schema
 const profileSchema = z.object({
   firstName: z.string()
     .min(2, 'First name must be at least 2 characters')
@@ -34,15 +34,21 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
+function normalizeTimezone(tz: string | undefined): string {
+  if (!tz || tz === 'UTC') return 'UTC+00:00';
+  const match = tz.match(/^(UTC[+-])(\d{1,2})$/);
+  if (match?.[1] && match[2]) {
+    return `${match[1]}${match[2].padStart(2, '0')}:00`;
+  }
+  return tz;
+}
+
 export function ProfileClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [showAvatarUpload, setShowAvatarUpload] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const {
     register,
@@ -56,58 +62,41 @@ export function ProfileClient() {
 
   const bioValue = watch('bio') || '';
 
-  // Handle success messages from URL params
   useEffect(() => {
     const success = searchParams.get('success');
-    
     if (success === 'password_changed') {
       toast.success('Password changed successfully!');
-      // Clean URL
       router.replace('/profile');
     } else if (success === 'profile_updated') {
       toast.success('Profile updated successfully!');
-      // Clean URL
       router.replace('/profile');
     }
   }, [searchParams, router]);
 
-  useEffect(() => {
-    loadUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     try {
       setLoading(true);
       const userData = await getCurrentUser();
       setUser(userData);
-      
-      // Normalize timezone
-      let normalizedTimezone = userData.timezone || 'UTC+00:00';
-      if (normalizedTimezone === 'UTC') {
-        normalizedTimezone = 'UTC+00:00';
-      } else if (normalizedTimezone.match(/^UTC[+-]\d{1,2}$/)) {
-        const match = normalizedTimezone.match(/^(UTC[+-])(\d{1,2})$/);
-        if (match && match[1] && match[2]) {
-          normalizedTimezone = `${match[1]}${match[2].padStart(2, '0')}:00`;
-        }
-      }
-      
       reset({
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         phone: userData.phone || '',
         bio: userData.bio || '',
-        timezone: normalizedTimezone,
+        timezone: normalizeTimezone(userData.timezone),
         language: userData.language || 'en',
       });
     } catch (err) {
-      console.error('Failed to load user:', err);
+      logger.error('Failed to load user:', err);
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
     }
-  };
+  }, [reset]);
+
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
@@ -119,12 +108,11 @@ export function ProfileClient() {
         timezone: data.timezone,
         language: data.language,
       });
-      
       toast.success('Profile updated successfully!');
       setIsEditMode(false);
       await loadUser();
     } catch (err) {
-      console.error('Failed to update profile:', err);
+      logger.error('Failed to update profile:', err);
       toast.error('Failed to save changes');
     }
   };
@@ -137,56 +125,9 @@ export function ProfileClient() {
         lastName: user.lastName || '',
         phone: user.phone || '',
         bio: user.bio || '',
-        timezone: user.timezone || 'UTC+00:00',
+        timezone: normalizeTimezone(user.timezone),
         language: user.language || 'en',
       });
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
-
-  const handleAvatarUpload = async () => {
-    if (!selectedFile) return;
-
-    // TODO: Implement actual upload to MinIO through API
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1000)),
-      {
-        loading: 'Uploading avatar...',
-        success: 'Avatar updated successfully!',
-        error: 'Failed to upload avatar',
-      }
-    );
-
-    // After successful upload, update user and hide form
-    setTimeout(() => {
-      setShowAvatarUpload(false);
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      loadUser();
-    }, 1000);
-  };
-
-  const handleCancelUpload = () => {
-    setShowAvatarUpload(false);
-    setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
     }
   };
 
@@ -201,84 +142,17 @@ export function ProfileClient() {
     );
   }
 
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`;
+  const INPUT_CLASS = 'w-full px-4 py-2 bg-white/10 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder:text-white/50';
+
   return (
     <div className="space-y-6">
-      {/* Avatar Section */}
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-6">
-            <div className="flex-shrink-0">
-              {previewUrl || user?.avatarUrl ? (
-                <Image
-                  src={previewUrl || user?.avatarUrl || ''}
-                  alt="Avatar"
-                  width={128}
-                  height={128}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white/30"
-                />
-              ) : (
-                <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold border-4 border-white/30">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </div>
-              )}
-            </div>
+      <AvatarSection
+        avatarUrl={user?.avatarUrl}
+        initials={initials}
+        onUploadComplete={loadUser}
+      />
 
-            <div className="flex-1">
-              {!showAvatarUpload ? (
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Profile Photo</h3>
-                  <p className="text-white/70 text-sm mb-4">
-                    Upload a professional photo. Max size: 5MB
-                  </p>
-                  <Button
-                    variant="glass"
-                    onClick={() => setShowAvatarUpload(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Change Photo
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Upload New Photo</h3>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="block w-full text-sm text-white/70 mb-4
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-lg file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-white/20 file:text-white
-                      hover:file:bg-white/30
-                      file:cursor-pointer cursor-pointer"
-                  />
-                  <div className="flex gap-3">
-                    <Button
-                      variant="brand"
-                      onClick={handleAvatarUpload}
-                      disabled={!selectedFile}
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Upload
-                    </Button>
-                    <Button
-                      variant="glass"
-                      onClick={handleCancelUpload}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Personal Information */}
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card className="bg-white/10 backdrop-blur-md border-white/20">
           <CardContent className="p-6">
@@ -323,17 +197,13 @@ export function ProfileClient() {
                 <h3 className="text-lg font-semibold text-white mb-4">Basic Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      First Name *
-                    </label>
+                    <label className="block text-sm font-medium text-white/80 mb-2">First Name *</label>
                     {isEditMode ? (
                       <>
                         <input
                           type="text"
                           {...register('firstName')}
-                          className={`w-full px-4 py-2 bg-white/10 border ${
-                            errors.firstName ? 'border-red-500' : 'border-white/30'
-                          } rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder:text-white/50`}
+                          className={`${INPUT_CLASS} ${errors.firstName ? 'border-red-500' : 'border-white/30'}`}
                         />
                         {errors.firstName && (
                           <p className="text-red-400 text-xs mt-1">{errors.firstName.message}</p>
@@ -345,17 +215,13 @@ export function ProfileClient() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Last Name *
-                    </label>
+                    <label className="block text-sm font-medium text-white/80 mb-2">Last Name *</label>
                     {isEditMode ? (
                       <>
                         <input
                           type="text"
                           {...register('lastName')}
-                          className={`w-full px-4 py-2 bg-white/10 border ${
-                            errors.lastName ? 'border-red-500' : 'border-white/30'
-                          } rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder:text-white/50`}
+                          className={`${INPUT_CLASS} ${errors.lastName ? 'border-red-500' : 'border-white/30'}`}
                         />
                         {errors.lastName && (
                           <p className="text-red-400 text-xs mt-1">{errors.lastName.message}</p>
@@ -373,9 +239,7 @@ export function ProfileClient() {
                 <h3 className="text-lg font-semibold text-white mb-4">Contact Information</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Email Address *
-                    </label>
+                    <label className="block text-sm font-medium text-white/80 mb-2">Email Address *</label>
                     <p className="text-white text-lg">{user?.email || '—'}</p>
                     <p className="text-xs text-white/60 mt-1">
                       Email cannot be changed. Contact support if needed.
@@ -383,18 +247,14 @@ export function ProfileClient() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Phone Number
-                    </label>
+                    <label className="block text-sm font-medium text-white/80 mb-2">Phone Number</label>
                     {isEditMode ? (
                       <>
                         <input
                           type="tel"
                           {...register('phone')}
                           placeholder="+1 (555) 000-0000"
-                          className={`w-full px-4 py-2 bg-white/10 border ${
-                            errors.phone ? 'border-red-500' : 'border-white/30'
-                          } rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder:text-white/50`}
+                          className={`${INPUT_CLASS} ${errors.phone ? 'border-red-500' : 'border-white/30'}`}
                         />
                         {errors.phone && (
                           <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>
@@ -411,9 +271,7 @@ export function ProfileClient() {
               <div>
                 <h3 className="text-lg font-semibold text-white mb-4">About</h3>
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Bio
-                  </label>
+                  <label className="block text-sm font-medium text-white/80 mb-2">Bio</label>
                   {isEditMode ? (
                     <>
                       <textarea
@@ -421,16 +279,12 @@ export function ProfileClient() {
                         rows={4}
                         maxLength={500}
                         placeholder="Tell us about yourself..."
-                        className={`w-full px-4 py-2 bg-white/10 border ${
-                          errors.bio ? 'border-red-500' : 'border-white/30'
-                        } rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent text-white placeholder:text-white/50 resize-none`}
+                        className={`${INPUT_CLASS} resize-none ${errors.bio ? 'border-red-500' : 'border-white/30'}`}
                       />
                       {errors.bio && (
                         <p className="text-red-400 text-xs mt-1">{errors.bio.message}</p>
                       )}
-                      <p className="text-xs text-white/60 mt-1">
-                        {bioValue.length}/500 characters
-                      </p>
+                      <p className="text-xs text-white/60 mt-1">{bioValue.length}/500 characters</p>
                     </>
                   ) : (
                     <p className="text-white whitespace-pre-wrap">{user?.bio || '—'}</p>
@@ -443,18 +297,14 @@ export function ProfileClient() {
                 <h3 className="text-lg font-semibold text-white mb-4">Preferences</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Timezone
-                    </label>
+                    <label className="block text-sm font-medium text-white/80 mb-2">Timezone</label>
                     {isEditMode ? (
                       <select
                         {...register('timezone')}
                         className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
                       >
                         {TIMEZONES.map((tz) => (
-                          <option key={tz.value} value={tz.value}>
-                            {tz.label}
-                          </option>
+                          <option key={tz.value} value={tz.value}>{tz.label}</option>
                         ))}
                       </select>
                     ) : (
@@ -465,18 +315,14 @@ export function ProfileClient() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Language
-                    </label>
+                    <label className="block text-sm font-medium text-white/80 mb-2">Language</label>
                     {isEditMode ? (
                       <select
                         {...register('language')}
                         className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
                       >
                         {LANGUAGES.map((lang) => (
-                          <option key={lang.value} value={lang.value}>
-                            {lang.label}
-                          </option>
+                          <option key={lang.value} value={lang.value}>{lang.label}</option>
                         ))}
                       </select>
                     ) : (

@@ -1,14 +1,15 @@
 "use client";
 
-import Link from "next/link"
-import { useAuthStatus } from "@/lib/hooks/useAuth"
-import { apiPost, apiGet } from "@/lib/api"
-import { useRouter, usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
-import type { User } from "@/lib/types/user"
-import { LogOut, ChevronDown, UserCircle } from "lucide-react"
-import { SignInButton } from "@/features/auth"
-import { LogoWithText } from "@/components/ui/logo"
+import Link from "next/link";
+import { useAuthStatus } from "@/lib/hooks/useAuth";
+import { apiPost, apiGet } from "@/lib/api";
+import { useRouter, usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import type { User } from "@/lib/types/user";
+import { LogOut, ChevronDown, UserCircle } from "lucide-react";
+import { SignInButton } from "@/features/auth";
+import { LogoWithText } from "@/components/ui/logo";
+import { logger } from "@/lib/logger";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +17,67 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
-  userRoles?: string[]; // Роли передаются из Server Component
+  userRoles?: string[];
+}
+
+interface NavItem {
+  href: string;
+  label: string;
+  matchPrefix?: boolean;
+}
+
+const NAV_CONFIG = {
+  admin: [
+    { href: '/admin/dashboard', label: 'Dashboard', matchPrefix: true },
+    { href: '/admin/interviews', label: 'Interviews', matchPrefix: true },
+    { href: '/admin/users', label: 'Users', matchPrefix: true },
+    { href: '/admin/skills', label: 'Skills', matchPrefix: true },
+  ],
+  hr: [
+    { href: '/hr/dashboard', label: 'Dashboard' },
+    { href: '/hr/interviews/templates', label: 'Interviews', matchPrefix: true },
+    { href: '/hr/companies', label: 'Companies', matchPrefix: true },
+  ],
+  candidate: [
+    { href: '/candidate/dashboard', label: 'Dashboard', matchPrefix: true },
+  ],
+  guest: [
+    { href: '/about', label: 'About' },
+    { href: '/pricing', label: 'Pricing' },
+  ],
+};
+
+function getRoleLabel(roles: string[]): { label: string; style: string } {
+  if (roles.includes('admin')) return { label: 'Admin', style: 'bg-purple-500/30 text-purple-200 border-purple-400/50' };
+  if (roles.includes('hr')) return { label: 'HR', style: 'bg-blue-500/30 text-blue-200 border-blue-400/50' };
+  return { label: 'Candidate', style: 'bg-green-500/30 text-green-200 border-green-400/50' };
+}
+
+function getNavItems(roles: string[]): NavItem[] {
+  if (roles.includes('admin')) return NAV_CONFIG.admin;
+  if (roles.includes('hr')) return NAV_CONFIG.hr;
+  if (roles.includes('candidate')) return NAV_CONFIG.candidate;
+  return NAV_CONFIG.guest;
+}
+
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const isActive = item.matchPrefix
+    ? pathname.startsWith(item.href.split('/').slice(0, 3).join('/'))
+    : pathname === item.href;
+
+  return (
+    <Link
+      href={item.href}
+      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
+        isActive ? 'text-yellow-400' : ''
+      }`}
+    >
+      {item.label}
+    </Link>
+  );
 }
 
 export function Header({ userRoles = [] }: HeaderProps) {
@@ -30,51 +88,47 @@ export function Header({ userRoles = [] }: HeaderProps) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const loadUser = async () => {
-      if (isAuthenticated) {
-        try {
-          const res = await apiGet("/protected") as { user: User };
-          setUser(res.user);
-        } catch (error) {
-          console.error('[Header] Failed to load user:', error);
-          // На ошибке очищаем пользователя
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    };
+    if (!isAuthenticated) {
+      setUser(null);
+      return;
+    }
 
-    loadUser();
-    
-    // TokenRefreshProvider обновляет токены каждые 4 минуты
-    // Нам не нужен interval - просто загружаем при mount
+    apiGet("/protected")
+      .then((res) => setUser((res as { user: User }).user))
+      .catch((err) => {
+        logger.debug('Failed to load user in header:', err);
+        setUser(null);
+      });
   }, [isAuthenticated]);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
-    
     setIsLoggingOut(true);
+
     try {
-      const response = await apiPost("/auth/logout") as { 
-        success: boolean; 
-        requiresRedirect?: boolean; 
-        endSessionEndpoint?: string; 
+      const response = await apiPost("/auth/logout") as {
+        success: boolean;
+        requiresRedirect?: boolean;
+        endSessionEndpoint?: string;
       };
-      
+
       if (response.requiresRedirect && response.endSessionEndpoint) {
         window.location.href = response.endSessionEndpoint;
         return;
       }
-      
       router.replace("/");
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
       router.replace("/");
     } finally {
       setIsLoggingOut(false);
     }
   };
+
+  const navItems = getNavItems(userRoles);
+  const role = getRoleLabel(userRoles);
+  const initials = user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'U';
+
   return (
     <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-6 py-4">
@@ -82,146 +136,26 @@ export function Header({ userRoles = [] }: HeaderProps) {
           <Link href="/">
             <LogoWithText />
           </Link>
-          
-          {/* Role-based Navigation */}
+
           <nav className="hidden md:flex items-center space-x-6">
-            {/* Определяем primary role: admin > hr > candidate */}
-            {(() => {
-              const isAdmin = userRoles.includes('admin');
-              const isHR = userRoles.includes('hr');
-              const isCandidate = userRoles.includes('candidate');
-              
-              // ADMIN MENU
-              if (isAdmin) {
-                return (
-                  <>
-                    <Link 
-                      href="/admin/dashboard" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/admin/dashboard') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Dashboard
-                    </Link>
-                    <Link 
-                      href="/admin/interviews" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/admin/interviews') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Interviews
-                    </Link>
-                    <Link 
-                      href="/admin/users" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/admin/users') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Users
-                    </Link>
-                    <Link 
-                      href="/admin/skills" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/admin/skills') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Skills
-                    </Link>
-                  </>
-                );
-              }
-              
-              // HR MENU
-              if (isHR) {
-                return (
-                  <>
-                    <Link 
-                      href="/hr/dashboard" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname === '/hr/dashboard' ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Dashboard
-                    </Link>
-                    <Link 
-                      href="/hr/interviews/templates" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/interviews') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Interviews
-                    </Link>
-                    <Link 
-                      href="/hr/companies" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/hr/companies') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Companies
-                    </Link>
-                  </>
-                );
-              }
-              
-              // CANDIDATE MENU
-              if (isCandidate) {
-                return (
-                  <>
-                    <Link 
-                      href="/candidate/dashboard" 
-                      className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                        pathname.startsWith('/candidate/dashboard') ? 'text-yellow-400' : ''
-                      }`}
-                    >
-                      Dashboard
-                    </Link>
-                  </>
-                );
-              }
-              
-              // Guest menu (no roles)
-              return (
-                <>
-                  <Link 
-                    href="/about" 
-                    className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                      pathname === '/about' ? 'text-yellow-400' : ''
-                    }`}
-                  >
-                    About
-                  </Link>
-                  <Link 
-                    href="/pricing" 
-                    className={`text-white hover:text-yellow-400 transition-colors font-medium ${
-                      pathname === '/pricing' ? 'text-yellow-400' : ''
-                    }`}
-                  >
-                    Pricing
-                  </Link>
-                </>
-              );
-            })()}
+            {navItems.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
           </nav>
 
           <div className="flex items-center space-x-3">
             {loading ? (
-              // Показываем лоадер пока проверяем аутентификацию
-              <div className="w-20 h-8 bg-white/20 animate-pulse rounded"></div>
+              <div className="w-20 h-8 bg-white/20 animate-pulse rounded" />
             ) : (isAuthenticated || userRoles.length > 0) ? (
-              // Если пользователь залогинен - показываем user menu
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer outline-none">
+                  <button aria-label="User menu" className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer outline-none">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                      {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
+                      {initials}
                     </div>
                     <div className="hidden md:block text-left">
-                      <p className="text-sm font-medium text-white">
-                        {user?.name || 'User'}
-                      </p>
-                      <p className="text-xs text-white/70">
-                        {userRoles.includes('admin') ? 'Admin' : userRoles.includes('hr') ? 'HR' : 'Candidate'}
-                      </p>
+                      <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
+                      <p className="text-xs text-white/70">{role.label}</p>
                     </div>
                     <ChevronDown className="w-4 h-4 text-white/70 hidden md:block" />
                   </button>
@@ -231,19 +165,11 @@ export function Header({ userRoles = [] }: HeaderProps) {
                     <div className="flex flex-col space-y-1">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-white leading-none">{user?.name || 'User'}</p>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                          userRoles.includes('admin') 
-                            ? 'bg-purple-500/30 text-purple-200 border border-purple-400/50' 
-                            : userRoles.includes('hr')
-                            ? 'bg-blue-500/30 text-blue-200 border border-blue-400/50'
-                            : 'bg-green-500/30 text-green-200 border border-green-400/50'
-                        }`}>
-                          {userRoles.includes('admin') ? 'Admin' : userRoles.includes('hr') ? 'HR' : 'Candidate'}
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${role.style}`}>
+                          {role.label}
                         </span>
                       </div>
-                      <p className="text-xs leading-none text-white/60">
-                        {user?.email || 'user@example.com'}
-                      </p>
+                      <p className="text-xs leading-none text-white/60">{user?.email || ''}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/20" />
@@ -265,7 +191,6 @@ export function Header({ userRoles = [] }: HeaderProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              // Если не залогинен - показываем Login/Register
               <>
                 <SignInButton variant="glass" size="sm" mode="login">
                   Login
@@ -279,5 +204,5 @@ export function Header({ userRoles = [] }: HeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ButtonProps } from "@/components/ui/button";
 import { apiGet } from "@/lib/api";
+import { logger } from '@/lib/logger';
 
 interface SignInButtonProps extends Omit<ButtonProps, 'onClick'> {
   children?: React.ReactNode;
@@ -38,7 +39,7 @@ export function SignInButton({
       // Сразу редиректим на Keycloak БЕЗ промежуточной страницы
       window.location.assign(authUrl);
     } catch (error) {
-      console.error('Failed to start login:', error);
+      logger.error('Failed to start login:', error);
       setLoading(false);
     }
   };

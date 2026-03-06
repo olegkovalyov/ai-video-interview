@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { CandidateSkillsTable } from './CandidateSkillsTable';
 import { EditSkillForm } from './EditSkillForm';
 import { ExperienceLevelSelector } from './ExperienceLevelSelector';
@@ -28,7 +29,7 @@ export function CandidateSkillsList() {
       setSkillsByCategory(response.skills);
       setExperienceLevel(response.experienceLevel);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      logger.error('Failed to fetch data:', error);
       toast.error('Failed to load your profile');
     } finally {
       setLoading(false);
@@ -50,7 +51,7 @@ export function CandidateSkillsList() {
       await fetchSkills(); // Refresh data
       return result;
     } catch (error: any) {
-      console.error('Operation failed:', error);
+      logger.error('Operation failed:', error);
       toast.error(error.message || 'Operation failed');
     } finally {
       setLoadingSkills(prev => {
