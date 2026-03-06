@@ -4,10 +4,12 @@ import * as path from 'path';
 import DailyRotateFile = require('winston-daily-rotate-file');
 import { prettyConsoleFormat, shouldEnableConsole } from './console.formatter';
 import LokiTransport = require('winston-loki');
+import { correlationStore } from '../middleware/correlation-id.store';
 
 export interface LogContext {
   userId?: string;
   traceId?: string;
+  correlationId?: string;
   sessionId?: string;
   action?: string;
   duration?: number;
@@ -106,8 +108,18 @@ export class LoggerService implements NestLoggerService {
     });
   }
 
+  /**
+   * Enriches log context with correlationId from AsyncLocalStorage.
+   * Automatically attached to every log entry within a request scope.
+   */
+  private enrichWithCorrelationId(context?: LogContext): LogContext | undefined {
+    const store = correlationStore.getStore();
+    if (!store?.correlationId) return context;
+    return { correlationId: store.correlationId, ...context };
+  }
+
   info(message: string, context?: LogContext) {
-    this.logger.info(message, context);
+    this.logger.info(message, this.enrichWithCorrelationId(context));
   }
 
   // Перегруженный error для совместимости с NestJS и нашим кодом
@@ -116,49 +128,49 @@ export class LoggerService implements NestLoggerService {
     // 1. error(message, stack, context) - NestJS format
     // 2. error(message, Error, context) - наш старый format
     // 3. error(message, context) - упрощенный format
-    
+
     if (optionalParams.length === 0) {
       // Только message
-      this.logger.error(String(message));
+      this.logger.error(String(message), this.enrichWithCorrelationId());
       return;
     }
-    
+
     const firstParam = optionalParams[0];
     const secondParam = optionalParams.length > 1 ? optionalParams[1] : undefined;
-    
+
     // Проверяем если первый параметр - Error object или похож на Error
     if (firstParam && typeof firstParam === 'object' && (firstParam instanceof Error || firstParam.stack || firstParam.message)) {
-      this.logger.error(String(message), {
+      this.logger.error(String(message), this.enrichWithCorrelationId({
         ...(typeof secondParam === 'string' ? { context: secondParam } : secondParam),
         error: {
           name: firstParam.name || 'Error',
           message: firstParam.message || String(firstParam),
           stack: firstParam.stack || 'No stack trace'
         }
-      });
+      }));
       return;
     }
-    
+
     // Иначе считаем что это NestJS format (message, stack, context)
     const hasStack = typeof firstParam === 'string' && firstParam.includes('\n');
     const stack = hasStack ? firstParam : undefined;
     const contextIndex = hasStack ? 1 : 0;
     const context = optionalParams.length > contextIndex ? optionalParams[contextIndex] : undefined;
-    
-    this.logger.error(String(message), {
+
+    this.logger.error(String(message), this.enrichWithCorrelationId({
       ...(typeof context === 'string' ? { context } : context),
       stack: stack
-    });
+    }));
   }
 
   warn(message: any, ...optionalParams: any[]) {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
-    this.logger.warn(String(message), typeof context === 'string' ? { context } : context);
+    this.logger.warn(String(message), this.enrichWithCorrelationId(typeof context === 'string' ? { context } : context));
   }
 
   debug(message: any, ...optionalParams: any[]) {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
-    this.logger.debug(String(message), typeof context === 'string' ? { context } : context);
+    this.logger.debug(String(message), this.enrichWithCorrelationId(typeof context === 'string' ? { context } : context));
   }
 
   // Методы для совместимости с NestJS LoggerService interface

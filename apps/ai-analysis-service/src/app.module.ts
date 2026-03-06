@@ -9,6 +9,7 @@ import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { LlmModule } from './infrastructure/llm/llm.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
 import { MetricsInterceptor } from './infrastructure/metrics/metrics.interceptor';
+import { CorrelationIdInterceptor } from './infrastructure/http/interceptors/correlation-id.interceptor';
 import { CleanupService } from './infrastructure/scheduling/cleanup.service';
 
 @Module({
@@ -27,6 +28,7 @@ import { CleanupService } from './infrastructure/scheduling/cleanup.service';
   ],
   providers: [
     CleanupService,
+    { provide: APP_INTERCEPTOR, useClass: CorrelationIdInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
 })

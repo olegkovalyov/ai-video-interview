@@ -4,6 +4,7 @@ import {
   IEventPublisher,
   AnalysisEvent,
 } from '../../../application/ports/event-publisher.port';
+import { correlationStore } from '../../http/interceptors/correlation-id.store';
 
 /**
  * Kafka adapter for IEventPublisher port.
@@ -27,10 +28,16 @@ export class KafkaEventPublisher implements IEventPublisher {
     };
 
     try {
+      // Forward correlationId from the consumer context to the produced event
+      const store = correlationStore.getStore();
+      const headers = store?.correlationId
+        ? { 'x-correlation-id': store.correlationId }
+        : undefined;
+
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.ANALYSIS_EVENTS,
         kafkaEvent,
-        undefined,
+        headers,
         { partitionKey: event.aggregateId },
       );
 

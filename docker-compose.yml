@@ -234,6 +234,8 @@ services:
       - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+      - loki
+      - jaeger
 
   # PostgreSQL Exporter - Database metrics for Prometheus
   postgres-exporter:

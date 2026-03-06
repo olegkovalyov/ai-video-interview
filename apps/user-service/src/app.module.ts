@@ -10,6 +10,7 @@ import { LoggerModule } from './infrastructure/logger/logger.module';
 import { MessagingModule } from './infrastructure/messaging/messaging.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
 import { MetricsInterceptor } from './infrastructure/metrics/metrics.interceptor';
+import { CorrelationIdInterceptor } from './infrastructure/http/interceptors/correlation-id.interceptor';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { MetricsInterceptor } from './infrastructure/metrics/metrics.interceptor
     MetricsModule,
   ],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: CorrelationIdInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
 })
