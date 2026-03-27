@@ -21,7 +21,9 @@ export class TemplateStatus extends ValueObject<TemplateStatusProps> {
   }
 
   static create(value: string): TemplateStatus {
-    if (!Object.values(TemplateStatusEnum).includes(value as TemplateStatusEnum)) {
+    if (
+      !Object.values(TemplateStatusEnum).includes(value as TemplateStatusEnum)
+    ) {
       throw new InvalidTemplateStateException(
         'create',
         `${value} (must be one of: ${Object.values(TemplateStatusEnum).join(', ')})`,
@@ -56,7 +58,7 @@ export class TemplateStatus extends ValueObject<TemplateStatusProps> {
   }
 
   canBeModified(): boolean {
-    return !this.isArchived();
+    return this.isDraft();
   }
 
   canBePublished(): boolean {

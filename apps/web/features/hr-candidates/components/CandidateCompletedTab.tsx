@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Star, Clock, Eye, Bot, MoreVertical, Trophy, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { listHRInvitations, InvitationListItem } from '@/lib/api/invitations';
+import { useHRInvitations } from '@/lib/query/hooks/use-invitations';
 
 function getScoreColor(score: number) {
   if (score >= 90) return 'text-green-400';
@@ -43,26 +43,10 @@ function generateRandomScore(id: string): number {
 
 export function CandidateCompletedTab() {
   const router = useRouter();
-  const [invitations, setInvitations] = useState<InvitationListItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
 
-  useEffect(() => {
-    loadCompletedInvitations();
-  }, []);
-
-  const loadCompletedInvitations = async () => {
-    try {
-      setLoading(true);
-      const response = await listHRInvitations({ status: 'completed', limit: 100 });
-      setInvitations(response.items || []);
-    } catch (error) {
-      console.error('Failed to load completed invitations:', error);
-      toast.error('Failed to load completed interviews');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isPending } = useHRInvitations({ status: 'completed', limit: 100 });
+  const invitations = data?.items ?? [];
 
   const invitationsWithScores = invitations.map(inv => ({
     ...inv,
@@ -76,11 +60,11 @@ export function CandidateCompletedTab() {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const avgScore = invitationsWithScores.length > 0 
+  const avgScore = invitationsWithScores.length > 0
     ? Math.round(invitationsWithScores.reduce((sum, i) => sum + i.score, 0) / invitationsWithScores.length)
     : 0;
 
-  if (loading) {
+  if (isPending) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 text-white animate-spin" />
@@ -139,7 +123,7 @@ export function CandidateCompletedTab() {
         <>
           {/* Sort */}
           <div className="flex items-center justify-between">
-            <p className="text-white/70 text-sm">
+            <p className="text-white/70 text-sm" aria-live="polite">
               Showing {sortedInterviews.length} completed interview{sortedInterviews.length !== 1 ? 's' : ''}
             </p>
             <div className="flex items-center gap-2">
@@ -147,6 +131,7 @@ export function CandidateCompletedTab() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'date' | 'score')}
+                aria-label="Sort by"
                 className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
               >
                 <option value="date" className="bg-gray-800">Date</option>
@@ -161,7 +146,7 @@ export function CandidateCompletedTab() {
               const scoreBadge = getScoreBadge(interview.score);
               const candidateName = interview.candidateName || interview.candidateEmail?.split('@')[0] || 'Unknown';
               const initials = candidateName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-              
+
               return (
                 <Card key={interview.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all">
                   <CardContent className="p-6">
@@ -185,7 +170,7 @@ export function CandidateCompletedTab() {
                             </span>
                           </div>
                           <p className="text-white/60 text-sm mb-3">{interview.candidateEmail}</p>
-                          
+
                           <div className="flex flex-wrap gap-4 text-sm">
                             <div className="flex items-center gap-1.5 text-white/70">
                               <span className="text-white/50">Template:</span>
@@ -240,6 +225,7 @@ export function CandidateCompletedTab() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="More options"
                           className="text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
                           onClick={() => toast.info('More options - coming soon')}
                         >

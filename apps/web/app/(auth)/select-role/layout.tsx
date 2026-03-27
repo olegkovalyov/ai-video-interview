@@ -1,6 +1,7 @@
 import { MinimalHeader } from '@/components/layout/minimal-header';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export default async function SelectRoleLayout({
   
   // Если нет токенов вообще - на логин
   if (!accessToken && !refreshToken) {
-    console.log('[Select Role Layout] No tokens - redirecting to /login');
+    logger.debug('[Select Role Layout] No tokens - redirecting to /login');
     redirect('/login?from=/select-role');
   }
   
@@ -39,7 +40,7 @@ export default async function SelectRoleLayout({
         
         // Проверяем expiration
         if (exp && exp < now) {
-          console.log('[Select Role Layout] Token expired - redirecting to /login');
+          logger.debug('[Select Role Layout] Token expired - redirecting to /login');
           redirect('/login?from=/select-role');
         }
         
@@ -47,16 +48,16 @@ export default async function SelectRoleLayout({
         userEmail = payload.email || payload.preferred_username;
         
         if (!userEmail) {
-          console.warn('[Select Role Layout] ⚠️ No email in token');
+          logger.warn('[Select Role Layout] No email in token');
         }
       }
     } catch (error) {
-      console.error('[Select Role Layout] Token decode error:', error);
+      logger.error('[Select Role Layout] Token decode error:', error);
       redirect('/login?from=/select-role');
     }
   } else {
     // Есть только refresh_token - редирект на login для получения нового access_token
-    console.log('[Select Role Layout] No access_token (only refresh) - redirecting to /login');
+    logger.debug('[Select Role Layout] No access_token (only refresh) - redirecting to /login');
     redirect('/login?from=/select-role');
   }
 

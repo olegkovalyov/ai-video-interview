@@ -1,49 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { listCandidateInvitations, startInvitation, InvitationListItem } from '@/lib/api/invitations';
+import { useCandidateInvitations, useStartInvitation } from '@/lib/query/hooks/use-invitations';
 import { Loader2, RefreshCw, Clock, CheckCircle, AlertCircle, Play } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CandidateDashboardPage() {
   const router = useRouter();
-  const [invitations, setInvitations] = useState<InvitationListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
 
-  const loadInvitations = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await listCandidateInvitations({ limit: 100 });
-      setInvitations(response.items || []);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load invitations';
-      setError(message);
-      console.error('Failed to load invitations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isPending, error, refetch, isFetching } = useCandidateInvitations({ limit: 100 });
+  const startMutation = useStartInvitation();
 
-  useEffect(() => {
-    loadInvitations();
-  }, []);
+  const invitations = data?.items ?? [];
 
   const handleStartInterview = async (id: string) => {
-    try {
-      setStartingId(id);
-      await startInvitation(id);
-      toast.success('Interview started!');
-      router.push(`/interview/${id}`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to start interview';
-      toast.error(message);
-    } finally {
-      setStartingId(null);
-    }
+    setStartingId(id);
+    startMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success('Interview started!');
+        router.push(`/interview/${id}`);
+      },
+      onError: (err) => {
+        const message = err instanceof Error ? err.message : 'Failed to start interview';
+        toast.error(message);
+      },
+      onSettled: () => setStartingId(null),
+    });
   };
 
   // Calculate stats
@@ -91,7 +75,7 @@ export default function CandidateDashboardPage() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -104,7 +88,7 @@ export default function CandidateDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <main className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12">
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">
@@ -115,45 +99,46 @@ export default function CandidateDashboardPage() {
             </p>
           </div>
           <button
-            onClick={loadInvitations}
-            disabled={loading}
+            onClick={() => refetch()}
+            disabled={isFetching}
+            aria-label="Refresh invitations"
             className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-5 h-5 text-white ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 text-white ${isFetching ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" aria-live="polite" aria-busy={isPending}>
           {/* Stats Cards */}
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
             <h3 className="text-white/80 text-sm font-medium mb-2">Pending Interviews</h3>
-            <p className="text-4xl font-bold text-white">{loading ? '-' : pendingCount}</p>
+            <p className="text-4xl font-bold text-white">{isPending ? '-' : pendingCount}</p>
           </div>
-          
+
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
             <h3 className="text-white/80 text-sm font-medium mb-2">In Progress</h3>
-            <p className="text-4xl font-bold text-white">{loading ? '-' : inProgressCount}</p>
+            <p className="text-4xl font-bold text-white">{isPending ? '-' : inProgressCount}</p>
           </div>
-          
+
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
             <h3 className="text-white/80 text-sm font-medium mb-2">Completed</h3>
-            <p className="text-4xl font-bold text-white">{loading ? '-' : completedCount}</p>
+            <p className="text-4xl font-bold text-white">{isPending ? '-' : completedCount}</p>
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20" aria-busy={isPending}>
           <h2 className="text-2xl font-bold text-white mb-4">Your Interviews</h2>
-          
-          {loading ? (
+
+          {isPending ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 text-white animate-spin" />
             </div>
           ) : error ? (
             <div className="text-center py-12">
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <p className="text-white/80 mb-4">{error}</p>
+              <p className="text-white/80 mb-4">{error instanceof Error ? error.message : 'Failed to load invitations'}</p>
               <button
-                onClick={loadInvitations}
+                onClick={() => refetch()}
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
               >
                 Try Again
@@ -166,8 +151,8 @@ export default function CandidateDashboardPage() {
           ) : (
             <div className="space-y-4">
               {invitations.map((invitation) => (
-                <div 
-                  key={invitation.id} 
+                <div
+                  key={invitation.id}
                   className="p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -177,7 +162,7 @@ export default function CandidateDashboardPage() {
                     </div>
                     {getStatusBadge(invitation.status)}
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-white/70 text-sm mb-3">
                     <span>Invited {formatDate(invitation.createdAt)}</span>
                     {invitation.progress && (
@@ -187,7 +172,7 @@ export default function CandidateDashboardPage() {
                       <span>• Expires: {new Date(invitation.expiresAt).toLocaleDateString()}</span>
                     )}
                   </div>
-                  
+
                   {invitation.status === 'pending' && !isExpired(invitation.expiresAt) && (
                     <button
                       onClick={() => handleStartInterview(invitation.id)}
@@ -207,7 +192,7 @@ export default function CandidateDashboardPage() {
                       )}
                     </button>
                   )}
-                  
+
                   {invitation.status === 'in_progress' && (
                     <button
                       onClick={() => router.push(`/interview/${invitation.id}`)}
@@ -217,11 +202,10 @@ export default function CandidateDashboardPage() {
                       Resume Interview
                     </button>
                   )}
-                  
+
                   {invitation.status === 'completed' && (
                     <button
                       onClick={() => {
-                        // TODO: Navigate to results page
                         toast.info('Results page coming soon');
                       }}
                       className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors cursor-pointer"
@@ -229,7 +213,7 @@ export default function CandidateDashboardPage() {
                       View Results
                     </button>
                   )}
-                  
+
                   {invitation.status === 'pending' && isExpired(invitation.expiresAt) && (
                     <span className="text-red-400 text-sm">This invitation has expired</span>
                   )}
@@ -238,7 +222,7 @@ export default function CandidateDashboardPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

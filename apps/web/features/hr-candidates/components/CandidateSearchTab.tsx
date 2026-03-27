@@ -1,38 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, Star, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  searchCandidates, 
+import {
+  searchCandidates,
   getExperienceLevelDisplay,
   type CandidateSearchResult,
   type ExperienceLevel,
-  type ProficiencyLevel 
+  type ProficiencyLevel,
 } from '@/lib/api/candidate-search';
-import { listSkills, type Skill } from '@/lib/api/skills';
+import { useSkills } from '@/lib/query/hooks/use-skills';
 import { toast } from 'sonner';
 import { InviteModal } from './InviteModal';
 
 export function CandidateSearchTab() {
   const [candidates, setCandidates] = useState<CandidateSearchResult[]>([]);
-  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  
+
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
   const limit = 10;
-  
+
   // Filters
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [minProficiency, setMinProficiency] = useState<ProficiencyLevel | ''>('');
   const [minYears, setMinYears] = useState<number | ''>('');
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel | ''>('');
   const [skillSearch, setSkillSearch] = useState('');
+
+  // Skills from React Query
+  const { data: skillsData } = useSkills({ isActive: true, limit: 100 });
+  const availableSkills = skillsData?.data ?? [];
 
   // Filter skills by search
   const filteredSkills = availableSkills.filter(skill =>
@@ -42,18 +45,6 @@ export function CandidateSearchTab() {
   // Invite modal
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateSearchResult | null>(null);
-
-  useEffect(() => {
-    const fetchSkills = async () => {
-      try {
-        const response = await listSkills({ isActive: true, limit: 100 });
-        setAvailableSkills(response.data);
-      } catch (error) {
-        toast.error('Failed to load skills');
-      }
-    };
-    fetchSkills();
-  }, []);
 
   const handleSearch = async (searchPage = 1) => {
     setLoading(true);
@@ -71,7 +62,7 @@ export function CandidateSearchTab() {
       setPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
-      
+
       if (response.data.length === 0 && searchPage === 1) {
         toast.info('No candidates found matching your criteria');
       } else if (searchPage === 1) {
@@ -91,8 +82,8 @@ export function CandidateSearchTab() {
   };
 
   const toggleSkill = (skillId: string) => {
-    setSelectedSkills(prev => 
-      prev.includes(skillId) 
+    setSelectedSkills(prev =>
+      prev.includes(skillId)
         ? prev.filter(id => id !== skillId)
         : [...prev, skillId]
     );
@@ -252,7 +243,7 @@ export function CandidateSearchTab() {
             <div className="grid grid-cols-1 gap-4">
               {candidates.map(candidate => {
                 const expLevel = getExperienceLevelDisplay(candidate.experienceLevel);
-                
+
                 return (
                   <Card key={candidate.userId} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all">
                     <CardContent className="p-6">
@@ -335,7 +326,7 @@ export function CandidateSearchTab() {
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
               </Button>
-              
+
               <div className="flex items-center gap-2">
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                   let pageNum: number;
@@ -348,7 +339,7 @@ export function CandidateSearchTab() {
                   } else {
                     pageNum = page - 2 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
@@ -356,8 +347,8 @@ export function CandidateSearchTab() {
                       disabled={loading}
                       className={`
                         w-10 h-10 rounded-lg font-medium transition-all cursor-pointer
-                        ${page === pageNum 
-                          ? 'bg-yellow-400 text-gray-900' 
+                        ${page === pageNum
+                          ? 'bg-yellow-400 text-gray-900'
                           : 'bg-white/10 text-white hover:bg-white/20'
                         }
                         disabled:opacity-50 disabled:cursor-not-allowed
@@ -368,7 +359,7 @@ export function CandidateSearchTab() {
                   );
                 })}
               </div>
-              
+
               <Button
                 variant="outline"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"

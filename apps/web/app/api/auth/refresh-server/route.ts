@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * BULLETPROOF AUTH - Level 2 Server-Side Refresh
@@ -56,7 +57,7 @@ export async function POST() {
     
     return res;
   } catch (error) {
-    console.error('[Server Refresh] ❌ Error:', error);
+    logger.error('[Server Refresh] Error:', error);
     return NextResponse.json(
       { success: false, error: 'Server error' }, 
       { status: 500 }

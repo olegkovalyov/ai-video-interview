@@ -52,15 +52,25 @@ groups:
           summary: "High Kafka consumer lag"
           description: "Consumer group {{ $labels.consumergroup }} on topic {{ $labels.topic }} has lag > 1000. Current: {{ $value }}"
 
-      # Any messages in DLQ topics
-      - alert: KafkaDLQMessages
-        expr: sum by (topic) (kafka_topic_partition_current_offset{topic=~".*-dlq"}) > 0
+      # New messages arriving in DLQ topics (rate of offset growth)
+      - alert: KafkaDLQNewMessages
+        expr: sum by (topic) (rate(kafka_topic_partition_current_offset{topic=~".*-dlq"}[5m])) > 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Messages in DLQ topic {{ $labels.topic }}"
-          description: "Dead letter queue {{ $labels.topic }} has {{ $value }} messages. Investigate failed event processing."
+          summary: "New messages in DLQ {{ $labels.topic }}"
+          description: "Dead letter queue {{ $labels.topic }} is receiving new failed messages. Rate: {{ $value | humanize }}/s. Investigate failed event processing immediately."
+
+      # DLQ topics have unprocessed messages (consumer lag on DLQ)
+      - alert: KafkaDLQUnprocessed
+        expr: sum by (consumergroup, topic) (kafka_consumergroup_lag{topic=~".*-dlq"}) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unprocessed DLQ messages for {{ $labels.topic }}"
+          description: "Consumer group {{ $labels.consumergroup }} has {{ $value }} unprocessed messages in DLQ {{ $labels.topic }}. These need manual inspection or replay."
 
   - name: analysis-health
     interval: 30s

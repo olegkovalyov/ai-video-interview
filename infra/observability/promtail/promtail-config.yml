@@ -63,7 +63,7 @@ scrape_configs:
       - regex:
           source: filename
           expression: '/apps/(?P<service_name>[^/]+)/logs/'
-      # Парсим весь JSON
+      # Парсим весь JSON — извлекаем все ключевые поля для LogQL фильтрации
       - json:
           expressions:
             timestamp: timestamp
@@ -74,17 +74,25 @@ scrape_configs:
             action: action
             topic: topic
             success: success
+            correlationId: correlationId
+            userId: userId
+            commandName: commandName
+            queryName: queryName
+            eventName: eventName
+            statusCode: statusCode
+            method: method
+            duration: duration
       # Парсим timestamp в ISO 8601 формате
       - timestamp:
           source: timestamp
           format: RFC3339Nano
-      # Добавляем labels для фильтрации
+      # Labels для индексации (низкая кардинальность — только service, level, category)
+      # Остальные поля доступны через | json в LogQL запросах
       - labels:
           service_name:
           service:
           level:
           category:
-      # Весь JSON попадет в Loki (не указываем output - по умолчанию вся строка)
 
   # System logs (optional)
   - job_name: system-logs

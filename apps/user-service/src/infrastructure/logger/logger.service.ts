@@ -4,10 +4,12 @@ import * as path from 'path';
 import DailyRotateFile = require('winston-daily-rotate-file');
 import { prettyConsoleFormat, shouldEnableConsole } from './console.formatter';
 import LokiTransport = require('winston-loki');
+import { correlationStore } from '../http/interceptors/correlation-id.store';
 
 export interface LogContext {
   userId?: string;
   traceId?: string;
+  correlationId?: string;
   sessionId?: string;
   action?: string;
   duration?: number;
@@ -69,15 +71,23 @@ export class LoggerService implements NestLoggerService {
           })
         ] : []),
         // Loki transport - прямая отправка в Loki (РЕАЛЬНОЕ ВРЕМЯ)
-        new LokiTransport({
-          host: 'http://localhost:3100',
-          labels: { service: 'user-service', environment: process.env.NODE_ENV || 'development' },
-          json: true,
-          format: fileFormat,
-          replaceTimestamp: true,
-          level: 'debug', // Отправляем все логи включая debug
-          onConnectionError: (err) => console.error('Loki connection error:', err)
-        }),
+        // Включается только если LOKI_HOST задан в env
+        ...(process.env.LOKI_HOST ? [
+          new LokiTransport({
+            host: process.env.LOKI_HOST,
+            labels: { service: 'user-service', environment: process.env.NODE_ENV || 'development' },
+            json: true,
+            format: fileFormat,
+            replaceTimestamp: true,
+            level: 'debug',
+            onConnectionError: (err: unknown) => {
+              if (!(this as any)._lokiErrorLogged) {
+                console.error('Loki connection error (further errors suppressed):', err instanceof Error ? err.message : err);
+                (this as any)._lokiErrorLogged = true;
+              }
+            }
+          })
+        ] : []),
         // Файл в папке по дате: logs/2025-10-02/user-service.log (fallback)
         new winston.transports.File({
           filename: path.join(logsDir, 'user-service.log'),
@@ -96,53 +106,63 @@ export class LoggerService implements NestLoggerService {
     });
   }
 
+  /**
+   * Enriches log context with correlationId from AsyncLocalStorage.
+   * Automatically attached to every log entry within a request scope.
+   */
+  private enrichWithCorrelationId(context?: LogContext): LogContext | undefined {
+    const store = correlationStore.getStore();
+    if (!store?.correlationId) return context;
+    return { correlationId: store.correlationId, ...context };
+  }
+
   info(message: string, context?: LogContext) {
-    this.logger.info(message, context);
+    this.logger.info(message, this.enrichWithCorrelationId(context));
   }
 
   // Перегруженный error для совместимости с NestJS и нашим кодом
   error(message: any, ...optionalParams: any[]) {
     if (optionalParams.length === 0) {
-      this.logger.error(String(message));
+      this.logger.error(String(message), this.enrichWithCorrelationId());
       return;
     }
-    
+
     const firstParam = optionalParams[0];
     const secondParam = optionalParams.length > 1 ? optionalParams[1] : undefined;
-    
+
     // Проверяем если первый параметр - Error object
     if (firstParam instanceof Error) {
-      this.logger.error(String(message), {
+      this.logger.error(String(message), this.enrichWithCorrelationId({
         ...(typeof secondParam === 'string' ? { context: secondParam } : secondParam),
         error: {
           name: firstParam.name,
           message: firstParam.message,
           stack: firstParam.stack
         }
-      });
+      }));
       return;
     }
-    
+
     // Иначе считаем что это NestJS format (message, stack, context)
     const hasStack = typeof firstParam === 'string' && firstParam.includes('\n');
     const stack = hasStack ? firstParam : undefined;
     const contextIndex = hasStack ? 1 : 0;
     const context = optionalParams.length > contextIndex ? optionalParams[contextIndex] : undefined;
-    
-    this.logger.error(String(message), {
+
+    this.logger.error(String(message), this.enrichWithCorrelationId({
       ...(typeof context === 'string' ? { context } : context),
       stack: stack
-    });
+    }));
   }
 
   warn(message: any, ...optionalParams: any[]) {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
-    this.logger.warn(String(message), typeof context === 'string' ? { context } : context);
+    this.logger.warn(String(message), this.enrichWithCorrelationId(typeof context === 'string' ? { context } : context));
   }
 
   debug(message: any, ...optionalParams: any[]) {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
-    this.logger.debug(String(message), typeof context === 'string' ? { context } : context);
+    this.logger.debug(String(message), this.enrichWithCorrelationId(typeof context === 'string' ? { context } : context));
   }
 
   // Методы для совместимости с NestJS LoggerService interface

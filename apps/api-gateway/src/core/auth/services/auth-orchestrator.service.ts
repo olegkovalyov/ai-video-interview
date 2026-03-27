@@ -10,6 +10,7 @@ import { SessionManager } from './session-manager.service';
 import { AuthEventPublisher } from '../../../kafka/producers';
 import { RedirectUriHelper } from './redirect-uri.helper';
 import { RegistrationSaga } from '../sagas/registration.saga';
+import { maskEmail } from '../../logging/pii-mask.util';
 
 export interface LoginInitiationResult {
   success: boolean;
@@ -225,7 +226,7 @@ export class AuthOrchestrator {
             async (sagaSpan) => {
               sagaSpan.setAttributes({
                 'user.external_auth_id': userInfo.sub,
-                'user.email': userInfo.email,
+                'user.email': maskEmail(userInfo.email),
               });
               
               const result = await this.registrationSaga.ensureUserExists({

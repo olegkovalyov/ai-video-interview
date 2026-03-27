@@ -1,12 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { 
-  KafkaService, 
-  UserCommandFactory, 
+import {
+  KafkaService,
+  UserCommandFactory,
   KAFKA_TOPICS,
   injectTraceContext,
   getTraceInfo,
 } from '@repo/shared';
 import { LoggerService } from '../../core/logging/logger.service';
+import { correlationStore } from '../../core/middleware/correlation-id.store';
 import { trace } from '@opentelemetry/api';
 import { v4 as uuid } from 'uuid';
 
@@ -20,6 +21,18 @@ export class UserCommandPublisher {
     @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
     private readonly loggerService: LoggerService,
   ) {}
+
+  /**
+   * Builds Kafka headers with trace context and correlationId.
+   */
+  private getKafkaHeaders(): Record<string, Buffer> {
+    const headers = injectTraceContext() || {};
+    const store = correlationStore.getStore();
+    if (store?.correlationId) {
+      headers['x-correlation-id'] = Buffer.from(store.correlationId);
+    }
+    return headers;
+  }
 
   /**
    * Publish user.create command
@@ -59,7 +72,7 @@ export class UserCommandPublisher {
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_COMMANDS,
         command,
-        injectTraceContext(), // Inject trace context into Kafka headers
+        this.getKafkaHeaders(), // Inject trace context + correlationId into Kafka headers
       );
 
       this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_COMMANDS, true, {
@@ -113,7 +126,7 @@ export class UserCommandPublisher {
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_COMMANDS,
         command,
-        injectTraceContext(),
+        this.getKafkaHeaders(),
       );
 
       this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_COMMANDS, true, {
@@ -153,7 +166,7 @@ export class UserCommandPublisher {
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_COMMANDS,
         command,
-        injectTraceContext(),
+        this.getKafkaHeaders(),
       );
 
       this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_COMMANDS, true, {
@@ -193,7 +206,7 @@ export class UserCommandPublisher {
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_COMMANDS,
         command,
-        injectTraceContext(),
+        this.getKafkaHeaders(),
       );
 
       this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_COMMANDS, true, {
@@ -229,7 +242,7 @@ export class UserCommandPublisher {
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_COMMANDS,
         command,
-        injectTraceContext(),
+        this.getKafkaHeaders(),
       );
 
       this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_COMMANDS, true, {
@@ -273,7 +286,7 @@ export class UserCommandPublisher {
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_COMMANDS,
         command,
-        injectTraceContext(),
+        this.getKafkaHeaders(),
       );
 
       this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_COMMANDS, true, {
@@ -318,7 +331,7 @@ export class UserCommandPublisher {
       await this.kafkaService.publishEvent(
         KAFKA_TOPICS.USER_COMMANDS,
         command,
-        injectTraceContext(),
+        this.getKafkaHeaders(),
       );
 
       this.loggerService.kafkaLog('publish', KAFKA_TOPICS.USER_COMMANDS, true, {

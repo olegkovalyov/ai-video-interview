@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Save, Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { listSkills, type Skill } from '@/lib/api/skills';
-import { addMyCandidateSkill, type ProficiencyLevel } from '@/lib/api/candidate-skills';
-import { toast } from 'sonner';
+import { useSkills } from '@/lib/query/hooks/use-skills';
+import { useAddCandidateSkill } from '@/lib/query/hooks/use-skills';
+import type { ProficiencyLevel } from '@/lib/api/candidate-skills';
 
 interface AddSkillFormProps {
   onClose: () => void;
@@ -14,10 +14,11 @@ interface AddSkillFormProps {
 }
 
 export function AddSkillForm({ onClose, onSuccess }: AddSkillFormProps) {
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  
+  const { data: skillsData, isPending: loading } = useSkills({ isActive: true, limit: 100 });
+  const addSkillMutation = useAddCandidateSkill();
+
+  const skills = skillsData?.data ?? [];
+
   const [formData, setFormData] = useState({
     skillId: '',
     proficiencyLevel: 'intermediate' as ProficiencyLevel,
@@ -25,43 +26,23 @@ export function AddSkillForm({ onClose, onSuccess }: AddSkillFormProps) {
     description: '',
   });
 
-  useEffect(() => {
-    const fetchSkills = async () => {
-      try {
-        setLoading(true);
-        const response = await listSkills({ isActive: true, limit: 100 });
-        setSkills(response.data);
-        const firstSkill = response.data[0];
-        if (firstSkill) {
-          setFormData(prev => ({ ...prev, skillId: firstSkill.id }));
-        }
-      } catch (error) {
-        toast.error('Failed to load skills');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSkills();
-  }, []);
+  // Auto-select first skill when data loads
+  if (skills.length > 0 && !formData.skillId) {
+    setFormData(prev => ({ ...prev, skillId: skills[0]!.id }));
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.skillId) {
-      toast.error('Please select a skill');
       return;
     }
 
-    setSaving(true);
-    try {
-      await addMyCandidateSkill(formData);
-      toast.success('Skill added successfully');
-      onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to add skill');
-    } finally {
-      setSaving(false);
-    }
+    addSkillMutation.mutate(formData, {
+      onSuccess: () => {
+        onSuccess();
+      },
+    });
   };
 
   const getProficiencyStars = (level: ProficiencyLevel): number => {
@@ -123,18 +104,10 @@ export function AddSkillForm({ onClose, onSuccess }: AddSkillFormProps) {
               className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
               required
             >
-              <option value="beginner" className="bg-gray-800">
-                ⭐ Beginner (1 star)
-              </option>
-              <option value="intermediate" className="bg-gray-800">
-                ⭐⭐ Intermediate (2 stars)
-              </option>
-              <option value="advanced" className="bg-gray-800">
-                ⭐⭐⭐ Advanced (3 stars)
-              </option>
-              <option value="expert" className="bg-gray-800">
-                ⭐⭐⭐⭐ Expert (4 stars)
-              </option>
+              <option value="beginner" className="bg-gray-800">Beginner (1 star)</option>
+              <option value="intermediate" className="bg-gray-800">Intermediate (2 stars)</option>
+              <option value="advanced" className="bg-gray-800">Advanced (3 stars)</option>
+              <option value="expert" className="bg-gray-800">Expert (4 stars)</option>
             </select>
             <div className="mt-2 flex items-center gap-2">
               <div className="flex items-center gap-1">
@@ -197,10 +170,10 @@ export function AddSkillForm({ onClose, onSuccess }: AddSkillFormProps) {
             </Button>
             <Button
               type="submit"
-              disabled={saving}
+              disabled={addSkillMutation.isPending}
               className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold"
             >
-              {saving ? (
+              {addSkillMutation.isPending ? (
                 <>Saving...</>
               ) : (
                 <>

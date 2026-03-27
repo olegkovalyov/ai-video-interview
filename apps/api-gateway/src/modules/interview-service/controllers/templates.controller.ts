@@ -34,6 +34,7 @@ import {
   ReorderQuestionsDto,
   GetQuestionsResponseDto,
 } from '../dto/question.dto';
+import { ListTemplatesQueryDto } from '../dto/list-templates-query.dto';
 
 /**
  * Templates Controller
@@ -114,18 +115,16 @@ export class TemplatesController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async list(
-    @Query('status') status?: 'draft' | 'active' | 'archived',
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query() query: ListTemplatesQueryDto,
     @CurrentUser() user?: CurrentUserData,
   ) {
     const role = extractPrimaryRole(user!);
-    const query: ListTemplatesQuery = {
-      status,
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
+    const listQuery: ListTemplatesQuery = {
+      status: query.status,
+      page: query.page,
+      limit: query.limit,
     };
-    return this.interviewService.listTemplates(user!.userId, role, query);
+    return this.interviewService.listTemplates(user!.userId, role, listQuery);
   }
 
   /**

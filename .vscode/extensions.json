@@ -1,0 +1,43 @@
+{
+  "recommendations": [
+    // ─── Core ─────────────────────────────────
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+
+    // ─── TypeScript / NestJS ──────────────────
+    "ms-vscode.vscode-typescript-next",
+    "ashinzekene.nestjs",
+
+    // ─── Frontend (Next.js / React / Tailwind) ─
+    "bradlc.vscode-tailwindcss",
+    "csstools.postcss",
+
+    // ─── Database & SQL ───────────────────────
+    "cweijan.vscode-postgresql-client2",
+
+    // ─── Docker & Infrastructure ──────────────
+    "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml",
+
+    // ─── Git ──────────────────────────────────
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // ─── Testing ──────────────────────────────
+    "orta.vscode-jest",
+
+    // ─── API / REST ───────────────────────────
+    "humao.rest-client",
+
+    // ─── DX ───────────────────────────────────
+    "streetsidesoftware.code-spell-checker",
+    "streetsidesoftware.code-spell-checker-russian",
+    "christian-kohler.path-intellisense",
+    "mikestead.dotenv",
+    "gruntfuggly.todo-tree",
+
+    // ─── Kafka / Logs ───────────────────────────
+    "jeppeandersen.vscode-kafka"
+  ],
+  "unwantedRecommendations": []
+}

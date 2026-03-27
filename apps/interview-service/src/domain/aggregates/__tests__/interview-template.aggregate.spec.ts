@@ -299,7 +299,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.addQuestion(createValidQuestion('q2', 2));
-      }).toThrow('Template id is archived and cannot be modified');
+      }).toThrow(InvalidTemplateStateException);
     });
 
     it('should throw error when question order already exists', () => {
@@ -415,7 +415,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.removeQuestion('q1');
-      }).toThrow('Template id is archived and cannot be modified');
+      }).toThrow(InvalidTemplateStateException);
     });
 
     it('should throw error when question not found', () => {
@@ -715,7 +715,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateMetadata('New Title');
-      }).toThrow('Template id is archived and cannot be modified');
+      }).toThrow(InvalidTemplateStateException);
     });
 
     it('should throw error for empty title', () => {
@@ -849,7 +849,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.updateSettings(InterviewSettings.default());
-      }).toThrow('Template id is archived and cannot be modified');
+      }).toThrow(InvalidTemplateStateException);
     });
   });
 
@@ -1107,7 +1107,7 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q2', 'q1']);
-      }).toThrow('Template id is archived and cannot be modified');
+      }).toThrow(InvalidTemplateStateException);
     });
 
     it('should throw error if question ID does not exist', () => {
@@ -1122,7 +1122,9 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q1', 'q-invalid']);
-      }).toThrow('Question with id one or more question IDs not found in template');
+      }).toThrow(
+        'Question with id one or more question IDs not found in template',
+      );
     });
 
     it('should throw error if not all question IDs provided', () => {
@@ -1153,7 +1155,9 @@ describe('InterviewTemplate Aggregate', () => {
 
       expect(() => {
         template.reorderQuestionsByIds(['q1', 'q2', 'q3']); // Extra q3
-      }).toThrow('Question with id one or more question IDs not found in template');
+      }).toThrow(
+        'Question with id one or more question IDs not found in template',
+      );
     });
 
     it('should throw error if duplicate IDs provided', () => {
@@ -1234,6 +1238,70 @@ describe('InterviewTemplate Aggregate', () => {
       expect(reorderedQ1).not.toBe(originalQ1);
       expect(reorderedQ1.order).toBe(2);
       expect(originalOrder1).toBe(1); // Original unchanged
+    });
+  });
+
+  describe('ACTIVE template immutability', () => {
+    let activeTemplate: ReturnType<typeof InterviewTemplate.create>;
+
+    beforeEach(() => {
+      activeTemplate = InterviewTemplate.create(
+        'id',
+        'Title',
+        'Desc',
+        'user-1',
+      );
+      activeTemplate.addQuestion(createValidQuestion('q1', 1));
+      activeTemplate.publish();
+    });
+
+    it('should not allow addQuestion on ACTIVE template', () => {
+      expect(() => {
+        activeTemplate.addQuestion(createValidQuestion('q2', 2));
+      }).toThrow(InvalidTemplateStateException);
+    });
+
+    it('should not allow removeQuestion on ACTIVE template', () => {
+      expect(() => {
+        activeTemplate.removeQuestion('q1');
+      }).toThrow(InvalidTemplateStateException);
+    });
+
+    it('should not allow updateMetadata on ACTIVE template', () => {
+      expect(() => {
+        activeTemplate.updateMetadata('New Title');
+      }).toThrow(InvalidTemplateStateException);
+    });
+
+    it('should not allow updateSettings on ACTIVE template', () => {
+      expect(() => {
+        activeTemplate.updateSettings(InterviewSettings.default());
+      }).toThrow(InvalidTemplateStateException);
+    });
+
+    it('should not allow reorderQuestionsByIds on ACTIVE template', () => {
+      expect(() => {
+        activeTemplate.reorderQuestionsByIds(['q1']);
+      }).toThrow(InvalidTemplateStateException);
+    });
+
+    it('should still allow archive on ACTIVE template', () => {
+      activeTemplate.archive();
+      expect(activeTemplate.status.isArchived()).toBe(true);
+    });
+  });
+
+  describe('canBeModified status check', () => {
+    it('should return true for DRAFT', () => {
+      expect(TemplateStatus.draft().canBeModified()).toBe(true);
+    });
+
+    it('should return false for ACTIVE', () => {
+      expect(TemplateStatus.active().canBeModified()).toBe(false);
+    });
+
+    it('should return false for ARCHIVED', () => {
+      expect(TemplateStatus.archived().canBeModified()).toBe(false);
     });
   });
 });

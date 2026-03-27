@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleDestroy } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -9,11 +9,15 @@ import { LoggerModule } from './infrastructure/logger/logger.module';
 import { MessagingModule } from './infrastructure/messaging/messaging.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
 import { MetricsInterceptor } from './infrastructure/metrics/metrics.interceptor';
+import { CorrelationIdInterceptor } from './infrastructure/http/interceptors/correlation-id.interceptor';
 import { ApplicationModule } from './application/application.module';
 import { TemplatesModule } from './infrastructure/http/modules/templates.module';
 import { InvitationsModule } from './infrastructure/http/modules/invitations.module';
 import { EventHandlers } from './application/event-handlers';
 import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exception.filter';
+import { ExpirationSchedulerService } from './infrastructure/scheduling/expiration-scheduler.service';
+import { sdk } from './infrastructure/tracing/tracing';
+import { LoggerService } from './infrastructure/logger/logger.service';
 
 @Module({
   imports: [
@@ -46,10 +50,29 @@ import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exce
   providers: [
     // Event handlers registered here (requires MessagingModule for OutboxService)
     ...EventHandlers,
+    // Scheduled jobs for invitation expiration & timeout
+    ExpirationSchedulerService,
     // Global filters resolved from DI (for LoggerService injection)
     DomainExceptionFilter,
+    // CorrelationId propagation (must be before MetricsInterceptor)
+    { provide: APP_INTERCEPTOR, useClass: CorrelationIdInterceptor },
     // Global HTTP metrics interceptor
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],
 })
-export class AppModule {}
+export class AppModule implements OnModuleDestroy {
+  constructor(private readonly logger: LoggerService) {}
+
+  async onModuleDestroy() {
+    this.logger.info('Shutting down OpenTelemetry SDK', {
+      service: 'interview-service',
+      action: 'shutdown',
+    });
+    await sdk.shutdown().catch((error) => {
+      this.logger.error('Error shutting down OpenTelemetry', {
+        service: 'interview-service',
+        error: error.message,
+      });
+    });
+  }
+}

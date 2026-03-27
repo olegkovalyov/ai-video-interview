@@ -1,7 +1,7 @@
 export default function AdminInterviewsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <main className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
             All Interview Templates
@@ -64,7 +64,7 @@ export default function AdminInterviewsPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

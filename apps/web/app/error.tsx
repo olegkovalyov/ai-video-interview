@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 
 export default function Error({
   error,
@@ -12,7 +13,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // Log to console for debugging
-    console.error('🔴 Application Error:', error);
+    logger.error('Application Error:', error);
   }, [error]);
 
   return (

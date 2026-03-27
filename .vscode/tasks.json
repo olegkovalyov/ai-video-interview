@@ -1,0 +1,116 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev: All Services",
+      "type": "shell",
+      "command": "npm run dev:all",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Backend Only",
+      "type": "shell",
+      "command": "npm run dev:services",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Web Only",
+      "type": "shell",
+      "command": "npm run dev:web",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Infra: Start (PG + Redis + MinIO)",
+      "type": "shell",
+      "command": "npm run infra:up",
+      "problemMatcher": []
+    },
+    {
+      "label": "Infra: Stop",
+      "type": "shell",
+      "command": "npm run infra:down",
+      "problemMatcher": []
+    },
+    {
+      "label": "Kafka: Start",
+      "type": "shell",
+      "command": "npm run kafka:up",
+      "problemMatcher": []
+    },
+    {
+      "label": "Kafka: Stop",
+      "type": "shell",
+      "command": "npm run kafka:down",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: All",
+      "type": "shell",
+      "command": "npm run test",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: Current File",
+      "type": "shell",
+      "command": "npx jest --runInBand ${relativeFile}",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint: All",
+      "type": "shell",
+      "command": "npm run lint",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Format: All",
+      "type": "shell",
+      "command": "npm run format",
+      "problemMatcher": []
+    },
+    {
+      "label": "TypeCheck: All",
+      "type": "shell",
+      "command": "npm run check-types",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Migration: Generate",
+      "type": "shell",
+      "command": "npm run migration:generate -- src/infrastructure/persistence/migrations/${input:migrationName}",
+      "options": {
+        "cwd": "${fileDirname}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Migration: Run",
+      "type": "shell",
+      "command": "npm run migration:run",
+      "options": {
+        "cwd": "${fileDirname}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Generate: API Types",
+      "type": "shell",
+      "command": "npm run generate:types",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "migrationName",
+      "type": "promptString",
+      "description": "Migration name (PascalCase, e.g. AddUserSkills)"
+    }
+  ]
+}

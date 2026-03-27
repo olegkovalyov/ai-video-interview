@@ -4,6 +4,7 @@ import { QuestionType, QuestionOption } from '../../types/template.types';
 import { MultipleChoiceOptions } from './MultipleChoiceOptions';
 import { addQuestion, removeQuestion } from '../../services/templates-api';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface Question {
   id: string;
@@ -113,7 +114,7 @@ export function Step2Questions({
 
       onDataChange({ questions: [...data.questions, newQuestion] });
 
-      console.log('✅ Question added (ID:', response.id, ')');
+      logger.debug('Question added', { questionId: response.id });
       toast.success('Question added');
 
       // Reset form
@@ -128,7 +129,7 @@ export function Step2Questions({
       setShowAddForm(false);
 
     } catch (error: any) {
-      console.error('🔴 Error adding question:', error);
+      logger.error('Error adding question', error);
       const errorMessage = error?.message || 'Failed to add question. Please try again.';
       toast.error(errorMessage);
     }
@@ -148,11 +149,11 @@ export function Step2Questions({
       const updated = data.questions.filter((q) => q.id !== id);
       onDataChange({ questions: updated });
 
-      console.log('✅ Question removed (ID:', id, ')');
+      logger.debug('Question removed', { questionId: id });
       toast.success('Question removed');
 
     } catch (error: any) {
-      console.error('🔴 Error removing question:', error);
+      logger.error('Error removing question', error);
       const errorMessage = error?.message || 'Failed to remove question. Please try again.';
       toast.error(errorMessage);
     }

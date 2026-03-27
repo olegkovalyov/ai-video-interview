@@ -4,6 +4,7 @@ import { KeycloakUserService, KeycloakRoleService } from './keycloak';
 import { UserServiceClient } from '../clients/user-service.client';
 import { OrphanedUsersService } from './orphaned-users.service';
 import { LoggerService } from '../../../core/logging/logger.service';
+import { maskEmail } from '../../../core/logging/pii-mask.util';
 
 export interface CreateUserDto {
   email: string;
@@ -51,7 +52,7 @@ export class UserOrchestrationSaga {
 
     this.logger.info('Saga: Starting user creation', {
       operationId,
-      email: dto.email,
+      email: maskEmail(dto.email),
     });
 
     try {
@@ -60,7 +61,7 @@ export class UserOrchestrationSaga {
       // ═══════════════════════════════════════════════════════════
       this.logger.info('Saga Step 1: Creating user in Keycloak', {
         operationId,
-        email: dto.email,
+        email: maskEmail(dto.email),
         firstName: dto.firstName,
         lastName: dto.lastName,
       });
@@ -84,7 +85,7 @@ export class UserOrchestrationSaga {
       } catch (keycloakError) {
         this.logger.error('Saga Step 1: Keycloak call failed', keycloakError, {
           operationId,
-          email: dto.email,
+          email: maskEmail(dto.email),
           errorResponse: keycloakError.response?.data || keycloakError.response || 'No response',
           errorStatus: keycloakError.status || keycloakError.response?.status,
         });
@@ -105,7 +106,7 @@ export class UserOrchestrationSaga {
         operationId,
         userId,
         keycloakId,
-        email: dto.email,
+        email: maskEmail(dto.email),
         firstName: dto.firstName,
         lastName: dto.lastName,
       });
@@ -156,7 +157,7 @@ export class UserOrchestrationSaga {
       this.logger.error('Saga: User creation failed', error, {
         operationId,
         keycloakId,
-        email: dto.email,
+        email: maskEmail(dto.email),
         errorResponse: error.response?.data || error.response || 'No response data',
         errorStatus: error.status || error.response?.status || 'No status',
       });

@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Edit, Calendar, FileText, Settings } from 'lucide-react';
-import { getTemplate } from '@/features/templates/services/templates-api';
+import { useTemplate } from '@/lib/query/hooks/use-templates';
 import { TemplateStatusBadge } from '@/features/templates/components/TemplateStatusBadge';
-import { Template } from '@/features/templates/types/template.types';
 import { formatDate } from '@/features/templates/utils/template-helpers';
 
 interface TemplateDetailPageProps {
@@ -17,33 +16,16 @@ interface TemplateDetailPageProps {
 export default function TemplateDetailPage({ params }: TemplateDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const [template, setTemplate] = useState<Template | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: template, isPending } = useTemplate(id);
 
-  useEffect(() => {
-    const loadTemplate = async () => {
-      try {
-        const data = await getTemplate(id);
-        setTemplate(data);
-      } catch (error) {
-        console.error('Failed to load template:', error);
-        router.push('/hr/interviews');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTemplate();
-  }, [id, router]);
-
-  if (loading) {
+  if (isPending) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-        <main className="container mx-auto px-6 py-12">
+        <div className="container mx-auto px-6 py-12">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8">
             <div className="text-white text-center">Loading template...</div>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -54,12 +36,13 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <main className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/hr/interviews')}
+              aria-label="Back to interviews"
               className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-6 h-6 text-white" />
@@ -74,7 +57,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
               </div>
             </div>
           </div>
-          
+
           <button
             onClick={() => router.push(`/hr/interviews/${id}/edit`)}
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all flex items-center gap-2 shadow-lg cursor-pointer"
@@ -103,7 +86,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
                 <FileText className="w-5 h-5 text-white" />
                 <h2 className="text-xl font-bold text-white">Questions ({template.questions?.length || 0})</h2>
               </div>
-              
+
               {template.questions && template.questions.length > 0 ? (
                 <div className="space-y-3">
                   {template.questions.map((question, index) => (
@@ -195,7 +178,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

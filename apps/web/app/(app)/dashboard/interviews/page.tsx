@@ -7,7 +7,7 @@ import { InterviewsList } from "@/features/interviews";
 export default function InterviewsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <main className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12">
         {/* Page Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -23,7 +23,7 @@ export default function InterviewsPage() {
         </div>
 
         <InterviewsList />
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Clock, Play, MoreVertical, AlertCircle, Loader2, RefreshCw, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { listHRInvitations, type InvitationListItem, type InvitationStatus } from '@/lib/api/invitations';
+import { useHRInvitations } from '@/lib/query/hooks/use-invitations';
+import type { InvitationStatus } from '@/lib/api/invitations';
 
 type FilterStatus = 'all' | 'pending' | 'in_progress';
 
@@ -48,33 +49,13 @@ function formatDate(dateString: string) {
 
 export function CandidateInvitedTab() {
   const [filter, setFilter] = useState<FilterStatus>('all');
-  const [invitations, setInvitations] = useState<InvitationListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadInvitations = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Load pending and in_progress invitations (not completed)
-      const response = await listHRInvitations({ limit: 100 });
-      // Filter out completed - they go to another tab
-      const activeInvitations = (response.items || []).filter(
-        inv => inv.status === 'pending' || inv.status === 'in_progress' || inv.status === 'expired'
-      );
-      setInvitations(activeInvitations);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load invitations';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { data, isPending, error, refetch, isFetching } = useHRInvitations({ limit: 100 });
 
-  useEffect(() => {
-    loadInvitations();
-  }, [loadInvitations]);
+  // Filter out completed — they go to another tab
+  const invitations = (data?.items ?? []).filter(
+    inv => inv.status === 'pending' || inv.status === 'in_progress' || inv.status === 'expired'
+  );
 
   const filteredInvitations = invitations.filter(inv => {
     if (filter === 'all') return true;
@@ -118,20 +99,20 @@ export function CandidateInvitedTab() {
         >
           In Progress ({inProgressCount})
         </button>
-        
+
         {/* Refresh Button */}
         <button
-          onClick={loadInvitations}
-          disabled={isLoading}
+          onClick={() => refetch()}
+          disabled={isFetching}
           className="ml-auto px-3 py-2 rounded-full text-sm font-medium bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
       {/* Loading State */}
-      {isLoading ? (
+      {isPending ? (
         <Card className="bg-white/10 backdrop-blur-md border-white/20">
           <CardContent className="p-12 text-center">
             <Loader2 className="w-12 h-12 text-white/50 mx-auto mb-4 animate-spin" />
@@ -143,8 +124,8 @@ export function CandidateInvitedTab() {
           <CardContent className="p-12 text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">Failed to load</h3>
-            <p className="text-white/70 mb-4">{error}</p>
-            <Button onClick={loadInvitations} className="bg-yellow-400 hover:bg-yellow-500 text-gray-900">
+            <p className="text-white/70 mb-4">{error instanceof Error ? error.message : 'Unknown error'}</p>
+            <Button onClick={() => refetch()} className="bg-yellow-400 hover:bg-yellow-500 text-gray-900">
               Try Again
             </Button>
           </CardContent>
@@ -176,7 +157,7 @@ export function CandidateInvitedTab() {
                         {getStatusBadge(invitation.status)}
                       </div>
                       <p className="text-white/60 text-sm mb-3">{invitation.candidateEmail || invitation.candidateId}</p>
-                      
+
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div className="flex items-center gap-1.5 text-white/70">
                           <span className="text-white/50">Template:</span>
@@ -201,7 +182,7 @@ export function CandidateInvitedTab() {
                             <span>{invitation.progress.answered}/{invitation.progress.total} questions</span>
                           </div>
                           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className="h-full bg-blue-500 rounded-full transition-all"
                               style={{ width: `${invitation.progress.percentage}%` }}
                             />
@@ -224,6 +205,7 @@ export function CandidateInvitedTab() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label="More options"
                       className="text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
                       onClick={() => toast.info('More options - coming soon')}
                     >

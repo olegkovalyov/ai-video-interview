@@ -2,6 +2,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import './core/tracing/tracing'; // Must be first import for OpenTelemetry
+import helmet from 'helmet';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { LoggerService } from './core/logging/logger.service';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -22,18 +23,27 @@ async function bootstrap() {
   };
   app.enableCors(corsOptions);
 
+  // Security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Disabled for Swagger UI compatibility
+    }),
+  );
+
   // Enable graceful shutdown
   app.enableShutdownHooks();
 
   // Swagger Documentation Setup
   const config = new DocumentBuilder()
     .setTitle('AI Video Interview - API Gateway')
-    .setDescription(`API Gateway for AI Video Interview Platform. 
+    .setDescription(
+      `API Gateway for AI Video Interview Platform. 
     
 **Services:**
 - User Service (port 8002) - User management
 - Interview Service (port 8003) - Templates & Invitations
-- AI Analysis Service (port 8005) - Interview analysis`)
+- AI Analysis Service (port 8005) - Interview analysis`,
+    )
     .setVersion('1.0')
     .addBearerAuth({
       type: 'http',
@@ -45,10 +55,16 @@ async function bootstrap() {
     })
     .addTag('Users', 'Current user profile operations')
     .addTag('Admin - Users', 'Admin user management operations')
-    .addTag('Admin - User Actions', 'Admin user action operations (suspend/activate)')
+    .addTag(
+      'Admin - User Actions',
+      'Admin user action operations (suspend/activate)',
+    )
     .addTag('Admin - Roles', 'Admin role management operations')
     .addTag('Templates', 'Interview templates management (HR & Admin)')
-    .addTag('Invitations', 'Interview invitations (HR creates, Candidate completes)')
+    .addTag(
+      'Invitations',
+      'Interview invitations (HR creates, Candidate completes)',
+    )
     .addTag('Analysis', 'AI-powered interview analysis results (HR & Admin)')
     .build();
 
@@ -80,7 +96,7 @@ async function bootstrap() {
     action: 'startup',
     port,
     corsOrigin: process.env.NEXT_PUBLIC_WEB_ORIGIN || 'http://localhost:3000',
-    nodeEnv: process.env.NODE_ENV || 'development'
+    nodeEnv: process.env.NODE_ENV || 'development',
   });
 
   await app.listen(port);
@@ -90,21 +106,30 @@ async function bootstrap() {
     action: 'startup_complete',
     port,
     url: `http://localhost:${port}`,
-    features: ['authentication', 'tracing', 'metrics', 'kafka_events', 'swagger_docs']
+    features: [
+      'authentication',
+      'tracing',
+      'metrics',
+      'kafka_events',
+      'swagger_docs',
+    ],
   });
-
-  console.log(`🚀 API Gateway is running on http://localhost:${port}`);
-  console.log(`📚 Swagger documentation available at http://localhost:${port}/api/docs`);
 
   // Graceful shutdown handlers
   const gracefulShutdown = async (signal: string) => {
-    console.log(`\n⚠️ Received ${signal}, shutting down API Gateway gracefully...`);
+    logger.warn(`Received ${signal}, shutting down API Gateway gracefully...`, {
+      action: 'shutdown',
+    });
     try {
       await app.close();
-      console.log('✅ API Gateway closed successfully');
+      logger.info('API Gateway closed successfully', {
+        action: 'shutdown_complete',
+      });
       process.exit(0);
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      logger.error('Error during shutdown', error, {
+        action: 'shutdown_error',
+      });
       process.exit(1);
     }
   };
@@ -115,6 +140,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  console.error('❌ Failed to start API Gateway:', error);
+  process.stderr.write(`Failed to start API Gateway: ${error}\n`);
   process.exit(1);
 });

@@ -6,19 +6,18 @@ import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { getCompany, updateCompany, getCompanySizeOptions, type Company } from '@/lib/api/companies';
-import { toast } from 'sonner';
+import { getCompanySizeOptions } from '@/lib/api/companies';
+import { useCompany, useUpdateCompany } from '@/lib/query/hooks/use-companies';
 
 export default function EditCompanyPage() {
   const router = useRouter();
   const params = useParams();
   const companyId = params.id as string;
-  
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [company, setCompany] = useState<Company | null>(null);
   const sizeOptions = getCompanySizeOptions();
-  
+
+  const { data: company, isPending } = useCompany(companyId);
+  const updateMutation = useUpdateCompany();
+
   const [formData, setFormData] = useState({
     name: '',
     industry: '',
@@ -28,58 +27,38 @@ export default function EditCompanyPage() {
     location: '',
   });
 
+  // Populate form when company data loads
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const companyData = await getCompany(companyId);
-        
-        setCompany(companyData);
-        setFormData({
-          name: companyData.name,
-          industry: companyData.industry,
-          size: companyData.size,
-          website: companyData.website || '',
-          description: companyData.description || '',
-          location: companyData.location || '',
-        });
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to load company');
-        router.push('/hr/companies');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [companyId, router]);
+    if (company) {
+      setFormData({
+        name: company.name,
+        industry: company.industry,
+        size: company.size,
+        website: company.website || '',
+        description: company.description || '',
+        location: company.location || '',
+      });
+    }
+  }, [company]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      toast.error('Company name is required');
-      return;
-    }
-    
-    if (!formData.industry.trim()) {
-      toast.error('Industry is required');
+
+    if (!formData.name.trim() || !formData.industry.trim()) {
       return;
     }
 
-    setSaving(true);
-    try {
-      await updateCompany(companyId, formData);
-      toast.success('Company updated successfully');
-      router.push('/hr/companies');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update company');
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate(
+      { id: companyId, dto: formData },
+      {
+        onSuccess: () => {
+          router.push('/hr/companies');
+        },
+      },
+    );
   };
 
-  if (loading) {
+  if (isPending) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
         <div className="container mx-auto px-4 py-8">
@@ -100,7 +79,7 @@ export default function EditCompanyPage() {
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Header */}
         <div className="mb-8">
-          <Link 
+          <Link
             href="/hr/companies"
             className="inline-flex items-center text-white/80 hover:text-white mb-4 transition-colors"
           >
@@ -238,10 +217,10 @@ export default function EditCompanyPage() {
                 </Link>
                 <Button
                   type="submit"
-                  disabled={saving}
+                  disabled={updateMutation.isPending}
                   className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold"
                 >
-                  {saving ? (
+                  {updateMutation.isPending ? (
                     <>Saving...</>
                   ) : (
                     <>

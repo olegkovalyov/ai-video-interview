@@ -8,6 +8,7 @@ import { InvitationCompletedEventData } from '../../../application/dto/kafka/inv
 import { AnalysisAlreadyExistsException } from '../../../domain/exceptions/analysis.exceptions';
 import { AnalysisResultEntity } from '../../persistence/entities/analysis-result.entity';
 import { ProcessedEventEntity } from '../../persistence/entities/processed-event.entity';
+import { correlationStore } from '../../http/interceptors/correlation-id.store';
 
 interface InvitationCompletedKafkaEvent {
   eventId: string;
@@ -69,23 +70,34 @@ export class InvitationCompletedConsumer implements OnModuleInit {
       KAFKA_TOPICS.INTERVIEW_EVENTS,
       'ai-analysis-service-invitation-consumer',
       async (message) => {
-        try {
-          if (!message.value) {
-            this.logger.warn('Received message with null value');
-            return;
-          }
+        // Extract correlationId from Kafka headers for log enrichment
+        const correlationId =
+          message.headers?.['x-correlation-id']?.toString() || 'unknown';
 
-          const event: InvitationCompletedKafkaEvent = JSON.parse(message.value.toString());
+        await new Promise<void>((resolve, reject) => {
+          correlationStore.run({ correlationId }, async () => {
+            try {
+              if (!message.value) {
+                this.logger.warn('Received message with null value');
+                resolve();
+                return;
+              }
 
-          if (event.eventType === 'invitation.completed') {
-            await this.handleInvitationCompleted(event);
-          } else {
-            this.logger.debug(`Ignoring event type: ${event.eventType}`);
-          }
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
-          this.logger.error(`Failed to process interview event: ${message}`, error instanceof Error ? error.stack : undefined);
-        }
+              const event: InvitationCompletedKafkaEvent = JSON.parse(message.value.toString());
+
+              if (event.eventType === 'invitation.completed') {
+                await this.handleInvitationCompleted(event);
+              } else {
+                this.logger.debug(`Ignoring event type: ${event.eventType}`);
+              }
+              resolve();
+            } catch (error: unknown) {
+              const msg = error instanceof Error ? error.message : 'Unknown error';
+              this.logger.error(`Failed to process interview event: ${msg}`, error instanceof Error ? error.stack : undefined);
+              reject(error);
+            }
+          });
+        });
       },
       { fromBeginning: true, autoCommit: true },
     );

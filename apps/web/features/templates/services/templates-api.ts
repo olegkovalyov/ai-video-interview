@@ -17,6 +17,7 @@ import {
   TemplateFilters,
 } from '../types/template.types';
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, ApiError } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 /**
  * Get user-friendly error message
@@ -49,14 +50,10 @@ export async function listTemplates(
   
   const url = `/api/templates?${params.toString()}`;
   
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📡 API CALL: GET', url);
-  console.log('╠════════════════════════════════════════════════════════');
-  console.log('║ Request Params:', { page, limit, status: filters?.status || 'all' });
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('API GET', url, { page, limit, status: filters?.status || 'all' });
 
   const result = await apiGet<PaginatedTemplates>(url);
-  
+
   // Apply client-side search filter if needed (API doesn't support search yet)
   let items = result.items;
   if (filters?.search) {
@@ -67,13 +64,8 @@ export async function listTemplates(
         t.description.toLowerCase().includes(query),
     );
   }
-  
-  console.log('✅ Response received:', {
-    total: result.total,
-    itemsCount: items.length,
-    page: result.page,
-    totalPages: result.totalPages,
-  });
+
+  logger.debug('listTemplates response', { total: result.total, itemsCount: items.length, page: result.page, totalPages: result.totalPages });
   
   return { ...result, items };
 }
@@ -84,20 +76,11 @@ export async function listTemplates(
 export async function getTemplate(id: string): Promise<Template> {
   const url = `/api/templates/${id}`;
   
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📡 API CALL: GET', url);
-  console.log('╠════════════════════════════════════════════════════════');
-  console.log('║ Template ID:', id);
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('API GET', url, { templateId: id });
 
   const result = await apiGet<Template>(url);
-  
-  console.log('✅ Response received:', {
-    id: result.id,
-    title: result.title,
-    status: result.status,
-    questionsCount: result.questionsCount,
-  });
+
+  logger.debug('getTemplate response', { id: result.id, title: result.title, status: result.status, questionsCount: result.questionsCount });
   
   return result;
 }
@@ -108,16 +91,11 @@ export async function getTemplate(id: string): Promise<Template> {
 export async function createTemplate(dto: CreateTemplateDto): Promise<{ id: string }> {
   const url = '/api/templates';
   
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📡 API CALL: POST', url);
-  console.log('╠════════════════════════════════════════════════════════');
-  console.log('║ Request Body:');
-  console.log(JSON.stringify(dto, null, 2));
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('API POST', url, dto);
 
   const result = await apiPost<{ id: string }>(url, dto);
-  
-  console.log('✅ Response received:', result);
+
+  logger.debug('createTemplate response', result);
   
   return result;
 }
@@ -128,20 +106,11 @@ export async function createTemplate(dto: CreateTemplateDto): Promise<{ id: stri
 export async function updateTemplate(id: string, dto: UpdateTemplateDto): Promise<Template> {
   const url = `/api/templates/${id}`;
   
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📡 API CALL: PUT', url);
-  console.log('╠════════════════════════════════════════════════════════');
-  console.log('║ Request Body:');
-  console.log(JSON.stringify(dto, null, 2));
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('API PUT', url, dto);
 
   const result = await apiPut<Template>(url, dto);
-  
-  console.log('✅ Response received:', {
-    id: result.id,
-    title: result.title,
-    status: result.status,
-  });
+
+  logger.debug('updateTemplate response', { id: result.id, title: result.title, status: result.status });
   
   return result;
 }
@@ -152,15 +121,11 @@ export async function updateTemplate(id: string, dto: UpdateTemplateDto): Promis
 export async function deleteTemplate(id: string): Promise<void> {
   const url = `/api/templates/${id}`;
   
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📡 API CALL: DELETE', url);
-  console.log('╠════════════════════════════════════════════════════════');
-  console.log('║ Template ID:', id);
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('API DELETE', url, { templateId: id });
 
   await apiDelete<void>(url);
-  
-  console.log('✅ Template deleted (archived)');
+
+  logger.debug('Template deleted (archived)', { templateId: id });
 }
 
 /**
@@ -169,15 +134,11 @@ export async function deleteTemplate(id: string): Promise<void> {
 export async function publishTemplate(id: string): Promise<{ status: string }> {
   const url = `/api/templates/${id}/publish`;
   
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📡 API CALL: PUT', url);
-  console.log('╠════════════════════════════════════════════════════════');
-  console.log('║ Template ID:', id);
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('API PUT', url, { templateId: id });
 
   const result = await apiPut<{ status: string }>(url, {});
-  
-  console.log('✅ Response received:', result);
+
+  logger.debug('publishTemplate response', result);
   
   return result;
 }
@@ -186,9 +147,7 @@ export async function publishTemplate(id: string): Promise<{ status: string }> {
  * Duplicate template
  */
 export async function duplicateTemplate(id: string): Promise<{ id: string }> {
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 🔄 Duplicating template:', id);
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('Duplicating template', { templateId: id });
 
   // Get original template
   const original = await getTemplate(id);
@@ -202,7 +161,7 @@ export async function duplicateTemplate(id: string): Promise<{ id: string }> {
   
   const result = await createTemplate(dto);
   
-  console.log('✅ Template duplicated:', result.id);
+  logger.debug('Template duplicated', { newTemplateId: result.id });
   
   return result;
 }
@@ -217,17 +176,11 @@ export async function duplicateTemplate(id: string): Promise<{ id: string }> {
 export async function getQuestions(templateId: string): Promise<{ questions: Question[] }> {
   const url = `/api/templates/${templateId}/questions`;
   
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📡 API CALL: GET', url);
-  console.log('╠════════════════════════════════════════════════════════');
-  console.log('║ Template ID:', templateId);
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('API GET', url, { templateId });
 
   const result = await apiGet<{ questions: Question[] }>(url);
-  
-  console.log('✅ Response received:', {
-    questionsCount: result.questions.length,
-  });
+
+  logger.debug('getQuestions response', { questionsCount: result.questions.length });
   
   return result;
 }
@@ -271,9 +224,7 @@ export async function reorderQuestions(
  * Note: API doesn't have this endpoint yet, calculating client-side
  */
 export async function getTemplateStats(): Promise<TemplateStats> {
-  console.log('╔════════════════════════════════════════════════════════');
-  console.log('║ 📊 Calculating template stats (client-side)');
-  console.log('╚════════════════════════════════════════════════════════');
+  logger.debug('Calculating template stats (client-side)');
 
   // Get all templates and calculate stats
   const allTemplates = await listTemplates(1, 1000);
@@ -286,7 +237,7 @@ export async function getTemplateStats(): Promise<TemplateStats> {
     archived: templates.filter(t => t.status === 'archived').length,
   };
   
-  console.log('✅ Stats calculated:', result);
+  logger.debug('Stats calculated', result);
   
   return result;
 }

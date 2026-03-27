@@ -17,9 +17,14 @@
   "graphTooltip": 1,
   "id": null,
   "links": [
+    { "title": "Error Explorer", "url": "/d/error-explorer", "type": "link" },
+    { "title": "Request Tracing", "url": "/d/request-tracing", "type": "link" },
+    { "title": "API Gateway Logs", "url": "/d/logs-api-gateway", "type": "link" },
+    { "title": "User Service Logs", "url": "/d/logs-user-service", "type": "link" },
+    { "title": "Interview Service Logs", "url": "/d/logs-interview-service", "type": "link" },
+    { "title": "AI Analysis Logs", "url": "/d/logs-ai-analysis-service", "type": "link" },
     { "title": "Kafka Overview", "url": "/d/kafka-overview", "type": "link" },
-    { "title": "System Overview", "url": "/d/system-overview", "type": "link" },
-    { "title": "AI Analysis", "url": "/d/ai-analysis-overview", "type": "link" }
+    { "title": "System Overview", "url": "/d/system-overview", "type": "link" }
   ],
   "liveNow": false,
   "panels": [

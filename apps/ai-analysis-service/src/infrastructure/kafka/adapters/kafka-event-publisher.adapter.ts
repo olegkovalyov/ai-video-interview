@@ -1,46 +1,45 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
+import { Injectable, Logger } from "@nestjs/common";
 import {
   IEventPublisher,
   AnalysisEvent,
-} from '../../../application/ports/event-publisher.port';
+} from "../../../application/ports/event-publisher.port";
+import { OutboxService } from "../../messaging/outbox/outbox.service";
 
 /**
- * Kafka adapter for IEventPublisher port.
- * Publishes domain events to the `analysis-events` Kafka topic.
+ * Outbox-backed adapter for IEventPublisher port.
+ *
+ * Instead of publishing directly to Kafka, this adapter saves events
+ * to the outbox table via OutboxService. BullMQ workers then pick up
+ * the events and publish them to the `analysis-events` Kafka topic.
+ *
+ * This ensures at-least-once delivery guarantee for all analysis events.
  */
 @Injectable()
 export class KafkaEventPublisher implements IEventPublisher {
   private readonly logger = new Logger(KafkaEventPublisher.name);
 
-  constructor(
-    @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
-  ) {}
+  constructor(private readonly outboxService: OutboxService) {}
 
   async publish(event: AnalysisEvent): Promise<void> {
-    const kafkaEvent = {
-      eventId: event.eventId,
-      eventType: event.eventType,
-      timestamp: event.occurredAt.toISOString(),
-      version: 1,
-      payload: event.payload,
-    };
-
     try {
-      await this.kafkaService.publishEvent(
-        KAFKA_TOPICS.ANALYSIS_EVENTS,
-        kafkaEvent,
-        undefined,
-        { partitionKey: event.aggregateId },
+      const eventId = await this.outboxService.saveEvent(
+        event.eventType,
+        {
+          ...event.payload,
+          eventId: event.eventId,
+          occurredAt: event.occurredAt.toISOString(),
+        },
+        event.aggregateId,
       );
 
       this.logger.debug(
-        `Published ${event.eventType} for aggregate ${event.aggregateId}`,
+        `Saved ${event.eventType} for aggregate ${event.aggregateId} to outbox (eventId: ${eventId})`,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to publish ${event.eventType}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to save ${event.eventType} to outbox: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
+      throw error;
     }
   }
 }

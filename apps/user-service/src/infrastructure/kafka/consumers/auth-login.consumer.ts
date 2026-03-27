@@ -1,6 +1,7 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
 import { LoggerService } from '../../logger/logger.service';
+import { correlationStore } from '../../http/interceptors/correlation-id.store';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../../persistence/entities/user.entity';
@@ -23,26 +24,37 @@ export class AuthLoginConsumer implements OnModuleInit {
       KAFKA_TOPICS.AUTH_EVENTS,
       'user-service-auth-login-consumer',
       async (message) => {
-        try {
-          if (!message.value) {
-            this.logger.warn('Received message with null value', {
-              topic: KAFKA_TOPICS.AUTH_EVENTS,
-            });
-            return;
-          }
+        // Extract correlationId from Kafka headers for log enrichment
+        const correlationId =
+          message.headers?.['x-correlation-id']?.toString() || 'unknown';
 
-          const event = JSON.parse(message.value.toString());
+        await new Promise<void>((resolve, reject) => {
+          correlationStore.run({ correlationId }, async () => {
+            try {
+              if (!message.value) {
+                this.logger.warn('Received message with null value', {
+                  topic: KAFKA_TOPICS.AUTH_EVENTS,
+                });
+                resolve();
+                return;
+              }
 
-          // Only handle user.authenticated events
-          if (event.eventType === 'user.authenticated') {
-            await this.handleUserAuthenticated(event);
-          }
-        } catch (error) {
-          this.logger.error('Failed to process auth event', {
-            error: error.message,
-            topic: KAFKA_TOPICS.AUTH_EVENTS,
+              const event = JSON.parse(message.value.toString());
+
+              // Only handle user.authenticated events
+              if (event.eventType === 'user.authenticated') {
+                await this.handleUserAuthenticated(event);
+              }
+              resolve();
+            } catch (error) {
+              this.logger.error('Failed to process auth event', {
+                error: error.message,
+                topic: KAFKA_TOPICS.AUTH_EVENTS,
+              });
+              resolve();
+            }
           });
-        }
+        });
       },
     );
 

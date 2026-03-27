@@ -27,6 +27,7 @@ export function TemplateFilters({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search templates..."
+          aria-label="Search templates"
           className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
         />
       </div>
@@ -35,6 +36,7 @@ export function TemplateFilters({
       <select
         value={status}
         onChange={(e) => onStatusChange(e.target.value as TemplateStatus | 'all')}
+        aria-label="Filter by status"
         className="px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer"
       >
         <option value="all">All Status</option>

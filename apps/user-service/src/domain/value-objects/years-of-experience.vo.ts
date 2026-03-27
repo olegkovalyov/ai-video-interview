@@ -10,29 +10,23 @@ export class YearsOfExperience extends ValueObject<{ value: number }> {
   private static readonly MAX_YEARS = 50;
 
   private constructor(value: number) {
-    YearsOfExperience.validate(value);
     super({ value });
   }
 
-  private static validate(value: number): void {
+  public static fromNumber(value: number): YearsOfExperience {
     if (!Number.isInteger(value)) {
       throw new DomainException('Years of experience must be an integer');
     }
-
     if (value < YearsOfExperience.MIN_YEARS) {
       throw new DomainException(
-        `Years of experience cannot be negative (got ${value})`
+        `Years of experience cannot be negative (got ${value})`,
       );
     }
-
     if (value > YearsOfExperience.MAX_YEARS) {
       throw new DomainException(
-        `Years of experience cannot exceed ${YearsOfExperience.MAX_YEARS} (got ${value})`
+        `Years of experience cannot exceed ${YearsOfExperience.MAX_YEARS} (got ${value})`,
       );
     }
-  }
-
-  public static fromNumber(value: number): YearsOfExperience {
     return new YearsOfExperience(value);
   }
 
@@ -57,15 +51,8 @@ export class YearsOfExperience extends ValueObject<{ value: number }> {
     return this.value <= other.value;
   }
 
-  public equals(other: YearsOfExperience): boolean {
-    if (!(other instanceof YearsOfExperience)) {
-      return false;
-    }
-    return this.value === other.value;
-  }
-
   public add(years: number): YearsOfExperience {
-    return new YearsOfExperience(this.value + years);
+    return YearsOfExperience.fromNumber(this.value + years);
   }
 
   public get value(): number {

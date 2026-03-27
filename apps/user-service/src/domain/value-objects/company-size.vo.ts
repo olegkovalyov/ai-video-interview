@@ -19,16 +19,7 @@ export class CompanySize extends ValueObject<{ value: string }> {
   public static readonly ENTERPRISE = '200+';
 
   private constructor(value: string) {
-    CompanySize.validate(value);
     super({ value });
-  }
-
-  private static validate(value: string): void {
-    if (!CompanySize.VALID_SIZES.includes(value as any)) {
-      throw new DomainException(
-        `Invalid company size: ${value}. Must be one of: ${CompanySize.VALID_SIZES.join(', ')}`
-      );
-    }
   }
 
   // Factory methods
@@ -49,6 +40,11 @@ export class CompanySize extends ValueObject<{ value: string }> {
   }
 
   public static fromString(value: string): CompanySize {
+    if (!CompanySize.VALID_SIZES.includes(value as any)) {
+      throw new DomainException(
+        `Invalid company size: ${value}. Must be one of: ${CompanySize.VALID_SIZES.join(', ')}`,
+      );
+    }
     return new CompanySize(value);
   }
 
@@ -67,13 +63,6 @@ export class CompanySize extends ValueObject<{ value: string }> {
 
   public isEnterprise(): boolean {
     return this.value === CompanySize.ENTERPRISE;
-  }
-
-  public equals(other: CompanySize): boolean {
-    if (!(other instanceof CompanySize)) {
-      return false;
-    }
-    return this.value === other.value;
   }
 
   public get value(): string {

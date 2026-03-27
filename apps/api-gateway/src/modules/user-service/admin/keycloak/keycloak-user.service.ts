@@ -1,5 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import { KeycloakTokenService } from './keycloak-token.service';
+import { LoggerService } from '../../../../core/logging/logger.service';
+import { maskEmail } from '../../../../core/logging/pii-mask.util';
 
 export interface CreateKeycloakUserDto {
   email: string;
@@ -18,267 +22,218 @@ export interface KeycloakUserResponse {
   enabled: boolean;
 }
 
+const KEYCLOAK_TIMEOUT = 10000; // 10s
+const MAX_RETRIES = 2;
+
 /**
  * Keycloak User Service
- * Handles user CRUD operations in Keycloak
+ * Handles user CRUD operations in Keycloak.
+ * Uses HttpService (axios) with timeout and retry for resilience.
  */
 @Injectable()
 export class KeycloakUserService {
-  private readonly logger = new Logger(KeycloakUserService.name);
   private readonly keycloakUrl: string;
   private readonly realm: string;
 
-  constructor(private readonly tokenService: KeycloakTokenService) {
+  constructor(
+    private readonly tokenService: KeycloakTokenService,
+    private readonly httpService: HttpService,
+    private readonly loggerService: LoggerService,
+  ) {
     const config = this.tokenService.getConfig();
     this.keycloakUrl = config.keycloakUrl;
     this.realm = config.realm;
   }
 
-  /**
-   * Создаёт нового пользователя в Keycloak
-   * Возвращает keycloakId созданного пользователя
-   */
+  /** Create a user in Keycloak. Returns keycloakId from Location header. */
   async createUser(userData: CreateKeycloakUserDto): Promise<KeycloakUserResponse> {
-    this.logger.log('Creating user in Keycloak', {
+    this.loggerService.info('KeycloakUserService: Creating user', {
+      email: maskEmail(userData.email),
+    });
+
+    const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users`;
+    const adminToken = await this.tokenService.getAdminToken();
+
+    const keycloakUser = {
+      username: userData.username || userData.email,
       email: userData.email,
       firstName: userData.firstName,
       lastName: userData.lastName,
+      enabled: userData.enabled ?? true,
+      emailVerified: true,
+      credentials: userData.password
+        ? [{ type: 'password', value: userData.password, temporary: false }]
+        : [],
+    };
+
+    const response = await this.executeWithRetry(() =>
+      firstValueFrom(
+        this.httpService.post(url, keycloakUser, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`,
+          },
+          timeout: KEYCLOAK_TIMEOUT,
+          // Axios does not follow redirects for POST by default, which is what we want
+          maxRedirects: 0,
+          validateStatus: (status) => status >= 200 && status < 400,
+        }),
+      ),
+    );
+
+    const locationHeader = response.headers['location'] as string;
+    if (!locationHeader) {
+      throw new Error('Failed to get user ID from Keycloak response (no Location header)');
+    }
+
+    const keycloakId = locationHeader.split('/').pop();
+    if (!keycloakId) {
+      throw new Error('Failed to extract user ID from Keycloak Location header');
+    }
+
+    this.loggerService.info('KeycloakUserService: User created', {
+      email: maskEmail(userData.email),
+      keycloakId,
     });
 
-    try {
-      // 1. Получаем admin token
-      const adminToken = await this.tokenService.getAdminToken();
-
-      // 2. Создаём пользователя
-      const createUrl = `${this.keycloakUrl}/admin/realms/${this.realm}/users`;
-
-      const keycloakUser = {
-        username: userData.username || userData.email, // username or fallback to email
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        enabled: userData.enabled ?? true,
-        emailVerified: true, // Автоматически верифицируем email при создании админом
-        credentials: userData.password ? [
-          {
-            type: 'password',
-            value: userData.password,
-            temporary: false,
-          },
-        ] : [],
-      };
-
-      this.logger.debug('Sending create user request to Keycloak', {
-        url: createUrl,
-        username: keycloakUser.username,
-      });
-
-      const response = await fetch(createUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify(keycloakUser),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        this.logger.error('Failed to create user in Keycloak', {
-          status: response.status,
-          error,
-          email: userData.email,
-        });
-        throw new Error(`Failed to create user in Keycloak: ${response.status} ${error}`);
-      }
-
-      // 3. Извлекаем keycloakId из Location header
-      const locationHeader = response.headers.get('location');
-      if (!locationHeader) {
-        this.logger.error('Location header not found in response');
-        throw new Error('Failed to get user ID from Keycloak response');
-      }
-
-      // Location: https://keycloak.../admin/realms/realm/users/12345-67890-abcdef
-      const keycloakId = locationHeader.split('/').pop();
-      
-      if (!keycloakId) {
-        this.logger.error('Failed to extract keycloakId from Location header', { locationHeader });
-        throw new Error('Failed to extract user ID from Keycloak response');
-      }
-
-      this.logger.log('User created successfully in Keycloak', {
-        email: userData.email,
-        keycloakId,
-      });
-
-      return {
-        keycloakId,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        enabled: userData.enabled ?? true,
-      };
-    } catch (error) {
-      this.logger.error('Error creating user in Keycloak', {
-        error: error.message,
-        email: userData.email,
-      });
-      throw error;
-    }
+    return {
+      keycloakId,
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      enabled: userData.enabled ?? true,
+    };
   }
 
-  /**
-   * Получает список пользователей из Keycloak
-   */
+  /** List users from Keycloak */
   async listUsers(params?: {
     search?: string;
     max?: number;
     first?: number;
   }): Promise<any[]> {
-    this.logger.log('Listing users from Keycloak', params);
+    const adminToken = await this.tokenService.getAdminToken();
+    const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users`;
 
-    try {
-      const adminToken = await this.tokenService.getAdminToken();
-      
-      const queryParams = new URLSearchParams();
-      if (params?.search) queryParams.append('search', params.search);
-      if (params?.max) queryParams.append('max', params.max.toString());
-      if (params?.first) queryParams.append('first', params.first.toString());
+    const queryParams: Record<string, any> = {};
+    if (params?.search) queryParams.search = params.search;
+    if (params?.max) queryParams.max = params.max;
+    if (params?.first) queryParams.first = params.first;
 
-      const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users?${queryParams.toString()}`;
+    const response = await this.executeWithRetry(() =>
+      firstValueFrom(
+        this.httpService.get(url, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+          params: queryParams,
+          timeout: KEYCLOAK_TIMEOUT,
+        }),
+      ),
+    );
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        this.logger.error('Failed to list users', {
-          status: response.status,
-          error,
-        });
-        throw new Error(`Failed to list users: ${response.status}`);
-      }
-
-      const users = await response.json();
-      this.logger.log(`Retrieved ${users.length} users from Keycloak`);
-      return users;
-    } catch (error) {
-      this.logger.error('Error listing users', { error: error.message });
-      throw error;
-    }
+    return response.data;
   }
 
-  /**
-   * Получает пользователя по ID из Keycloak
-   */
+  /** Get user by ID from Keycloak */
   async getUser(userId: string): Promise<any> {
-    this.logger.log('Getting user from Keycloak', { userId });
+    const adminToken = await this.tokenService.getAdminToken();
+    const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}`;
 
-    try {
-      const adminToken = await this.tokenService.getAdminToken();
-      const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}`;
+    const response = await this.executeWithRetry(() =>
+      firstValueFrom(
+        this.httpService.get(url, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+          timeout: KEYCLOAK_TIMEOUT,
+        }),
+      ),
+    );
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        this.logger.error('Failed to get user', {
-          status: response.status,
-          error,
-          userId,
-        });
-        throw new Error(`Failed to get user: ${response.status}`);
-      }
-
-      const user = await response.json();
-      this.logger.log('User retrieved successfully', { userId });
-      return user;
-    } catch (error) {
-      this.logger.error('Error getting user', { error: error.message, userId });
-      throw error;
-    }
+    return response.data;
   }
 
-  /**
-   * Обновляет пользователя в Keycloak
-   */
-  async updateUser(userId: string, userData: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    enabled?: boolean;
-  }): Promise<void> {
-    this.logger.log('Updating user in Keycloak', { userId, userData });
+  /** Update user in Keycloak */
+  async updateUser(
+    userId: string,
+    userData: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      enabled?: boolean;
+    },
+  ): Promise<void> {
+    const adminToken = await this.tokenService.getAdminToken();
+    const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}`;
 
-    try {
-      const adminToken = await this.tokenService.getAdminToken();
-      const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}`;
+    await this.executeWithRetry(() =>
+      firstValueFrom(
+        this.httpService.put(url, userData, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${adminToken}`,
+          },
+          timeout: KEYCLOAK_TIMEOUT,
+        }),
+      ),
+    );
 
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        this.logger.error('Failed to update user', {
-          status: response.status,
-          error,
-          userId,
-        });
-        throw new Error(`Failed to update user: ${response.status}`);
-      }
-
-      this.logger.log('User updated successfully', { userId });
-    } catch (error) {
-      this.logger.error('Error updating user', { error: error.message, userId });
-      throw error;
-    }
+    this.loggerService.info('KeycloakUserService: User updated', { userId });
   }
 
-  /**
-   * Удаляет пользователя из Keycloak
-   */
+  /** Delete user from Keycloak */
   async deleteUser(userId: string): Promise<void> {
-    this.logger.log('Deleting user from Keycloak', { userId });
+    const adminToken = await this.tokenService.getAdminToken();
+    const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}`;
 
-    try {
-      const adminToken = await this.tokenService.getAdminToken();
-      const url = `${this.keycloakUrl}/admin/realms/${this.realm}/users/${userId}`;
+    await this.executeWithRetry(() =>
+      firstValueFrom(
+        this.httpService.delete(url, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+          timeout: KEYCLOAK_TIMEOUT,
+        }),
+      ),
+    );
 
-      const response = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-      });
+    this.loggerService.info('KeycloakUserService: User deleted', { userId });
+  }
 
-      if (!response.ok) {
-        const error = await response.text();
-        this.logger.error('Failed to delete user', {
-          status: response.status,
-          error,
-          userId,
-        });
-        throw new Error(`Failed to delete user: ${response.status}`);
+  // ==========================================================================
+  // Retry helper
+  // ==========================================================================
+
+  /**
+   * Execute with retry and exponential backoff.
+   * Retries on network errors and 5xx status codes only.
+   */
+  private async executeWithRetry<T>(
+    fn: () => Promise<T>,
+    retries: number = MAX_RETRIES,
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+
+        // Don't retry on 4xx client errors
+        const status = error.response?.status;
+        if (status && status >= 400 && status < 500) {
+          throw error;
+        }
+
+        if (attempt < retries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+          this.loggerService.warn(
+            `KeycloakUserService: Retry ${attempt + 1}/${retries}`,
+            { error: error.message, delay },
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
       }
-
-      this.logger.log('User deleted successfully', { userId });
-    } catch (error) {
-      this.logger.error('Error deleting user', { error: error.message, userId });
-      throw error;
     }
+
+    this.loggerService.error('KeycloakUserService: All retries exhausted', lastError, {
+      retries,
+    });
+    throw lastError;
   }
 }

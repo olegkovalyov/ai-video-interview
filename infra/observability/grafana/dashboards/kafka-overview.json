@@ -17,7 +17,9 @@
   "graphTooltip": 1,
   "id": null,
   "links": [
-    { "title": "Unified Observability", "url": "/d/observability-unified", "type": "link" }
+    { "title": "Platform Overview", "url": "/d/observability-unified", "type": "link" },
+    { "title": "Error Explorer", "url": "/d/error-explorer", "type": "link" },
+    { "title": "Request Tracing", "url": "/d/request-tracing", "type": "link" }
   ],
   "liveNow": false,
   "panels": [

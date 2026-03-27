@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { logger } from '@/lib/logger';
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ export default function AuthCallbackPage() {
               setTimeout(() => router.replace("/dashboard"), 1000);
             }
           } catch (userError) {
-            console.error('Failed to fetch user:', userError);
+            logger.error('Failed to fetch user:', userError);
             // Fallback to dashboard if user fetch fails
             setStatus("Redirecting to dashboard...");
             setTimeout(() => router.replace("/dashboard"), 1000);

@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { KafkaService, AuthEventFactory, KAFKA_TOPICS } from '@repo/shared';
 import { LoggerService } from '../../core/logging/logger.service';
 import { TraceService } from '../../core/tracing/trace.service';
+import { correlationStore } from '../../core/middleware/correlation-id.store';
 import * as crypto from 'crypto';
 
 export type AuthMethod = 'oauth2' | 'jwt_refresh';
@@ -62,9 +63,11 @@ export class AuthEventPublisher {
             'event.type': 'user.authenticated',
           });
 
+          const store = correlationStore.getStore();
           await this.kafkaService.publishEvent(
             KAFKA_TOPICS.AUTH_EVENTS,
-            userAuthEvent
+            userAuthEvent,
+            store?.correlationId ? { 'x-correlation-id': store.correlationId } : undefined,
           );
 
           this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, true, {
@@ -124,9 +127,11 @@ export class AuthEventPublisher {
             'logout.reason': logoutReason,
           });
 
+          const store = correlationStore.getStore();
           await this.kafkaService.publishEvent(
             KAFKA_TOPICS.AUTH_EVENTS,
-            userLogoutEvent
+            userLogoutEvent,
+            store?.correlationId ? { 'x-correlation-id': store.correlationId } : undefined,
           );
 
           this.loggerService.kafkaLog('publish', KAFKA_TOPICS.AUTH_EVENTS, true, {

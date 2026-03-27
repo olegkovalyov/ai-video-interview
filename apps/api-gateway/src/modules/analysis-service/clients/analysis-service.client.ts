@@ -1,8 +1,10 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { BaseServiceProxy, ServiceProxyError } from '../../../proxies/base/base-service-proxy';
 import { LoggerService } from '../../../core/logging/logger.service';
+import { MetricsService } from '../../../core/metrics/metrics.service';
+import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
 
 export interface AnalysisResultDto {
   id: string;
@@ -16,7 +18,7 @@ export interface AnalysisResultDto {
   summary: string | null;
   strengths: string[] | null;
   weaknesses: string[] | null;
-  recommendation: 'strongly_recommend' | 'recommend' | 'consider' | 'not_recommend' | null;
+  recommendation: 'hire' | 'consider' | 'reject' | null;
   language: string;
   modelUsed: string;
   totalTokensUsed: number;
@@ -51,26 +53,51 @@ export interface AnalysisStatusDto {
 
 /**
  * AI Analysis Service Client
- * HTTP client for communication with AI Analysis Service
+ * HTTP client for communication with AI Analysis Service.
+ * Extends BaseServiceProxy for circuit breaker, retry, metrics, and error handling.
+ *
+ * Circuit breaker configured with longer timeout (30s) to accommodate LLM processing.
  */
 @Injectable()
-export class AnalysisServiceClient {
-  private readonly baseUrl: string;
+export class AnalysisServiceClient extends BaseServiceProxy {
+  protected readonly serviceName = 'analysis-service';
+  protected readonly baseUrl: string;
   private readonly internalToken: string;
 
+  protected circuitBreakerOptions = {
+    failureThreshold: 3,
+    successThreshold: 2,
+    timeout: 30000,   // 30s — LLM processing takes time
+    resetTimeout: 120000, // 2 min — give Groq API time to recover
+  };
+
   constructor(
-    private readonly httpService: HttpService,
+    httpService: HttpService,
+    loggerService: LoggerService,
+    metricsService: MetricsService,
+    circuitBreakerRegistry: CircuitBreakerRegistry,
     private readonly configService: ConfigService,
-    private readonly loggerService: LoggerService,
   ) {
+    super(httpService, loggerService, metricsService, circuitBreakerRegistry);
+
     this.baseUrl =
       this.configService.get<string>('AI_ANALYSIS_SERVICE_URL') || 'http://localhost:8005';
     this.internalToken = this.configService.get<string>('INTERNAL_SERVICE_TOKEN') || '';
+
+    this.initCircuitBreaker();
+  }
+
+  protected getDefaultHeaders(): Record<string, string> {
+    return {
+      ...super.getDefaultHeaders(),
+      'x-internal-token': this.internalToken,
+    };
   }
 
   /**
    * GET /api/v1/analysis/:invitationId
-   * Get full analysis result by invitation ID (includes questionAnalyses)
+   * Get full analysis result by invitation ID (includes questionAnalyses).
+   * Returns null if analysis not found (404).
    */
   async getAnalysisByInvitation(
     invitationId: string,
@@ -78,105 +105,34 @@ export class AnalysisServiceClient {
     role: string,
   ): Promise<AnalysisResultDto | null> {
     try {
-      this.loggerService.info('AnalysisServiceClient: Getting analysis by invitation', {
-        invitationId,
-        userId,
-      });
-
-      const url = `${this.baseUrl}/api/v1/analysis/${invitationId}`;
-
-      const response = await firstValueFrom(
-        this.httpService.get<AnalysisResultDto>(url, {
-          headers: {
-            'x-internal-token': this.internalToken,
-            'x-user-id': userId,
-            'x-user-role': role,
-          },
-        }),
+      return await this.get<AnalysisResultDto>(
+        `/api/v1/analysis/${invitationId}`,
+        {
+          headers: { 'x-user-id': userId, 'x-user-role': role },
+        },
       );
-
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error) {
+      if (error instanceof ServiceProxyError && error.statusCode === 404) {
         return null;
       }
-      this.loggerService.error('AnalysisServiceClient: Failed to get analysis', error, {
-        invitationId,
-        userId,
-      });
-      throw this.handleError(error);
+      throw error;
     }
   }
 
   /**
    * GET /api/v1/analysis/status/:invitationId
-   * Get analysis status for an invitation
+   * Get analysis status for an invitation.
    */
   async getAnalysisStatus(
     invitationId: string,
     userId: string,
     role: string,
   ): Promise<AnalysisStatusDto> {
-    try {
-      this.loggerService.info('AnalysisServiceClient: Getting analysis status', {
-        invitationId,
-        userId,
-      });
-
-      const response = await firstValueFrom(
-        this.httpService.get<AnalysisStatusDto>(
-          `${this.baseUrl}/api/v1/analysis/status/${invitationId}`,
-          {
-            headers: {
-              'x-internal-token': this.internalToken,
-              'x-user-id': userId,
-              'x-user-role': role,
-            },
-          },
-        ),
-      );
-
-      return response.data;
-    } catch (error: any) {
-      this.loggerService.error('AnalysisServiceClient: Failed to get analysis status', error, {
-        invitationId,
-        userId,
-      });
-      throw this.handleError(error);
-    }
-  }
-
-  private handleError(error: any): HttpException {
-    if (error.response) {
-      const status = error.response.status || HttpStatus.INTERNAL_SERVER_ERROR;
-      const data = error.response.data;
-
-      let message = 'AI Analysis Service error';
-      if (typeof data === 'string') {
-        message = data;
-      } else if (data?.message) {
-        message = Array.isArray(data.message) ? data.message.join(', ') : String(data.message);
-      } else if (data?.error && typeof data.error === 'string') {
-        message = data.error;
-      }
-
-      return new HttpException(
-        {
-          success: false,
-          error: message,
-          statusCode: status,
-        },
-        status,
-      );
-    }
-
-    return new HttpException(
+    return this.get<AnalysisStatusDto>(
+      `/api/v1/analysis/status/${invitationId}`,
       {
-        success: false,
-        error: 'Failed to communicate with AI Analysis Service',
-        details: error.message,
+        headers: { 'x-user-id': userId, 'x-user-role': role },
       },
-      HttpStatus.SERVICE_UNAVAILABLE,
     );
   }
 }

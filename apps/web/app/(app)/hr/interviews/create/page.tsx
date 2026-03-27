@@ -8,7 +8,7 @@ export const metadata = {
 export default function CreateTemplatePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <main className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Create Interview Template</h1>
@@ -19,7 +19,7 @@ export default function CreateTemplatePage() {
 
         {/* Wizard */}
         <CreateTemplateWizard />
-      </main>
+      </div>
     </div>
   );
 }

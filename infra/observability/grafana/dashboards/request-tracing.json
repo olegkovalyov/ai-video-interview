@@ -1,0 +1,314 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "uid": "request-tracing",
+  "title": "Request Tracing",
+  "description": "Trace requests across services by Correlation ID or User ID",
+  "tags": ["tracing", "debugging"],
+  "links": [
+    { "title": "Error Explorer", "url": "/d/error-explorer", "type": "link" },
+    { "title": "Jaeger", "url": "/d/jaeger", "type": "link" },
+    { "title": "System Overview", "url": "/d/system-overview", "type": "link" },
+    { "title": "Kafka Overview", "url": "/d/kafka-overview", "type": "link" }
+  ],
+  "liveNow": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "", "value": "" },
+        "description": "Enter the Correlation ID from x-correlation-id response header",
+        "hide": 0,
+        "label": "Correlation ID",
+        "name": "correlationId",
+        "options": [],
+        "type": "textbox",
+        "query": ""
+      },
+      {
+        "current": { "selected": false, "text": "", "value": "" },
+        "description": "Enter a User ID to trace user activity",
+        "hide": 0,
+        "label": "User ID",
+        "name": "userId",
+        "options": [],
+        "type": "textbox",
+        "query": ""
+      },
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] },
+        "description": "Filter by service",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Service",
+        "multi": true,
+        "name": "service",
+        "options": [
+          { "selected": false, "text": "api-gateway", "value": "api-gateway" },
+          { "selected": false, "text": "user-service", "value": "user-service" },
+          { "selected": false, "text": "interview-service", "value": "interview-service" },
+          { "selected": false, "text": "ai-analysis-service", "value": "ai-analysis-service" }
+        ],
+        "type": "custom",
+        "query": "api-gateway,user-service,interview-service,ai-analysis-service"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Instructions",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "datasource", "uid": "-- Dashboard --" },
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "code": { "language": "plaintext", "showLineNumbers": false, "showMiniMap": false },
+        "content": "## How to Use\n\nEnter a **Correlation ID** or **User ID** above to trace a request across all services.\n\n- **Correlation IDs** are returned in the `x-correlation-id` response header from the API Gateway.\n- **User IDs** can be found in authentication logs or user management screens.\n- Results are sorted chronologically to show the full request path across microservices.\n- Use the **Service** filter to narrow down results to specific services.",
+        "mode": "markdown"
+      },
+      "title": "Request Tracing Guide",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
+      "id": 101,
+      "title": "Request Timeline (by Correlation ID)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 5 },
+      "id": 2,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Ascending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service=~\"$service\"} | json | correlationId=~\"$correlationId\" | line_format \"{{.timestamp}} [{{.service}}] [{{.category}}] {{.message}} {{if .duration}}({{.duration}}ms){{end}}\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Full Request Path",
+      "description": "All log entries matching the specified Correlation ID, sorted chronologically",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+      "id": 102,
+      "title": "User Activity (by User ID)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 20 },
+      "id": 3,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service=~\"$service\"} | json | userId=~\"$userId\" | line_format \"{{.timestamp}} [{{.service}}] [{{.category}}] {{.message}} {{if .correlationId}}cid={{.correlationId}}{{end}}\"",
+          "refId": "A"
+        }
+      ],
+      "title": "User Activity Trail",
+      "description": "All log entries for the specified User ID across all services",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "id": 103,
+      "title": "Service Breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "service" },
+            "properties": [
+              { "id": "displayName", "value": "Service" },
+              { "id": "custom.width", "value": 200 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [
+              { "id": "displayName", "value": "Request Count" },
+              { "id": "custom.width", "value": 150 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Request Count" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (service) (count_over_time({service=~\"$service\"} | json | correlationId=~\"$correlationId\" [$__range]))",
+          "refId": "A"
+        }
+      ],
+      "title": "Requests per Service",
+      "description": "Number of log entries per service for the given Correlation ID",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 2000 }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "service" },
+            "properties": [
+              { "id": "displayName", "value": "Service" },
+              { "id": "custom.width", "value": 200 },
+              { "id": "unit", "value": "string" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [
+              { "id": "displayName", "value": "Duration (ms)" },
+              { "id": "custom.width", "value": 150 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": true },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Duration (ms)" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "max by (service) (max_over_time({service=~\"$service\"} | json | correlationId=~\"$correlationId\" | unwrap duration [$__range]))",
+          "refId": "A"
+        }
+      ],
+      "title": "Duration per Service",
+      "description": "Maximum recorded duration per service for the given Correlation ID",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 },
+      "id": 104,
+      "title": "Related Errors",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 44 },
+      "id": 6,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Ascending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{level=\"error\", service=~\"$service\"} | json | correlationId=~\"$correlationId\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Errors for this Request",
+      "description": "Error-level logs matching the specified Correlation ID",
+      "type": "logs"
+    }
+  ]
+}

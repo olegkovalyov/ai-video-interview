@@ -1,38 +1,55 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger, Optional } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { MetricsService } from '../../../infrastructure/metrics/metrics.service';
-import { AnalyzeInterviewCommand } from './analyze-interview.command';
-import { ANALYSIS_RESULT_REPOSITORY } from '../../ports';
-import type { IAnalysisResultRepository } from '../../ports';
-import { ANALYSIS_ENGINE } from '../../ports/analysis-engine.port';
-import type { IAnalysisEngine, QuestionAnalysisInput } from '../../ports/analysis-engine.port';
-import { EVENT_PUBLISHER } from '../../ports/event-publisher.port';
-import type { IEventPublisher } from '../../ports/event-publisher.port';
-import { PROMPT_LOADER } from '../../ports/prompt-loader.port';
-import type { IPromptLoader } from '../../ports/prompt-loader.port';
-import { AnalysisResult } from '../../../domain/aggregates/analysis-result.aggregate';
-import { QuestionType } from '../../../domain/value-objects/question-type.vo';
-import { CriterionType } from '../../../domain/value-objects/criteria-score.vo';
-import { AnalysisAlreadyExistsException, InvalidCriterionTypeException } from '../../../domain/exceptions/analysis.exceptions';
-import { AnalysisStartedEvent } from '../../../domain/events/analysis-started.event';
-import { AnalysisCompletedEvent } from '../../../domain/events/analysis-completed.event';
-import { AnalysisFailedEvent } from '../../../domain/events/analysis-failed.event';
-import { AnalysisResultResponse } from '../../dto/responses/analysis-result.response';
-import { AnalysisResultMapper } from '../../mappers/analysis-result.mapper';
+import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
+import { Inject, Logger, Optional } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { MetricsService } from "../../../infrastructure/metrics/metrics.service";
+import { AnalyzeInterviewCommand } from "./analyze-interview.command";
+import { ANALYSIS_RESULT_REPOSITORY } from "../../ports";
+import type { IAnalysisResultRepository } from "../../ports";
+import {
+  ANALYSIS_ENGINE,
+  DEFAULT_GROQ_MODEL,
+} from "../../ports/analysis-engine.port";
+import type {
+  IAnalysisEngine,
+  QuestionAnalysisInput,
+} from "../../ports/analysis-engine.port";
+import { EVENT_PUBLISHER } from "../../ports/event-publisher.port";
+import type { IEventPublisher } from "../../ports/event-publisher.port";
+import { PROMPT_LOADER } from "../../ports/prompt-loader.port";
+import type { IPromptLoader } from "../../ports/prompt-loader.port";
+import { AnalysisResult } from "../../../domain/aggregates/analysis-result.aggregate";
+import { QuestionType } from "../../../domain/value-objects/question-type.vo";
+import { CriterionType } from "../../../domain/value-objects/criteria-score.vo";
+import {
+  AnalysisAlreadyExistsException,
+  InvalidCriterionTypeException,
+} from "../../../domain/exceptions/analysis.exceptions";
+import { AnalysisStartedEvent } from "../../../domain/events/analysis-started.event";
+import { AnalysisCompletedEvent } from "../../../domain/events/analysis-completed.event";
+import { AnalysisFailedEvent } from "../../../domain/events/analysis-failed.event";
+import { AnalysisResultResponse } from "../../dto/responses/analysis-result.response";
+import { AnalysisResultMapper } from "../../mappers/analysis-result.mapper";
 
 /** Maps domain event class → Kafka contract event type (dotted lowercase) */
 const EVENT_TYPE_MAP = new Map<Function, string>([
-  [AnalysisStartedEvent, 'analysis.started'],
-  [AnalysisCompletedEvent, 'analysis.completed'],
-  [AnalysisFailedEvent, 'analysis.failed'],
+  [AnalysisStartedEvent, "analysis.started"],
+  [AnalysisCompletedEvent, "analysis.completed"],
+  [AnalysisFailedEvent, "analysis.failed"],
 ]);
 
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
-const ANALYSIS_TIMEOUT_MS = 600_000; // 10 minutes
+const BASE_TIMEOUT_MS = 120_000; // 2 min base (summary + overhead)
+const PER_QUESTION_TIMEOUT_MS = 8_000; // 8s per question (5s rate limit + API latency)
+const MAX_TIMEOUT_MS = 1_800_000; // 30 min hard cap
+
+function calculateTimeoutMs(questionCount: number): number {
+  const dynamic = BASE_TIMEOUT_MS + questionCount * PER_QUESTION_TIMEOUT_MS;
+  return Math.min(dynamic, MAX_TIMEOUT_MS);
+}
 
 @CommandHandler(AnalyzeInterviewCommand)
-export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterviewCommand> {
+export class AnalyzeInterviewHandler
+  implements ICommandHandler<AnalyzeInterviewCommand>
+{
   private readonly logger = new Logger(AnalyzeInterviewHandler.name);
   private readonly modelName: string;
 
@@ -53,16 +70,25 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
 
     @Optional() private readonly metricsService?: MetricsService,
   ) {
-    this.modelName = configService.get<string>('GROQ_MODEL', DEFAULT_MODEL);
+    this.modelName = configService.get<string>(
+      "GROQ_MODEL",
+      DEFAULT_GROQ_MODEL,
+    );
   }
 
-  async execute(command: AnalyzeInterviewCommand): Promise<AnalysisResultResponse> {
+  async execute(
+    command: AnalyzeInterviewCommand,
+  ): Promise<AnalysisResultResponse> {
     const { eventData } = command;
     const startTime = Date.now();
 
-    this.logger.log(`Starting analysis for invitation: ${eventData.invitationId}`);
+    this.logger.log(
+      `Starting analysis for invitation: ${eventData.invitationId}`,
+    );
 
-    const exists = await this.repository.existsByInvitationId(eventData.invitationId);
+    const exists = await this.repository.existsByInvitationId(
+      eventData.invitationId,
+    );
     if (exists) {
       throw new AnalysisAlreadyExistsException(eventData.invitationId);
     }
@@ -76,33 +102,50 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
     });
 
     analysis.start();
-    await this.repository.save(analysis, eventData as unknown as Record<string, unknown>);
+    await this.repository.save(
+      analysis,
+      eventData as unknown as Record<string, unknown>,
+    );
     await this.publishDomainEvents(analysis);
 
-    const language = eventData.language || 'en';
+    const language = eventData.language || "en";
     const criteria = this.promptLoader.getCriteria();
 
     try {
+      const questionCount = eventData.responses?.length || 0;
+      const timeoutMs = calculateTimeoutMs(questionCount);
+
       const result = await this.withTimeout(
         this.performAnalysis(analysis, eventData, criteria, language),
-        ANALYSIS_TIMEOUT_MS,
-        `Analysis timeout after ${ANALYSIS_TIMEOUT_MS / 1000}s for invitation: ${eventData.invitationId}`,
+        timeoutMs,
+        `Analysis timeout after ${timeoutMs / 1000}s for invitation: ${eventData.invitationId} (${questionCount} questions)`,
       );
 
       const { totalTokensUsed, summaryResult } = result;
       const processingTimeMs = Date.now() - startTime;
 
       // Validate LLM recommendation against calculated score
-      const currentScore = analysis.questionAnalyses.length > 0
-        ? Math.round(analysis.questionAnalyses.reduce((sum, qa) => sum + qa.score.value, 0) / analysis.questionAnalyses.length)
-        : 0;
+      const currentScore =
+        analysis.questionAnalyses.length > 0
+          ? Math.round(
+              analysis.questionAnalyses.reduce(
+                (sum, qa) => sum + qa.score.value,
+                0,
+              ) / analysis.questionAnalyses.length,
+            )
+          : 0;
       const llmRecommendation = summaryResult.recommendation;
-      const scoreBasedRecommendation = currentScore >= 75 ? 'hire' : currentScore >= 50 ? 'consider' : 'reject';
+      const scoreBasedRecommendation =
+        currentScore >= 75
+          ? "hire"
+          : currentScore >= 50
+            ? "consider"
+            : "reject";
 
       if (llmRecommendation !== scoreBasedRecommendation) {
         this.logger.warn(
           `LLM recommendation '${llmRecommendation}' conflicts with score-based '${scoreBasedRecommendation}' ` +
-          `(score: ${currentScore}) for invitation: ${eventData.invitationId}. Using LLM recommendation.`
+            `(score: ${currentScore}) for invitation: ${eventData.invitationId}. Using LLM recommendation.`,
         );
       }
 
@@ -120,23 +163,34 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
       await this.repository.save(analysis);
       await this.publishDomainEvents(analysis);
 
-      this.metricsService?.recordAnalysis('completed', this.modelName, processingTimeMs);
+      this.metricsService?.recordAnalysis(
+        "completed",
+        this.modelName,
+        processingTimeMs,
+      );
 
       this.logger.log(
         `Analysis completed for invitation: ${eventData.invitationId}, ` +
-        `score: ${analysis.overallScore?.value}, ` +
-        `tokens: ${totalTokensUsed}, ` +
-        `time: ${processingTimeMs}ms`
+          `score: ${analysis.overallScore?.value}, ` +
+          `tokens: ${totalTokensUsed}, ` +
+          `time: ${processingTimeMs}ms`,
       );
 
       return AnalysisResultMapper.toResponse(analysis);
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Analysis failed for invitation: ${eventData.invitationId}`, error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      this.logger.error(
+        `Analysis failed for invitation: ${eventData.invitationId}`,
+        error,
+      );
 
       const failedProcessingTimeMs = Date.now() - startTime;
-      this.metricsService?.recordAnalysis('failed', this.modelName, failedProcessingTimeMs);
+      this.metricsService?.recordAnalysis(
+        "failed",
+        this.modelName,
+        failedProcessingTimeMs,
+      );
 
       analysis.fail(errorMessage);
       await this.repository.save(analysis);
@@ -148,16 +202,23 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
 
   private async performAnalysis(
     analysis: AnalysisResult,
-    eventData: AnalyzeInterviewCommand['eventData'],
-    criteria: ReturnType<IPromptLoader['getCriteria']>,
+    eventData: AnalyzeInterviewCommand["eventData"],
+    criteria: ReturnType<IPromptLoader["getCriteria"]>,
     language: string,
-  ): Promise<{ totalTokensUsed: number; summaryResult: Awaited<ReturnType<IAnalysisEngine['generateSummary']>> }> {
+  ): Promise<{
+    totalTokensUsed: number;
+    summaryResult: Awaited<ReturnType<IAnalysisEngine["generateSummary"]>>;
+  }> {
     let totalTokensUsed = 0;
 
     for (const response of eventData.responses) {
-      const question = eventData.questions.find(q => q.id === response.questionId);
+      const question = eventData.questions.find(
+        (q) => q.id === response.questionId,
+      );
       if (!question) {
-        this.logger.warn(`Question not found for response: ${response.questionId}`);
+        this.logger.warn(
+          `Question not found for response: ${response.questionId}`,
+        );
         continue;
       }
 
@@ -183,14 +244,14 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
 
       const questionType = QuestionType.fromString(question.type);
       const validCriteria = Object.values(CriterionType) as string[];
-      const criteriaScores = result.criteriaScores.map(cs => {
+      const criteriaScores = result.criteriaScores.map((cs) => {
         if (!validCriteria.includes(cs.criterion)) {
           throw new InvalidCriterionTypeException(cs.criterion);
         }
         return {
           criterion: cs.criterion as CriterionType,
           score: cs.score,
-          weight: criteria.find(c => c.name === cs.criterion)?.weight || 0.25,
+          weight: criteria.find((c) => c.name === cs.criterion)?.weight || 0.25,
         };
       });
 
@@ -202,14 +263,16 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
         score: result.score,
         feedback: result.feedback,
         criteriaScores,
-        isCorrect: questionType.isMultipleChoice ? this.checkMultipleChoiceAnswer(response, question) : undefined,
+        isCorrect: questionType.isMultipleChoice
+          ? this.checkMultipleChoiceAnswer(response, question)
+          : undefined,
         tokensUsed: result.tokensUsed,
       });
     }
 
-    this.logger.debug('Generating summary...');
+    this.logger.debug("Generating summary...");
     const summaryInput = {
-      questionAnalyses: analysis.questionAnalyses.map(qa => ({
+      questionAnalyses: analysis.questionAnalyses.map((qa) => ({
         questionText: qa.questionText,
         responseText: qa.responseText,
         score: qa.score.value,
@@ -219,13 +282,18 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
       companyName: eventData.companyName,
     };
 
-    const summaryResult = await this.analysisEngine.generateSummary(summaryInput);
+    const summaryResult =
+      await this.analysisEngine.generateSummary(summaryInput);
     totalTokensUsed += summaryResult.tokensUsed;
 
     return { totalTokensUsed, summaryResult };
   }
 
-  private withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  private withTimeout<T>(
+    promise: Promise<T>,
+    ms: number,
+    message: string,
+  ): Promise<T> {
     let timer: ReturnType<typeof setTimeout>;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error(message)), ms);
@@ -242,18 +310,21 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
     }
 
     if (response.selectedOptionId && question.options) {
-      const selectedOption = question.options.find(o => o.id === response.selectedOptionId);
-      return selectedOption?.text || '';
+      const selectedOption = question.options.find(
+        (o) => o.id === response.selectedOptionId,
+      );
+      return selectedOption?.text || "";
     }
 
-    return '';
+    return "";
   }
 
-  private getCorrectAnswer(
-    question: { type: string; options?: Array<{ text: string; isCorrect: boolean }> },
-  ): string | undefined {
-    if (question.type === 'multiple_choice' && question.options) {
-      const correctOption = question.options.find(o => o.isCorrect);
+  private getCorrectAnswer(question: {
+    type: string;
+    options?: Array<{ text: string; isCorrect: boolean }>;
+  }): string | undefined {
+    if (question.type === "multiple_choice" && question.options) {
+      const correctOption = question.options.find((o) => o.isCorrect);
       return correctOption?.text;
     }
     return undefined;
@@ -266,7 +337,9 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
     if (!response.selectedOptionId || !question.options) {
       return false;
     }
-    const selectedOption = question.options.find(o => o.id === response.selectedOptionId);
+    const selectedOption = question.options.find(
+      (o) => o.id === response.selectedOptionId,
+    );
     return selectedOption?.isCorrect || false;
   }
 
@@ -274,7 +347,9 @@ export class AnalyzeInterviewHandler implements ICommandHandler<AnalyzeInterview
     for (const event of analysis.domainEvents) {
       const eventType = EVENT_TYPE_MAP.get(event.constructor);
       if (!eventType) {
-        this.logger.warn(`Unknown event type: ${event.constructor.name}, skipping publish`);
+        this.logger.warn(
+          `Unknown event type: ${event.constructor.name}, skipping publish`,
+        );
         continue;
       }
       await this.eventPublisher.publish({

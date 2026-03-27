@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { KafkaService, KAFKA_TOPICS, AnalysisCompletedEvent } from '@repo/shared';
 import { InvitationEntity } from '../../persistence/entities/invitation.entity';
 import { LoggerService } from '../../logger/logger.service';
+import { correlationStore } from '../../http/interceptors/correlation-id.store';
 
 /**
  * Analysis Completed Consumer
@@ -40,17 +41,27 @@ export class AnalysisCompletedConsumer implements OnModuleInit {
           KAFKA_TOPICS.ANALYSIS_EVENTS,
           'interview-service-analysis',
           async (message) => {
-            try {
-              const event = JSON.parse(message.value?.toString() || '{}');
+            // Extract correlationId from Kafka headers for log enrichment
+            const correlationId =
+              message.headers?.['x-correlation-id']?.toString() || 'unknown';
 
-              if (event.eventType === 'analysis.completed') {
-                await this.handleAnalysisCompleted(event as AnalysisCompletedEvent);
-              } else if (event.eventType === 'analysis.failed') {
-                await this.handleAnalysisFailed(event);
-              }
-            } catch (error) {
-              this.logger.error('Failed to process analysis event:', error);
-            }
+            await new Promise<void>((resolve, reject) => {
+              correlationStore.run({ correlationId }, async () => {
+                try {
+                  const event = JSON.parse(message.value?.toString() || '{}');
+
+                  if (event.eventType === 'analysis.completed') {
+                    await this.handleAnalysisCompleted(event as AnalysisCompletedEvent);
+                  } else if (event.eventType === 'analysis.failed') {
+                    await this.handleAnalysisFailed(event);
+                  }
+                  resolve();
+                } catch (error) {
+                  this.logger.error('Failed to process analysis event:', error);
+                  resolve();
+                }
+              });
+            });
           },
           { fromBeginning: false, autoCommit: true },
         );

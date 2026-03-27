@@ -12,62 +12,41 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Client-side защита роутов
- * Дополнительная проверка авторизации на клиенте
+ * Client-side route protection (defense-in-depth).
+ * Primary enforcement is in middleware.ts (server-side).
+ * This component validates auth + roles via API call.
  */
-export function ProtectedRoute({ 
-  children, 
+export function ProtectedRoute({
+  children,
   requireAdmin = false,
-  requireHR = false 
+  requireHR = false,
 }: ProtectedRouteProps) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, roles, loading } = useAuth();
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
-      // Если не авторизован - редирект на login
-      if (!isAuthenticated) {
-        router.push('/login');
-        return;
-      }
+    if (loading) return;
 
-      // Проверка ролей из JWT токена
-      try {
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('access_token='))
-          ?.split('=')[1];
-
-        if (token && typeof token === 'string') {
-          const parts = token.split('.');
-          if (parts.length === 3 && parts[1]) {
-            const payload = JSON.parse(atob(parts[1]));
-            const roles: string[] = payload.realm_access?.roles || [];
-
-          // Проверка admin роли
-          if (requireAdmin && !roles.includes('admin')) {
-            router.push('/dashboard');
-            return;
-          }
-
-          // Проверка HR роли (admin тоже может)
-          if (requireHR && !roles.includes('hr') && !roles.includes('admin')) {
-            router.push('/dashboard');
-            return;
-          }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to parse JWT token:', error);
-      }
-
-      setIsChecking(false);
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
     }
-  }, [isAuthenticated, loading, router, requireAdmin, requireHR]);
 
-  // Показываем loader пока проверяем
-  if (loading || isChecking) {
+    if (requireAdmin && !roles.includes('admin')) {
+      router.push('/dashboard');
+      return;
+    }
+
+    if (requireHR && !roles.includes('hr') && !roles.includes('admin')) {
+      router.push('/dashboard');
+      return;
+    }
+
+    setAuthorized(true);
+  }, [isAuthenticated, roles, loading, router, requireAdmin, requireHR]);
+
+  if (loading || !authorized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center">
         <div className="text-center">
@@ -78,6 +57,5 @@ export function ProtectedRoute({
     );
   }
 
-  // Если проверка прошла - показываем контент
   return <>{children}</>;
 }

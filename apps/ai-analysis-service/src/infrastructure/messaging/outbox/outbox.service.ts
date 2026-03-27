@@ -1,0 +1,152 @@
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { InjectQueue } from "@nestjs/bull";
+import type { Queue } from "bull";
+import { v4 as uuid } from "uuid";
+import { OutboxEntity } from "../../persistence/entities/outbox.entity";
+import {
+  OUTBOX_STATUS,
+  BULL_QUEUE,
+  BULL_JOB,
+  OUTBOX_CONFIG,
+  SERVICE_NAME,
+  SERVICE_VERSION,
+} from "../../constants";
+
+/**
+ * OUTBOX Service for AI Analysis Service
+ *
+ * Saves domain events to outbox table and schedules publishing via BullMQ.
+ * This ensures at-least-once delivery guarantee for analysis events.
+ */
+@Injectable()
+export class OutboxService {
+  private readonly logger = new Logger(OutboxService.name);
+
+  constructor(
+    @InjectRepository(OutboxEntity)
+    private readonly outboxRepository: Repository<OutboxEntity>,
+    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER)
+    private readonly outboxQueue: Queue,
+  ) {}
+
+  /**
+   * Save event to OUTBOX table and schedule BullMQ job for publishing.
+   */
+  async saveEvent(
+    eventType: string,
+    payload: Record<string, unknown>,
+    aggregateId: string,
+  ): Promise<string> {
+    const eventId = this.generateEventId();
+    const outbox = this.buildOutboxEntity(
+      eventId,
+      eventType,
+      payload,
+      aggregateId,
+    );
+
+    await this.outboxRepository.save(outbox);
+    await this.addPublishJob(eventId);
+
+    this.logger.log(`Outbox event saved: ${eventId} (${eventType})`);
+
+    return eventId;
+  }
+
+  /**
+   * Save multiple events in batch.
+   */
+  async saveEvents(
+    events: Array<{
+      eventType: string;
+      payload: Record<string, unknown>;
+      aggregateId: string;
+    }>,
+  ): Promise<string[]> {
+    if (events.length === 0) return [];
+
+    const outboxEntries = events.map((event) => {
+      const eventId = this.generateEventId();
+      return this.buildOutboxEntity(
+        eventId,
+        event.eventType,
+        event.payload,
+        event.aggregateId,
+      );
+    });
+
+    await this.outboxRepository.save(outboxEntries);
+    await this.addPublishJobs(outboxEntries.map((e) => e.eventId));
+
+    this.logger.log(`Outbox batch saved: ${outboxEntries.length} events`);
+
+    return outboxEntries.map((e) => e.eventId);
+  }
+
+  private buildOutboxEntity(
+    eventId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+    aggregateId: string,
+  ): OutboxEntity {
+    const envelope: Record<string, unknown> = {
+      eventId,
+      eventType,
+      timestamp: Date.now(),
+      version: SERVICE_VERSION,
+      source: SERVICE_NAME,
+      payload,
+    };
+
+    return this.outboxRepository.create({
+      eventId,
+      aggregateId,
+      eventType,
+      payload: envelope,
+      status: OUTBOX_STATUS.PENDING,
+      retryCount: 0,
+    });
+  }
+
+  private async addPublishJob(eventId: string): Promise<void> {
+    await this.outboxQueue.add(
+      BULL_JOB.PUBLISH_OUTBOX_EVENT,
+      { eventId },
+      {
+        jobId: eventId,
+        removeOnComplete: true,
+        removeOnFail: false,
+        attempts: OUTBOX_CONFIG.RETRY_ATTEMPTS,
+        backoff: {
+          type: "exponential",
+          delay: OUTBOX_CONFIG.BACKOFF_DELAY_MS,
+        },
+      },
+    );
+  }
+
+  private async addPublishJobs(eventIds: string[]): Promise<void> {
+    const jobs = eventIds.map((eventId) => ({
+      name: BULL_JOB.PUBLISH_OUTBOX_EVENT,
+      data: { eventId },
+      opts: {
+        jobId: eventId,
+        removeOnComplete: true,
+        removeOnFail: false,
+        attempts: OUTBOX_CONFIG.RETRY_ATTEMPTS,
+        backoff: {
+          type: "exponential",
+          delay: OUTBOX_CONFIG.BACKOFF_DELAY_MS,
+        },
+      },
+    }));
+
+    await this.outboxQueue.addBulk(jobs);
+  }
+
+  private generateEventId(): string {
+    return uuid();
+  }
+}

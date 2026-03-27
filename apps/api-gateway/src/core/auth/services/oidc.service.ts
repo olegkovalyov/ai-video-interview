@@ -26,16 +26,38 @@ export class OidcService {
     private readonly logger: LoggerService,
   ) {
     // Keycloak OIDC configuration
-    const keycloakUrl = this.config.get<string>('KEYCLOAK_URL', 'http://localhost:8090');
-    const realm = this.config.get<string>('KEYCLOAK_REALM', 'ai-video-interview');
+    const keycloakUrl = this.config.get<string>(
+      'KEYCLOAK_URL',
+      'http://localhost:8090',
+    );
+    const realm = this.config.get<string>(
+      'KEYCLOAK_REALM',
+      'ai-video-interview',
+    );
     this.issuerUrl = `${keycloakUrl}/realms/${realm}`;
-    this.clientId = this.config.get<string>('KEYCLOAK_CLIENT_ID', 'ai-video-interview-app');
+    this.clientId = this.config.get<string>(
+      'KEYCLOAK_CLIENT_ID',
+      'ai-video-interview-app',
+    );
     this.clientSecret = this.config.get<string>('KEYCLOAK_CLIENT_SECRET', '');
+
+    if (!this.clientId) {
+      const env = this.config.get<string>('NODE_ENV', 'development');
+      if (env === 'production') {
+        throw new Error(
+          'KEYCLOAK_CLIENT_ID is required in production for JWT audience validation',
+        );
+      }
+      this.logger.warn(
+        'KEYCLOAK_CLIENT_ID is not set — JWT audience validation disabled',
+      );
+    }
   }
 
   private get discoveryUrl(): string {
     let base = this.issuerUrl;
-    if (!base) throw new Error('KEYCLOAK_URL and KEYCLOAK_REALM are not configured');
+    if (!base)
+      throw new Error('KEYCLOAK_URL and KEYCLOAK_REALM are not configured');
     if (!base.endsWith('/')) base += '/';
     return base + '.well-known/openid-configuration';
   }
@@ -47,7 +69,7 @@ export class OidcService {
       issuerUrl: this.issuerUrl,
       discoveryUrl: this.discoveryUrl,
       clientId: this.clientId,
-      clientSecretPresent: !!this.clientSecret
+      clientSecretPresent: !!this.clientSecret,
     });
 
     const res = await fetch(this.discoveryUrl);
@@ -57,13 +79,17 @@ export class OidcService {
         url: this.discoveryUrl,
         status: res.status,
         statusText: res.statusText,
-        response: text
+        response: text,
       });
-      throw new Error(`Failed to load OIDC discovery: ${res.status} ${res.statusText} ${text}`);
+      throw new Error(
+        `Failed to load OIDC discovery: ${res.status} ${res.statusText} ${text}`,
+      );
     }
     const doc = (await res.json()) as OIDCDiscoveryDoc;
     if (!doc.jwks_uri || !doc.issuer) {
-      throw new Error('Invalid OIDC discovery document: missing jwks_uri or issuer');
+      throw new Error(
+        'Invalid OIDC discovery document: missing jwks_uri or issuer',
+      );
     }
 
     this.discovery = doc;
@@ -76,23 +102,26 @@ export class OidcService {
     return this.discovery;
   }
 
-  async verifyAccessToken(token: string): Promise<{ payload: JWTPayload }>
-  {
+  async verifyAccessToken(token: string): Promise<{ payload: JWTPayload }> {
     await this.ensureDiscovery();
-    if (!this.discovery || !this.jwks) throw new Error('OIDC discovery not initialized');
+    if (!this.discovery || !this.jwks)
+      throw new Error('OIDC discovery not initialized');
 
     // Проверяем audience - должен быть настроен через mapper в Keycloak
     const { payload } = await jwtVerify(token, this.jwks, {
       issuer: this.discovery.issuer,
       audience: this.clientId || undefined, // Включено после настройки audience mapper
     });
-    
+
     // Token verified successfully with proper audience validation
 
     return { payload };
   }
 
-  async revokeToken(token: string, tokenTypeHint?: 'access_token' | 'refresh_token'): Promise<void> {
+  async revokeToken(
+    token: string,
+    tokenTypeHint?: 'access_token' | 'refresh_token',
+  ): Promise<void> {
     await this.ensureDiscovery();
     if (!this.discovery?.revocation_endpoint) {
       throw new Error('revocation_endpoint not available from discovery');
@@ -112,7 +141,9 @@ export class OidcService {
     // Per RFC 7009, server should respond 200 even if token is invalid/expired.
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new Error(`Token revocation failed: ${res.status} ${res.statusText} ${text}`);
+      throw new Error(
+        `Token revocation failed: ${res.status} ${res.statusText} ${text}`,
+      );
     }
   }
 }

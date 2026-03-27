@@ -1,0 +1,124 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ─── Backend Services (NestJS) ────────────
+    {
+      "name": "Debug: API Gateway",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:debug"],
+      "cwd": "${workspaceFolder}/apps/api-gateway",
+      "console": "integratedTerminal",
+      "restart": true,
+      "sourceMaps": true,
+      "env": { "NODE_ENV": "development" }
+    },
+    {
+      "name": "Debug: User Service",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:debug"],
+      "cwd": "${workspaceFolder}/apps/user-service",
+      "console": "integratedTerminal",
+      "restart": true,
+      "sourceMaps": true,
+      "env": { "NODE_ENV": "development" }
+    },
+    {
+      "name": "Debug: Interview Service",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:debug"],
+      "cwd": "${workspaceFolder}/apps/interview-service",
+      "console": "integratedTerminal",
+      "restart": true,
+      "sourceMaps": true,
+      "env": { "NODE_ENV": "development" }
+    },
+    {
+      "name": "Debug: AI Analysis Service",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:debug"],
+      "cwd": "${workspaceFolder}/apps/ai-analysis-service",
+      "console": "integratedTerminal",
+      "restart": true,
+      "sourceMaps": true,
+      "env": { "NODE_ENV": "development" }
+    },
+
+    // ─── Frontend (Next.js) ───────────────────
+    {
+      "name": "Debug: Web (Next.js)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/apps/web",
+      "console": "integratedTerminal",
+      "env": { "NODE_OPTIONS": "--inspect" }
+    },
+    {
+      "name": "Debug: Web (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/apps/web",
+      "sourceMaps": true
+    },
+
+    // ─── Tests ────────────────────────────────
+    {
+      "name": "Debug: Current Test File",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "jest",
+        "--runInBand",
+        "--no-cache",
+        "${relativeFile}"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${fileDirname}/../..",
+      "sourceMaps": true
+    },
+
+    // ─── Attach ───────────────────────────────
+    {
+      "name": "Attach to NestJS (port 9229)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "sourceMaps": true,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "${workspaceFolder}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug: All Backend Services",
+      "configurations": [
+        "Debug: API Gateway",
+        "Debug: User Service",
+        "Debug: Interview Service",
+        "Debug: AI Analysis Service"
+      ]
+    },
+    {
+      "name": "Debug: Full Stack",
+      "configurations": [
+        "Debug: API Gateway",
+        "Debug: User Service",
+        "Debug: Interview Service",
+        "Debug: AI Analysis Service",
+        "Debug: Web (Next.js)"
+      ]
+    }
+  ]
+}

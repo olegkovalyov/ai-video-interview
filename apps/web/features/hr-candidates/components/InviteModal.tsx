@@ -5,10 +5,9 @@ import { X, Send, FileText, Building2, Calendar, Pause, Timer, Loader2 } from 'l
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { CandidateSearchResult } from '@/lib/api/candidate-search';
-import { listTemplates } from '@/features/templates/services/templates-api';
-import type { Template } from '@/features/templates/types/template.types';
-import { listCompanies, type Company } from '@/lib/api/companies';
-import { createInvitation } from '@/lib/api/invitations';
+import { useActiveTemplates } from '@/lib/query/hooks/use-templates';
+import { useCompanies } from '@/lib/query/hooks/use-companies';
+import { useCreateInvitation } from '@/lib/query/hooks/use-invitations';
 
 interface InviteModalProps {
   open: boolean;
@@ -23,47 +22,32 @@ export function InviteModal({ open, onClose, candidate, onSuccess }: InviteModal
   const [expiresAt, setExpiresAt] = useState('');
   const [allowPause, setAllowPause] = useState(true);
   const [showTimer, setShowTimer] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Data from API
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Load templates and companies when modal opens
+  // Data from React Query
+  const { data: templates = [], isPending: templatesLoading } = useActiveTemplates();
+  const { data: companiesData, isPending: companiesLoading } = useCompanies({ limit: 100 });
+  const createInvitation = useCreateInvitation();
+
+  const companies = companiesData?.data ?? [];
+  const isLoading = templatesLoading || companiesLoading;
+
+  // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      setIsLoading(true);
-      
-      // Set default expiration date (+7 days)
       const defaultExpiry = new Date();
       defaultExpiry.setDate(defaultExpiry.getDate() + 7);
-      setExpiresAt(defaultExpiry.toISOString().slice(0, 16)); // Format for datetime-local
-      
-      // Reset form
+      setExpiresAt(defaultExpiry.toISOString().slice(0, 16));
       setSelectedTemplate('');
       setSelectedCompany('');
       setAllowPause(true);
       setShowTimer(true);
-      
-      // Load data
-      Promise.all([
-        listTemplates(1, 100, { status: 'active' }).catch(() => ({ items: [] })),
-        listCompanies({ limit: 100 }).catch(() => ({ data: [] })),
-      ]).then(([templatesData, companiesData]) => {
-        setTemplates(templatesData?.items || []);
-        const companyList = companiesData?.data || [];
-        setCompanies(companyList);
-        
-        // Auto-select if only one company
-        if (companyList.length === 1 && companyList[0]) {
-          setSelectedCompany(companyList[0].id);
-        }
-      }).finally(() => {
-        setIsLoading(false);
-      });
+
+      // Auto-select if only one company
+      if (companies.length === 1 && companies[0]) {
+        setSelectedCompany(companies[0].id);
+      }
     }
-  }, [open]);
+  }, [open, companies.length]);
 
   if (!open || !candidate) return null;
 
@@ -81,54 +65,49 @@ export function InviteModal({ open, onClose, candidate, onSuccess }: InviteModal
       return;
     }
 
-    setIsSubmitting(true);
-    
-    try {
-      const company = companies.find(c => c.id === selectedCompany);
-      
-      await createInvitation({
+    const company = companies.find(c => c.id === selectedCompany);
+    const template = templates.find(t => t.id === selectedTemplate);
+
+    createInvitation.mutate(
+      {
         templateId: selectedTemplate,
         candidateId: candidate.userId,
         companyName: company?.name || '',
         expiresAt: new Date(expiresAt).toISOString(),
         allowPause,
         showTimer,
-      });
-      
-      const template = templates.find(t => t.id === selectedTemplate);
-      
-      toast.success(`Interview invitation sent to ${candidate.fullName}`, {
-        description: `Template: ${template?.title} • Company: ${company?.name}`,
-      });
-      
-      onSuccess?.();
-      onClose();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create invitation';
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Interview invitation sent to ${candidate.fullName}`, {
+            description: `Template: ${template?.title} • Company: ${company?.name}`,
+          });
+          onSuccess?.();
+          onClose();
+        },
+      },
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl border border-white/20 shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div>
-            <h2 className="text-2xl font-bold text-white">Invite to Interview</h2>
+            <h2 id="invite-modal-title" className="text-2xl font-bold text-white">Invite to Interview</h2>
             <p className="text-white/70 text-sm mt-1">Send interview invitation to {candidate.fullName}</p>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-2 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5 text-white/70" />
@@ -231,7 +210,7 @@ export function InviteModal({ open, onClose, candidate, onSuccess }: InviteModal
                     Allow Pause
                   </span>
                 </label>
-                
+
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -260,10 +239,10 @@ export function InviteModal({ open, onClose, candidate, onSuccess }: InviteModal
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || isLoading || !selectedTemplate || !selectedCompany || !expiresAt}
+            disabled={createInvitation.isPending || isLoading || !selectedTemplate || !selectedCompany || !expiresAt}
             className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold cursor-pointer"
           >
-            {isSubmitting ? (
+            {createInvitation.isPending ? (
               'Sending...'
             ) : (
               <>

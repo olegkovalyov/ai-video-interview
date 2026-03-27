@@ -4,7 +4,8 @@ import { JwtAuthGuard } from '../../../../core/auth/guards/jwt-auth.guard';
 import { KeycloakUserService, KeycloakEmailService } from '../keycloak';
 import { LoggerService } from '../../../../core/logging/logger.service';
 import { UserServiceClient } from '../../clients/user-service.client';
-import { SuspendUserDto, SuccessResponseDto } from '../../dto/admin-user.dto';
+import { SuspendUserDto } from '../../dto/admin-user.dto';
+import { SuccessResponseDto } from '../../../../common/dto/success-response.dto';
 
 /**
  * Admin Actions Controller
