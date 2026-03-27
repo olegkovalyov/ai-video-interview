@@ -1,4 +1,5 @@
 import { ValueObject } from '../base/base.value-object';
+import { InvalidInvitationStateException } from '../exceptions/invitation.exceptions';
 
 export enum InvitationStatusEnum {
   PENDING = 'pending',
@@ -21,9 +22,14 @@ export class InvitationStatus extends ValueObject<InvitationStatusProps> {
   }
 
   static create(value: string): InvitationStatus {
-    if (!Object.values(InvitationStatusEnum).includes(value as InvitationStatusEnum)) {
-      throw new Error(
-        `Invalid invitation status: ${value}. Must be one of: ${Object.values(InvitationStatusEnum).join(', ')}`,
+    if (
+      !Object.values(InvitationStatusEnum).includes(
+        value as InvitationStatusEnum,
+      )
+    ) {
+      throw new InvalidInvitationStateException(
+        'create',
+        `${value} (must be one of: ${Object.values(InvitationStatusEnum).join(', ')})`,
       );
     }
 

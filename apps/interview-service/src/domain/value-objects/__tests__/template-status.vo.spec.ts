@@ -68,9 +68,9 @@ describe('TemplateStatus Value Object', () => {
       expect(status.canBeModified()).toBe(true);
     });
 
-    it('should allow modifications for ACTIVE status', () => {
+    it('should NOT allow modifications for ACTIVE status', () => {
       const status = TemplateStatus.active();
-      expect(status.canBeModified()).toBe(true);
+      expect(status.canBeModified()).toBe(false);
     });
 
     it('should NOT allow modifications for ARCHIVED status', () => {

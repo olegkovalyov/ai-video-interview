@@ -39,14 +39,4 @@ const sdk = new NodeSDK({
 // Инициализация SDK
 sdk.start();
 
-console.log(`🔍 OpenTelemetry initialized for ${serviceName} v${serviceVersion} (${environment})`);
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  sdk.shutdown()
-    .then(() => console.log('🔍 OpenTelemetry terminated'))
-    .catch((error) => console.log('🔍 Error terminating OpenTelemetry', error))
-    .finally(() => process.exit(0));
-});
-
 export { sdk };

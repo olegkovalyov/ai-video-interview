@@ -1,24 +1,32 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { LoggerService } from '../logging/logger.service';
 import { MetricsService } from '../metrics/metrics.service';
-import { CircuitBreaker, CircuitBreakerOptions, CircuitState } from './circuit-breaker';
+import {
+  CircuitBreaker,
+  CircuitBreakerOptions,
+  CircuitState,
+} from './circuit-breaker';
 
 /**
  * Централизованное управление Circuit Breakers
- * 
+ *
  * Создаёт и управляет Circuit Breakers для разных сервисов,
  * собирает метрики, предоставляет health check информацию
  */
 @Injectable()
-export class CircuitBreakerRegistry {
+export class CircuitBreakerRegistry implements OnModuleDestroy {
   private readonly circuits = new Map<string, CircuitBreaker>();
+  private metricsInterval: ReturnType<typeof setInterval>;
 
   constructor(
     private readonly loggerService: LoggerService,
     private readonly metricsService: MetricsService,
   ) {
-    // Запускаем периодический сбор метрик
     this.startMetricsCollection();
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.metricsInterval);
   }
 
   /**
@@ -94,7 +102,7 @@ export class CircuitBreakerRegistry {
    * Периодически собираем метрики для Prometheus
    */
   private startMetricsCollection(): void {
-    setInterval(() => {
+    this.metricsInterval = setInterval(() => {
       for (const [name, circuit] of this.circuits.entries()) {
         const stats = circuit.getStats();
 
@@ -102,7 +110,10 @@ export class CircuitBreakerRegistry {
         this.metricsService.setCircuitBreakerState(name, stats.state);
 
         // Обновляем метрику количества failures
-        this.metricsService.setCircuitBreakerFailures(name, stats.recentFailures);
+        this.metricsService.setCircuitBreakerFailures(
+          name,
+          stats.recentFailures,
+        );
       }
     }, 5000); // Каждые 5 секунд
   }

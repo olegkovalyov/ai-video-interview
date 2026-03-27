@@ -1,4 +1,8 @@
-import { InvitationStatus, InvitationStatusEnum } from '../invitation-status.vo';
+import {
+  InvitationStatus,
+  InvitationStatusEnum,
+} from '../invitation-status.vo';
+import { InvalidInvitationStateException } from '../../exceptions/invitation.exceptions';
 
 describe('InvitationStatus Value Object', () => {
   describe('create', () => {
@@ -7,9 +11,9 @@ describe('InvitationStatus Value Object', () => {
       expect(status.value).toBe(InvitationStatusEnum.PENDING);
     });
 
-    it('should throw error for invalid status', () => {
+    it('should throw domain exception for invalid status', () => {
       expect(() => InvitationStatus.create('invalid')).toThrow(
-        'Invalid invitation status: invalid',
+        InvalidInvitationStateException,
       );
     });
   });

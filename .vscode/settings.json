@@ -1,0 +1,142 @@
+{
+  // ─── Editor ─────────────────────────────────────────────
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "never"
+  },
+  "editor.tabSize": 2,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.stickyScroll.enabled": true,
+  "editor.linkedEditing": true,
+  "editor.inlayHints.enabled": "offUnlessPressed",
+
+  // ─── TypeScript ─────────────────────────────────────────
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.quoteStyle": "single",
+
+  // ─── ESLint ─────────────────────────────────────────────
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [
+    { "directory": "apps/api-gateway", "changeProcessCWD": true },
+    { "directory": "apps/user-service", "changeProcessCWD": true },
+    { "directory": "apps/interview-service", "changeProcessCWD": true },
+    { "directory": "apps/ai-analysis-service", "changeProcessCWD": true },
+    { "directory": "apps/web", "changeProcessCWD": true },
+    { "directory": "packages/shared", "changeProcessCWD": true }
+  ],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+
+  // ─── Prettier ───────────────────────────────────────────
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[dockercompose]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // ─── File Associations ──────────────────────────────────
+  "files.associations": {
+    "*.dto.ts": "typescript",
+    "*.entity.ts": "typescript",
+    "*.aggregate.ts": "typescript",
+    "*.vo.ts": "typescript",
+    ".env*": "dotenv"
+  },
+
+  // ─── Search & Explorer ──────────────────────────────────
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.next": true,
+    "**/.turbo": true,
+    "**/coverage": true,
+    "**/logs": true,
+    "**/.runtime": true
+  },
+  "files.exclude": {
+    "**/.DS_Store": true,
+    "**/.turbo": true,
+    "**/node_modules": false
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.next/**": true,
+    "**/.turbo/**": true,
+    "**/coverage/**": true,
+    "**/logs/**": true
+  },
+
+  // ─── Tailwind CSS ───────────────────────────────────────
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "tailwindCSS.includeLanguages": {
+    "typescriptreact": "html"
+  },
+
+  // ─── Emmet ──────────────────────────────────────────────
+  "emmet.includeLanguages": {
+    "typescriptreact": "html"
+  },
+
+  // ─── Jest ───────────────────────────────────────────────
+  "jest.jestCommandLine": "npx jest",
+  "jest.autoRun": "off",
+  "jest.rootPath": "",
+
+  // ─── Git ────────────────────────────────────────────────
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+  "git.autofetch": true,
+
+  // ─── Terminal ───────────────────────────────────────────
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.env.osx": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+
+  // ─── Docker ─────────────────────────────────────────────
+  "docker.showStartPage": false,
+
+  // ─── Misc ───────────────────────────────────────────────
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true
+}

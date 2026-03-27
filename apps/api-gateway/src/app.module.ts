@@ -1,4 +1,11 @@
-import { Module, NestModule, MiddlewareConsumer, ValidationPipe } from '@nestjs/common';
+import {
+  Module,
+  NestModule,
+  MiddlewareConsumer,
+  ValidationPipe,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { HttpModule } from '@nestjs/axios';
@@ -18,6 +25,7 @@ import { LoggingModule } from './core/logging/logging.module';
 import { TracingModule } from './core/tracing/tracing.module';
 import { CircuitBreakerModule } from './core/circuit-breaker/circuit-breaker.module';
 import { CorrelationIdMiddleware } from './core/middleware/correlation-id.middleware';
+import { sdk } from './core/tracing/tracing';
 import { UserServiceModule } from './modules/user-service/user-service.module';
 import { InterviewServiceModule } from './modules/interview-service/interview-service.module';
 import { AnalysisServiceModule } from './modules/analysis-service/analysis-service.module';
@@ -54,10 +62,7 @@ import { AnalysisServiceModule } from './modules/analysis-service/analysis-servi
     InterviewServiceModule,
     AnalysisServiceModule,
   ],
-  controllers: [
-    AppController,
-    MetricsController,
-  ],
+  controllers: [AppController, MetricsController],
   providers: [
     AppService,
     {
@@ -83,8 +88,17 @@ import { AnalysisServiceModule } from './modules/analysis-service/analysis-servi
     },
   ],
 })
-export class AppModule implements NestModule {
+export class AppModule implements NestModule, OnModuleDestroy {
+  private readonly logger = new Logger(AppModule.name);
+
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+
+  async onModuleDestroy() {
+    this.logger.log('Shutting down OpenTelemetry SDK');
+    await sdk.shutdown().catch((error) => {
+      this.logger.error('Error shutting down OpenTelemetry', error);
+    });
   }
 }

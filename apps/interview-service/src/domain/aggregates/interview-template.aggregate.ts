@@ -92,7 +92,10 @@ export class InterviewTemplate extends AggregateRoot {
     }
 
     if (!description || description.trim().length === 0) {
-      throw new InvalidTemplateMetadataException('description', 'cannot be empty');
+      throw new InvalidTemplateMetadataException(
+        'description',
+        'cannot be empty',
+      );
     }
 
     const template = new InterviewTemplate({
@@ -127,8 +130,11 @@ export class InterviewTemplate extends AggregateRoot {
    * Business Rule: Cannot add questions to archived template
    */
   addQuestion(question: Question): void {
-    if (this.status.isArchived()) {
-      throw new TemplateArchivedException(this.id);
+    if (!this.status.canBeModified()) {
+      throw new InvalidTemplateStateException(
+        'add question',
+        this.status.toString(),
+      );
     }
 
     // Check for duplicate order
@@ -159,8 +165,11 @@ export class InterviewTemplate extends AggregateRoot {
    * Business Rule: Cannot modify archived template
    */
   removeQuestion(questionId: string): void {
-    if (this.status.isArchived()) {
-      throw new TemplateArchivedException(this.id);
+    if (!this.status.canBeModified()) {
+      throw new InvalidTemplateStateException(
+        'remove question',
+        this.status.toString(),
+      );
     }
 
     const questionIndex = this.props.questions.findIndex(
@@ -188,7 +197,10 @@ export class InterviewTemplate extends AggregateRoot {
    */
   publish(): void {
     if (!this.status.canBePublished()) {
-      throw new InvalidTemplateStateException('publish', this.status.toString());
+      throw new InvalidTemplateStateException(
+        'publish',
+        this.status.toString(),
+      );
     }
 
     if (this.props.questions.length === 0) {
@@ -229,8 +241,11 @@ export class InterviewTemplate extends AggregateRoot {
    * Business Rule: Cannot modify archived template
    */
   updateMetadata(title?: string, description?: string): void {
-    if (this.status.isArchived()) {
-      throw new TemplateArchivedException(this.id);
+    if (!this.status.canBeModified()) {
+      throw new InvalidTemplateStateException(
+        'update metadata',
+        this.status.toString(),
+      );
     }
 
     if (title !== undefined) {
@@ -238,17 +253,26 @@ export class InterviewTemplate extends AggregateRoot {
         throw new InvalidTemplateMetadataException('title', 'cannot be empty');
       }
       if (title.length > 200) {
-        throw new InvalidTemplateMetadataException('title', 'cannot exceed 200 characters');
+        throw new InvalidTemplateMetadataException(
+          'title',
+          'cannot exceed 200 characters',
+        );
       }
       this.props.title = title.trim();
     }
 
     if (description !== undefined) {
       if (description.trim().length === 0) {
-        throw new InvalidTemplateMetadataException('description', 'cannot be empty');
+        throw new InvalidTemplateMetadataException(
+          'description',
+          'cannot be empty',
+        );
       }
       if (description.length > 1000) {
-        throw new InvalidTemplateMetadataException('description', 'cannot exceed 1000 characters');
+        throw new InvalidTemplateMetadataException(
+          'description',
+          'cannot exceed 1000 characters',
+        );
       }
       this.props.description = description.trim();
     }
@@ -261,8 +285,11 @@ export class InterviewTemplate extends AggregateRoot {
    * Business Rule: Cannot modify archived template
    */
   updateSettings(settings: InterviewSettings): void {
-    if (this.status.isArchived()) {
-      throw new TemplateArchivedException(this.id);
+    if (!this.status.canBeModified()) {
+      throw new InvalidTemplateStateException(
+        'update settings',
+        this.status.toString(),
+      );
     }
 
     this.props.settings = settings;
@@ -276,8 +303,11 @@ export class InterviewTemplate extends AggregateRoot {
    * Business Rule: All IDs must exist
    */
   reorderQuestionsByIds(questionIds: string[]): void {
-    if (this.status.isArchived()) {
-      throw new TemplateArchivedException(this.id);
+    if (!this.status.canBeModified()) {
+      throw new InvalidTemplateStateException(
+        'reorder questions',
+        this.status.toString(),
+      );
     }
 
     // Validate that all question IDs exist

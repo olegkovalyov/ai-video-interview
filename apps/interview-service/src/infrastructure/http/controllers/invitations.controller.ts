@@ -8,9 +8,12 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  HttpException,
   Headers,
+  Inject,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import type { IInvitationRepository } from '../../../domain/repositories/invitation.repository.interface';
 import {
   ApiTags,
   ApiOperation,
@@ -49,27 +52,48 @@ import {
 
 @ApiTags('Invitations')
 @ApiSecurity('internal-token')
-@ApiHeader({ name: 'x-user-id', description: 'Current user UUID', required: true })
-@ApiHeader({ name: 'x-user-role', description: 'User role (admin, hr, candidate)', required: true })
+@ApiHeader({
+  name: 'x-user-id',
+  description: 'Current user UUID',
+  required: true,
+})
+@ApiHeader({
+  name: 'x-user-role',
+  description: 'User role (admin, hr, candidate)',
+  required: true,
+})
 @Controller('api/invitations')
 @UseGuards(InternalServiceGuard)
 export class InvitationsController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    @Inject('IInvitationRepository')
+    private readonly invitationRepository: IInvitationRepository,
   ) {}
 
   // ==================== COMMANDS ====================
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ 
-    summary: 'Create invitation', 
-    description: 'HR creates an interview invitation for a candidate. Template must be active (published). Cannot create duplicate invitations for same candidate+template combination.',
+  @ApiOperation({
+    summary: 'Create invitation',
+    description:
+      'HR creates an interview invitation for a candidate. Template must be active (published). Cannot create duplicate invitations for same candidate+template combination.',
   })
-  @ApiResponse({ status: 201, description: 'Invitation created successfully', type: CreateInvitationResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error or template is not active' })
-  @ApiResponse({ status: 409, description: 'Invitation for this candidate+template already exists' })
+  @ApiResponse({
+    status: 201,
+    description: 'Invitation created successfully',
+    type: CreateInvitationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or template is not active',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Invitation for this candidate+template already exists',
+  })
   @ApiResponse({ status: 404, description: 'Template not found' })
   async create(
     @Body() dto: CreateInvitationDto,
@@ -92,14 +116,28 @@ export class InvitationsController {
 
   @Post(':id/start')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
-    summary: 'Start interview', 
-    description: 'Candidate starts the interview. Sets status to "in_progress" and records startedAt timestamp. Can only be started by the invited candidate.',
+  @ApiOperation({
+    summary: 'Start interview',
+    description:
+      'Candidate starts the interview. Sets status to "in_progress" and records startedAt timestamp. Can only be started by the invited candidate.',
   })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
-  @ApiResponse({ status: 200, description: 'Interview started successfully', type: SuccessResponseDto })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Invitation ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Interview started successfully',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 410, description: 'Invitation has expired' })
-  @ApiResponse({ status: 422, description: 'Invitation cannot be started (already in progress or completed)' })
+  @ApiResponse({
+    status: 422,
+    description:
+      'Invitation cannot be started (already in progress or completed)',
+  })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async start(
@@ -114,13 +152,26 @@ export class InvitationsController {
 
   @Post(':id/responses')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ 
-    summary: 'Submit response', 
-    description: 'Candidate submits an answer to a question. Interview must be in "in_progress" status. Each question can only be answered once.',
+  @ApiOperation({
+    summary: 'Submit response',
+    description:
+      'Candidate submits an answer to a question. Interview must be in "in_progress" status. Each question can only be answered once.',
   })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
-  @ApiResponse({ status: 201, description: 'Response submitted successfully', type: SubmitResponseResponseDto })
-  @ApiResponse({ status: 409, description: 'Response for this question already submitted' })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Invitation ID',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Response submitted successfully',
+    type: SubmitResponseResponseDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Response for this question already submitted',
+  })
   @ApiResponse({ status: 422, description: 'Interview is not in progress' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
@@ -149,13 +200,26 @@ export class InvitationsController {
 
   @Post(':id/complete')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
-    summary: 'Complete interview', 
-    description: 'Candidate completes the interview. All questions must be answered before completion. Sets status to "completed" and records completedAt timestamp.',
+  @ApiOperation({
+    summary: 'Complete interview',
+    description:
+      'Candidate completes the interview. All questions must be answered before completion. Sets status to "completed" and records completedAt timestamp.',
   })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
-  @ApiResponse({ status: 200, description: 'Interview completed successfully', type: SuccessResponseDto })
-  @ApiResponse({ status: 422, description: 'Interview is not in progress, or not all questions answered' })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Invitation ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Interview completed successfully',
+    type: SuccessResponseDto,
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'Interview is not in progress, or not all questions answered',
+  })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async complete(
@@ -177,14 +241,36 @@ export class InvitationsController {
   // ==================== QUERIES ====================
 
   @Get('candidate')
-  @ApiOperation({ 
-    summary: 'List candidate invitations', 
-    description: 'Get paginated list of all invitations for the current authenticated candidate. Supports filtering by status.',
+  @ApiOperation({
+    summary: 'List candidate invitations',
+    description:
+      'Get paginated list of all invitations for the current authenticated candidate. Supports filtering by status.',
   })
-  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'in_progress', 'completed', 'expired'], description: 'Filter by invitation status' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (1-based)', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (max 100)', example: 10 })
-  @ApiResponse({ status: 200, description: 'Paginated list of candidate invitations', type: PaginatedInvitationsResponseDto })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'in_progress', 'completed', 'expired'],
+    description: 'Filter by invitation status',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (1-based)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (max 100)',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of candidate invitations',
+    type: PaginatedInvitationsResponseDto,
+  })
   async listCandidateInvitations(
     @Query() query: ListInvitationsQueryDto,
     @Headers('x-user-id') userId: string,
@@ -203,15 +289,42 @@ export class InvitationsController {
   }
 
   @Get('hr')
-  @ApiOperation({ 
-    summary: 'List HR invitations', 
-    description: 'Get paginated list of all invitations created by the current HR user. Supports filtering by status and template.',
+  @ApiOperation({
+    summary: 'List HR invitations',
+    description:
+      'Get paginated list of all invitations created by the current HR user. Supports filtering by status and template.',
   })
-  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'in_progress', 'completed', 'expired'], description: 'Filter by invitation status' })
-  @ApiQuery({ name: 'templateId', required: false, type: String, description: 'Filter by template UUID' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (1-based)', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (max 100)', example: 10 })
-  @ApiResponse({ status: 200, description: 'Paginated list of HR invitations', type: PaginatedInvitationsResponseDto })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'in_progress', 'completed', 'expired'],
+    description: 'Filter by invitation status',
+  })
+  @ApiQuery({
+    name: 'templateId',
+    required: false,
+    type: String,
+    description: 'Filter by template UUID',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (1-based)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (max 100)',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of HR invitations',
+    type: PaginatedInvitationsResponseDto,
+  })
   async listHRInvitations(
     @Query() query: ListInvitationsQueryDto,
     @Headers('x-user-id') userId: string,
@@ -231,14 +344,33 @@ export class InvitationsController {
   }
 
   @Get(':id')
-  @ApiOperation({ 
-    summary: 'Get invitation', 
-    description: 'Get invitation details by ID. Only the invited candidate, the HR who created it, or an admin can view. Use includeTemplate=true to get full template with questions.',
+  @ApiOperation({
+    summary: 'Get invitation',
+    description:
+      'Get invitation details by ID. Only the invited candidate, the HR who created it, or an admin can view. Use includeTemplate=true to get full template with questions.',
   })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
-  @ApiQuery({ name: 'includeTemplate', required: false, type: Boolean, description: 'Include full template with questions (for candidate taking interview)' })
-  @ApiResponse({ status: 200, description: 'Invitation details', type: InvitationResponseDto })
-  @ApiResponse({ status: 403, description: 'Not authorized to view this invitation' })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Invitation ID',
+  })
+  @ApiQuery({
+    name: 'includeTemplate',
+    required: false,
+    type: Boolean,
+    description:
+      'Include full template with questions (for candidate taking interview)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Invitation details',
+    type: InvitationResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Not authorized to view this invitation',
+  })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async getOne(
     @Param('id') invitationId: string,
@@ -260,18 +392,41 @@ export class InvitationsController {
 
   @Post(':id/heartbeat')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
-    summary: 'Heartbeat', 
-    description: 'Update last activity timestamp for non-pausable interviews (allowPause=false). Used to detect if candidate left the interview.',
+  @ApiOperation({
+    summary: 'Heartbeat',
+    description:
+      'Update last activity timestamp for non-pausable interviews (allowPause=false). Used to detect if candidate left the interview.',
   })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'Invitation ID' })
-  @ApiResponse({ status: 200, description: 'Activity updated', type: SuccessResponseDto })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Invitation ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Activity updated',
+    type: SuccessResponseDto,
+  })
   async heartbeat(
     @Param('id') invitationId: string,
     @Headers('x-user-id') userId: string,
   ): Promise<{ success: boolean }> {
-    // TODO: Implement heartbeat command or use repository directly
-    // For now, just return success - will be implemented with cron job
+    const invitation = await this.invitationRepository.findById(invitationId);
+
+    if (!invitation) {
+      throw new HttpException('Invitation not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (!invitation.status.isInProgress()) {
+      throw new HttpException(
+        'Heartbeat only allowed for in-progress interviews',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    await this.invitationRepository.updateLastActivity(invitationId);
+
     return { success: true };
   }
 }

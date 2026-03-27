@@ -1,7 +1,16 @@
-import { Injectable, HttpException, HttpStatus, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { UserServiceClient } from '../../../modules/user-service/clients/user-service.client';
-import { KeycloakUserService, KeycloakRoleService } from '../../../modules/user-service/admin/keycloak';
+import {
+  KeycloakUserService,
+  KeycloakRoleService,
+} from '../../../modules/user-service/admin/keycloak';
+import { OrphanedUsersService } from '../../../modules/user-service/admin/orphaned-users.service';
 import { LoggerService } from '../../logging/logger.service';
 import { maskEmail } from '../../logging/pii-mask.util';
 
@@ -47,9 +56,13 @@ export class RegistrationSaga implements OnModuleDestroy {
     private readonly userServiceClient: UserServiceClient,
     private readonly keycloakUserService: KeycloakUserService,
     private readonly keycloakRoleService: KeycloakRoleService,
+    private readonly orphanedUsersService: OrphanedUsersService,
     private readonly logger: LoggerService,
   ) {
-    this.cleanupTimer = setInterval(() => this.evictExpired(), this.CLEANUP_INTERVAL);
+    this.cleanupTimer = setInterval(
+      () => this.evictExpired(),
+      this.CLEANUP_INTERVAL,
+    );
   }
 
   onModuleDestroy() {
@@ -95,17 +108,26 @@ export class RegistrationSaga implements OnModuleDestroy {
     // STEP 1: Check if user already exists (fast path)
     // If user-service is unavailable - just throw 503, DO NOT delete from Keycloak!
     // ═══════════════════════════════════════════════════════════
-    let existingUser: { userId: string; email: string; firstName: string; lastName: string } | null;
+    let existingUser: {
+      userId: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    } | null;
 
     try {
       existingUser = await this.checkUserExists(dto.keycloakId);
     } catch (checkError) {
       // User-service unavailable during CHECK - this is NOT a reason to delete from Keycloak!
-      this.logger.error('RegistrationSaga: User-service unavailable during existence check', checkError, {
-        operationId,
-        keycloakId: dto.keycloakId,
-        errorCode: checkError.code,
-      });
+      this.logger.error(
+        'RegistrationSaga: User-service unavailable during existence check',
+        checkError,
+        {
+          operationId,
+          keycloakId: dto.keycloakId,
+          errorCode: checkError.code,
+        },
+      );
 
       throw new HttpException(
         {
@@ -171,18 +193,24 @@ export class RegistrationSaga implements OnModuleDestroy {
 
       // Assign pending role in Keycloak (will be in JWT token)
       try {
-        this.logger.info('RegistrationSaga: Assigning pending role in Keycloak', {
-          operationId,
-          userId,
-          keycloakId: dto.keycloakId,
-        });
+        this.logger.info(
+          'RegistrationSaga: Assigning pending role in Keycloak',
+          {
+            operationId,
+            userId,
+            keycloakId: dto.keycloakId,
+          },
+        );
 
         await this.keycloakRoleService.assignRole(dto.keycloakId, 'pending');
 
-        this.logger.info('RegistrationSaga: Pending role assigned in Keycloak', {
-          operationId,
-          userId,
-        });
+        this.logger.info(
+          'RegistrationSaga: Pending role assigned in Keycloak',
+          {
+            operationId,
+            userId,
+          },
+        );
       } catch (roleError) {
         this.logger.error('RegistrationSaga: Failed to assign pending role', {
           errorMessage: roleError.message,
@@ -195,6 +223,17 @@ export class RegistrationSaga implements OnModuleDestroy {
 
       // Get full user details after creation
       const fullUser = await this.userServiceClient.getUserById(userId);
+
+      if (!fullUser) {
+        this.logger.error(
+          'RegistrationSaga: User created but getUserById returned null',
+          {
+            operationId,
+            userId,
+          },
+        );
+        throw new Error(`User created (${userId}) but could not be retrieved`);
+      }
 
       const newUserResult: UserResult = {
         userId: fullUser.id,
@@ -214,31 +253,58 @@ export class RegistrationSaga implements OnModuleDestroy {
       // User exists in Keycloak but NOT in User Service - inconsistent state!
       // We delete from Keycloak so user can re-register cleanly.
       // ═══════════════════════════════════════════════════════════
-      this.logger.error('RegistrationSaga: Failed to create user in User Service', createError, {
-        operationId,
-        keycloakId: dto.keycloakId,
-        email: maskEmail(dto.email),
-      });
-
-      try {
-        this.logger.warn('RegistrationSaga: COMPENSATION - Deleting user from Keycloak (failed to create in user-service)', {
+      this.logger.error(
+        'RegistrationSaga: Failed to create user in User Service',
+        createError,
+        {
           operationId,
           keycloakId: dto.keycloakId,
           email: maskEmail(dto.email),
-        });
+        },
+      );
+
+      try {
+        this.logger.warn(
+          'RegistrationSaga: COMPENSATION - Deleting user from Keycloak (failed to create in user-service)',
+          {
+            operationId,
+            keycloakId: dto.keycloakId,
+            email: maskEmail(dto.email),
+          },
+        );
 
         await this.keycloakUserService.deleteUser(dto.keycloakId);
 
-        this.logger.info('RegistrationSaga: Compensation successful - user deleted from Keycloak', {
-          operationId,
-          keycloakId: dto.keycloakId,
-        });
+        this.logger.info(
+          'RegistrationSaga: Compensation successful - user deleted from Keycloak',
+          {
+            operationId,
+            keycloakId: dto.keycloakId,
+          },
+        );
       } catch (compensationError) {
-        this.logger.error('RegistrationSaga: CRITICAL - Compensation failed! ORPHANED USER in Keycloak', compensationError, {
+        this.logger.error(
+          'RegistrationSaga: CRITICAL - Compensation failed! ORPHANED USER in Keycloak',
+          compensationError,
+          {
+            operationId,
+            keycloakId: dto.keycloakId,
+            email: maskEmail(dto.email),
+            action: 'MANUAL_CLEANUP_REQUIRED',
+          },
+        );
+
+        await this.orphanedUsersService.trackOrphanedUser(dto.keycloakId, {
+          reason: 'keycloak_delete_failed',
+          originalError:
+            createError instanceof Error
+              ? createError.message
+              : String(createError),
+          rollbackError:
+            compensationError instanceof Error
+              ? compensationError.message
+              : String(compensationError),
           operationId,
-          keycloakId: dto.keycloakId,
-          email: maskEmail(dto.email),
-          action: 'MANUAL_CLEANUP_REQUIRED',
         });
       }
 
@@ -246,7 +312,8 @@ export class RegistrationSaga implements OnModuleDestroy {
         {
           success: false,
           error: 'Failed to initialize user profile',
-          details: 'User Service is temporarily unavailable. Please try again later.',
+          details:
+            'User Service is temporarily unavailable. Please try again later.',
           code: 'USER_SERVICE_UNAVAILABLE',
         },
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -258,16 +325,15 @@ export class RegistrationSaga implements OnModuleDestroy {
    * Check if user exists in User Service
    * Returns user profile or null if not found
    */
-  private async checkUserExists(
-    keycloakId: string,
-  ): Promise<{
+  private async checkUserExists(keycloakId: string): Promise<{
     userId: string;
     email: string;
     firstName: string;
     lastName: string;
   } | null> {
     try {
-      const response = await this.userServiceClient.getUserByExternalAuthId(keycloakId);
+      const response =
+        await this.userServiceClient.getUserByExternalAuthId(keycloakId);
 
       // UserServiceClient already returns response.data from axios
       if (response && response.id) {

@@ -6,7 +6,12 @@ import { DomainException } from '../exceptions/domain.exception';
  * Represents candidate's proficiency level with a skill
  */
 export class ProficiencyLevel extends ValueObject<{ value: string }> {
-  private static readonly VALID_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
+  private static readonly VALID_LEVELS = [
+    'beginner',
+    'intermediate',
+    'advanced',
+    'expert',
+  ] as const;
 
   public static readonly BEGINNER = 'beginner';
   public static readonly INTERMEDIATE = 'intermediate';
@@ -14,16 +19,7 @@ export class ProficiencyLevel extends ValueObject<{ value: string }> {
   public static readonly EXPERT = 'expert';
 
   private constructor(value: string) {
-    ProficiencyLevel.validate(value);
     super({ value });
-  }
-
-  private static validate(value: string): void {
-    if (!ProficiencyLevel.VALID_LEVELS.includes(value as any)) {
-      throw new DomainException(
-        `Invalid proficiency level: ${value}. Must be one of: ${ProficiencyLevel.VALID_LEVELS.join(', ')}`
-      );
-    }
   }
 
   // Factory methods
@@ -44,7 +40,13 @@ export class ProficiencyLevel extends ValueObject<{ value: string }> {
   }
 
   public static fromString(value: string): ProficiencyLevel {
-    return new ProficiencyLevel(value.toLowerCase());
+    const normalized = value.toLowerCase();
+    if (!ProficiencyLevel.VALID_LEVELS.includes(normalized as any)) {
+      throw new DomainException(
+        `Invalid proficiency level: ${value}. Must be one of: ${ProficiencyLevel.VALID_LEVELS.join(', ')}`,
+      );
+    }
+    return new ProficiencyLevel(normalized);
   }
 
   // Comparison methods
@@ -87,13 +89,6 @@ export class ProficiencyLevel extends ValueObject<{ value: string }> {
 
   public isAtLeast(level: ProficiencyLevel): boolean {
     return this.compare(level) >= 0;
-  }
-
-  public equals(other: ProficiencyLevel): boolean {
-    if (!(other instanceof ProficiencyLevel)) {
-      return false;
-    }
-    return this.value === other.value;
   }
 
   public get value(): string {

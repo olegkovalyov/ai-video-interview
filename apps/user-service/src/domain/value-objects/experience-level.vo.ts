@@ -115,16 +115,6 @@ export class ExperienceLevel extends ValueObject<{ value: string }> {
   }
 
   /**
-   * Equality check
-   */
-  public equals(other: ExperienceLevel): boolean {
-    if (!(other instanceof ExperienceLevel)) {
-      return false;
-    }
-    return this.value === other.value;
-  }
-
-  /**
    * String representation
    */
   public toString(): string {

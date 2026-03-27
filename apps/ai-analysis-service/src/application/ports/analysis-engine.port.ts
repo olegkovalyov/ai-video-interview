@@ -1,4 +1,7 @@
-export const ANALYSIS_ENGINE = Symbol('IAnalysisEngine');
+export const ANALYSIS_ENGINE = Symbol("IAnalysisEngine");
+
+/** Default Groq model — single source of truth for handler and engine */
+export const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 
 export interface QuestionAnalysisInput {
   questionId: string;
@@ -36,11 +39,13 @@ export interface SummaryOutput {
   summary: string;
   strengths: string[];
   weaknesses: string[];
-  recommendation: 'hire' | 'consider' | 'reject';
+  recommendation: "hire" | "consider" | "reject";
   tokensUsed: number;
 }
 
 export interface IAnalysisEngine {
-  analyzeResponse(input: QuestionAnalysisInput): Promise<QuestionAnalysisOutput>;
+  analyzeResponse(
+    input: QuestionAnalysisInput,
+  ): Promise<QuestionAnalysisOutput>;
   generateSummary(input: SummaryInput): Promise<SummaryOutput>;
 }

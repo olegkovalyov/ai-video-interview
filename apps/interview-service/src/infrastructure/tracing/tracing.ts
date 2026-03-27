@@ -23,11 +23,4 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-process.on('SIGTERM', () => {
-  sdk.shutdown()
-    .then(() => console.log('OpenTelemetry terminated'))
-    .catch((error) => console.log('Error terminating OpenTelemetry', error))
-    .finally(() => process.exit(0));
-});
-
 export { sdk };

@@ -1,5 +1,5 @@
-import { Kafka, Admin } from 'kafkajs';
-import { KAFKA_CONFIG } from '../events';
+import { Kafka, Admin } from "kafkajs";
+import { KAFKA_CONFIG } from "../events";
 
 export interface KafkaHealthStatus {
   isHealthy: boolean;
@@ -43,12 +43,12 @@ export class KafkaHealthService {
 
   async connect(): Promise<void> {
     await this.admin.connect();
-    console.log('🏥 Kafka Health Service connected');
+    console.log("🏥 Kafka Health Service connected");
   }
 
   async disconnect(): Promise<void> {
     await this.admin.disconnect();
-    console.log('🏥 Kafka Health Service disconnected');
+    console.log("🏥 Kafka Health Service disconnected");
   }
 
   async checkHealth(): Promise<KafkaHealthStatus> {
@@ -67,13 +67,13 @@ export class KafkaHealthService {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error('❌ Kafka health check failed:', error);
+      console.error("❌ Kafka health check failed:", error);
       return {
         isHealthy: false,
         brokers: [],
         topics: [],
         consumerGroups: [],
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         timestamp: Date.now(),
       };
     }
@@ -100,12 +100,14 @@ export class KafkaHealthService {
       const groupInfos: ConsumerGroupInfo[] = [];
 
       for (const group of groups.groups) {
-        const groupDescription = await this.admin.describeGroups([group.groupId]);
+        const groupDescription = await this.admin.describeGroups([
+          group.groupId,
+        ]);
         const groupInfo = groupDescription.groups[0];
-        
+
         if (groupInfo) {
           const lag = await this.getConsumerLag(group.groupId);
-          
+
           groupInfos.push({
             groupId: group.groupId,
             state: groupInfo.state,
@@ -117,27 +119,40 @@ export class KafkaHealthService {
 
       return groupInfos;
     } catch (error) {
-      console.error('❌ Error fetching consumer groups:', error);
+      console.error("❌ Error fetching consumer groups:", error);
       return [];
     }
   }
 
   private async getConsumerLag(groupId: string): Promise<ConsumerLag[]> {
     try {
-      const offsets = await this.admin.fetchOffsets({
-        groupId,
-        topics: await this.getTopics(),
-      });
-
+      const topics = await this.getTopics();
+      const offsets = await this.admin.fetchOffsets({ groupId, topics });
       const lagInfo: ConsumerLag[] = [];
 
-      for (const topicOffset of offsets) {
-        for (const partitionOffset of topicOffset.partitions) {
-          const highWatermark = await this.getHighWatermark(
-            topicOffset.topic,
-            partitionOffset.partition
-          );
+      // Batch-fetch high watermarks per topic (one call per topic, not per partition)
+      const hwmCache = new Map<string, Map<number, string>>();
 
+      for (const topicOffset of offsets) {
+        if (!hwmCache.has(topicOffset.topic)) {
+          try {
+            const topicOffsets = await this.admin.fetchTopicOffsets(
+              topicOffset.topic,
+            );
+            const partitionMap = new Map<number, string>();
+            for (const po of topicOffsets) {
+              partitionMap.set(po.partition, po.high ?? po.offset ?? "0");
+            }
+            hwmCache.set(topicOffset.topic, partitionMap);
+          } catch {
+            hwmCache.set(topicOffset.topic, new Map());
+          }
+        }
+
+        const topicHwm = hwmCache.get(topicOffset.topic)!;
+
+        for (const partitionOffset of topicOffset.partitions) {
+          const highWatermark = topicHwm.get(partitionOffset.partition) ?? "0";
           const currentOffset = parseInt(partitionOffset.offset);
           const hwm = parseInt(highWatermark);
           const lag = Math.max(0, hwm - currentOffset);
@@ -154,25 +169,8 @@ export class KafkaHealthService {
 
       return lagInfo;
     } catch (error) {
-      console.error(`❌ Error fetching consumer lag for group ${groupId}:`, error);
+      console.error(`Error fetching consumer lag for group ${groupId}:`, error);
       return [];
-    }
-  }
-
-  private async getHighWatermark(topic: string, partition: number): Promise<string> {
-    try {
-      const metadata = await this.admin.fetchTopicMetadata({ topics: [topic] });
-      const topicMetadata = metadata.topics[0];
-      
-      if (topicMetadata) {
-        // This is a simplified approach - in production you'd use consumer API
-        // to get actual high watermarks
-        return '0'; // Placeholder - actual implementation would fetch real HWM
-      }
-      
-      return '0';
-    } catch (error) {
-      return '0';
     }
   }
 
@@ -203,7 +201,7 @@ export class KafkaHealthService {
           }
         }
       }
-      
+
       console.log(`✅ Consumer group ${groupId} offsets reset`);
     } catch (error) {
       console.error(`❌ Error resetting consumer group ${groupId}:`, error);
