@@ -5,7 +5,10 @@ import type { IInvitationRepository } from '../../../domain/repositories/invitat
 import type { IOutboxService } from '../../interfaces/outbox-service.interface';
 import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
-import { InvitationNotFoundException } from '../../../domain/exceptions/invitation.exceptions';
+import {
+  InvitationNotFoundException,
+  InvitationExpiredException,
+} from '../../../domain/exceptions/invitation.exceptions';
 
 @CommandHandler(StartInvitationCommand)
 export class StartInvitationHandler
@@ -38,9 +41,15 @@ export class StartInvitationHandler
     }
 
     // Start the invitation (domain method handles validation)
-    // Domain exceptions (InvitationAccessDeniedException, InvitationExpiredException,
-    // InvalidInvitationStateException) propagate to DomainExceptionFilter
-    invitation.start(command.userId);
+    try {
+      invitation.start(command.userId);
+    } catch (error) {
+      // If expired, persist the EXPIRED status before re-throwing
+      if (error instanceof InvitationExpiredException) {
+        await this.invitationRepository.save(invitation);
+      }
+      throw error;
+    }
 
     // Atomic write: save aggregate + outbox event in single transaction
     const eventId = await this.unitOfWork.execute(async (tx) => {

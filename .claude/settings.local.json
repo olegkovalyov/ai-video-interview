@@ -62,7 +62,9 @@
       "Bash(xargs ls:*)",
       "Bash(npm install:*)",
       "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\(''/Users/oleg/www/ai-video-interview/infra/observability/rules/service-alerts.yml''\\)\\); print\\(''YAML valid''\\)\")",
-      "Bash(node -e \"const fs = require\\(''fs''\\); const yaml = require\\(''/Users/oleg/www/ai-video-interview/node_modules/yaml''\\); const data = yaml.parse\\(fs.readFileSync\\(''/Users/oleg/www/ai-video-interview/infra/observability/rules/service-alerts.yml'', ''utf8''\\)\\); console.log\\(''YAML valid, groups:'', data.groups.length, ''rules:'', data.groups.reduce\\(\\(s,g\\) => s + g.rules.length, 0\\)\\)\")"
+      "Bash(node -e \"const fs = require\\(''fs''\\); const yaml = require\\(''/Users/oleg/www/ai-video-interview/node_modules/yaml''\\); const data = yaml.parse\\(fs.readFileSync\\(''/Users/oleg/www/ai-video-interview/infra/observability/rules/service-alerts.yml'', ''utf8''\\)\\); console.log\\(''YAML valid, groups:'', data.groups.length, ''rules:'', data.groups.reduce\\(\\(s,g\\) => s + g.rules.length, 0\\)\\)\")",
+      "Bash(node -e \"const typeorm = require\\(''typeorm''\\); console.log\\(typeof typeorm.OptimisticLockVersionMismatchError\\)\")",
+      "Bash(node -e \"const t = require\\(''typeorm''\\); console.log\\(typeof t.OptimisticLockVersionMismatchError\\)\")"
     ],
     "deny": [
       "Bash(rm -rf /)*",

@@ -56,7 +56,7 @@ export class CompleteInvitationHandler
       userId: command.userId,
       reason: command.reason,
       templateTitle: template.title,
-      language: 'en', // TODO: get from invitation or template settings
+      language: template.settings.language,
       questions,
     });
 
@@ -74,7 +74,7 @@ export class CompleteInvitationHandler
       templateTitle: template.title,
       companyName: invitation.companyName,
       completedAt: invitation.completedAt!.toISOString(),
-      language: 'en',
+      language: template.settings.language,
       questions,
       responses: responseData,
     };

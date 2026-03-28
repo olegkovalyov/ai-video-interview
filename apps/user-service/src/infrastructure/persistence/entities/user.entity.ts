@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  VersionColumn,
   Index,
 } from 'typeorm';
 
@@ -17,7 +18,12 @@ export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true, type: 'varchar', length: 255, name: 'external_auth_id' })
+  @Column({
+    unique: true,
+    type: 'varchar',
+    length: 255,
+    name: 'external_auth_id',
+  })
   @Index()
   externalAuthId: string;
 
@@ -78,6 +84,9 @@ export class UserEntity {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'jsonb', default: {} })
   metadata: Record<string, any>;
