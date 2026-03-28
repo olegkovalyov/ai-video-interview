@@ -458,6 +458,10 @@ ${responseText}
       prompt += `\n**Correct Answer:** ${this.truncateText(input.correctAnswer, MAX_INPUT_TEXT_LENGTH)}`;
     }
 
+    if (input.language && input.language !== "en") {
+      prompt += `\n\n**Language:** The candidate responded in ${input.language}. Analyze in context of that language and provide feedback in ${input.language}.`;
+    }
+
     prompt += "\n\nProvide your analysis as JSON.";
 
     return prompt;

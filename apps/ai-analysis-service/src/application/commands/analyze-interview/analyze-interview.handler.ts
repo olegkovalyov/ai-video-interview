@@ -252,6 +252,7 @@ export class AnalyzeInterviewHandler
         questionType: question.type,
         responseText,
         correctAnswer,
+        language,
       };
 
       this.logger.debug(`Analyzing question: ${question.id}`);
