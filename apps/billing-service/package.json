@@ -56,7 +56,6 @@
     "kafkajs": "^2.2.4",
     "kafkajs-snappy": "^1.1.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
     "stripe": "^14.0.0",
     "typeorm": "^0.3.26",
     "uuid": "^11.1.0",

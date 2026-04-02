@@ -93,7 +93,7 @@ export class StripeService implements IStripeService {
   }
 
   async constructWebhookEvent(
-    rawBody: Buffer,
+    rawBody: string | Buffer,
     signature: string,
   ): Promise<{
     id: string;

@@ -30,6 +30,7 @@ export interface IInvitationRepository {
       id: string;
       title: string;
       description: string;
+      settings?: { language?: string; totalTimeLimit?: number; allowRetakes?: boolean; showTimer?: boolean; randomizeQuestions?: boolean };
       questions: Array<{
         id: string;
         text: string;

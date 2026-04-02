@@ -28,7 +28,7 @@ export interface IStripeService {
    * Construct and verify a Stripe webhook event from raw body + signature
    */
   constructWebhookEvent(
-    rawBody: Buffer,
+    rawBody: string | Buffer,
     signature: string,
   ): Promise<{
     id: string;

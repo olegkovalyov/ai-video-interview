@@ -1,5 +1,5 @@
 import { Process, Processor } from "@nestjs/bull";
-import { Job } from "bull";
+import type { Job } from "bull";
 import { CommandBus } from "@nestjs/cqrs";
 import { ProcessStripeWebhookCommand } from "../../application/commands/process-stripe-webhook/process-stripe-webhook.command";
 import { LoggerService } from "../logger/logger.service";
