@@ -23,6 +23,7 @@ export const envValidationSchema = Joi.object({
   USER_SERVICE_URL: Joi.string().uri().default('http://localhost:8002'),
   INTERVIEW_SERVICE_URL: Joi.string().uri().default('http://localhost:8003'),
   AI_ANALYSIS_SERVICE_URL: Joi.string().uri().default('http://localhost:8005'),
+  BILLING_SERVICE_URL: Joi.string().uri().default('http://localhost:8007'),
 
   // Internal auth
   INTERNAL_SERVICE_TOKEN: Joi.string().optional().default(''),
@@ -43,7 +44,5 @@ export const envValidationSchema = Joi.object({
     .valid('error', 'warn', 'info', 'debug', 'verbose')
     .default('debug'),
   LOKI_HOST: Joi.string().default('http://localhost:3100'),
-  JAEGER_ENDPOINT: Joi.string().default(
-    'http://localhost:14268/api/traces',
-  ),
+  JAEGER_ENDPOINT: Joi.string().default('http://localhost:14268/api/traces'),
 }).options({ allowUnknown: true });
