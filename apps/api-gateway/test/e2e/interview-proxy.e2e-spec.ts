@@ -168,12 +168,12 @@ describe('Interview Service Proxy (E2E)', () => {
   });
 
   describe('Error handling', () => {
-    it('should return 400 when interview-service is down (AuthErrorInterceptor remaps)', async () => {
+    it('should return 400 when interview-service is down (statusCode=0, default auth error)', async () => {
       const token = generateHrJwt();
 
       mockInterviewServiceDown(/\/api\/templates/);
 
-      // ServiceProxyError -> AuthErrorInterceptor catches it -> 400 AUTH_ERROR
+      // ServiceProxyError with statusCode=0 (network error) -> default auth error -> 400
       const res = await request(app.getHttpServer())
         .get('/api/templates')
         .set('Authorization', `Bearer ${token}`)
@@ -183,7 +183,7 @@ describe('Interview Service Proxy (E2E)', () => {
       expect(res.body).toHaveProperty('code', 'AUTH_ERROR');
     });
 
-    it('should return 400 for 404 from interview-service (AuthErrorInterceptor remaps ServiceProxyError)', async () => {
+    it('should return 404 for 404 from interview-service (ServiceProxyError pass-through)', async () => {
       const token = generateHrJwt();
       const templateId = 'non-existent-id';
 
@@ -193,12 +193,11 @@ describe('Interview Service Proxy (E2E)', () => {
         404,
       );
 
-      // interview-service has no mapUserError, so ServiceProxyError(404)
-      // goes through AuthErrorInterceptor which maps non-HttpException to 400
+      // ServiceProxyError with statusCode=404 (< 500) -> pass-through 404
       const res = await request(app.getHttpServer())
         .get(`/api/templates/${templateId}`)
         .set('Authorization', `Bearer ${token}`)
-        .expect(400);
+        .expect(404);
 
       expect(res.body).toHaveProperty('success', false);
     });

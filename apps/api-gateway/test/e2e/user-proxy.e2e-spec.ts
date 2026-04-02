@@ -78,7 +78,7 @@ describe('User Service Proxy (E2E)', () => {
       expect(res.body).toHaveProperty('code', 'INTERNAL_ERROR');
     });
 
-    it('should return 400 when user-service returns 500 (AuthErrorInterceptor remaps ServiceProxyError)', async () => {
+    it('should return 502 when user-service returns 500 (ServiceProxyError pass-through)', async () => {
       const token = generateHrJwt();
       const userId = `user-${DEFAULT_USER_PAYLOAD.sub}`;
 
@@ -88,13 +88,14 @@ describe('User Service Proxy (E2E)', () => {
         500,
       );
 
+      // ServiceProxyError with statusCode=500 (>= 500) -> 502 Bad Gateway
       const res = await request(app.getHttpServer())
         .get('/api/users/me')
         .set('Authorization', `Bearer ${token}`)
-        .expect(400);
+        .expect(502);
 
       expect(res.body).toHaveProperty('success', false);
-      expect(res.body).toHaveProperty('code', 'AUTH_ERROR');
+      expect(res.body).toHaveProperty('code', 'SERVICE_ERROR');
     });
   });
 
@@ -179,7 +180,7 @@ describe('User Service Proxy (E2E)', () => {
       expect(res.body).toHaveProperty('success', false);
     });
 
-    it('should return 400 when user-service is unreachable (AuthErrorInterceptor remaps)', async () => {
+    it('should return 400 when user-service is unreachable (statusCode=0, default auth error)', async () => {
       const token = generateHrJwt();
       const userId = `user-${DEFAULT_USER_PAYLOAD.sub}`;
 

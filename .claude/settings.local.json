@@ -124,7 +124,8 @@
       "Bash(echo \"Direct GET /users/$USER_ID:\" curl -s http://localhost:9002/users/$USER_ID -H \"x-internal-request: true\" -H \"x-internal-token: test-internal-token\" -H \"x-user-id: $USER_ID\" -H \"x-user-role: admin\")",
       "Bash(python3 -c \":*)",
       "Bash(pkill -f 'nest start' 2)",
-      "Bash(/dev/null git:*)"
+      "Bash(/dev/null git:*)",
+      "Bash(cd /Users/oleg/www/ai-video-interview/apps/api-gateway echo \"GATEWAY UNIT:\")"
     ],
     "deny": [
       "Bash(rm -rf /)*",

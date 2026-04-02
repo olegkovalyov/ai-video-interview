@@ -128,7 +128,7 @@ describe('Billing Service Proxy (E2E)', () => {
   });
 
   describe('Error handling', () => {
-    it('should return 400 when billing-service is down (AuthErrorInterceptor remaps)', async () => {
+    it('should return 400 when billing-service is down (statusCode=0, default auth error)', async () => {
       const token = generateHrJwt({ companyId: 'company-001' });
 
       nock('http://localhost:8007')

@@ -89,7 +89,7 @@ describe("Quota API (E2E)", () => {
     }
   });
 
-  describe("GET /internal/quota/:companyId/interviews", () => {
+  describe("GET /api/billing/internal/quota/:companyId/interviews", () => {
     it("should return allowed=true when under limit", async () => {
       const companyId = uuidv4();
       const subId = await seedSubscription(dataSource, {
@@ -105,7 +105,7 @@ describe("Quota API (E2E)", () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get(`/internal/quota/${companyId}/interviews`)
+        .get(`/api/billing/internal/quota/${companyId}/interviews`)
         .expect(200);
 
       expect(res.body.allowed).toBe(true);
@@ -129,7 +129,7 @@ describe("Quota API (E2E)", () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get(`/internal/quota/${companyId}/interviews`)
+        .get(`/api/billing/internal/quota/${companyId}/interviews`)
         .expect(200);
 
       expect(res.body.allowed).toBe(false);
@@ -153,7 +153,7 @@ describe("Quota API (E2E)", () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get(`/internal/quota/${companyId}/interviews`)
+        .get(`/api/billing/internal/quota/${companyId}/interviews`)
         .expect(200);
 
       expect(res.body.allowed).toBe(true);
@@ -166,7 +166,7 @@ describe("Quota API (E2E)", () => {
       const companyId = uuidv4();
 
       const res = await request(app.getHttpServer())
-        .get(`/internal/quota/${companyId}/interviews`)
+        .get(`/api/billing/internal/quota/${companyId}/interviews`)
         .expect(200);
 
       expect(res.body.allowed).toBe(true);
@@ -183,7 +183,7 @@ describe("Quota API (E2E)", () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get(`/internal/quota/${companyId}/templates`)
+        .get(`/api/billing/internal/quota/${companyId}/templates`)
         .expect(200);
 
       expect(res.body.allowed).toBe(true);
@@ -199,7 +199,7 @@ describe("Quota API (E2E)", () => {
       });
 
       await request(app.getHttpServer())
-        .get(`/internal/quota/${companyId}/interviews`)
+        .get(`/api/billing/internal/quota/${companyId}/interviews`)
         .expect(200);
 
       expect(mockQuotaCacheService.setQuotaCheck).toHaveBeenCalledWith(

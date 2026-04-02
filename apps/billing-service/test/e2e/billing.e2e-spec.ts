@@ -103,7 +103,7 @@ describe("Billing API (E2E)", () => {
 
   describe("GET /plans", () => {
     it("should return 3 plans (public, no auth required)", async () => {
-      const res = await request(app.getHttpServer()).get("/plans").expect(200);
+      const res = await request(app.getHttpServer()).get("/api/billing/plans").expect(200);
 
       expect(res.body).toHaveLength(3);
       const types = res.body.map((p: any) => p.type);
@@ -126,7 +126,7 @@ describe("Billing API (E2E)", () => {
       await seedSubscription(dataSource, { companyId });
 
       const res = await request(app.getHttpServer())
-        .get("/subscription")
+        .get("/api/billing/subscription")
         .set("x-company-id", companyId)
         .expect(200);
 
@@ -143,7 +143,7 @@ describe("Billing API (E2E)", () => {
       const unknownCompanyId = uuidv4();
 
       const res = await request(app.getHttpServer())
-        .get("/subscription")
+        .get("/api/billing/subscription")
         .set("x-company-id", unknownCompanyId)
         .expect(404);
 
@@ -159,7 +159,7 @@ describe("Billing API (E2E)", () => {
       await seedSubscription(dataSource, { companyId });
 
       const res = await request(app.getHttpServer())
-        .get("/usage")
+        .get("/api/billing/usage")
         .set("x-company-id", companyId)
         .expect(200);
 
@@ -177,15 +177,15 @@ describe("Billing API (E2E)", () => {
       await seedSubscription(dataSource, { companyId });
 
       const res = await request(app.getHttpServer())
-        .post("/cancel")
+        .post("/api/billing/cancel")
         .set("x-company-id", companyId)
-        .expect(201);
+        .expect(200);
 
       expect(res.body.message).toContain("canceled");
 
       // Verify via GET /subscription
       const sub = await request(app.getHttpServer())
-        .get("/subscription")
+        .get("/api/billing/subscription")
         .set("x-company-id", companyId)
         .expect(200);
 
@@ -197,7 +197,7 @@ describe("Billing API (E2E)", () => {
       const unknownCompanyId = uuidv4();
 
       await request(app.getHttpServer())
-        .post("/cancel")
+        .post("/api/billing/cancel")
         .set("x-company-id", unknownCompanyId)
         .expect(404);
     });
@@ -214,15 +214,15 @@ describe("Billing API (E2E)", () => {
       });
 
       const res = await request(app.getHttpServer())
-        .post("/resume")
+        .post("/api/billing/resume")
         .set("x-company-id", companyId)
-        .expect(201);
+        .expect(200);
 
       expect(res.body.message).toContain("resumed");
 
       // Verify via GET /subscription
       const sub = await request(app.getHttpServer())
-        .get("/subscription")
+        .get("/api/billing/subscription")
         .set("x-company-id", companyId)
         .expect(200);
 
@@ -237,7 +237,7 @@ describe("Billing API (E2E)", () => {
       });
 
       await request(app.getHttpServer())
-        .post("/resume")
+        .post("/api/billing/resume")
         .set("x-company-id", companyId)
         .expect(422);
     });
@@ -253,7 +253,7 @@ describe("Billing API (E2E)", () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get("/invoices")
+        .get("/api/billing/invoices")
         .set("x-company-id", companyId)
         .expect(200);
 
@@ -268,10 +268,10 @@ describe("Billing API (E2E)", () => {
       await seedSubscription(dataSource, { companyId, planType: "free" });
 
       const res = await request(app.getHttpServer())
-        .post("/checkout")
+        .post("/api/billing/checkout")
         .set("x-company-id", companyId)
         .send({ planType: "plus" })
-        .expect(201);
+        .expect(200);
 
       expect(res.body.sessionId).toBe("mock-session-id");
       expect(res.body.checkoutUrl).toBe("https://checkout.stripe.com/mock");
@@ -287,7 +287,7 @@ describe("Billing API (E2E)", () => {
       await seedSubscription(dataSource, { companyId, planType: "pro" });
 
       await request(app.getHttpServer())
-        .post("/checkout")
+        .post("/api/billing/checkout")
         .set("x-company-id", companyId)
         .send({ planType: "plus" })
         .expect(422);
@@ -297,7 +297,7 @@ describe("Billing API (E2E)", () => {
       await seedSubscription(dataSource, { companyId });
 
       await request(app.getHttpServer())
-        .post("/checkout")
+        .post("/api/billing/checkout")
         .set("x-company-id", companyId)
         .send({})
         .expect(400);
@@ -313,7 +313,7 @@ describe("Billing API (E2E)", () => {
 
       // 2. Verify free plan
       let sub = await request(app.getHttpServer())
-        .get("/subscription")
+        .get("/api/billing/subscription")
         .set("x-company-id", companyId)
         .expect(200);
       expect(sub.body.planType).toBe("free");
@@ -321,10 +321,10 @@ describe("Billing API (E2E)", () => {
 
       // 3. Create checkout for plus
       const checkout = await request(app.getHttpServer())
-        .post("/checkout")
+        .post("/api/billing/checkout")
         .set("x-company-id", companyId)
         .send({ planType: "plus" })
-        .expect(201);
+        .expect(200);
       expect(checkout.body.checkoutUrl).toBeTruthy();
 
       // 4. Simulate upgrade by directly updating DB (webhook would do this)
@@ -335,7 +335,7 @@ describe("Billing API (E2E)", () => {
 
       // 5. Verify plus plan
       sub = await request(app.getHttpServer())
-        .get("/subscription")
+        .get("/api/billing/subscription")
         .set("x-company-id", companyId)
         .expect(200);
       expect(sub.body.planType).toBe("plus");
@@ -343,13 +343,13 @@ describe("Billing API (E2E)", () => {
 
       // 6. Cancel
       await request(app.getHttpServer())
-        .post("/cancel")
+        .post("/api/billing/cancel")
         .set("x-company-id", companyId)
-        .expect(201);
+        .expect(200);
 
       // 7. Verify cancelAtPeriodEnd
       sub = await request(app.getHttpServer())
-        .get("/subscription")
+        .get("/api/billing/subscription")
         .set("x-company-id", companyId)
         .expect(200);
       expect(sub.body.cancelAtPeriodEnd).toBe(true);

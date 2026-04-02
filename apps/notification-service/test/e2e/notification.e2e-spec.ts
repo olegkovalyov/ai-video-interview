@@ -108,7 +108,7 @@ describe("Notification API (E2E)", () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get("/notifications")
+        .get("/api/notifications")
         .set("x-user-id", testUserId)
         .expect(200);
 
@@ -120,7 +120,7 @@ describe("Notification API (E2E)", () => {
 
     it("should return empty array when user has no notifications", async () => {
       const response = await request(app.getHttpServer())
-        .get("/notifications")
+        .get("/api/notifications")
         .set("x-user-id", testUserId)
         .expect(200);
 
@@ -139,7 +139,7 @@ describe("Notification API (E2E)", () => {
       });
 
       const response = await request(app.getHttpServer())
-        .post(`/notifications/${notifId}/read`)
+        .post(`/api/notifications/${notifId}/read`)
         .set("x-user-id", testUserId)
         .expect(201);
 
@@ -149,7 +149,7 @@ describe("Notification API (E2E)", () => {
     it("should return 404 for non-existent notification", async () => {
       const fakeId = uuidv4();
       await request(app.getHttpServer())
-        .post(`/notifications/${fakeId}/read`)
+        .post(`/api/notifications/${fakeId}/read`)
         .set("x-user-id", testUserId)
         .expect(500); // DomainException not caught by filter in test setup
     });
@@ -180,7 +180,7 @@ describe("Notification API (E2E)", () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get("/notifications/unread-count")
+        .get("/api/notifications/unread-count")
         .set("x-user-id", testUserId)
         .expect(200);
 
@@ -194,7 +194,7 @@ describe("Notification API (E2E)", () => {
   describe("GET /preferences", () => {
     it("should return default preferences when none exist", async () => {
       const response = await request(app.getHttpServer())
-        .get("/preferences")
+        .get("/api/preferences")
         .set("x-user-id", testUserId)
         .expect(200);
 
@@ -212,7 +212,7 @@ describe("Notification API (E2E)", () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get("/preferences")
+        .get("/api/preferences")
         .set("x-user-id", testUserId)
         .expect(200);
 
@@ -226,7 +226,7 @@ describe("Notification API (E2E)", () => {
   describe("PUT /preferences", () => {
     it("should update preferences", async () => {
       const response = await request(app.getHttpServer())
-        .put("/preferences")
+        .put("/api/preferences")
         .set("x-user-id", testUserId)
         .send({
           emailEnabled: false,
@@ -239,7 +239,7 @@ describe("Notification API (E2E)", () => {
 
       // Verify persisted
       const getResponse = await request(app.getHttpServer())
-        .get("/preferences")
+        .get("/api/preferences")
         .set("x-user-id", testUserId)
         .expect(200);
 
@@ -252,7 +252,7 @@ describe("Notification API (E2E)", () => {
   describe("POST /webhooks", () => {
     it("should register a webhook endpoint", async () => {
       const response = await request(app.getHttpServer())
-        .post("/webhooks")
+        .post("/api/webhooks")
         .set("x-internal-token", "internal-secret")
         .send({
           companyId: testCompanyId,
@@ -277,7 +277,7 @@ describe("Notification API (E2E)", () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get(`/webhooks/company/${testCompanyId}`)
+        .get(`/api/webhooks/company/${testCompanyId}`)
         .set("x-internal-token", "internal-secret")
         .expect(200);
 
@@ -296,7 +296,7 @@ describe("Notification API (E2E)", () => {
       });
 
       const response = await request(app.getHttpServer())
-        .delete(`/webhooks/${webhookId}`)
+        .delete(`/api/webhooks/${webhookId}`)
         .set("x-internal-token", "internal-secret")
         .expect(200);
 
