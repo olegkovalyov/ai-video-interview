@@ -1,0 +1,26 @@
+import * as Joi from "joi";
+
+export const envValidationSchema = Joi.object({
+  PORT: Joi.number().default(8006),
+  DATABASE_HOST: Joi.string().default("localhost"),
+  DATABASE_PORT: Joi.number().default(5432),
+  DATABASE_NAME: Joi.string().default("ai_video_interview_notification"),
+  DATABASE_USER: Joi.string().default("postgres"),
+  DATABASE_PASSWORD: Joi.string().default("postgres"),
+  SMTP_HOST: Joi.string().default("localhost"),
+  SMTP_PORT: Joi.number().default(1025),
+  SMTP_SECURE: Joi.string().default("false"),
+  SMTP_USER: Joi.string().optional().allow(""),
+  SMTP_PASSWORD: Joi.string().optional().allow(""),
+  SMTP_FROM: Joi.string().default("noreply@aiinterview.dev"),
+  FRONTEND_URL: Joi.string().default("http://localhost:3000"),
+  REDIS_HOST: Joi.string().default("localhost"),
+  REDIS_PORT: Joi.number().default(6379),
+  REDIS_PASSWORD: Joi.string().optional().allow(""),
+  KAFKA_BROKERS: Joi.string().default("localhost:9092"),
+  INTERNAL_SERVICE_TOKEN: Joi.string().default("internal-secret"),
+  LOKI_HOST: Joi.string().optional().allow(""),
+  JAEGER_ENDPOINT: Joi.string().default("http://localhost:14268/api/traces"),
+  LOG_LEVEL: Joi.string().default("info"),
+  NODE_ENV: Joi.string().default("development"),
+});

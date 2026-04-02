@@ -72,7 +72,9 @@
       "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''infra/observability/grafana/dashboards/logs-billing-service.json'',''utf8''\\)\\); console.log\\(''JSON valid''\\)\")",
       "Bash(node -e \"const yaml = require\\(''/Users/oleg/www/ai-video-interview/node_modules/yaml''\\); yaml.parse\\(require\\(''fs''\\).readFileSync\\(''infra/observability/rules/service-alerts.yml'',''utf8''\\)\\); console.log\\(''YAML valid''\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''/Users/oleg/www/ai-video-interview/infra/observability/grafana/dashboards/logs-billing-service.json'',''utf8''\\)\\); console.log\\(''Dashboard JSON valid''\\)\")",
-      "Bash(node -e \"const yaml = require\\(''/Users/oleg/www/ai-video-interview/node_modules/yaml''\\); const d = yaml.parse\\(require\\(''fs''\\).readFileSync\\(''/Users/oleg/www/ai-video-interview/infra/observability/rules/service-alerts.yml'',''utf8''\\)\\); console.log\\(''Alerts YAML valid, groups:'', d.groups.length, ''rules:'', d.groups.reduce\\(\\(s,g\\) => s + g.rules.length, 0\\)\\)\")"
+      "Bash(node -e \"const yaml = require\\(''/Users/oleg/www/ai-video-interview/node_modules/yaml''\\); const d = yaml.parse\\(require\\(''fs''\\).readFileSync\\(''/Users/oleg/www/ai-video-interview/infra/observability/rules/service-alerts.yml'',''utf8''\\)\\); console.log\\(''Alerts YAML valid, groups:'', d.groups.length, ''rules:'', d.groups.reduce\\(\\(s,g\\) => s + g.rules.length, 0\\)\\)\")",
+      "Bash(docker compose:*)",
+      "Bash(node -e \":*)"
     ],
     "deny": [
       "Bash(rm -rf /)*",

@@ -2,6 +2,7 @@
 export * from "./user.events";
 export * from "./analysis.events";
 export * from "./billing.events";
+export * from "./notification.events";
 
 // Common Kafka configuration
 export const KAFKA_CONFIG = {
@@ -44,6 +45,10 @@ export const KAFKA_TOPICS = {
   // Billing domain events from Billing Service
   BILLING_EVENTS: "billing-events",
   BILLING_EVENTS_DLQ: "billing-events-dlq",
+
+  // Notification domain events from Notification Service
+  NOTIFICATION_EVENTS: "notification-events",
+  NOTIFICATION_EVENTS_DLQ: "notification-events-dlq",
 
   // Analytics events
   USER_ANALYTICS: "user-analytics",
