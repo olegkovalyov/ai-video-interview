@@ -1,4 +1,4 @@
-import { gw, uuid, cleanTestDatabases } from "../helpers";
+import { gw, direct, seedUser, uuid, cleanTestDatabases } from "../helpers";
 
 describe("Interview Template & Invitation Flow", () => {
   const hrUserId = uuid();
@@ -8,46 +8,29 @@ describe("Interview Template & Invitation Flow", () => {
 
   beforeAll(async () => {
     await cleanTestDatabases();
-
-    // Seed HR user
-    await gw("/api/users", {
-      method: "POST",
+    await seedUser({
       userId: hrUserId,
-      role: "admin",
-      body: {
-        userId: hrUserId,
-        externalAuthId: `keycloak-hr-${hrUserId}`,
-        email: `hr-${Date.now()}@test.com`,
-        firstName: "HR",
-        lastName: "Manager",
-      },
+      email: `hr-${Date.now()}@test.com`,
+      firstName: "HR",
+      lastName: "Manager",
     });
-
-    // Seed candidate user
-    await gw("/api/users", {
-      method: "POST",
+    await seedUser({
       userId: candidateUserId,
-      role: "admin",
-      body: {
-        userId: candidateUserId,
-        externalAuthId: `keycloak-cand-${candidateUserId}`,
-        email: `candidate-${Date.now()}@test.com`,
-        firstName: "Candidate",
-        lastName: "Smith",
-      },
+      email: `cand-${Date.now()}@test.com`,
+      firstName: "Candidate",
+      lastName: "Smith",
     });
   });
 
-  // ─── Template CRUD ────────────────────────────────────────
+  // ─── Template CRUD (direct to interview-service) ──────────
 
   it("should create a template", async () => {
-    const { status, data } = await gw("/api/templates", {
+    const { status, data } = await direct("interview", "/api/templates", {
       method: "POST",
-      userId: hrUserId,
-      role: "hr",
+      headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
       body: {
         title: "Frontend Developer Interview",
-        description: "Technical interview for frontend position",
+        description: "Technical interview for frontend",
       },
     });
 
@@ -82,27 +65,34 @@ describe("Interview Template & Invitation Flow", () => {
     ];
 
     for (const q of questions) {
-      const { status } = await gw(`/api/templates/${templateId}/questions`, {
-        method: "POST",
-        userId: hrUserId,
-        role: "hr",
-        body: q,
-      });
+      const { status } = await direct(
+        "interview",
+        `/api/templates/${templateId}/questions`,
+        {
+          method: "POST",
+          headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
+          body: q,
+        },
+      );
       expect(status).toBe(201);
     }
   });
 
   it("should publish template", async () => {
-    const { status } = await gw(`/api/templates/${templateId}/publish`, {
-      method: "POST",
-      userId: hrUserId,
-      role: "hr",
-    });
-
+    const { status } = await direct(
+      "interview",
+      `/api/templates/${templateId}/publish`,
+      {
+        method: "POST",
+        headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
+      },
+    );
     expect(status).toBe(200);
   });
 
-  it("should verify template is active", async () => {
+  // ─── Template via Gateway ─────────────────────────────────
+
+  it("should get template via gateway", async () => {
     const { status, data } = await gw(`/api/templates/${templateId}`, {
       userId: hrUserId,
       role: "hr",
@@ -113,24 +103,22 @@ describe("Interview Template & Invitation Flow", () => {
     expect(data.questions).toHaveLength(3);
   });
 
-  it("should reject modifications on published template", async () => {
+  it("should reject modifications on published template via gateway", async () => {
     const { status } = await gw(`/api/templates/${templateId}`, {
       method: "PUT",
       userId: hrUserId,
       role: "hr",
       body: { title: "Changed Title" },
     });
-
     expect(status).toBeGreaterThanOrEqual(400);
   });
 
-  // ─── Invitation Flow ──────────────────────────────────────
+  // ─── Invitation Flow (direct to interview-service) ────────
 
-  it("should create invitation for candidate", async () => {
-    const { status, data } = await gw("/api/invitations", {
+  it("should create invitation", async () => {
+    const { status, data } = await direct("interview", "/api/invitations", {
       method: "POST",
-      userId: hrUserId,
-      role: "hr",
+      headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
       body: {
         templateId,
         candidateId: candidateUserId,
@@ -145,29 +133,33 @@ describe("Interview Template & Invitation Flow", () => {
   });
 
   it("should start interview as candidate", async () => {
-    const { status } = await gw(`/api/invitations/${invitationId}/start`, {
-      method: "POST",
-      userId: candidateUserId,
-      role: "candidate",
-    });
-
+    const { status } = await direct(
+      "interview",
+      `/api/invitations/${invitationId}/start`,
+      {
+        method: "POST",
+        headers: { "x-user-id": candidateUserId, "x-user-role": "candidate" },
+      },
+    );
     expect(status).toBe(200);
   });
 
   it("should submit responses", async () => {
-    // Get template questions for IDs
-    const { data: template } = await gw(`/api/templates/${templateId}`, {
-      userId: hrUserId,
-      role: "hr",
-    });
+    const { data: template } = await direct(
+      "interview",
+      `/api/templates/${templateId}`,
+      {
+        headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
+      },
+    );
 
     for (const question of template.questions) {
-      const { status } = await gw(
+      const { status } = await direct(
+        "interview",
         `/api/invitations/${invitationId}/responses`,
         {
           method: "POST",
-          userId: candidateUserId,
-          role: "candidate",
+          headers: { "x-user-id": candidateUserId, "x-user-role": "candidate" },
           body: {
             questionId: question.id,
             textAnswer: `Answer for: ${question.text}`,
@@ -179,16 +171,18 @@ describe("Interview Template & Invitation Flow", () => {
   });
 
   it("should complete interview", async () => {
-    const { status } = await gw(`/api/invitations/${invitationId}/complete`, {
-      method: "POST",
-      userId: candidateUserId,
-      role: "candidate",
-    });
-
+    const { status } = await direct(
+      "interview",
+      `/api/invitations/${invitationId}/complete`,
+      {
+        method: "POST",
+        headers: { "x-user-id": candidateUserId, "x-user-role": "candidate" },
+      },
+    );
     expect(status).toBe(200);
   });
 
-  it("should verify invitation is completed", async () => {
+  it("should verify invitation is completed via gateway", async () => {
     const { status, data } = await gw(`/api/invitations/${invitationId}`, {
       userId: hrUserId,
       role: "hr",

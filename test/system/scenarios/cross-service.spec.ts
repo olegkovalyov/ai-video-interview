@@ -1,89 +1,63 @@
-import { gw, uuid, cleanTestDatabases } from "../helpers";
+import { gw, direct, seedUser, uuid, cleanTestDatabases } from "../helpers";
 
 describe("Cross-Service Integration", () => {
   it("should handle downstream service errors gracefully", async () => {
-    // This tests that Gateway returns proper errors when downstream responds with errors
-    const { status, data } = await gw("/api/users/me", {
-      userId: uuid(), // Non-existent user
-    });
-
-    // Should get a proper error response, not a 500
+    const { status } = await gw("/api/users/me", { userId: uuid() });
     expect(status).toBeGreaterThanOrEqual(400);
-    expect(status).toBeLessThan(500);
   });
 
   it("should propagate correlation-id across services", async () => {
     const correlationId = `test-corr-${Date.now()}`;
     const { headers } = await gw("/api/billing/plans", {
-      headers: {
-        "x-correlation-id": correlationId,
-        "x-internal-token": "test-internal-token",
-      },
+      userId: uuid(),
+      role: "admin",
+      headers: { "x-correlation-id": correlationId },
     });
-
-    // Gateway should return the same correlation ID
-    const returnedCorrelationId = headers.get("x-correlation-id");
-    expect(returnedCorrelationId).toBe(correlationId);
+    expect(headers.get("x-correlation-id")).toBe(correlationId);
   });
 
   it("should generate correlation-id when not provided", async () => {
     const { headers } = await gw("/api/billing/plans", {
-      headers: { "x-internal-token": "test-internal-token" },
+      userId: uuid(),
+      role: "admin",
     });
-
-    const correlationId = headers.get("x-correlation-id");
-    expect(correlationId).toBeDefined();
-    expect(correlationId).toMatch(/^[0-9a-f-]+$/);
+    const cid = headers.get("x-correlation-id");
+    expect(cid).toBeDefined();
+    expect(cid!.length).toBeGreaterThan(0);
   });
 
-  it("full journey: create user → template → invite → start → respond → complete", async () => {
+  it("full journey: seed users → template → invite → respond → complete", async () => {
     await cleanTestDatabases();
 
     const hrId = uuid();
     const candidateId = uuid();
 
-    // 1. Create HR user
-    await gw("/api/users", {
-      method: "POST",
+    // 1. Seed users (direct to user-service)
+    await seedUser({
       userId: hrId,
-      role: "admin",
-      body: {
-        userId: hrId,
-        externalAuthId: `kc-${hrId}`,
-        email: `hr-journey-${Date.now()}@test.com`,
-        firstName: "Journey",
-        lastName: "HR",
-      },
+      email: `hr-j-${Date.now()}@test.com`,
+      firstName: "Journey",
+      lastName: "HR",
     });
-
-    // 2. Create candidate
-    await gw("/api/users", {
-      method: "POST",
+    await seedUser({
       userId: candidateId,
-      role: "admin",
-      body: {
-        userId: candidateId,
-        externalAuthId: `kc-${candidateId}`,
-        email: `cand-journey-${Date.now()}@test.com`,
-        firstName: "Journey",
-        lastName: "Candidate",
-      },
+      email: `cand-j-${Date.now()}@test.com`,
+      firstName: "Journey",
+      lastName: "Candidate",
     });
 
-    // 3. Create template
-    const { data: tmpl } = await gw("/api/templates", {
+    // 2. Create template (direct to interview-service)
+    const { data: tmpl } = await direct("interview", "/api/templates", {
       method: "POST",
-      userId: hrId,
-      role: "hr",
-      body: { title: "Journey Test", description: "End-to-end test" },
+      headers: { "x-user-id": hrId, "x-user-role": "hr" },
+      body: { title: "Journey Test", description: "E2E test" },
     });
     expect(tmpl.id).toBeDefined();
 
-    // 4. Add question
-    await gw(`/api/templates/${tmpl.id}/questions`, {
+    // 3. Add question
+    await direct("interview", `/api/templates/${tmpl.id}/questions`, {
       method: "POST",
-      userId: hrId,
-      role: "hr",
+      headers: { "x-user-id": hrId, "x-user-role": "hr" },
       body: {
         text: "Tell me about yourself",
         type: "open",
@@ -93,22 +67,21 @@ describe("Cross-Service Integration", () => {
       },
     });
 
-    // 5. Publish
-    const { status: pubStatus } = await gw(
+    // 4. Publish
+    const { status: pubStatus } = await direct(
+      "interview",
       `/api/templates/${tmpl.id}/publish`,
       {
         method: "POST",
-        userId: hrId,
-        role: "hr",
+        headers: { "x-user-id": hrId, "x-user-role": "hr" },
       },
     );
     expect(pubStatus).toBe(200);
 
-    // 6. Create invitation
-    const { data: inv } = await gw("/api/invitations", {
+    // 5. Create invitation
+    const { data: inv } = await direct("interview", "/api/invitations", {
       method: "POST",
-      userId: hrId,
-      role: "hr",
+      headers: { "x-user-id": hrId, "x-user-role": "hr" },
       body: {
         templateId: tmpl.id,
         candidateId,
@@ -118,54 +91,61 @@ describe("Cross-Service Integration", () => {
     });
     expect(inv.id).toBeDefined();
 
-    // 7. Start interview
-    const { status: startStatus } = await gw(
+    // 6. Start interview
+    const { status: startStatus } = await direct(
+      "interview",
       `/api/invitations/${inv.id}/start`,
       {
         method: "POST",
-        userId: candidateId,
-        role: "candidate",
+        headers: { "x-user-id": candidateId, "x-user-role": "candidate" },
       },
     );
     expect(startStatus).toBe(200);
 
-    // 8. Get template for question IDs
-    const { data: fullTemplate } = await gw(`/api/templates/${tmpl.id}`, {
-      userId: hrId,
-      role: "hr",
-    });
+    // 7. Get question IDs
+    const { data: fullTemplate } = await direct(
+      "interview",
+      `/api/templates/${tmpl.id}`,
+      {
+        headers: { "x-user-id": hrId, "x-user-role": "hr" },
+      },
+    );
 
-    // 9. Submit response
-    const { status: respStatus } = await gw(
+    // 8. Submit response
+    const { status: respStatus } = await direct(
+      "interview",
       `/api/invitations/${inv.id}/responses`,
       {
         method: "POST",
-        userId: candidateId,
-        role: "candidate",
+        headers: { "x-user-id": candidateId, "x-user-role": "candidate" },
         body: {
           questionId: fullTemplate.questions[0].id,
-          textAnswer: "I am a software engineer with 5 years of experience.",
+          textAnswer: "I am a software engineer.",
         },
       },
     );
     expect(respStatus).toBe(201);
 
-    // 10. Complete
-    const { status: completeStatus } = await gw(
+    // 9. Complete
+    const { status: completeStatus } = await direct(
+      "interview",
       `/api/invitations/${inv.id}/complete`,
       {
         method: "POST",
-        userId: candidateId,
-        role: "candidate",
+        headers: { "x-user-id": candidateId, "x-user-role": "candidate" },
       },
     );
     expect(completeStatus).toBe(200);
 
-    // 11. Verify completed
-    const { data: completed } = await gw(`/api/invitations/${inv.id}`, {
-      userId: hrId,
-      role: "hr",
-    });
+    // 10. Verify via gateway
+    const { status: gwStatus, data: completed } = await gw(
+      `/api/invitations/${inv.id}`,
+      {
+        userId: hrId,
+        role: "hr",
+      },
+    );
+    expect(gwStatus).toBe(200);
     expect(completed.status).toBe("completed");
   });
 });

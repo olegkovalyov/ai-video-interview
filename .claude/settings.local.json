@@ -106,7 +106,22 @@
       "Bash(sed -i '' 's/imports: \\\\[CqrsModule, DatabaseModule\\\\],/imports: [CqrsModule, DatabaseModule, EmailModule, RealtimeModule],/' apps/notification-service/src/application/application.module.ts)",
       "Bash(kill 15904 15905 15906 15907 15908 16257)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d[''''status'''']\\); [print\\(f''''  {k}: {v[\"\"status\"\"]}''''\\) for k,v in d.get\\(''''services'''',{}\\).items\\(\\)]\")",
-      "Bash(pkill -f \"nest start\")"
+      "Bash(pkill -f \"nest start\")",
+      "Bash(pkill -f 'nest start')",
+      "Bash(python3 -c \"import sys,json; print\\(json.load\\(sys.stdin\\).get\\(''''service'''',''''unknown''''\\)\\)\")",
+      "Bash(for name:*)",
+      "Read(//tmp/**)",
+      "Bash(echo $INTERNAL_SERVICE_TOKEN)",
+      "Bash(echo \"INTERNAL_SERVICE_TOKEN=$INTERNAL_SERVICE_TOKEN\")",
+      "Bash(pkill -f ts-node)",
+      "Bash(do lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(done sleep:*)",
+      "Bash(USER_ID=\"aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeee01\" echo \"=== CREATE USER ===\" curl -s -X POST http://localhost:9002/users -H \"Content-Type: application/json\" -H \"x-internal-token: test-internal-token\" -H \"x-internal-request: true\" -H \"x-user-id: system\" -H \"x-user-role: admin\" -d \"{\"\"userId\"\":\"\"$USER_ID\"\",\"\"externalAuthId\"\":\"\"kc-test-01\"\",\"\"email\"\":\"\"sysuser01@test.com\"\",\"\"firstName\"\":\"\"Sys\"\",\"\"lastName\"\":\"\"Test\"\"}\" 2)",
+      "Bash(1 __NEW_LINE_9595a77499b886a5__ echo \"\" echo \"=== GET USER ===\" curl -s http://localhost:9002/users/$USER_ID -H \"x-internal-token: test-internal-token\" -H \"x-internal-request: true\" -H \"x-user-id: $USER_ID\" -H \"x-user-role: admin\")",
+      "Bash(echo \"=== Gateway → user-service ===\" curl -s -H \"x-internal-token: test-internal-token\" -H \"x-user-id: $USER_ID\" -H \"x-user-role: hr\" http://localhost:9010/api/users/me 2)",
+      "Bash(1 __NEW_LINE_48abd51ea9540365__ echo \"\" echo \"=== Gateway → user-service PUT ===\" curl -s -X PUT -H \"Content-Type: application/json\" -H \"x-internal-token: test-internal-token\" -H \"x-user-id: $USER_ID\" -H \"x-user-role: hr\" -d '{\"\"\"\"firstName\"\"\"\":\"\"\"\"Updated\"\"\"\"}' http://localhost:9010/api/users/me)",
+      "Bash(echo \"Direct GET /users/$USER_ID:\" curl -s http://localhost:9002/users/$USER_ID -H \"x-internal-request: true\" -H \"x-internal-token: test-internal-token\" -H \"x-user-id: $USER_ID\" -H \"x-user-role: admin\")"
     ],
     "deny": [
       "Bash(rm -rf /)*",

@@ -2,6 +2,13 @@ import { SYSTEM_CONFIG } from "./config";
 
 const GW = SYSTEM_CONFIG.gateway;
 const MAILPIT = SYSTEM_CONFIG.mailpitApi;
+const SERVICES = {
+  user: "http://localhost:9002",
+  interview: "http://localhost:9003",
+  analysis: "http://localhost:9005",
+  billing: "http://localhost:9007",
+  notification: "http://localhost:9006",
+};
 
 // ─── HTTP helpers ────────────────────────────────────────────
 
@@ -44,6 +51,65 @@ export async function gw(
   }
 
   return { status: res.status, data, headers: res.headers };
+}
+
+// ─── Direct service call (bypass gateway, for seeding) ───────
+
+export async function direct(
+  service: keyof typeof SERVICES,
+  path: string,
+  options: RequestOptions = {},
+): Promise<{ status: number; data: any }> {
+  const { method = "GET", body } = options;
+  const baseUrl = SERVICES[service];
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-internal-token": "test-internal-token",
+    "x-internal-request": "true",
+    "x-user-id": "system",
+    "x-user-role": "admin",
+    ...options.headers,
+  };
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+  return { status: res.status, data };
+}
+
+// ─── Seed helpers (direct to services) ───────────────────────
+
+export async function seedUser(data: {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role?: string;
+  externalAuthId?: string;
+}): Promise<string> {
+  const { status, data: result } = await direct("user", "/users", {
+    method: "POST",
+    body: {
+      userId: data.userId,
+      externalAuthId: data.externalAuthId || `kc-${data.userId}`,
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+    },
+  });
+  if (status >= 400)
+    throw new Error(`seedUser failed (${status}): ${JSON.stringify(result)}`);
+  return data.userId;
 }
 
 // ─── Polling helper ──────────────────────────────────────────
