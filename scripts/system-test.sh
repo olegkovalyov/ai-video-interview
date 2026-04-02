@@ -118,7 +118,7 @@ start_service "interview-service" 9003 "apps/interview-service" \
   "DATABASE_NAME=ai_video_interview_interview_test"
 
 start_service "ai-analysis-service" 9005 "apps/ai-analysis-service" \
-  "DATABASE_NAME=ai_video_interview_analysis_test GROQ_API_KEY="
+  "DATABASE_NAME=ai_video_interview_analysis_test GROQ_API_KEY=$(grep GROQ_API_KEY apps/ai-analysis-service/.env 2>/dev/null | cut -d= -f2)"
 
 start_service "billing-service" 9007 "apps/billing-service" \
   "DATABASE_NAME=ai_video_interview_billing_test STRIPE_SECRET_KEY=sk_test_fake STRIPE_WEBHOOK_SECRET=whsec_fake"

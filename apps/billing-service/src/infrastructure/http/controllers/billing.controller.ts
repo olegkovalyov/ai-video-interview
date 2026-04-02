@@ -56,7 +56,7 @@ import { Public } from "../decorators/public.decorator";
   description: "User role (hr, admin)",
   required: true,
 })
-@Controller()
+@Controller("api/billing")
 @ApiBearerAuth()
 export class BillingController {
   constructor(

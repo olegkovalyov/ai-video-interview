@@ -3,6 +3,8 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { CommandHandlers } from "./commands";
 import { QueryHandlers } from "./queries";
 import { DatabaseModule } from "../infrastructure/persistence/database.module";
+import { EmailModule } from "../infrastructure/email/email.module";
+import { RealtimeModule } from "../infrastructure/realtime/realtime.module";
 
 /**
  * Application Module
@@ -12,7 +14,7 @@ import { DatabaseModule } from "../infrastructure/persistence/database.module";
  * This allows integration tests to run without Redis/BullMQ dependency
  */
 @Module({
-  imports: [CqrsModule, DatabaseModule],
+  imports: [CqrsModule, DatabaseModule, EmailModule, RealtimeModule],
   providers: [...CommandHandlers, ...QueryHandlers],
   exports: [CqrsModule],
 })

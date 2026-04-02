@@ -98,7 +98,15 @@
       "Bash(sed -i '' 's/imports: \\\\[ConfigModule, KafkaModule, StripeModule\\\\],/imports: [ConfigModule, CqrsModule, KafkaModule, StripeModule],/' /Users/oleg/www/ai-video-interview/apps/billing-service/src/infrastructure/http/http.module.ts)",
       "Bash(sed -i '' '1s/^/import { CqrsModule } from \"\"@nestjs\\\\/cqrs\"\";\\\\n/' /Users/oleg/www/ai-video-interview/apps/notification-service/src/infrastructure/http/http.module.ts)",
       "Bash(sed -i '' 's/imports: \\\\[ConfigModule, KafkaModule\\\\],/imports: [ConfigModule, CqrsModule, KafkaModule],/' /Users/oleg/www/ai-video-interview/apps/notification-service/src/infrastructure/http/http.module.ts)",
-      "Bash(kill 3286 3287 8670 10467)"
+      "Bash(kill 3286 3287 8670 10467)",
+      "Bash(sed -i '' 's/@Controller\\(\"\"notifications\"\"\\)/@Controller\\(\"\"api\\\\/notifications\"\"\\)/' /Users/oleg/www/ai-video-interview/apps/notification-service/src/infrastructure/http/controllers/notification.controller.ts)",
+      "Bash(sed -i '' 's/@Controller\\(\"\"preferences\"\"\\)/@Controller\\(\"\"api\\\\/preferences\"\"\\)/' /Users/oleg/www/ai-video-interview/apps/notification-service/src/infrastructure/http/controllers/preferences.controller.ts)",
+      "Bash(sed -i '' 's/@Controller\\(\"\"webhooks\"\"\\)/@Controller\\(\"\"api\\\\/webhooks\"\"\\)/' /Users/oleg/www/ai-video-interview/apps/notification-service/src/infrastructure/http/controllers/webhook.controller.ts)",
+      "Bash(sed -i '' 's/import { DatabaseModule } from \"\"..\\\\/infrastructure\\\\/persistence\\\\/database.module\"\";/import { DatabaseModule } from \"\"..\\\\/infrastructure\\\\/persistence\\\\/database.module\"\";\\\\nimport { EmailModule } from \"\"..\\\\/infrastructure\\\\/email\\\\/email.module\"\";\\\\nimport { RealtimeModule } from \"\"..\\\\/infrastructure\\\\/realtime\\\\/realtime.module\"\";/' apps/notification-service/src/application/application.module.ts)",
+      "Bash(sed -i '' 's/imports: \\\\[CqrsModule, DatabaseModule\\\\],/imports: [CqrsModule, DatabaseModule, EmailModule, RealtimeModule],/' apps/notification-service/src/application/application.module.ts)",
+      "Bash(kill 15904 15905 15906 15907 15908 16257)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d[''''status'''']\\); [print\\(f''''  {k}: {v[\"\"status\"\"]}''''\\) for k,v in d.get\\(''''services'''',{}\\).items\\(\\)]\")",
+      "Bash(pkill -f \"nest start\")"
     ],
     "deny": [
       "Bash(rm -rf /)*",

@@ -22,7 +22,9 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@repo/shared": ["../../packages/shared/src"]
+      "@repo/shared": [
+        "../../packages/shared/src"
+      ]
     }
   }
 }

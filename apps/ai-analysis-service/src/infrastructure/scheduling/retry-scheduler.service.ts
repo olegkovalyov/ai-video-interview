@@ -34,7 +34,7 @@ export class RetrySchedulerService {
       if (failedAnalyses.length === 0) return;
 
       const retryableAnalyses = failedAnalyses.filter((analysis) => {
-        const retryCount = analysis.metadata?.retryCount ?? 0;
+        const retryCount = (analysis as any).metadata?.retryCount ?? 0;
         if (retryCount >= MAX_AUTO_RETRIES) return false;
 
         const failedAt = analysis.updatedAt;

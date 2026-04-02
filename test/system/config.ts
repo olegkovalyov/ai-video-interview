@@ -46,7 +46,7 @@ export const SYSTEM_CONFIG = {
       env: {
         PORT: "9005",
         DATABASE_NAME: "ai_video_interview_analysis_test",
-        GROQ_API_KEY: "", // No real LLM in system tests
+        GROQ_API_KEY: process.env.GROQ_API_KEY || "",
       },
     },
     "billing-service": {

@@ -12,7 +12,7 @@ import { MarkNotificationReadCommand } from "../../../application/commands/mark-
 
 @ApiTags("notifications")
 @ApiBearerAuth()
-@Controller("notifications")
+@Controller("api/notifications")
 export class NotificationController {
   constructor(
     private readonly commandBus: CommandBus,

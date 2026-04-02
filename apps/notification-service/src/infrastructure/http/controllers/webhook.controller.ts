@@ -22,7 +22,7 @@ import { InternalServiceGuard } from "../guards/internal-service.guard";
 @ApiTags("webhooks")
 @ApiSecurity("internal-token")
 @UseGuards(InternalServiceGuard)
-@Controller("webhooks")
+@Controller("api/webhooks")
 export class WebhookController {
   constructor(
     private readonly commandBus: CommandBus,

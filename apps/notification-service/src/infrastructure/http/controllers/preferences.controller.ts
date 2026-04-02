@@ -12,7 +12,7 @@ import { UpdatePreferencesDto } from "../../../application/dto/notification.requ
 
 @ApiTags("preferences")
 @ApiBearerAuth()
-@Controller("preferences")
+@Controller("api/preferences")
 export class PreferencesController {
   constructor(
     private readonly commandBus: CommandBus,

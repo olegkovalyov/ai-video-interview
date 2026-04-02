@@ -15,7 +15,7 @@ import { Public } from "../decorators/public.decorator";
 import type { IStripeService } from "../../../application/interfaces/stripe-service.interface";
 
 @ApiTags("webhooks")
-@Controller("webhooks")
+@Controller("api/billing/webhooks")
 export class WebhookController {
   constructor(
     @Inject("IStripeService")
