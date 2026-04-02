@@ -21,7 +21,8 @@ export class UsageTrackingConsumer implements OnModuleInit {
   async onModuleInit() {
     try {
       // Subscribe to interview events
-      await this.kafkaService.subscribe(
+      // Non-blocking subscribe
+      this.kafkaService.subscribe(
         KAFKA_TOPICS.INTERVIEW_EVENTS,
         "billing-service-interview",
         async (message) => {
@@ -35,7 +36,8 @@ export class UsageTrackingConsumer implements OnModuleInit {
       );
 
       // Subscribe to analysis events
-      await this.kafkaService.subscribe(
+      // Non-blocking subscribe
+      this.kafkaService.subscribe(
         KAFKA_TOPICS.ANALYSIS_EVENTS,
         "billing-service-analysis",
         async (message) => {

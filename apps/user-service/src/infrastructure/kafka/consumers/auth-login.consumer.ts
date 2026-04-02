@@ -20,7 +20,8 @@ export class AuthLoginConsumer implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.kafkaService.subscribe(
+    // Non-blocking — don't await to avoid blocking app.listen()
+    this.kafkaService.subscribe(
       KAFKA_TOPICS.AUTH_EVENTS,
       'user-service-auth-login-consumer',
       async (message) => {
@@ -65,9 +66,12 @@ export class AuthLoginConsumer implements OnModuleInit {
     const externalAuthId = event.payload?.externalAuthId;
 
     if (!externalAuthId) {
-      this.logger.warn('Missing externalAuthId in user.authenticated event payload', {
-        event,
-      });
+      this.logger.warn(
+        'Missing externalAuthId in user.authenticated event payload',
+        {
+          event,
+        },
+      );
       return;
     }
 

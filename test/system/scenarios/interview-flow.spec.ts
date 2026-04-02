@@ -43,21 +43,21 @@ describe("Interview Template & Invitation Flow", () => {
     const questions = [
       {
         text: "What is React?",
-        type: "open",
+        type: "text",
         order: 1,
         timeLimit: 120,
         required: true,
       },
       {
         text: "Explain CSS Grid",
-        type: "open",
+        type: "text",
         order: 2,
         timeLimit: 120,
         required: true,
       },
       {
         text: "What is TypeScript?",
-        type: "open",
+        type: "text",
         order: 3,
         timeLimit: 120,
         required: true,
@@ -83,7 +83,7 @@ describe("Interview Template & Invitation Flow", () => {
       "interview",
       `/api/templates/${templateId}/publish`,
       {
-        method: "POST",
+        method: "PUT",
         headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
       },
     );
@@ -153,8 +153,9 @@ describe("Interview Template & Invitation Flow", () => {
       },
     );
 
-    for (const question of template.questions) {
-      const { status } = await direct(
+    for (let i = 0; i < template.questions.length; i++) {
+      const question = template.questions[i];
+      const { status, data } = await direct(
         "interview",
         `/api/invitations/${invitationId}/responses`,
         {
@@ -162,10 +163,15 @@ describe("Interview Template & Invitation Flow", () => {
           headers: { "x-user-id": candidateUserId, "x-user-role": "candidate" },
           body: {
             questionId: question.id,
+            questionIndex: i,
+            questionText: question.text,
+            responseType: "text",
             textAnswer: `Answer for: ${question.text}`,
+            duration: 30,
           },
         },
       );
+      if (status !== 201) console.log("Submit response error:", data);
       expect(status).toBe(201);
     }
   });

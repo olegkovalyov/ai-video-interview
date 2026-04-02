@@ -66,7 +66,8 @@ export class InvitationCompletedConsumer implements OnModuleInit {
   async onModuleInit() {
     this.logger.log('Subscribing to interview-events topic...');
 
-    await this.kafkaService.subscribe(
+    // Non-blocking subscribe
+      this.kafkaService.subscribe(
       KAFKA_TOPICS.INTERVIEW_EVENTS,
       'ai-analysis-service-invitation-consumer',
       async (message) => {

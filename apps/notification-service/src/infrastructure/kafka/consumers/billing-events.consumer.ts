@@ -15,7 +15,8 @@ export class BillingEventsConsumer implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      await this.kafkaService.subscribe(
+      // Non-blocking subscribe
+      this.kafkaService.subscribe(
         KAFKA_TOPICS.BILLING_EVENTS,
         "notification-service-billing",
         async (message) => {

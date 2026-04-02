@@ -20,7 +20,8 @@ export class UserCreatedConsumer implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      await this.kafkaService.subscribe(
+      // Non-blocking subscribe
+      this.kafkaService.subscribe(
         KAFKA_TOPICS.USER_EVENTS,
         "billing-service-user",
         async (message) => {

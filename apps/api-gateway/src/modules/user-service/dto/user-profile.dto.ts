@@ -1,50 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 /**
  * DTO for updating user profile (PUT /api/users/me)
  */
 export class UpdateProfileDto {
-  @ApiProperty({
-    description: 'First name',
-    example: 'John',
-    required: false,
-  })
+  @ApiProperty({ description: 'First name', example: 'John', required: false })
+  @IsOptional()
+  @IsString()
   firstName?: string;
 
-  @ApiProperty({
-    description: 'Last name',
-    example: 'Doe',
-    required: false,
-  })
+  @ApiProperty({ description: 'Last name', example: 'Doe', required: false })
+  @IsOptional()
+  @IsString()
   lastName?: string;
-
-  @ApiProperty({
-    description: 'Full name',
-    example: 'John Doe',
-    required: false,
-  })
-  fullName?: string;
 
   @ApiProperty({
     description: 'Phone number',
     example: '+1234567890',
     required: false,
   })
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @ApiProperty({
     description: 'Bio/description',
-    example: 'Software Engineer with 5 years of experience',
+    example: 'Software Engineer',
     required: false,
   })
+  @IsOptional()
+  @IsString()
   bio?: string;
 
   @ApiProperty({
-    description: 'Avatar URL',
-    example: 'https://example.com/avatar.jpg',
+    description: 'Timezone',
+    example: 'Europe/Kiev',
     required: false,
   })
-  avatarUrl?: string;
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @ApiProperty({ description: 'Language', example: 'en', required: false })
+  @IsOptional()
+  @IsString()
+  language?: string;
 }
 
 /**
@@ -78,7 +79,10 @@ export class UserProfileResponseDto {
   @ApiProperty({ example: 'John Doe' })
   fullName: string;
 
-  @ApiProperty({ enum: ['candidate', 'hr', 'admin', 'pending'], example: 'candidate' })
+  @ApiProperty({
+    enum: ['candidate', 'hr', 'admin', 'pending'],
+    example: 'candidate',
+  })
   role: string;
 
   @ApiProperty({ example: 'active' })

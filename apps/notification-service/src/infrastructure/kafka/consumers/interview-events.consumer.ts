@@ -15,7 +15,8 @@ export class InterviewEventsConsumer implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      await this.kafkaService.subscribe(
+      // Non-blocking subscribe
+      this.kafkaService.subscribe(
         KAFKA_TOPICS.INTERVIEW_EVENTS,
         "notification-service-interview",
         async (message) => {

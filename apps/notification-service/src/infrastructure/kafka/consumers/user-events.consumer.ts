@@ -15,7 +15,8 @@ export class UserEventsConsumer implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      await this.kafkaService.subscribe(
+      // Non-blocking subscribe
+      this.kafkaService.subscribe(
         KAFKA_TOPICS.USER_EVENTS,
         "notification-service-user",
         async (message) => {

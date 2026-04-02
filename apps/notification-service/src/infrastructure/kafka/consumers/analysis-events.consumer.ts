@@ -15,7 +15,8 @@ export class AnalysisEventsConsumer implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      await this.kafkaService.subscribe(
+      // Non-blocking subscribe
+      this.kafkaService.subscribe(
         KAFKA_TOPICS.ANALYSIS_EVENTS,
         "notification-service-analysis",
         async (message) => {

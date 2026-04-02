@@ -60,7 +60,7 @@ describe("Cross-Service Integration", () => {
       headers: { "x-user-id": hrId, "x-user-role": "hr" },
       body: {
         text: "Tell me about yourself",
-        type: "open",
+        type: "text",
         order: 1,
         timeLimit: 60,
         required: true,
@@ -72,7 +72,7 @@ describe("Cross-Service Integration", () => {
       "interview",
       `/api/templates/${tmpl.id}/publish`,
       {
-        method: "POST",
+        method: "PUT",
         headers: { "x-user-id": hrId, "x-user-role": "hr" },
       },
     );
@@ -120,7 +120,11 @@ describe("Cross-Service Integration", () => {
         headers: { "x-user-id": candidateId, "x-user-role": "candidate" },
         body: {
           questionId: fullTemplate.questions[0].id,
+          questionIndex: 0,
+          questionText: fullTemplate.questions[0].text,
+          responseType: "text",
           textAnswer: "I am a software engineer.",
+          duration: 30,
         },
       },
     );
