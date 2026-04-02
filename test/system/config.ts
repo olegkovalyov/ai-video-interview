@@ -5,8 +5,8 @@
 export const SYSTEM_CONFIG = {
   services: {
     "api-gateway": {
-      port: 9001,
-      healthUrl: "http://localhost:9001/health",
+      port: 9010,
+      healthUrl: "http://localhost:9010/health",
       dir: "apps/api-gateway",
       env: {
         PORT: "9001",
@@ -87,7 +87,7 @@ export const SYSTEM_CONFIG = {
     LOG_LEVEL: "warn",
   },
 
-  gateway: "http://localhost:9001",
+  gateway: "http://localhost:9010",
   mailpitApi: "http://localhost:8025/api/v1",
 
   timeouts: {

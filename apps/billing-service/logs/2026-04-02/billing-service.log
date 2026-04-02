@@ -1,0 +1,48 @@
+{"action":"startup","environment":"test","level":"info","message":"Billing Service starting up","nodeEnv":"test","port":"9007","service":"billing-service","timestamp":"2026-04-02T16:22:24.396Z","version":"0.0.1"}
+{"environment":"test","level":"info","message":"Subscribed to user-events for user.created","service":"billing-service","timestamp":"2026-04-02T16:22:27.447Z","version":"0.0.1"}
+{"environment":"test","level":"info","message":"Subscribed to interview-events and analysis-events for usage tracking","service":"billing-service","timestamp":"2026-04-02T16:22:30.480Z","version":"0.0.1"}
+{"context":"NestFactory","environment":"test","level":"info","message":"Starting Nest application...","service":"billing-service","timestamp":"2026-04-02T16:22:30.495Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"LoggerModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.495Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"TypeOrmModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"ConfigHostModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"DiscoveryModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"MetricsModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"AppModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"ConfigModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"ConfigModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"ScheduleModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"BullModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"CqrsModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"KafkaModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"BullModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"CacheModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"StripeModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"BullModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"BullModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"TypeOrmCoreModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.496Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"HttpModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"TypeOrmModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"TypeOrmModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"DatabaseModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"MessagingModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"InstanceLoader","environment":"test","level":"info","message":"ApplicationModule dependencies initialized","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RoutesResolver","environment":"test","level":"info","message":"HealthController {/health}:","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/health, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/health/ready, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/health/live, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RoutesResolver","environment":"test","level":"info","message":"BillingController {/}:","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/subscription, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/checkout, POST} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/portal, POST} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/cancel, POST} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/resume, POST} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/usage, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/plans, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/invoices, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/internal/quota/:companyId/:resource, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RoutesResolver","environment":"test","level":"info","message":"WebhookController {/webhooks}:","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/webhooks/stripe, POST} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RoutesResolver","environment":"test","level":"info","message":"MetricsController {/metrics}:","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"RouterExplorer","environment":"test","level":"info","message":"Mapped {/metrics, GET} route","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"context":"NestApplication","environment":"test","level":"info","message":"Nest application successfully started","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","version":"0.0.1"}
+{"action":"startup_complete","docsUrl":"http://localhost:9007/api/docs","environment":"test","level":"info","message":"Billing Service successfully started","port":"9007","service":"billing-service","timestamp":"2026-04-02T16:22:30.497Z","url":"http://localhost:9007","version":"0.0.1"}

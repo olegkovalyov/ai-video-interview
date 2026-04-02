@@ -127,7 +127,7 @@ start_service "notification-service" 9006 "apps/notification-service" \
   "DATABASE_NAME=ai_video_interview_notification_test SMTP_HOST=localhost SMTP_PORT=1025"
 
 # Start API Gateway last (depends on others)
-start_service "api-gateway" 9001 "apps/api-gateway" \
+start_service "api-gateway" 9010 "apps/api-gateway" \
   "USER_SERVICE_URL=http://localhost:9002 INTERVIEW_SERVICE_URL=http://localhost:9003 ANALYSIS_SERVICE_URL=http://localhost:9005 BILLING_SERVICE_URL=http://localhost:9007 NOTIFICATION_SERVICE_URL=http://localhost:9006 KEYCLOAK_URL=http://localhost:8090 KEYCLOAK_REALM=ai-video-interview KEYCLOAK_CLIENT_ID=test-client"
 
 echo ""
@@ -160,7 +160,7 @@ wait_for_service "interview-service" "http://localhost:9003/health" || FAILED=1
 wait_for_service "billing-service" "http://localhost:9007/health" || FAILED=1
 wait_for_service "notification-service" "http://localhost:9006/health" || FAILED=1
 wait_for_service "ai-analysis-service" "http://localhost:9005/health" || FAILED=1
-wait_for_service "api-gateway" "http://localhost:9001/health" || FAILED=1
+wait_for_service "api-gateway" "http://localhost:9010/health" || FAILED=1
 
 if [ $FAILED -eq 1 ]; then
   echo -e "\n${RED}Some services failed to start. Check logs in /tmp/system-test-*.log${NC}"

@@ -1,3 +1,4 @@
+import { CqrsModule } from "@nestjs/cqrs";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { HealthController } from "./controllers/health.controller";
@@ -8,7 +9,7 @@ import { InternalServiceGuard } from "./guards/internal-service.guard";
 import { KafkaModule } from "../kafka/kafka.module";
 
 @Module({
-  imports: [ConfigModule, KafkaModule],
+  imports: [ConfigModule, CqrsModule, KafkaModule],
   controllers: [
     HealthController,
     NotificationController,

@@ -1,3 +1,4 @@
+import { CqrsModule } from "@nestjs/cqrs";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { HealthController } from "./controllers/health.controller";
@@ -8,7 +9,7 @@ import { KafkaModule } from "../kafka/kafka.module";
 import { StripeModule } from "../stripe/stripe.module";
 
 @Module({
-  imports: [ConfigModule, KafkaModule, StripeModule],
+  imports: [ConfigModule, CqrsModule, KafkaModule, StripeModule],
   controllers: [HealthController, BillingController, WebhookController],
   providers: [InternalServiceGuard],
   exports: [InternalServiceGuard],

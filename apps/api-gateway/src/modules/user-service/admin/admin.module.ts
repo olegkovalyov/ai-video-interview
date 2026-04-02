@@ -55,6 +55,7 @@ import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-br
   ],
   exports: [
     KeycloakUserService, // Export for RegistrationSaga
+    OrphanedUsersService, // Export for RegistrationSaga compensation
     KeycloakRoleService, // Export for UsersController
     UserOrchestrationSaga,
     UserServiceClient,

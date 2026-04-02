@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { CqrsModule } from "@nestjs/cqrs";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { KafkaService } from "@repo/shared";
 import { LoggerModule } from "../logger/logger.module";
@@ -15,7 +16,7 @@ import { BillingEventsConsumer } from "./consumers/billing-events.consumer";
  * Consumers: user-events, interview-events, analysis-events, billing-events
  */
 @Module({
-  imports: [ConfigModule, LoggerModule],
+  imports: [ConfigModule, CqrsModule, LoggerModule],
   providers: [
     {
       provide: "KAFKA_CONFIG",

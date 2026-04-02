@@ -91,7 +91,14 @@
       "Bash(sed -i '' '/\"\"\"\"rxjs\"\"\"\"/d' apps/billing-service/package.json apps/notification-service/package.json)",
       "Bash(rm -rf apps/billing-service/node_modules apps/notification-service/node_modules)",
       "Bash(npm ls:*)",
-      "Bash(kill 81757 82050 93243)"
+      "Bash(kill 81757 82050 93243)",
+      "Bash(sed -i '' 's/import { Module } from \"\"@nestjs\\\\/common\"\";/import { Module } from \"\"@nestjs\\\\/common\"\";\\\\nimport { CqrsModule } from \"\"@nestjs\\\\/cqrs\"\";/' apps/notification-service/src/infrastructure/kafka/kafka.module.ts)",
+      "Bash(sed -i '' 's/imports: \\\\[ConfigModule, LoggerModule\\\\],/imports: [ConfigModule, CqrsModule, LoggerModule],/' apps/notification-service/src/infrastructure/kafka/kafka.module.ts)",
+      "Bash(sed -i '' '1s/^/import { CqrsModule } from \"\"@nestjs\\\\/cqrs\"\";\\\\n/' /Users/oleg/www/ai-video-interview/apps/billing-service/src/infrastructure/http/http.module.ts)",
+      "Bash(sed -i '' 's/imports: \\\\[ConfigModule, KafkaModule, StripeModule\\\\],/imports: [ConfigModule, CqrsModule, KafkaModule, StripeModule],/' /Users/oleg/www/ai-video-interview/apps/billing-service/src/infrastructure/http/http.module.ts)",
+      "Bash(sed -i '' '1s/^/import { CqrsModule } from \"\"@nestjs\\\\/cqrs\"\";\\\\n/' /Users/oleg/www/ai-video-interview/apps/notification-service/src/infrastructure/http/http.module.ts)",
+      "Bash(sed -i '' 's/imports: \\\\[ConfigModule, KafkaModule\\\\],/imports: [ConfigModule, CqrsModule, KafkaModule],/' /Users/oleg/www/ai-video-interview/apps/notification-service/src/infrastructure/http/http.module.ts)",
+      "Bash(kill 3286 3287 8670 10467)"
     ],
     "deny": [
       "Bash(rm -rf /)*",

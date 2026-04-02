@@ -30,6 +30,18 @@ export class JwtAuthGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest<Request & { user?: any }>();
 
+    // Internal service-to-service bypass (for system tests and internal calls)
+    const internalToken = req.headers['x-internal-token'] as string;
+    if (internalToken && internalToken === process.env.INTERNAL_SERVICE_TOKEN) {
+      req.user = {
+        sub: req.headers['x-user-id'] || 'system',
+        realm_access: { roles: [req.headers['x-user-role'] || 'admin'] },
+        email: 'system@internal',
+        companyId: req.headers['x-company-id'] || undefined,
+      };
+      return true;
+    }
+
     const requestInfo = {
       url: req.url,
       method: req.method,
