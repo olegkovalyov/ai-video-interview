@@ -33,12 +33,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Logs
-logs/*.log
-apps/*/logs/*.log
-apps/*/logs/archive/*.log
-apps/*/logs/archive/*.json
-apps/*/logs/*.json
+# Logs (recursive — covers date-based subdirs like logs/2026-04-02/)
+logs/
+apps/*/logs/**
 !apps/*/logs/.gitkeep
 
 # Runtime data (local development)
@@ -50,6 +47,9 @@ apps/*/logs/*.json
 
 # Development plans (personal notes)
 docs/plan/
+
+# Claude Code local settings
+.claude/settings.local.json
 
 # AI agent skills (installed via npx skills)
 .agents/
