@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -24,29 +24,15 @@ import { BULL_QUEUE } from '../constants';
     // BullMQ Configuration
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const redisConfig = {
+      useFactory: (configService: ConfigService) => ({
+        connection: {
           host: configService.get('REDIS_HOST', 'localhost'),
           port: parseInt(configService.get('REDIS_PORT', '6379'), 10),
-        };
-        
-        const password = configService.get('REDIS_PASSWORD');
-        if (password) {
-          redisConfig['password'] = password;
-        }
-        
-        return {
-          redis: {
-            ...redisConfig,
-            maxRetriesPerRequest: null, // Required for BullMQ
-            enableReadyCheck: false,    // Skip ready check for faster startup
-            retryStrategy: (times: number) => {
-              if (times > 10) return null; // Stop after 10 retries
-              return Math.min(times * 50, 2000); // Max 2s between retries
-            },
-          },
-        } as any; // Type workaround for @nestjs/bull compatibility
-      },
+          ...(configService.get('REDIS_PASSWORD')
+            ? { password: configService.get('REDIS_PASSWORD') }
+            : {}),
+        },
+      }),
       inject: [ConfigService],
     }),
 
@@ -76,10 +62,6 @@ import { BULL_QUEUE } from '../constants';
     OutboxSchedulerService,
   ],
 
-  exports: [
-    BullModule,
-    OutboxService,
-    'IOutboxService',
-  ],
+  exports: [BullModule, OutboxService, 'IOutboxService'],
 })
 export class MessagingModule {}

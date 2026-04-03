@@ -32,7 +32,7 @@ describe("WebhookProcessor", () => {
       },
     } as any;
 
-    await processor.handleWebhook(job);
+    await processor.process(job);
 
     expect(commandBus.execute).toHaveBeenCalledWith(
       expect.any(ProcessStripeWebhookCommand),
@@ -49,7 +49,7 @@ describe("WebhookProcessor", () => {
       },
     } as any;
 
-    await processor.handleWebhook(job);
+    await processor.process(job);
 
     const command = commandBus.execute.mock.calls[0][0];
     expect(command.rawBody).toBe("webhook-raw-body");
@@ -68,9 +68,7 @@ describe("WebhookProcessor", () => {
       },
     } as any;
 
-    await expect(processor.handleWebhook(job)).rejects.toThrow(
-      "Processing failed",
-    );
+    await expect(processor.process(job)).rejects.toThrow("Processing failed");
   });
 
   it("should log info on successful processing", async () => {
@@ -83,7 +81,7 @@ describe("WebhookProcessor", () => {
       },
     } as any;
 
-    await processor.handleWebhook(job);
+    await processor.process(job);
 
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining("Processing Stripe webhook"),
@@ -113,7 +111,7 @@ describe("WebhookProcessor", () => {
       },
     } as any;
 
-    await expect(processor.handleWebhook(job)).rejects.toThrow("Boom");
+    await expect(processor.process(job)).rejects.toThrow("Boom");
 
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining("Stripe webhook processing failed"),

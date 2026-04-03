@@ -49,7 +49,9 @@ export class TemplateRendererService implements OnModuleInit {
   }
 
   render(templateName: string, data: Record<string, unknown>): string {
-    const template = this.templates.get(templateName);
+    // Normalize: underscores → dashes to match file names (e.g., interview_completed → interview-completed)
+    const normalizedName = templateName.replace(/_/g, "-");
+    const template = this.templates.get(normalizedName);
 
     if (!template) {
       throw new Error(`Email template not found: ${templateName}`);
@@ -65,6 +67,7 @@ export class TemplateRendererService implements OnModuleInit {
   }
 
   hasTemplate(templateName: string): boolean {
-    return this.templates.has(templateName);
+    const normalizedName = templateName.replace(/_/g, "-");
+    return this.templates.has(normalizedName);
   }
 }

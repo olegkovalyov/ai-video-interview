@@ -67,6 +67,7 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
         USER_EVENT_TYPES.ROLE_SELECTED,
         {
           userId: user.id,
+          companyId: user.id, // userId as companyId until separate company entity exists
           externalAuthId: user.externalAuthId,
           email: user.email.value,
           role: user.role.toString(),
@@ -78,7 +79,7 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
     });
 
     // 4. After commit: publish domain events (internal)
-    user.getUncommittedEvents().forEach(event => {
+    user.getUncommittedEvents().forEach((event) => {
       this.eventBus.publish(event);
     });
     user.clearEvents();

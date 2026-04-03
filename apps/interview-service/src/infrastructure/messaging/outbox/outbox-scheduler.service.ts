@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
-import { InjectQueue } from '@nestjs/bull';
-import type { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 import {
   BULL_QUEUE,
@@ -28,7 +28,8 @@ export class OutboxSchedulerService {
   constructor(
     @InjectRepository(OutboxEntity)
     private readonly outboxRepository: Repository<OutboxEntity>,
-    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER) private readonly outboxQueue: Queue,
+    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER)
+    private readonly outboxQueue: Queue,
     private readonly logger: LoggerService,
   ) {}
 
@@ -71,7 +72,9 @@ export class OutboxSchedulerService {
             if (error.message?.includes('job already exists')) {
               continue;
             }
-            this.logger.error(`Failed to queue event ${event.eventId}: ${error.message}`);
+            this.logger.error(
+              `Failed to queue event ${event.eventId}: ${error.message}`,
+            );
           }
         }
       }
@@ -99,7 +102,9 @@ export class OutboxSchedulerService {
       });
 
       if (stuckEvents.length > 0) {
-        this.logger.warn(`Found ${stuckEvents.length} stuck outbox events, resetting to pending`);
+        this.logger.warn(
+          `Found ${stuckEvents.length} stuck outbox events, resetting to pending`,
+        );
 
         for (const event of stuckEvents) {
           event.status = OUTBOX_STATUS.PENDING;
@@ -108,7 +113,10 @@ export class OutboxSchedulerService {
         }
       }
     } catch (error) {
-      this.logger.error(`Stuck event recovery failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Stuck event recovery failed: ${error.message}`,
+        error.stack,
+      );
     }
   }
 

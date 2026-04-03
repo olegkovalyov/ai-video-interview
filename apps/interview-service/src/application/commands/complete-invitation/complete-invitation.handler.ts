@@ -62,8 +62,9 @@ export class CompleteInvitationHandler
 
     // Build outbox payload with full data for AI Analysis Service
     const responseData = invitation.responses.map((r) => ({
+      id: r.id,
       questionId: r.questionId,
-      text: r.getAnswer() || '',
+      textAnswer: r.getAnswer() || '',
       duration: r.duration,
     }));
 
@@ -77,6 +78,12 @@ export class CompleteInvitationHandler
       language: template.settings?.language || 'en',
       questions,
       responses: responseData,
+      hrUserId: invitation.invitedBy,
+      hrEmail: invitation.hrEmail,
+      hrName: invitation.hrName,
+      candidateName: invitation.candidateName,
+      candidateEmail: invitation.candidateEmail,
+      responseCount: invitation.responses.length,
     };
 
     // Atomic write: save aggregate + outbox event in single transaction

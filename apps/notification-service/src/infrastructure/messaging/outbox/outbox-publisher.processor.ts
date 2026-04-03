@@ -1,16 +1,11 @@
-import { Processor, Process } from "@nestjs/bull";
-import type { Job } from "bull";
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import type { Job } from "bullmq";
 import { Injectable, Inject } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { KafkaService, KAFKA_TOPICS, injectTraceContext } from "@repo/shared";
 import { OutboxEntity } from "../../persistence/entities/outbox.entity";
-import {
-  BULL_QUEUE,
-  BULL_JOB,
-  OUTBOX_STATUS,
-  OUTBOX_CONFIG,
-} from "../../constants";
+import { BULL_QUEUE, OUTBOX_STATUS, OUTBOX_CONFIG } from "../../constants";
 import { LoggerService } from "../../logger/logger.service";
 
 /**
@@ -23,21 +18,21 @@ import { LoggerService } from "../../logger/logger.service";
  *
  * ALL notification-service events go to KAFKA_TOPICS.NOTIFICATION_EVENTS.
  */
-@Processor(BULL_QUEUE.OUTBOX_PUBLISHER)
+@Processor(BULL_QUEUE.OUTBOX_PUBLISHER, {
+  concurrency: OUTBOX_CONFIG.PUBLISHER_CONCURRENCY,
+})
 @Injectable()
-export class OutboxPublisherProcessor {
+export class OutboxPublisherProcessor extends WorkerHost {
   constructor(
     @InjectRepository(OutboxEntity)
     private readonly outboxRepository: Repository<OutboxEntity>,
     @Inject("KAFKA_SERVICE") private readonly kafkaService: KafkaService,
     private readonly logger: LoggerService,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Process({
-    name: BULL_JOB.PUBLISH_OUTBOX_EVENT,
-    concurrency: OUTBOX_CONFIG.PUBLISHER_CONCURRENCY,
-  })
-  async publishOutboxEvent(job: Job) {
+  async process(job: Job) {
     const { eventId } = job.data;
 
     this.logger.info(`Publishing outbox event: ${eventId}`);

@@ -48,7 +48,9 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     }
 
     // Check by email too
-    const existingByEmail = await this.userRepository.findByEmail(command.email);
+    const existingByEmail = await this.userRepository.findByEmail(
+      command.email,
+    );
     if (existingByEmail) {
       throw new UserAlreadyExistsException(command.email);
     }
@@ -72,6 +74,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
         USER_EVENT_TYPES.CREATED,
         {
           userId: user.id,
+          companyId: user.id, // userId as companyId until separate company entity exists
           externalAuthId: user.externalAuthId,
           email: user.email.value,
           firstName: user.fullName.firstName,
@@ -86,7 +89,7 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand> {
     });
 
     // 5. After commit: publish domain events (internal)
-    user.getUncommittedEvents().forEach(event => {
+    user.getUncommittedEvents().forEach((event) => {
       this.eventBus.publish(event);
     });
     user.clearEvents();

@@ -1,6 +1,13 @@
-import { gw, direct, seedUser, uuid, cleanTestDatabases } from "../helpers";
+import {
+  gw,
+  direct,
+  seedUser,
+  uuid,
+  cleanTestDatabases,
+  waitForAsyncDrain,
+} from "../../helpers";
 
-describe("Interview Template & Invitation Flow", () => {
+describe("[02-interview-lifecycle] Template → Publish → Invite → Respond → Complete", () => {
   const hrUserId = uuid();
   const candidateUserId = uuid();
   let templateId: string;
@@ -123,6 +130,10 @@ describe("Interview Template & Invitation Flow", () => {
         templateId,
         candidateId: candidateUserId,
         companyName: "TechCorp",
+        candidateEmail: "cand-lifecycle@test.com",
+        candidateName: "Candidate Smith",
+        hrEmail: "hr-lifecycle@test.com",
+        hrName: "HR Manager",
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       },
     });
@@ -196,5 +207,9 @@ describe("Interview Template & Invitation Flow", () => {
 
     expect(status).toBe(200);
     expect(data.status).toBe("completed");
+  });
+
+  afterAll(async () => {
+    await waitForAsyncDrain();
   });
 });

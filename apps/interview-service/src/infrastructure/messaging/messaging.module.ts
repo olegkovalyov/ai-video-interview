@@ -1,5 +1,5 @@
 import { Module, Global } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -13,12 +13,12 @@ import { BULL_QUEUE } from '../constants';
 
 /**
  * Messaging Module
- * Handles OUTBOX pattern with Bull workers.
+ * Handles OUTBOX pattern with BullMQ workers.
  *
  * Provides:
  * - OutboxService (concrete class for DI resolution)
  * - 'IOutboxService' token (for application-layer injection via useExisting)
- * - OutboxPublisherProcessor (Bull job processor)
+ * - OutboxPublisherProcessor (BullMQ worker)
  * - OutboxSchedulerService (cron-based recovery for stuck events)
  */
 @Global()
@@ -27,32 +27,18 @@ import { BULL_QUEUE } from '../constants';
     // Kafka module (provides KAFKA_SERVICE)
     KafkaModule,
 
-    // Bull Configuration
+    // BullMQ Configuration
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const redisConfig = {
+      useFactory: (configService: ConfigService) => ({
+        connection: {
           host: configService.get('REDIS_HOST', 'localhost'),
           port: parseInt(configService.get('REDIS_PORT', '6379'), 10),
-        };
-
-        const password = configService.get('REDIS_PASSWORD');
-        if (password) {
-          redisConfig['password'] = password;
-        }
-
-        return {
-          redis: {
-            ...redisConfig,
-            maxRetriesPerRequest: null, // Required for Bull
-            enableReadyCheck: false, // Skip ready check for faster startup
-            retryStrategy: (times: number) => {
-              if (times > 10) return null; // Stop after 10 retries
-              return Math.min(times * 50, 2000); // Max 2s between retries
-            },
-          },
-        } as any; // Type workaround for @nestjs/bull compatibility
-      },
+          ...(configService.get('REDIS_PASSWORD')
+            ? { password: configService.get('REDIS_PASSWORD') }
+            : {}),
+        },
+      }),
       inject: [ConfigService],
     }),
 
@@ -83,10 +69,6 @@ import { BULL_QUEUE } from '../constants';
     OutboxSchedulerService,
   ],
 
-  exports: [
-    BullModule,
-    OutboxService,
-    'IOutboxService',
-  ],
+  exports: [BullModule, OutboxService, 'IOutboxService'],
 })
 export class MessagingModule {}

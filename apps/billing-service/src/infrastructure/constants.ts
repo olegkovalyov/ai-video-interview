@@ -15,7 +15,7 @@ export const OUTBOX_STATUS = {
 export type OutboxStatus = (typeof OUTBOX_STATUS)[keyof typeof OUTBOX_STATUS];
 
 export const BULL_QUEUE = {
-  OUTBOX_PUBLISHER: "outbox-publisher",
+  OUTBOX_PUBLISHER: "billing-outbox-publisher",
 } as const;
 
 export const BULL_JOB = {

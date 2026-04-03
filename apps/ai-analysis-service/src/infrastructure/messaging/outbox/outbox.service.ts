@@ -1,8 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { InjectQueue } from "@nestjs/bull";
-import type { Queue } from "bull";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { v4 as uuid } from "uuid";
 import { OutboxEntity } from "../../persistence/entities/outbox.entity";
 import {

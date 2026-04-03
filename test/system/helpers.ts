@@ -122,10 +122,25 @@ export async function poll<T>(
   const interval = options.interval || SYSTEM_CONFIG.timeouts.asyncPoll;
   const label = options.label || "poll";
   const start = Date.now();
+  let attempts = 0;
 
   while (Date.now() - start < timeout) {
+    attempts++;
     const result = await fn();
-    if (result) return result;
+    if (result) {
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(
+        `    ⏱ ${label}: resolved in ${elapsed}s (${attempts} polls)`,
+      );
+      return result;
+    }
+    // Log progress every 10 seconds
+    if (attempts % Math.ceil(10000 / interval) === 0) {
+      const elapsed = ((Date.now() - start) / 1000).toFixed(0);
+      console.log(
+        `    ⏳ ${label}: waiting... ${elapsed}s / ${(timeout / 1000).toFixed(0)}s`,
+      );
+    }
     await new Promise((r) => setTimeout(r, interval));
   }
 
@@ -156,6 +171,10 @@ export async function clearMailbox(): Promise<void> {
 // ─── DB cleanup ──────────────────────────────────────────────
 
 export async function cleanTestDatabases(): Promise<void> {
+  await Promise.all([cleanPostgres(), clearMailbox().catch(() => {})]);
+}
+
+async function cleanPostgres(): Promise<void> {
   const { Client } = await import("pg");
 
   const databases = [
@@ -178,10 +197,11 @@ export async function cleanTestDatabases(): Promise<void> {
     try {
       await client.connect();
 
-      // Get all tables except migrations
+      // Get all tables except migrations and processed_events (idempotency — survives between tests)
       const { rows } = await client.query(`
         SELECT tablename FROM pg_tables
-        WHERE schemaname = 'public' AND tablename != 'migrations'
+        WHERE schemaname = 'public'
+          AND tablename NOT IN ('migrations', 'processed_events')
       `);
 
       if (rows.length > 0) {
@@ -194,9 +214,107 @@ export async function cleanTestDatabases(): Promise<void> {
       await client.end();
     }
   }
+}
 
-  // Clear Mailpit
-  await clearMailbox().catch(() => {});
+async function cleanRedis(): Promise<void> {
+  try {
+    const Redis = (await import("ioredis")).default;
+    const redis = new Redis({ host: "localhost", port: 6379 });
+
+    // Delete all BullMQ queue keys (jobs, metadata, etc.)
+    const keys = await redis.keys("bull:*");
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+
+    await redis.quit();
+  } catch {
+    // Redis might not be available
+  }
+}
+
+// ─── Async drain (wait for all Kafka/outbox/analysis to finish) ─
+
+/**
+ * Waits until all async pipelines have finished processing.
+ * Call this in afterAll() of test categories that trigger Kafka events.
+ *
+ * Checks:
+ * 1. All outbox tables have no pending/publishing events
+ * 2. No in-progress analyses in ai-analysis DB
+ */
+export async function waitForAsyncDrain(
+  options: { timeout?: number } = {},
+): Promise<void> {
+  const timeout = options.timeout || 30000;
+  const { Client } = await import("pg");
+
+  const outboxDatabases = [
+    "ai_video_interview_user_test",
+    "ai_video_interview_interview_test",
+    "ai_video_interview_analysis_test",
+    "ai_video_interview_billing_test",
+    "ai_video_interview_notification_test",
+  ];
+
+  await poll(
+    async () => {
+      // Check 1: all outbox tables drained
+      for (const dbName of outboxDatabases) {
+        const client = new Client({
+          host: "localhost",
+          port: 5432,
+          user: "postgres",
+          password: "postgres",
+          database: dbName,
+        });
+        try {
+          await client.connect();
+          const { rows } = await client.query(
+            `SELECT COUNT(*) as cnt FROM outbox WHERE status IN ('pending', 'publishing')`,
+          );
+          const pending = parseInt(rows[0]?.cnt || "0");
+          if (pending > 0) {
+            return null; // still processing
+          }
+        } catch {
+          // Table might not exist — ok
+        } finally {
+          await client.end();
+        }
+      }
+
+      // Check 2: no in-progress analyses
+      const analysisClient = new Client({
+        host: "localhost",
+        port: 5432,
+        user: "postgres",
+        password: "postgres",
+        database: "ai_video_interview_analysis_test",
+      });
+      try {
+        await analysisClient.connect();
+        const { rows } = await analysisClient.query(
+          `SELECT COUNT(*) as cnt FROM analysis_results WHERE status = 'in_progress'`,
+        );
+        const inProgress = parseInt(rows[0]?.cnt || "0");
+        if (inProgress > 0) {
+          return null; // analysis still running
+        }
+      } catch {
+        // Table might not exist
+      } finally {
+        await analysisClient.end();
+      }
+
+      return true; // all clear
+    },
+    { timeout, interval: 1000, label: "async drain" },
+  ).catch(() => {
+    console.warn(
+      "⚠️ waitForAsyncDrain timed out — some async ops may still be running",
+    );
+  });
 }
 
 // ─── UUID helper ─────────────────────────────────────────────

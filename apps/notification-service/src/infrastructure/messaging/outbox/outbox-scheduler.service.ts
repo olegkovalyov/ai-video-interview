@@ -2,8 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, LessThan, MoreThan } from "typeorm";
-import { InjectQueue } from "@nestjs/bull";
-import type { Queue } from "bull";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { OutboxEntity } from "../../persistence/entities/outbox.entity";
 import {
   BULL_QUEUE,

@@ -1,6 +1,13 @@
-import { gw, direct, seedUser, uuid, cleanTestDatabases } from "../helpers";
+import {
+  gw,
+  direct,
+  seedUser,
+  uuid,
+  cleanTestDatabases,
+  waitForAsyncDrain,
+} from "../../helpers";
 
-describe("User Service Flow", () => {
+describe("[01-sync-http] User CRUD via Gateway", () => {
   beforeAll(async () => {
     await cleanTestDatabases();
   });
@@ -43,9 +50,10 @@ describe("User Service Flow", () => {
 
   it("should handle non-existent user via gateway", async () => {
     const { status } = await gw("/api/users/me", { userId: uuid() });
-
-    // Gateway AuthErrorInterceptor maps proxy errors to 400
-    // This is expected behavior — not a standard 404
     expect(status).toBeGreaterThanOrEqual(400);
+  });
+
+  afterAll(async () => {
+    await waitForAsyncDrain();
   });
 });

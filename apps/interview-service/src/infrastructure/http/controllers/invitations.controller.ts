@@ -107,6 +107,10 @@ export class InvitationsController {
       new Date(dto.expiresAt),
       dto.allowPause ?? true,
       dto.showTimer ?? true,
+      dto.candidateEmail,
+      dto.candidateName,
+      dto.hrEmail,
+      dto.hrName,
     );
 
     const invitationId = await this.commandBus.execute(command);

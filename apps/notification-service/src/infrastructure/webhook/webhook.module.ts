@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { BullModule } from "@nestjs/bull";
+import { BullModule } from "@nestjs/bullmq";
 import { CqrsModule } from "@nestjs/cqrs";
 import { WebhookDeliveryProcessor } from "./webhook-delivery.processor";
 import { BULL_QUEUE } from "../constants";

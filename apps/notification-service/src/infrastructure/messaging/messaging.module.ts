@@ -1,5 +1,5 @@
 import { Module, Global } from "@nestjs/common";
-import { BullModule } from "@nestjs/bull";
+import { BullModule } from "@nestjs/bullmq";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -19,27 +19,17 @@ import { BULL_QUEUE } from "../constants";
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        const redisConfig = {
-          host: configService.get("REDIS_HOST", "localhost"),
-          port: parseInt(configService.get("REDIS_PORT", "6379"), 10),
-        };
-
+        const host = configService.get("REDIS_HOST", "localhost");
+        const port = parseInt(configService.get("REDIS_PORT", "6379"), 10);
         const password = configService.get("REDIS_PASSWORD");
-        if (password) {
-          redisConfig["password"] = password;
-        }
 
         return {
-          redis: {
-            ...redisConfig,
-            maxRetriesPerRequest: null,
-            enableReadyCheck: false,
-            retryStrategy: (times: number) => {
-              if (times > 10) return null;
-              return Math.min(times * 50, 2000);
-            },
+          connection: {
+            host,
+            port,
+            ...(password ? { password } : {}),
           },
-        } as any;
+        };
       },
       inject: [ConfigService],
     }),

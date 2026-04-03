@@ -374,14 +374,61 @@ export class AnalyzeInterviewHandler
         );
         continue;
       }
+
+      // Build payload matching shared AnalysisCompletedEvent/AnalysisFailedEvent contract
+      const payload = this.buildEventPayload(event, eventType, analysis);
+
       await this.eventPublisher.publish({
         eventId: event.eventId,
         eventType,
         aggregateId: event.aggregateId,
         occurredAt: event.occurredAt,
-        payload: { ...event },
+        payload,
       });
     }
     analysis.clearEvents();
+  }
+
+  private buildEventPayload(
+    event: any,
+    eventType: string,
+    analysis: AnalysisResult,
+  ): Record<string, unknown> {
+    const base = {
+      analysisId: analysis.id,
+      invitationId: analysis.invitationId,
+      candidateId: analysis.candidateId,
+      templateId: analysis.templateId,
+      templateTitle: analysis.templateTitle,
+      companyName: analysis.companyName,
+    };
+
+    if (eventType === "analysis.completed") {
+      return {
+        ...base,
+        status: "completed",
+        overallScore: analysis.overallScore?.value ?? null,
+        recommendation: analysis.recommendation?.value ?? null,
+        questionsAnalyzed: analysis.questionAnalyses.length,
+        processingTimeMs: analysis.metadata?.processingTimeMs ?? 0,
+        totalTokensUsed: analysis.metadata?.totalTokensUsed ?? 0,
+      };
+    }
+
+    if (eventType === "analysis.failed") {
+      return {
+        ...base,
+        status: "failed",
+        overallScore: null,
+        recommendation: null,
+        questionsAnalyzed: 0,
+        processingTimeMs: 0,
+        totalTokensUsed: 0,
+        errorMessage: event.errorMessage,
+      };
+    }
+
+    // Default: spread event for other types (analysis.started)
+    return { ...event };
   }
 }

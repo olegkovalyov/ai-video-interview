@@ -8,8 +8,8 @@ import {
   Inject,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { InjectQueue } from "@nestjs/bull";
-import type { Queue } from "bull";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { LoggerService } from "../../logger/logger.service";
 import { Public } from "../decorators/public.decorator";
 import type { IStripeService } from "../../../application/interfaces/stripe-service.interface";

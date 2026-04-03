@@ -42,14 +42,13 @@ export class UserCreatedConsumer implements OnModuleInit {
   private async handleUserCreated(event: any): Promise<void> {
     const { payload } = event;
 
-    // Only create subscription for HR users (they represent companies)
-    if (payload?.role !== "hr" && payload?.roles?.includes?.("hr") !== true) {
-      return;
-    }
-
-    const companyId = payload?.companyId;
+    // Create free subscription for every new user
+    // Uses userId as companyId until separate company entity exists
+    const companyId = payload?.companyId || payload?.userId;
     if (!companyId) {
-      this.logger.warn("user.created event missing companyId, skipping");
+      this.logger.warn(
+        "user.created event missing companyId and userId, skipping",
+      );
       return;
     }
 

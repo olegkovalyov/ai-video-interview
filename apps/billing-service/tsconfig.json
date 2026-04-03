@@ -1,4 +1,7 @@
 {
+  "ts-node": {
+    "transpileOnly": true
+  },
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
@@ -22,9 +25,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@repo/shared": [
-        "../../packages/shared/src"
-      ]
+      "@repo/shared": ["../../packages/shared/src"]
     }
   }
 }

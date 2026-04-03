@@ -17,7 +17,9 @@ import { InterviewTemplateEntity } from './interview-template.entity';
 @Index('idx_invitations_invited_by', ['invitedBy'])
 @Index('idx_invitations_template_id', ['templateId'])
 @Index('idx_invitations_status', ['status'])
-@Index('idx_invitations_candidate_template', ['candidateId', 'templateId'], { unique: true })
+@Index('idx_invitations_candidate_template', ['candidateId', 'templateId'], {
+  unique: true,
+})
 export class InvitationEntity {
   @PrimaryColumn('uuid')
   id: string;
@@ -33,6 +35,28 @@ export class InvitationEntity {
 
   @Column({ name: 'invited_by', type: 'uuid' })
   invitedBy: string;
+
+  @Column({
+    name: 'candidate_email',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  candidateEmail: string | null;
+
+  @Column({
+    name: 'candidate_name',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  candidateName: string | null;
+
+  @Column({ name: 'hr_email', type: 'varchar', length: 255, nullable: true })
+  hrEmail: string | null;
+
+  @Column({ name: 'hr_name', type: 'varchar', length: 200, nullable: true })
+  hrName: string | null;
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
   status: string; // 'pending' | 'in_progress' | 'completed' | 'expired'
@@ -55,7 +79,12 @@ export class InvitationEntity {
   @Column({ name: 'last_activity_at', type: 'timestamp', nullable: true })
   lastActivityAt: Date | null;
 
-  @Column({ name: 'completed_reason', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'completed_reason',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   completedReason: string | null; // 'manual' | 'auto_timeout' | 'expired'
 
   @Column({ name: 'total_questions', type: 'int' })
@@ -65,13 +94,23 @@ export class InvitationEntity {
   @Column({ name: 'analysis_id', type: 'uuid', nullable: true })
   analysisId: string | null;
 
-  @Column({ name: 'analysis_status', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'analysis_status',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   analysisStatus: string | null; // 'pending' | 'in_progress' | 'completed' | 'failed'
 
   @Column({ name: 'analysis_score', type: 'int', nullable: true })
   analysisScore: number | null;
 
-  @Column({ name: 'analysis_recommendation', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'analysis_recommendation',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   analysisRecommendation: string | null; // 'hire' | 'consider' | 'reject'
 
   @Column({ name: 'analysis_completed_at', type: 'timestamp', nullable: true })

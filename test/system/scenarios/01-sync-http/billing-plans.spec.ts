@@ -1,6 +1,6 @@
-import { gw, direct, uuid, cleanTestDatabases } from "../helpers";
+import { gw, direct, uuid, cleanTestDatabases } from "../../helpers";
 
-describe("Billing & Quota Flow", () => {
+describe("[01-sync-http] Billing Plans & Quota", () => {
   beforeAll(async () => {
     await cleanTestDatabases();
   });

@@ -4,7 +4,7 @@ module.exports = {
   rootDir: '.',
   testRegex: 'test/e2e/.*\\.e2e-spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
   },
   transformIgnorePatterns: ['node_modules/(?!(jose)/)'],
   testEnvironment: 'node',

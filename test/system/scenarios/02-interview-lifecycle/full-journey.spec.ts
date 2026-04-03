@@ -1,31 +1,13 @@
-import { gw, direct, seedUser, uuid, cleanTestDatabases } from "../helpers";
+import {
+  gw,
+  direct,
+  seedUser,
+  uuid,
+  cleanTestDatabases,
+  waitForAsyncDrain,
+} from "../../helpers";
 
-describe("Cross-Service Integration", () => {
-  it("should handle downstream service errors gracefully", async () => {
-    const { status } = await gw("/api/users/me", { userId: uuid() });
-    expect(status).toBeGreaterThanOrEqual(400);
-  });
-
-  it("should propagate correlation-id across services", async () => {
-    const correlationId = `test-corr-${Date.now()}`;
-    const { headers } = await gw("/api/billing/plans", {
-      userId: uuid(),
-      role: "admin",
-      headers: { "x-correlation-id": correlationId },
-    });
-    expect(headers.get("x-correlation-id")).toBe(correlationId);
-  });
-
-  it("should generate correlation-id when not provided", async () => {
-    const { headers } = await gw("/api/billing/plans", {
-      userId: uuid(),
-      role: "admin",
-    });
-    const cid = headers.get("x-correlation-id");
-    expect(cid).toBeDefined();
-    expect(cid!.length).toBeGreaterThan(0);
-  });
-
+describe("[02-interview-lifecycle] Full Journey: seed → template → invite → respond → complete → verify", () => {
   it("full journey: seed users → template → invite → respond → complete", async () => {
     await cleanTestDatabases();
 
@@ -86,6 +68,10 @@ describe("Cross-Service Integration", () => {
         templateId: tmpl.id,
         candidateId,
         companyName: "TestCorp",
+        candidateEmail: "journey-cand@test.com",
+        candidateName: "Journey Candidate",
+        hrEmail: "journey-hr@test.com",
+        hrName: "Journey HR",
         expiresAt: new Date(Date.now() + 86400000).toISOString(),
       },
     });
@@ -151,5 +137,9 @@ describe("Cross-Service Integration", () => {
     );
     expect(gwStatus).toBe(200);
     expect(completed.status).toBe("completed");
+  });
+
+  afterAll(async () => {
+    await waitForAsyncDrain();
   });
 });

@@ -1,18 +1,19 @@
-import { Process, Processor } from "@nestjs/bull";
-import type { Job } from "bull";
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import type { Job } from "bullmq";
 import { CommandBus } from "@nestjs/cqrs";
 import { ProcessStripeWebhookCommand } from "../../application/commands/process-stripe-webhook/process-stripe-webhook.command";
 import { LoggerService } from "../logger/logger.service";
 
 @Processor("stripe-webhooks")
-export class WebhookProcessor {
+export class WebhookProcessor extends WorkerHost {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly logger: LoggerService,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Process("process-webhook")
-  async handleWebhook(
+  async process(
     job: Job<{
       eventId: string;
       eventType: string;
