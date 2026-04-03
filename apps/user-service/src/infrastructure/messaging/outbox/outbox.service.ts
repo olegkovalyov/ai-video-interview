@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
-import { InjectQueue } from '@nestjs/bull';
-import type { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { v4 as uuid } from 'uuid';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 import type { IOutboxService } from '../../../application/interfaces/outbox-service.interface';
@@ -31,7 +31,8 @@ export class OutboxService implements IOutboxService {
   constructor(
     @InjectRepository(OutboxEntity)
     private readonly outboxRepository: Repository<OutboxEntity>,
-    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER) private readonly outboxQueue: Queue,
+    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER)
+    private readonly outboxQueue: Queue,
   ) {}
 
   /**
@@ -46,7 +47,12 @@ export class OutboxService implements IOutboxService {
     tx?: ITransactionContext,
   ): Promise<string> {
     const eventId = this.generateEventId();
-    const outbox = this.buildOutboxEntity(eventId, eventType, payload, aggregateId);
+    const outbox = this.buildOutboxEntity(
+      eventId,
+      eventType,
+      payload,
+      aggregateId,
+    );
 
     if (tx) {
       // Save within the existing UnitOfWork transaction
@@ -66,24 +72,33 @@ export class OutboxService implements IOutboxService {
    * - Without tx: saves directly and immediately creates BullMQ jobs.
    */
   async saveEvents(
-    events: Array<{ eventType: string; payload: Record<string, unknown>; aggregateId: string }>,
+    events: Array<{
+      eventType: string;
+      payload: Record<string, unknown>;
+      aggregateId: string;
+    }>,
     tx?: ITransactionContext,
   ): Promise<string[]> {
     if (events.length === 0) return [];
 
     const outboxEntries = events.map((event) => {
       const eventId = this.generateEventId();
-      return this.buildOutboxEntity(eventId, event.eventType, event.payload, event.aggregateId);
+      return this.buildOutboxEntity(
+        eventId,
+        event.eventType,
+        event.payload,
+        event.aggregateId,
+      );
     });
 
     if (tx) {
       await (tx as unknown as EntityManager).save(OutboxEntity, outboxEntries);
     } else {
       await this.outboxRepository.save(outboxEntries);
-      await this.addPublishJobs(outboxEntries.map(e => e.eventId));
+      await this.addPublishJobs(outboxEntries.map((e) => e.eventId));
     }
 
-    return outboxEntries.map(e => e.eventId);
+    return outboxEntries.map((e) => e.eventId);
   }
 
   /**

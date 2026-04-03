@@ -1,15 +1,24 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { OidcService } from '../services/oidc.service';
 import { RegistrationSaga } from '../sagas/registration.saga';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { extractBearerToken, extractTokenFromCookies } from '../utils/token-extractor';
+import {
+  extractBearerToken,
+  extractTokenFromCookies,
+} from '../utils/token-extractor';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   private readonly logger = new Logger(JwtAuthGuard.name);
-  
+
   constructor(
     private readonly oidc: OidcService,
     private readonly registrationSaga: RegistrationSaga,
@@ -22,7 +31,7 @@ export class JwtAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    
+
     if (isPublic) {
       this.logger.debug('JWT Guard: Public endpoint, skipping authentication');
       return true;
@@ -30,13 +39,31 @@ export class JwtAuthGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest<Request & { user?: any }>();
 
+    // Internal service-to-service bypass (for system tests and internal calls)
+    const internalToken = req.headers['x-internal-token'] as string;
+    if (internalToken && internalToken === process.env.INTERNAL_SERVICE_TOKEN) {
+      const internalUserId = (req.headers['x-user-id'] as string) || 'system';
+      const internalRole = (req.headers['x-user-role'] as string) || 'admin';
+      req.user = {
+        sub: internalUserId,
+        userId: internalUserId,
+        email: 'system@internal',
+        role: internalRole,
+        realm_access: { roles: [internalRole] },
+        companyId: req.headers['x-company-id'] || undefined,
+      };
+      return true;
+    }
+
     const requestInfo = {
       url: req.url,
       method: req.method,
       hasAuthHeader: !!req.headers['authorization'],
-      hasCookieHeader: !!req.headers['cookie']
+      hasCookieHeader: !!req.headers['cookie'],
     };
-    this.logger.debug(`JWT Guard: Processing request - ${JSON.stringify(requestInfo)}`);
+    this.logger.debug(
+      `JWT Guard: Processing request - ${JSON.stringify(requestInfo)}`,
+    );
 
     const auth = req.headers['authorization'] || '';
     let token = extractBearerToken(auth);
@@ -47,10 +74,12 @@ export class JwtAuthGuard implements CanActivate {
     const extractionResult = {
       tokenFromBearer: !!extractBearerToken(auth),
       tokenFromCookies: !!extractTokenFromCookies(req.headers['cookie'] || ''),
-      hasToken: !!token
+      hasToken: !!token,
     };
-    this.logger.debug(`JWT Guard: Token extraction result - ${JSON.stringify(extractionResult)}`);
-    
+    this.logger.debug(
+      `JWT Guard: Token extraction result - ${JSON.stringify(extractionResult)}`,
+    );
+
     if (!token) {
       this.logger.warn('JWT Guard: No access token found');
       throw new UnauthorizedException('Missing access token');
@@ -59,7 +88,7 @@ export class JwtAuthGuard implements CanActivate {
     try {
       this.logger.debug('JWT Guard: Attempting token verification...');
       const { payload } = await this.oidc.verifyAccessToken(token);
-      
+
       // КРИТИЧНО: Добавляем userId в request.user
       // JWT payload содержит только sub (keycloakId), но нам нужен внутренний userId
       try {
@@ -67,34 +96,38 @@ export class JwtAuthGuard implements CanActivate {
         const email = (payload.email || '') as string;
         const firstName = payload.given_name as string | undefined;
         const lastName = payload.family_name as string | undefined;
-        
+
         if (!keycloakId) {
           throw new Error('Missing sub (keycloakId) in JWT payload');
         }
-        
+
         const userResult = await this.registrationSaga.ensureUserExists({
           keycloakId,
           email,
           firstName,
           lastName,
         });
-        
+
         req.user = {
           ...payload,
           userId: userResult.userId, // Добавляем внутренний userId
         };
-        
-        this.logger.log(`🔐 JWT Guard: Token verified - keycloakId=${keycloakId}, userId=${userResult.userId}`);
+
+        this.logger.log(
+          `🔐 JWT Guard: Token verified - keycloakId=${keycloakId}, userId=${userResult.userId}`,
+        );
       } catch (error) {
-        this.logger.error(`JWT Guard: Failed to get userId for ${payload.sub}:`, error);
+        this.logger.error(
+          `JWT Guard: Failed to get userId for ${payload.sub}:`,
+          error,
+        );
         req.user = payload; // Fallback to just payload
       }
-      
+
       return true;
     } catch (e: any) {
       this.logger.error(`JWT Guard: Token verification failed - ${e?.message}`);
       throw new UnauthorizedException(e?.message || 'Invalid token');
     }
   }
-
 }

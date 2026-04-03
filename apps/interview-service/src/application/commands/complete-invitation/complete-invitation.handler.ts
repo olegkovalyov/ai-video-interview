@@ -56,14 +56,15 @@ export class CompleteInvitationHandler
       userId: command.userId,
       reason: command.reason,
       templateTitle: template.title,
-      language: 'en', // TODO: get from invitation or template settings
+      language: template.settings?.language || 'en',
       questions,
     });
 
     // Build outbox payload with full data for AI Analysis Service
     const responseData = invitation.responses.map((r) => ({
+      id: r.id,
       questionId: r.questionId,
-      text: r.getAnswer() || '',
+      textAnswer: r.getAnswer() || '',
       duration: r.duration,
     }));
 
@@ -74,9 +75,15 @@ export class CompleteInvitationHandler
       templateTitle: template.title,
       companyName: invitation.companyName,
       completedAt: invitation.completedAt!.toISOString(),
-      language: 'en',
+      language: template.settings?.language || 'en',
       questions,
       responses: responseData,
+      hrUserId: invitation.invitedBy,
+      hrEmail: invitation.hrEmail,
+      hrName: invitation.hrName,
+      candidateName: invitation.candidateName,
+      candidateEmail: invitation.candidateEmail,
+      responseCount: invitation.responses.length,
     };
 
     // Atomic write: save aggregate + outbox event in single transaction

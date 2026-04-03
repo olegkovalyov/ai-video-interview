@@ -203,7 +203,6 @@ export async function seedUser(
   user.email = data.email;
   user.firstName = data.firstName;
   user.lastName = data.lastName;
-  user.username = data.username as any;
   user.status = (data.status || 'active') as any;
   user.role = (data.role || 'candidate') as any;
   user.createdAt = new Date();

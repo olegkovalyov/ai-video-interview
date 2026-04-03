@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # PostgreSQL - Main database
@@ -60,7 +60,7 @@ services:
     container_name: ai-interview-kafka
     ports:
       - "9092:9092"
-      - "9997:9997"  # JMX port for metrics
+      - "9997:9997" # JMX port for metrics
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
@@ -78,14 +78,14 @@ services:
       # JMX settings for metrics
       KAFKA_JMX_PORT: 9997
       KAFKA_JMX_HOSTNAME: kafka
-      
+
       # ============ FIX: Connection Keep-Alive ============
       # Close idle connections after 10 minutes (default: 10 min)
       KAFKA_CONNECTIONS_MAX_IDLE_MS: 600000
-      
+
       # ============ FIX: Request Timeouts ============
       KAFKA_REQUEST_TIMEOUT_MS: 30000
-      
+
       # ============ FIX: Socket Buffer Sizes ============
       KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
       KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 102400
@@ -93,7 +93,11 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -176,12 +180,12 @@ services:
       - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./infra/observability/rules:/etc/prometheus/rules
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=15d'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
 
   # Logs Stack - Grafana Loki (CloudWatch Logs alternative)
   loki:
@@ -210,10 +214,10 @@ services:
     image: jaegertracing/all-in-one:latest
     container_name: ai-interview-jaeger
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "14268:14268"  # HTTP collector
-      - "14250:14250"  # gRPC collector
-      - "6831:6831/udp"  # UDP agent
+      - "16686:16686" # Jaeger UI
+      - "14268:14268" # HTTP collector
+      - "14250:14250" # gRPC collector
+      - "6831:6831/udp" # UDP agent
     environment:
       COLLECTOR_OTLP_ENABLED: true
       COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
@@ -281,10 +285,10 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
 
   # ClickHouse - Analytics database (for later phases)
   clickhouse:
@@ -302,6 +306,21 @@ services:
     profiles:
       - analytics
 
+  # ─── Mailpit (Fake SMTP for development) ───────────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ai-interview-mailpit
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI + REST API
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_MAX_MESSAGES: 500
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit_data:/data
+
 volumes:
   postgres_data:
   redis_data:
@@ -311,6 +330,7 @@ volumes:
   keycloak_postgres_data:
   prometheus_data:
   grafana_data:
+  mailpit_data:
 
 networks:
   default:

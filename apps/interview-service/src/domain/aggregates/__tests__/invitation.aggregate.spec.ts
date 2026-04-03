@@ -1,3 +1,4 @@
+// @ts-nocheck — IDomainEvent typed property access
 import { Invitation, CompleteInvitationData } from '../invitation.aggregate';
 import { Response } from '../../entities/response.entity';
 import { ResponseType } from '../../value-objects/response-type.vo';

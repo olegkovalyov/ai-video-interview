@@ -142,10 +142,24 @@ export class AnalyzeInterviewHandler
             ? "consider"
             : "reject";
 
+      // On conflict: use the more conservative recommendation
+      const recommendationRank = { reject: 0, consider: 1, hire: 2 } as const;
+      let finalRecommendation = llmRecommendation;
+
       if (llmRecommendation !== scoreBasedRecommendation) {
+        const llmRank = recommendationRank[llmRecommendation] ?? 1;
+        const scoreRank =
+          recommendationRank[
+            scoreBasedRecommendation as keyof typeof recommendationRank
+          ];
+        finalRecommendation =
+          llmRank <= scoreRank
+            ? llmRecommendation
+            : (scoreBasedRecommendation as typeof llmRecommendation);
+
         this.logger.warn(
           `LLM recommendation '${llmRecommendation}' conflicts with score-based '${scoreBasedRecommendation}' ` +
-            `(score: ${currentScore}) for invitation: ${eventData.invitationId}. Using LLM recommendation.`,
+            `(score: ${currentScore}) for invitation: ${eventData.invitationId}. Using conservative: '${finalRecommendation}'.`,
         );
       }
 
@@ -153,7 +167,7 @@ export class AnalyzeInterviewHandler
         summary: summaryResult.summary,
         strengths: summaryResult.strengths,
         weaknesses: summaryResult.weaknesses,
-        recommendation: summaryResult.recommendation,
+        recommendation: finalRecommendation,
         modelUsed: this.modelName,
         totalTokensUsed,
         processingTimeMs,
@@ -222,10 +236,12 @@ export class AnalyzeInterviewHandler
         continue;
       }
 
-      const responseText = this.getResponseText(response, question);
+      let responseText = this.getResponseText(response, question);
       if (!responseText) {
-        this.logger.warn(`Empty response for question: ${question.id}`);
-        continue;
+        this.logger.warn(
+          `Empty response for question: ${question.id}, analyzing as no response`,
+        );
+        responseText = "[No response provided by the candidate]";
       }
 
       const correctAnswer = this.getCorrectAnswer(question);
@@ -236,6 +252,7 @@ export class AnalyzeInterviewHandler
         questionType: question.type,
         responseText,
         correctAnswer,
+        language,
       };
 
       this.logger.debug(`Analyzing question: ${question.id}`);
@@ -244,16 +261,21 @@ export class AnalyzeInterviewHandler
 
       const questionType = QuestionType.fromString(question.type);
       const validCriteria = Object.values(CriterionType) as string[];
-      const criteriaScores = result.criteriaScores.map((cs) => {
-        if (!validCriteria.includes(cs.criterion)) {
-          throw new InvalidCriterionTypeException(cs.criterion);
-        }
-        return {
+      const criteriaScores = result.criteriaScores
+        .filter((cs) => {
+          if (!validCriteria.includes(cs.criterion)) {
+            this.logger.warn(
+              `Unknown criterion '${cs.criterion}' from LLM for question ${question.id}, skipping`,
+            );
+            return false;
+          }
+          return true;
+        })
+        .map((cs) => ({
           criterion: cs.criterion as CriterionType,
           score: cs.score,
           weight: criteria.find((c) => c.name === cs.criterion)?.weight || 0.25,
-        };
-      });
+        }));
 
       analysis.addQuestionAnalysis({
         questionId: question.id,
@@ -352,14 +374,61 @@ export class AnalyzeInterviewHandler
         );
         continue;
       }
+
+      // Build payload matching shared AnalysisCompletedEvent/AnalysisFailedEvent contract
+      const payload = this.buildEventPayload(event, eventType, analysis);
+
       await this.eventPublisher.publish({
         eventId: event.eventId,
         eventType,
         aggregateId: event.aggregateId,
         occurredAt: event.occurredAt,
-        payload: { ...event },
+        payload,
       });
     }
     analysis.clearEvents();
+  }
+
+  private buildEventPayload(
+    event: any,
+    eventType: string,
+    analysis: AnalysisResult,
+  ): Record<string, unknown> {
+    const base = {
+      analysisId: analysis.id,
+      invitationId: analysis.invitationId,
+      candidateId: analysis.candidateId,
+      templateId: analysis.templateId,
+      templateTitle: analysis.templateTitle,
+      companyName: analysis.companyName,
+    };
+
+    if (eventType === "analysis.completed") {
+      return {
+        ...base,
+        status: "completed",
+        overallScore: analysis.overallScore?.value ?? null,
+        recommendation: analysis.recommendation?.value ?? null,
+        questionsAnalyzed: analysis.questionAnalyses.length,
+        processingTimeMs: analysis.metadata?.processingTimeMs ?? 0,
+        totalTokensUsed: analysis.metadata?.totalTokensUsed ?? 0,
+      };
+    }
+
+    if (eventType === "analysis.failed") {
+      return {
+        ...base,
+        status: "failed",
+        overallScore: null,
+        recommendation: null,
+        questionsAnalyzed: 0,
+        processingTimeMs: 0,
+        totalTokensUsed: 0,
+        errorMessage: event.errorMessage,
+      };
+    }
+
+    // Default: spread event for other types (analysis.started)
+    return { ...event };
   }
 }

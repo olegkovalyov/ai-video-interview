@@ -34,6 +34,10 @@ export interface InvitationProps {
   candidateId: string;
   companyName: string;
   invitedBy: string;
+  candidateEmail?: string;
+  candidateName?: string;
+  hrEmail?: string;
+  hrName?: string;
   status: InvitationStatus;
   allowPause: boolean;
   showTimer: boolean;
@@ -75,6 +79,22 @@ export class Invitation extends AggregateRoot {
 
   get invitedBy(): string {
     return this.props.invitedBy;
+  }
+
+  get candidateEmail(): string | undefined {
+    return this.props.candidateEmail;
+  }
+
+  get candidateName(): string | undefined {
+    return this.props.candidateName;
+  }
+
+  get hrEmail(): string | undefined {
+    return this.props.hrEmail;
+  }
+
+  get hrName(): string | undefined {
+    return this.props.hrName;
   }
 
   get status(): InvitationStatus {
@@ -136,6 +156,12 @@ export class Invitation extends AggregateRoot {
     totalQuestions: number,
     allowPause: boolean = true,
     showTimer: boolean = true,
+    contactInfo?: {
+      candidateEmail?: string;
+      candidateName?: string;
+      hrEmail?: string;
+      hrName?: string;
+    },
   ): Invitation {
     // Domain validation
     if (!templateId) {
@@ -155,11 +181,15 @@ export class Invitation extends AggregateRoot {
     }
 
     if (expiresAt <= new Date()) {
-      throw new InvalidInvitationDataException('Expiration date must be in the future');
+      throw new InvalidInvitationDataException(
+        'Expiration date must be in the future',
+      );
     }
 
     if (totalQuestions < 1) {
-      throw new InvalidInvitationDataException('Template must have at least one question');
+      throw new InvalidInvitationDataException(
+        'Template must have at least one question',
+      );
     }
 
     const invitation = new Invitation({
@@ -168,6 +198,10 @@ export class Invitation extends AggregateRoot {
       candidateId,
       companyName: companyName.trim(),
       invitedBy,
+      candidateEmail: contactInfo?.candidateEmail,
+      candidateName: contactInfo?.candidateName,
+      hrEmail: contactInfo?.hrEmail,
+      hrName: contactInfo?.hrName,
       status: InvitationStatus.pending(),
       allowPause,
       showTimer,
@@ -215,7 +249,9 @@ export class Invitation extends AggregateRoot {
    */
   start(userId: string): void {
     if (this.candidateId !== userId) {
-      throw new InvitationAccessDeniedException('Only the invited candidate can start this interview');
+      throw new InvitationAccessDeniedException(
+        'Only the invited candidate can start this interview',
+      );
     }
 
     if (this.isExpired()) {
@@ -224,7 +260,10 @@ export class Invitation extends AggregateRoot {
     }
 
     if (!this.status.canBeStarted()) {
-      throw new InvalidInvitationStateException('start', this.status.toString());
+      throw new InvalidInvitationStateException(
+        'start',
+        this.status.toString(),
+      );
     }
 
     this.props.status = InvitationStatus.inProgress();
@@ -249,12 +288,11 @@ export class Invitation extends AggregateRoot {
    * Business Rule: Cannot submit duplicate responses for same question
    * Business Rule: Only candidate can submit responses
    */
-  submitResponse(
-    userId: string,
-    response: Response,
-  ): void {
+  submitResponse(userId: string, response: Response): void {
     if (this.candidateId !== userId) {
-      throw new InvitationAccessDeniedException('Only the invited candidate can submit responses');
+      throw new InvitationAccessDeniedException(
+        'Only the invited candidate can submit responses',
+      );
     }
 
     if (this.isExpired()) {
@@ -262,7 +300,10 @@ export class Invitation extends AggregateRoot {
     }
 
     if (!this.status.canSubmitResponse()) {
-      throw new InvalidInvitationStateException('submit response', this.status.toString());
+      throw new InvalidInvitationStateException(
+        'submit response',
+        this.status.toString(),
+      );
     }
 
     // Check for duplicate response
@@ -297,22 +338,39 @@ export class Invitation extends AggregateRoot {
    * Business Rule: For auto_timeout, complete with whatever answers exist
    */
   complete(data: CompleteInvitationData): void {
-    const { userId, reason = 'manual', templateTitle, language, questions } = data;
-    
+    const {
+      userId,
+      reason = 'manual',
+      templateTitle,
+      language,
+      questions,
+    } = data;
+
     // For manual completion, verify user
     if (reason === 'manual') {
       if (!userId || this.candidateId !== userId) {
-        throw new InvitationAccessDeniedException('Only the invited candidate can complete this interview');
+        throw new InvitationAccessDeniedException(
+          'Only the invited candidate can complete this interview',
+        );
       }
     }
 
     if (!this.status.canBeCompleted()) {
-      throw new InvalidInvitationStateException('complete', this.status.toString());
+      throw new InvalidInvitationStateException(
+        'complete',
+        this.status.toString(),
+      );
     }
 
     // For manual completion, verify all questions are answered
-    if (reason === 'manual' && this.props.responses.length < this.totalQuestions) {
-      throw new InvitationIncompleteException(this.props.responses.length, this.totalQuestions);
+    if (
+      reason === 'manual' &&
+      this.props.responses.length < this.totalQuestions
+    ) {
+      throw new InvitationIncompleteException(
+        this.props.responses.length,
+        this.totalQuestions,
+      );
     }
 
     this.props.status = InvitationStatus.completed();
@@ -321,7 +379,7 @@ export class Invitation extends AggregateRoot {
     this.props.updatedAt = new Date();
 
     // Map responses to ResponseData format for AI Analysis
-    const responseData: ResponseData[] = this.props.responses.map(r => ({
+    const responseData: ResponseData[] = this.props.responses.map((r) => ({
       questionId: r.questionId,
       text: r.getAnswer() || '',
       duration: r.duration,

@@ -1,5 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { TemplateNotFoundException, TemplateUnauthorizedException } from '../../../src/domain/exceptions/interview-template.exceptions';
+import {
+  TemplateNotFoundException,
+  TemplateUnauthorizedException,
+} from '../../../src/domain/exceptions/interview-template.exceptions';
 import { QueryBus } from '@nestjs/cqrs';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -64,6 +67,7 @@ describe('GetTemplateQuery Integration', () => {
         allowRetakes: false,
         showTimer: true,
         randomizeQuestions: false,
+        language: 'en',
       });
       expect(result.createdAt).toBeDefined();
       expect(result.updatedAt).toBeDefined();
@@ -157,8 +161,10 @@ describe('GetTemplateQuery Integration', () => {
 
       // Act & Assert - HR-2 trying to access HR-1's template
       const query = new GetTemplateQuery(templateId, hr2UserId, 'hr');
-      
-      await expect(queryBus.execute(query)).rejects.toThrow(TemplateUnauthorizedException);
+
+      await expect(queryBus.execute(query)).rejects.toThrow(
+        TemplateUnauthorizedException,
+      );
     });
 
     it('should allow access without userId for public query', async () => {
@@ -184,14 +190,16 @@ describe('GetTemplateQuery Integration', () => {
       // Act & Assert
       const nonExistentId = uuidv4();
       const query = new GetTemplateQuery(nonExistentId);
-      
-      await expect(queryBus.execute(query)).rejects.toThrow(TemplateNotFoundException);
+
+      await expect(queryBus.execute(query)).rejects.toThrow(
+        TemplateNotFoundException,
+      );
     });
 
     it('should throw error for invalid template ID format', async () => {
       // Act & Assert
       const query = new GetTemplateQuery('');
-      
+
       await expect(queryBus.execute(query)).rejects.toThrow();
     });
   });

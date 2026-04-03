@@ -65,7 +65,7 @@ describe('OutboxPublisherProcessor', () => {
     it('should skip if outbox event not found (already published)', async () => {
       mockOutboxRepository.findOne.mockResolvedValue(null);
 
-      await processor.publishOutboxEvent(mockJob);
+      await processor.process(mockJob);
 
       expect(mockOutboxRepository.findOne).toHaveBeenCalledWith({
         where: { eventId: 'test-event-id', status: OUTBOX_STATUS.PENDING },
@@ -82,7 +82,7 @@ describe('OutboxPublisherProcessor', () => {
       const mockOutbox = createMockOutbox();
       mockOutboxRepository.findOne.mockResolvedValue(mockOutbox);
 
-      await processor.publishOutboxEvent(mockJob);
+      await processor.process(mockJob);
 
       // Verify save was called twice: publishing, then published
       expect(mockOutboxRepository.save).toHaveBeenCalledTimes(2);
@@ -107,7 +107,7 @@ describe('OutboxPublisherProcessor', () => {
       const mockOutbox = createMockOutbox();
       mockOutboxRepository.findOne.mockResolvedValue(mockOutbox);
 
-      await processor.publishOutboxEvent(mockJob);
+      await processor.process(mockJob);
 
       expect(mockLogger.debug).toHaveBeenCalledWith(
         expect.stringContaining('Outbox event published: test-event-id'),
@@ -126,7 +126,7 @@ describe('OutboxPublisherProcessor', () => {
       const kafkaError = new Error('Kafka broker unavailable');
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
-      await expect(processor.publishOutboxEvent(mockJob)).rejects.toThrow(
+      await expect(processor.process(mockJob)).rejects.toThrow(
         'Kafka broker unavailable',
       );
 
@@ -147,7 +147,7 @@ describe('OutboxPublisherProcessor', () => {
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
       // retryCount after increment = 2, which is < RETRY_ATTEMPTS (3)
-      await expect(processor.publishOutboxEvent(mockJob)).rejects.toThrow(
+      await expect(processor.process(mockJob)).rejects.toThrow(
         'Connection timeout',
       );
 
@@ -167,9 +167,7 @@ describe('OutboxPublisherProcessor', () => {
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
       // retryCount after increment = RETRY_ATTEMPTS, so error should NOT be re-thrown
-      await expect(
-        processor.publishOutboxEvent(mockJob),
-      ).resolves.toBeUndefined();
+      await expect(processor.process(mockJob)).resolves.toBeUndefined();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('Max retries reached'),
@@ -187,10 +185,12 @@ describe('OutboxPublisherProcessor', () => {
       const kafkaError = new Error('Network error');
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
-      await expect(processor.publishOutboxEvent(mockJob)).rejects.toThrow();
+      await expect(processor.process(mockJob)).rejects.toThrow();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to publish outbox event test-event-id: Network error'),
+        expect.stringContaining(
+          'Failed to publish outbox event test-event-id: Network error',
+        ),
         expect.objectContaining({
           category: 'outbox',
           action: 'publish_failed',

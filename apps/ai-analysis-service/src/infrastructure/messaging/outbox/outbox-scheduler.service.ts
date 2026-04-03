@@ -2,8 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, LessThan, MoreThan } from "typeorm";
-import { InjectQueue } from "@nestjs/bull";
-import type { Queue } from "bull";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { OutboxEntity } from "../../persistence/entities/outbox.entity";
 import {
   BULL_QUEUE,
@@ -68,7 +68,8 @@ export class OutboxSchedulerService {
               },
             );
           } catch (error) {
-            if (error.message?.includes("job already exists")) {
+            // BullMQ throws when jobId already exists — skip silently
+            if (error.message?.includes("already exists")) {
               continue;
             }
             this.logger.error(

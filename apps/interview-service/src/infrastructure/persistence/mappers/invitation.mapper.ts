@@ -26,6 +26,10 @@ export class InvitationMapper {
       candidateId: entity.candidateId,
       companyName: entity.companyName,
       invitedBy: entity.invitedBy,
+      candidateEmail: entity.candidateEmail || undefined,
+      candidateName: entity.candidateName || undefined,
+      hrEmail: entity.hrEmail || undefined,
+      hrName: entity.hrName || undefined,
       status,
       allowPause: entity.allowPause,
       showTimer: entity.showTimer,
@@ -54,6 +58,10 @@ export class InvitationMapper {
     entity.candidateId = aggregate.candidateId;
     entity.companyName = aggregate.companyName;
     entity.invitedBy = aggregate.invitedBy;
+    entity.candidateEmail = aggregate.candidateEmail || null;
+    entity.candidateName = aggregate.candidateName || null;
+    entity.hrEmail = aggregate.hrEmail || null;
+    entity.hrName = aggregate.hrName || null;
     entity.status = aggregate.status.toString();
     entity.allowPause = aggregate.allowPause;
     entity.showTimer = aggregate.showTimer;

@@ -5,6 +5,7 @@ export interface InterviewSettingsProps {
   allowRetakes: boolean;
   showTimer: boolean;
   randomizeQuestions: boolean;
+  language?: string; // 'en', 'ru', 'de', 'es' — defaults to 'en'
 }
 
 export class InterviewSettings extends ValueObject<InterviewSettingsProps> {
@@ -29,6 +30,10 @@ export class InterviewSettings extends ValueObject<InterviewSettingsProps> {
     return this.props.randomizeQuestions;
   }
 
+  get language(): string {
+    return this.props.language || 'en';
+  }
+
   private validate(): void {
     if (this.props.totalTimeLimit <= 0) {
       throw new Error('Total time limit must be greater than 0');
@@ -50,6 +55,7 @@ export class InterviewSettings extends ValueObject<InterviewSettingsProps> {
       allowRetakes: false,
       showTimer: true,
       randomizeQuestions: false,
+      language: 'en',
     });
   }
 
@@ -81,12 +87,20 @@ export class InterviewSettings extends ValueObject<InterviewSettingsProps> {
     });
   }
 
+  withLanguage(language: string): InterviewSettings {
+    return new InterviewSettings({
+      ...this.props,
+      language,
+    });
+  }
+
   toJSON(): InterviewSettingsProps {
     return {
       totalTimeLimit: this.totalTimeLimit,
       allowRetakes: this.allowRetakes,
       showTimer: this.showTimer,
       randomizeQuestions: this.randomizeQuestions,
+      language: this.language,
     };
   }
 }

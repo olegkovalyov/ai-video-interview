@@ -12,6 +12,7 @@ import { MetricsModule } from "./infrastructure/metrics/metrics.module";
 import { MetricsInterceptor } from "./infrastructure/metrics/metrics.interceptor";
 import { CorrelationIdInterceptor } from "./infrastructure/http/interceptors/correlation-id.interceptor";
 import { CleanupService } from "./infrastructure/scheduling/cleanup.service";
+import { RetrySchedulerService } from "./infrastructure/scheduling/retry-scheduler.service";
 import { sdk } from "./infrastructure/tracing/tracing";
 
 @Module({
@@ -31,6 +32,7 @@ import { sdk } from "./infrastructure/tracing/tracing";
   ],
   providers: [
     CleanupService,
+    RetrySchedulerService,
     { provide: APP_INTERCEPTOR, useClass: CorrelationIdInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
   ],

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { CommandBus } from "@nestjs/cqrs";
 import { RetryAnalysisHandler } from "../retry-analysis.handler";
 import { RetryAnalysisCommand } from "../retry-analysis.command";

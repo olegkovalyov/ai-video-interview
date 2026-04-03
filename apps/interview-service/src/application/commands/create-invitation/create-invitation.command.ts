@@ -9,5 +9,9 @@ export class CreateInvitationCommand implements ICommand {
     public readonly expiresAt: Date,
     public readonly allowPause: boolean = true,
     public readonly showTimer: boolean = true,
+    public readonly candidateEmail?: string,
+    public readonly candidateName?: string,
+    public readonly hrEmail?: string,
+    public readonly hrName?: string,
   ) {}
 }

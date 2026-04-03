@@ -1,0 +1,33 @@
+<h2 style="margin: 0 0 16px; color: #f59f00; font-size: 22px;">Quota Limit
+  Reached</h2>
+<p style="margin: 0 0 16px; color: #495057; font-size: 15px; line-height: 1.6;">
+  You have reached your monthly limit for
+  <strong>{{resource}}</strong>
+  on the
+  <strong>{{planName}}</strong>
+  plan.
+</p>
+<p style="margin: 0 0 8px; color: #495057; font-size: 15px; line-height: 1.6;">
+  Current usage:
+  <strong>{{currentUsage}}</strong>
+  /
+  {{limit}}
+</p>
+<p style="margin: 0 0 24px; color: #495057; font-size: 15px; line-height: 1.6;">
+  Upgrade your plan to continue using this feature.
+</p>
+<table
+  role="presentation"
+  cellpadding="0"
+  cellspacing="0"
+  style="margin: 0 auto;"
+>
+  <tr>
+    <td style="background-color: #4c6ef5; border-radius: 6px;">
+      <a
+        href="{{frontendUrl}}/settings/billing"
+        style="display: inline-block; padding: 12px 28px; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600;"
+      >Upgrade Plan</a>
+    </td>
+  </tr>
+</table>

@@ -1,6 +1,6 @@
-import { Processor, Process } from '@nestjs/bull';
-import type { Job } from 'bull';
-import { Injectable, Inject } from '@nestjs/common';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
+import { Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KafkaService, KAFKA_TOPICS, injectTraceContext } from '@repo/shared';
@@ -14,7 +14,7 @@ import {
 import { LoggerService } from '../../logger/logger.service';
 
 /**
- * OUTBOX Publisher Processor
+ * OUTBOX Publisher Processor (BullMQ Worker)
  *
  * Publishes integration events from outbox to Kafka:
  * 1. Fetches event from outbox table
@@ -23,21 +23,20 @@ import { LoggerService } from '../../logger/logger.service';
  *
  * ALL interview-service events go to KAFKA_TOPICS.INTERVIEW_EVENTS.
  */
-@Processor(BULL_QUEUE.OUTBOX_PUBLISHER)
-@Injectable()
-export class OutboxPublisherProcessor {
+@Processor(BULL_QUEUE.OUTBOX_PUBLISHER, {
+  concurrency: OUTBOX_CONFIG.PUBLISHER_CONCURRENCY,
+})
+export class OutboxPublisherProcessor extends WorkerHost {
   constructor(
     @InjectRepository(OutboxEntity)
     private readonly outboxRepository: Repository<OutboxEntity>,
     @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
     private readonly logger: LoggerService,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Process({
-    name: BULL_JOB.PUBLISH_OUTBOX_EVENT,
-    concurrency: OUTBOX_CONFIG.PUBLISHER_CONCURRENCY,
-  })
-  async publishOutboxEvent(job: Job) {
+  async process(job: Job<{ eventId: string }>): Promise<void> {
     const { eventId } = job.data;
 
     this.logger.info(`Publishing outbox event: ${eventId}`);
@@ -80,13 +79,18 @@ export class OutboxPublisherProcessor {
       outbox.retryCount += 1;
       await this.outboxRepository.save(outbox);
 
-      this.logger.error(`Failed to publish ${eventId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to publish ${eventId}: ${error.message}`,
+        error.stack,
+      );
 
       if (outbox.retryCount < OUTBOX_CONFIG.RETRY_ATTEMPTS) {
-        throw error; // Bull will retry
+        throw error; // BullMQ will retry
       }
 
-      this.logger.warn(`Max retries reached for ${eventId}, event marked as failed`);
+      this.logger.warn(
+        `Max retries reached for ${eventId}, event marked as failed`,
+      );
     }
   }
 }

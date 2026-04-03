@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
-import { InjectQueue } from '@nestjs/bull';
-import type { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 import { LoggerService } from '../../logger/logger.service';
 import {
@@ -29,7 +29,8 @@ export class OutboxSchedulerService {
   constructor(
     @InjectRepository(OutboxEntity)
     private readonly outboxRepository: Repository<OutboxEntity>,
-    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER) private readonly outboxQueue: Queue,
+    @InjectQueue(BULL_QUEUE.OUTBOX_PUBLISHER)
+    private readonly outboxQueue: Queue,
     private readonly logger: LoggerService,
   ) {}
 
@@ -59,11 +60,14 @@ export class OutboxSchedulerService {
       });
 
       if (pendingEvents.length > 0) {
-        this.logger.debug(`Found ${pendingEvents.length} pending outbox events`, {
-          category: 'outbox',
-          action: 'poll_pending',
-          count: pendingEvents.length,
-        });
+        this.logger.debug(
+          `Found ${pendingEvents.length} pending outbox events`,
+          {
+            category: 'outbox',
+            action: 'poll_pending',
+            count: pendingEvents.length,
+          },
+        );
 
         for (const event of pendingEvents) {
           try {
@@ -80,12 +84,15 @@ export class OutboxSchedulerService {
             if (error.message?.includes('job already exists')) {
               continue;
             }
-            this.logger.error(`Failed to queue outbox event ${event.eventId}: ${error.message}`, {
-              category: 'outbox',
-              action: 'queue_failed',
-              eventId: event.eventId,
-              error: error.message,
-            });
+            this.logger.error(
+              `Failed to queue outbox event ${event.eventId}: ${error.message}`,
+              {
+                category: 'outbox',
+                action: 'queue_failed',
+                eventId: event.eventId,
+                error: error.message,
+              },
+            );
           }
         }
       }
@@ -129,20 +136,26 @@ export class OutboxSchedulerService {
           event.retryCount += 1;
           await this.outboxRepository.save(event);
 
-          this.logger.debug(`Reset stuck outbox event ${event.eventId} to pending`, {
-            category: 'outbox',
-            action: 'reset_stuck',
-            eventId: event.eventId,
-            retryCount: event.retryCount,
-          });
+          this.logger.debug(
+            `Reset stuck outbox event ${event.eventId} to pending`,
+            {
+              category: 'outbox',
+              action: 'reset_stuck',
+              eventId: event.eventId,
+              retryCount: event.retryCount,
+            },
+          );
         }
       }
     } catch (error) {
-      this.logger.error(`Failed to process stuck outbox events: ${error.message}`, {
-        category: 'outbox',
-        action: 'stuck_error',
-        error: error.message,
-      });
+      this.logger.error(
+        `Failed to process stuck outbox events: ${error.message}`,
+        {
+          category: 'outbox',
+          action: 'stuck_error',
+          error: error.message,
+        },
+      );
     }
   }
 
@@ -153,7 +166,9 @@ export class OutboxSchedulerService {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupOldEvents() {
     try {
-      const retentionDate = new Date(Date.now() - OUTBOX_CONFIG.CLEANUP_RETENTION_MS);
+      const retentionDate = new Date(
+        Date.now() - OUTBOX_CONFIG.CLEANUP_RETENTION_MS,
+      );
 
       const result = await this.outboxRepository
         .createQueryBuilder()

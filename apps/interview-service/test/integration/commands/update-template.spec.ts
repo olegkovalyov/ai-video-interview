@@ -512,9 +512,8 @@ describe('UpdateTemplateCommand Integration', () => {
     });
   });
 
-  describe('Active Template Updates', () => {
-    it('should update active template metadata', async () => {
-      // Arrange
+  describe('Active Template Updates (immutable)', () => {
+    it('should reject metadata update on active template', async () => {
       const userId = uuidv4();
       const templateId = await seedTemplate(dataSource, {
         title: 'Active Template',
@@ -533,20 +532,10 @@ describe('UpdateTemplateCommand Integration', () => {
         'hr',
       );
 
-      // Act
-      await commandBus.execute(command);
-
-      // Assert
-      const entity = await dataSource
-        .getRepository(InterviewTemplateEntity)
-        .findOne({ where: { id: templateId } });
-
-      expect(entity!.title).toBe('Updated Active Title');
-      expect(entity!.status).toBe('active');
+      await expect(commandBus.execute(command)).rejects.toThrow();
     });
 
-    it('should update active template settings', async () => {
-      // Arrange
+    it('should reject settings update on active template', async () => {
       const userId = uuidv4();
       const templateId = await seedTemplate(dataSource, {
         title: 'Active Template',
@@ -572,20 +561,7 @@ describe('UpdateTemplateCommand Integration', () => {
         'hr',
       );
 
-      // Act
-      await commandBus.execute(command);
-
-      // Assert
-      const entity = await dataSource
-        .getRepository(InterviewTemplateEntity)
-        .findOne({ where: { id: templateId } });
-
-      expect(entity!.settings).toEqual({
-        totalTimeLimit: 180,
-        allowRetakes: true,
-        showTimer: true,
-        randomizeQuestions: true,
-      });
+      await expect(commandBus.execute(command)).rejects.toThrow();
     });
   });
 });

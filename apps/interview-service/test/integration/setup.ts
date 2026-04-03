@@ -10,7 +10,10 @@ import {
   ResponseEntity,
 } from '../../src/infrastructure/persistence/entities';
 import { OutboxEntity } from '../../src/infrastructure/persistence/entities/outbox.entity';
-import { TestApplicationModule, TestLoggerModule } from './test-application.module';
+import {
+  TestApplicationModule,
+  TestLoggerModule,
+} from './test-application.module';
 import { DatabaseModule } from '../../src/infrastructure/persistence/database.module';
 
 /**
@@ -29,7 +32,13 @@ export async function createTestDataSource(): Promise<DataSource> {
     username: process.env.DATABASE_USER || 'postgres',
     password: process.env.DATABASE_PASSWORD || 'postgres',
     database: 'ai_video_interview_interview_test', // ← Test database
-    entities: [InterviewTemplateEntity, QuestionEntity, InvitationEntity, ResponseEntity, OutboxEntity],
+    entities: [
+      InterviewTemplateEntity,
+      QuestionEntity,
+      InvitationEntity,
+      ResponseEntity,
+      OutboxEntity,
+    ],
     migrations: ['src/infrastructure/persistence/migrations/*.ts'],
     synchronize: false, // NEVER use synchronize in tests
     logging: false,
@@ -154,6 +163,7 @@ export async function seedTemplate(
       allowRetakes: false,
       showTimer: true,
       randomizeQuestions: false,
+      language: 'en',
     },
     createdAt: new Date(),
     updatedAt: new Date(),

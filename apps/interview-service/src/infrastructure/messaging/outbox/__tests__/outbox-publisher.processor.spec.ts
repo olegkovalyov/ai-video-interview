@@ -62,11 +62,11 @@ describe('OutboxPublisherProcessor', () => {
     );
   });
 
-  describe('publishOutboxEvent', () => {
+  describe('process (BullMQ worker)', () => {
     it('should skip if outbox event not found (already published)', async () => {
       mockOutboxRepository.findOne.mockResolvedValue(null);
 
-      await processor.publishOutboxEvent(mockJob);
+      await processor.process(mockJob);
 
       expect(mockOutboxRepository.findOne).toHaveBeenCalledWith({
         where: { eventId: 'test-event-id', status: OUTBOX_STATUS.PENDING },
@@ -82,7 +82,7 @@ describe('OutboxPublisherProcessor', () => {
       const mockOutbox = createMockOutbox();
       mockOutboxRepository.findOne.mockResolvedValue(mockOutbox);
 
-      await processor.publishOutboxEvent(mockJob);
+      await processor.process(mockJob);
 
       // Verify save was called twice: publishing, then published
       expect(mockOutboxRepository.save).toHaveBeenCalledTimes(2);
@@ -108,7 +108,7 @@ describe('OutboxPublisherProcessor', () => {
       const mockOutbox = createMockOutbox();
       mockOutboxRepository.findOne.mockResolvedValue(mockOutbox);
 
-      await processor.publishOutboxEvent(mockJob);
+      await processor.process(mockJob);
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.stringContaining('Published test-event-id'),
@@ -119,7 +119,7 @@ describe('OutboxPublisherProcessor', () => {
       const mockOutbox = createMockOutbox({ aggregateId: 'inv-42' });
       mockOutboxRepository.findOne.mockResolvedValue(mockOutbox);
 
-      await processor.publishOutboxEvent(mockJob);
+      await processor.process(mockJob);
 
       expect(mockKafkaService.publishEvent).toHaveBeenCalledWith(
         'interview-events',
@@ -136,7 +136,7 @@ describe('OutboxPublisherProcessor', () => {
       const kafkaError = new Error('Kafka broker unavailable');
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
-      await expect(processor.publishOutboxEvent(mockJob)).rejects.toThrow(
+      await expect(processor.process(mockJob)).rejects.toThrow(
         'Kafka broker unavailable',
       );
 
@@ -149,7 +149,7 @@ describe('OutboxPublisherProcessor', () => {
       expect(mockOutbox.retryCount).toBe(1);
     });
 
-    it('should re-throw error if retryCount < RETRY_ATTEMPTS (for Bull retry)', async () => {
+    it('should re-throw error if retryCount < RETRY_ATTEMPTS (for BullMQ retry)', async () => {
       const mockOutbox = createMockOutbox({ retryCount: 1 });
       mockOutboxRepository.findOne.mockResolvedValue(mockOutbox);
 
@@ -157,7 +157,7 @@ describe('OutboxPublisherProcessor', () => {
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
       // retryCount after increment = 2, which is < RETRY_ATTEMPTS (3)
-      await expect(processor.publishOutboxEvent(mockJob)).rejects.toThrow(
+      await expect(processor.process(mockJob)).rejects.toThrow(
         'Connection timeout',
       );
 
@@ -179,9 +179,7 @@ describe('OutboxPublisherProcessor', () => {
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
       // retryCount after increment = RETRY_ATTEMPTS, so error should NOT be re-thrown
-      await expect(
-        processor.publishOutboxEvent(mockJob),
-      ).resolves.toBeUndefined();
+      await expect(processor.process(mockJob)).resolves.toBeUndefined();
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Max retries reached for test-event-id'),
@@ -195,7 +193,7 @@ describe('OutboxPublisherProcessor', () => {
       const kafkaError = new Error('Network error');
       mockKafkaService.publishEvent.mockRejectedValue(kafkaError);
 
-      await expect(processor.publishOutboxEvent(mockJob)).rejects.toThrow();
+      await expect(processor.process(mockJob)).rejects.toThrow();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining(

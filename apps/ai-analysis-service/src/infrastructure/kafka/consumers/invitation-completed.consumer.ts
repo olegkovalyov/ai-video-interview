@@ -1,14 +1,14 @@
-import { Injectable, Inject, OnModuleInit, Logger } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
-import { AnalyzeInterviewCommand } from '../../../application/commands/analyze-interview/analyze-interview.command';
-import { InvitationCompletedEventData } from '../../../application/dto/kafka/invitation-completed.event';
-import { AnalysisAlreadyExistsException } from '../../../domain/exceptions/analysis.exceptions';
-import { AnalysisResultEntity } from '../../persistence/entities/analysis-result.entity';
-import { ProcessedEventEntity } from '../../persistence/entities/processed-event.entity';
-import { correlationStore } from '../../http/interceptors/correlation-id.store';
+import { Injectable, Inject, OnModuleInit, Logger } from "@nestjs/common";
+import { CommandBus } from "@nestjs/cqrs";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { KafkaService, KAFKA_TOPICS } from "@repo/shared";
+import { AnalyzeInterviewCommand } from "../../../application/commands/analyze-interview/analyze-interview.command";
+import { InvitationCompletedEventData } from "../../../application/dto/kafka/invitation-completed.event";
+import { AnalysisAlreadyExistsException } from "../../../domain/exceptions/analysis.exceptions";
+import { AnalysisResultEntity } from "../../persistence/entities/analysis-result.entity";
+import { ProcessedEventEntity } from "../../persistence/entities/processed-event.entity";
+import { correlationStore } from "../../http/interceptors/correlation-id.store";
 
 interface InvitationCompletedKafkaEvent {
   eventId: string;
@@ -55,7 +55,7 @@ export class InvitationCompletedConsumer implements OnModuleInit {
   private readonly logger = new Logger(InvitationCompletedConsumer.name);
 
   constructor(
-    @Inject('KAFKA_SERVICE') private readonly kafkaService: KafkaService,
+    @Inject("KAFKA_SERVICE") private readonly kafkaService: KafkaService,
     private readonly commandBus: CommandBus,
     @InjectRepository(AnalysisResultEntity)
     private readonly analysisResultRepo: Repository<AnalysisResultEntity>,
@@ -64,53 +64,65 @@ export class InvitationCompletedConsumer implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    this.logger.log('Subscribing to interview-events topic...');
+    this.logger.log("Subscribing to interview-events topic...");
 
-    await this.kafkaService.subscribe(
+    // Non-blocking subscribe
+    this.kafkaService.subscribe(
       KAFKA_TOPICS.INTERVIEW_EVENTS,
-      'ai-analysis-service-invitation-consumer',
+      "ai-analysis-service-invitation-consumer",
       async (message) => {
         // Extract correlationId from Kafka headers for log enrichment
         const correlationId =
-          message.headers?.['x-correlation-id']?.toString() || 'unknown';
+          message.headers?.["x-correlation-id"]?.toString() || "unknown";
 
         await new Promise<void>((resolve, reject) => {
           correlationStore.run({ correlationId }, async () => {
             try {
               if (!message.value) {
-                this.logger.warn('Received message with null value');
+                this.logger.warn("Received message with null value");
                 resolve();
                 return;
               }
 
-              const event: InvitationCompletedKafkaEvent = JSON.parse(message.value.toString());
+              const event: InvitationCompletedKafkaEvent = JSON.parse(
+                message.value.toString(),
+              );
 
-              if (event.eventType === 'invitation.completed') {
+              if (event.eventType === "invitation.completed") {
+                this.logger.log(
+                  `Processing invitation.completed: invitationId=${event.payload?.invitationId}, eventId=${event.eventId}`,
+                );
                 await this.handleInvitationCompleted(event);
               } else {
                 this.logger.debug(`Ignoring event type: ${event.eventType}`);
               }
               resolve();
             } catch (error: unknown) {
-              const msg = error instanceof Error ? error.message : 'Unknown error';
-              this.logger.error(`Failed to process interview event: ${msg}`, error instanceof Error ? error.stack : undefined);
+              const msg =
+                error instanceof Error ? error.message : "Unknown error";
+              this.logger.error(
+                `Failed to process interview event: ${msg}`,
+                error instanceof Error ? error.stack : undefined,
+              );
               reject(error);
             }
           });
         });
       },
-      { fromBeginning: true, autoCommit: true },
+      { fromBeginning: true, autoCommit: true, sessionTimeout: 600000 },
     );
 
-    this.logger.log('Subscribed to interview-events topic');
+    this.logger.log("Subscribed to interview-events topic");
   }
 
-  private async handleInvitationCompleted(event: InvitationCompletedKafkaEvent): Promise<void> {
+  private async handleInvitationCompleted(
+    event: InvitationCompletedKafkaEvent,
+  ): Promise<void> {
     const { payload } = event;
 
     // 1. Idempotency check (best-effort — race condition possible during long analysis)
     const alreadyProcessed = await this.processedEventRepo.findOne({
-      where: { eventId: event.eventId, serviceName: 'ai-analysis-service' },
+      where: { eventId: event.eventId, serviceName: "ai-analysis-service" },
     });
     if (alreadyProcessed) {
       this.logger.log(`Event ${event.eventId} already processed, skipping`);
@@ -122,13 +134,15 @@ export class InvitationCompletedConsumer implements OnModuleInit {
       where: { invitationId: payload.invitationId },
     });
     if (existingAnalysis) {
-      this.logger.log(`Analysis for invitation ${payload.invitationId} already exists, skipping`);
+      this.logger.log(
+        `Analysis for invitation ${payload.invitationId} already exists, skipping`,
+      );
       return;
     }
 
     this.logger.log(
       `Received invitation.completed: invitation=${payload.invitationId}, ` +
-      `template="${payload.templateTitle}", questions=${payload.questions.length}`,
+        `template="${payload.templateTitle}", questions=${payload.questions.length}`,
     );
 
     // 3. Delegate to CQRS handler
@@ -162,7 +176,9 @@ export class InvitationCompletedConsumer implements OnModuleInit {
       // Race condition: duplicate message arrived during long-running analysis.
       // Handler's existsByInvitationId check caught it — treat as idempotent success.
       if (error instanceof AnalysisAlreadyExistsException) {
-        this.logger.log(`Duplicate analysis for invitation ${payload.invitationId} detected, treating as success`);
+        this.logger.log(
+          `Duplicate analysis for invitation ${payload.invitationId} detected, treating as success`,
+        );
       } else {
         throw error;
       }
@@ -172,13 +188,18 @@ export class InvitationCompletedConsumer implements OnModuleInit {
     try {
       const processedEvent = new ProcessedEventEntity();
       processedEvent.eventId = event.eventId;
-      processedEvent.serviceName = 'ai-analysis-service';
+      processedEvent.serviceName = "ai-analysis-service";
       await this.processedEventRepo.save(processedEvent);
     } catch (error: unknown) {
       // Unique constraint violation (23505) = another consumer instance already marked it
-      const isUniqueViolation = error instanceof Error && 'code' in error && (error as any).code === '23505';
+      const isUniqueViolation =
+        error instanceof Error &&
+        "code" in error &&
+        (error as any).code === "23505";
       if (isUniqueViolation) {
-        this.logger.log(`Event ${event.eventId} already marked as processed by another instance`);
+        this.logger.log(
+          `Event ${event.eventId} already marked as processed by another instance`,
+        );
       } else {
         throw error;
       }

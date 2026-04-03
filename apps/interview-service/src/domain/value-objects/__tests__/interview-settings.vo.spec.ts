@@ -221,6 +221,7 @@ describe('InterviewSettings Value Object', () => {
         allowRetakes: true,
         showTimer: false,
         randomizeQuestions: true,
+        language: 'ru',
       });
 
       const json = settings.toJSON();
@@ -230,7 +231,33 @@ describe('InterviewSettings Value Object', () => {
         allowRetakes: true,
         showTimer: false,
         randomizeQuestions: true,
+        language: 'ru',
       });
+    });
+  });
+
+  describe('language', () => {
+    it('should default to en when not provided', () => {
+      const settings = InterviewSettings.default();
+      expect(settings.language).toBe('en');
+    });
+
+    it('should use provided language', () => {
+      const settings = InterviewSettings.create({
+        totalTimeLimit: 60,
+        allowRetakes: false,
+        showTimer: true,
+        randomizeQuestions: false,
+        language: 'de',
+      });
+      expect(settings.language).toBe('de');
+    });
+
+    it('should create new instance with withLanguage', () => {
+      const settings = InterviewSettings.default();
+      const updated = settings.withLanguage('es');
+      expect(updated.language).toBe('es');
+      expect(settings.language).toBe('en');
     });
   });
 });

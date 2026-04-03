@@ -30,7 +30,7 @@ describe('Templates API (E2E)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     // Setup validation pipe and exception filter like in main.ts
     app.useGlobalPipes(
       new ValidationPipe({
@@ -107,7 +107,7 @@ describe('Templates API (E2E)', () => {
           description: 'Test',
         })
         .expect(201);
-      
+
       expect(response.body.id).toBeDefined();
     });
 
@@ -174,7 +174,9 @@ describe('Templates API (E2E)', () => {
       expect(response.body.total).toBe(2);
       expect(response.body.page).toBe(1);
       expect(response.body.totalPages).toBe(1);
-      expect(response.body.items.every((t: any) => t.createdBy === hrUserId)).toBe(true);
+      expect(
+        response.body.items.every((t: any) => t.createdBy === hrUserId),
+      ).toBe(true);
     });
 
     it('should return all templates for admin', async () => {
@@ -209,7 +211,9 @@ describe('Templates API (E2E)', () => {
         .set('x-user-role', 'hr')
         .expect(200);
 
-      expect(response.body.items.every((t: any) => t.status === 'draft')).toBe(true);
+      expect(response.body.items.every((t: any) => t.status === 'draft')).toBe(
+        true,
+      );
     });
   });
 
@@ -856,7 +860,7 @@ describe('Templates API (E2E)', () => {
         await request(app.getHttpServer())
           .post(`/api/templates/${templateId}/questions`)
           .set('x-user-id', hrUserId)
-        .set('x-user-role', 'hr')
+          .set('x-user-role', 'hr')
           .send({
             text: `What is your experience with skill ${i}?`,
             type: 'video',
@@ -962,21 +966,15 @@ describe('Templates API (E2E)', () => {
 
       expect(template.body.status).toBe('active');
 
-      // 6. Update template
+      // 6. Verify ACTIVE template is immutable (cannot update after publish)
       await request(app.getHttpServer())
         .put(`/api/templates/${templateId}`)
         .set('x-user-id', hrUserId)
         .set('x-user-role', 'hr')
         .send({
           title: 'Updated Lifecycle Test',
-          settings: {
-            totalTimeLimit: 180,
-            allowRetakes: true,
-            showTimer: true,
-            randomizeQuestions: false,
-          },
         })
-        .expect(200);
+        .expect(422);
 
       // 7. Archive template
       await request(app.getHttpServer())
@@ -994,7 +992,7 @@ describe('Templates API (E2E)', () => {
 
       expect(template.body.status).toBe('archived');
       expect(template.body.questions).toHaveLength(3);
-      expect(template.body.title).toBe('Updated Lifecycle Test');
+      expect(template.body.title).toBe('Full Lifecycle Test');
     });
   });
 });

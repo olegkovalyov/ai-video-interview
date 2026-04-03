@@ -9,6 +9,7 @@ export interface QuestionAnalysisInput {
   questionType: string;
   responseText: string;
   correctAnswer?: string;
+  language?: string;
 }
 
 export interface CriteriaScoreOutput {

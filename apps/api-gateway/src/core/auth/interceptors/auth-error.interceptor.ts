@@ -19,7 +19,7 @@ export class AuthErrorInterceptor implements NestInterceptor {
       catchError((error) => {
         const request = context.switchToHttp().getRequest();
         const response = context.switchToHttp().getResponse();
-        
+
         // Логируем ошибку с контекстом
         this.logger.error(`Auth error in ${request.method} ${request.url}:`, {
           error: error.message,
@@ -36,14 +36,22 @@ export class AuthErrorInterceptor implements NestInterceptor {
         if (error instanceof HttpException) {
           status = error.getStatus();
           const response = error.getResponse();
-          // Extract message from HttpException response (can be string or object)
           if (typeof response === 'string') {
             message = response;
           } else if (typeof response === 'object' && response !== null) {
-            message = (response as any).error || (response as any).message || error.message;
+            message =
+              (response as any).error ||
+              (response as any).message ||
+              error.message;
           } else {
             message = error.message;
           }
+        } else if (error.statusCode && error.statusCode > 0) {
+          // ServiceProxyError or similar — pass through original status
+          status =
+            error.statusCode >= 500 ? HttpStatus.BAD_GATEWAY : error.statusCode;
+          message = error.message || 'Service error';
+          errorCode = 'SERVICE_ERROR';
         } else if (error.message) {
           // Обрабатываем специфичные auth ошибки
           const errorMessage = error.message.toLowerCase();
@@ -52,7 +60,10 @@ export class AuthErrorInterceptor implements NestInterceptor {
             status = HttpStatus.BAD_REQUEST;
             message = 'Invalid or missing authorization code';
             errorCode = 'INVALID_AUTH_CODE';
-          } else if (errorMessage.includes('refresh token') || errorMessage.includes('missing refresh token')) {
+          } else if (
+            errorMessage.includes('refresh token') ||
+            errorMessage.includes('missing refresh token')
+          ) {
             status = HttpStatus.UNAUTHORIZED;
             message = 'Invalid or missing refresh token';
             errorCode = 'INVALID_REFRESH_TOKEN';
@@ -60,11 +71,17 @@ export class AuthErrorInterceptor implements NestInterceptor {
             status = HttpStatus.UNAUTHORIZED;
             message = 'Invalid or expired access token';
             errorCode = 'INVALID_ACCESS_TOKEN';
-          } else if (errorMessage.includes('keycloak') || errorMessage.includes('oidc')) {
+          } else if (
+            errorMessage.includes('keycloak') ||
+            errorMessage.includes('oidc')
+          ) {
             status = HttpStatus.BAD_GATEWAY;
             message = 'Authentication service unavailable';
             errorCode = 'AUTH_SERVICE_ERROR';
-          } else if (errorMessage.includes('user not found') || errorMessage.includes('invalid user')) {
+          } else if (
+            errorMessage.includes('user not found') ||
+            errorMessage.includes('invalid user')
+          ) {
             status = HttpStatus.NOT_FOUND;
             message = 'User not found';
             errorCode = 'USER_NOT_FOUND';
@@ -94,7 +111,10 @@ export class AuthErrorInterceptor implements NestInterceptor {
         }
 
         // Для некоторых auth ошибок возвращаем дополнительную информацию
-        if (errorCode === 'INVALID_REFRESH_TOKEN' || errorCode === 'TOKEN_EXPIRED') {
+        if (
+          errorCode === 'INVALID_REFRESH_TOKEN' ||
+          errorCode === 'TOKEN_EXPIRED'
+        ) {
           errorResponse['shouldRedirectToLogin'] = true;
         }
 

@@ -74,6 +74,12 @@ export class CreateInvitationHandler
       template.getQuestionsCount(),
       command.allowPause,
       command.showTimer,
+      {
+        candidateEmail: command.candidateEmail,
+        candidateName: command.candidateName,
+        hrEmail: command.hrEmail,
+        hrName: command.hrName,
+      },
     );
 
     // Atomic write: save aggregate + outbox event in single transaction
@@ -88,6 +94,11 @@ export class CreateInvitationHandler
           companyName: command.companyName,
           invitedBy: command.invitedBy,
           expiresAt: command.expiresAt.toISOString(),
+          candidateEmail: invitation.candidateEmail,
+          candidateName: invitation.candidateName,
+          hrEmail: invitation.hrEmail,
+          hrName: invitation.hrName,
+          templateTitle: template.title,
         },
         invitation.id,
         tx,

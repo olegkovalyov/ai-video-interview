@@ -5,6 +5,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { LoggerService } from './infrastructure/logger/logger.service';
 import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exception.filter';
+import { OptimisticLockFilter } from './infrastructure/http/filters/optimistic-lock.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -27,7 +28,7 @@ async function bootstrap() {
   // Domain exception filter (maps DomainException → HTTP status)
   // Resolved from DI container so it receives LoggerService injection
   const domainFilter = app.get(DomainExceptionFilter);
-  app.useGlobalFilters(domainFilter);
+  app.useGlobalFilters(new OptimisticLockFilter(), domainFilter);
 
   // Validation pipe
   app.useGlobalPipes(
@@ -40,7 +41,9 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:3000',
+    ],
     credentials: true,
   });
 
@@ -50,7 +53,10 @@ async function bootstrap() {
     .setDescription('Interview management microservice')
     .setVersion('1.0')
     .addBearerAuth()
-    .addApiKey({ type: 'apiKey', name: 'x-internal-token', in: 'header' }, 'internal-token')
+    .addApiKey(
+      { type: 'apiKey', name: 'x-internal-token', in: 'header' },
+      'internal-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -69,7 +75,7 @@ async function bootstrap() {
     service: 'interview-service',
     action: 'startup',
     port,
-    nodeEnv: process.env.NODE_ENV || 'development'
+    nodeEnv: process.env.NODE_ENV || 'development',
   });
 
   await app.listen(port);
@@ -79,9 +85,8 @@ async function bootstrap() {
     action: 'startup_complete',
     port,
     url: `http://localhost:${port}`,
-    docsUrl: `http://localhost:${port}/api/docs`
+    docsUrl: `http://localhost:${port}/api/docs`,
   });
-
 }
 
 bootstrap().catch((error) => {
