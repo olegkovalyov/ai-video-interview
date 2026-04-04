@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scheme 3 — Light Professional</title>
+    <style>
+      :root {
+        --bg-primary: #fafbfc;
+        --bg-secondary: #ffffff;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f8fafc;
+        --bg-input: #ffffff;
+        --border: #e2e8f0;
+        --border-subtle: #f1f5f9;
+
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+
+        --accent-primary: #4f46e5;
+        --accent-primary-hover: #4338ca;
+        --accent-secondary: #7c3aed;
+        --accent-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
+
+        --success: #059669;
+        --warning: #d97706;
+        --error: #dc2626;
+        --info: #2563eb;
+
+        --sidebar-bg: #ffffff;
+        --sidebar-active: rgba(79, 70, 229, 0.08);
+        --sidebar-text: #64748b;
+        --sidebar-active-text: #4f46e5;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 24px;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: var(--text-secondary);
+        margin-bottom: 40px;
+        font-size: 15px;
+      }
+
+      .palette {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+      }
+      .swatch {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        display: flex;
+        align-items: flex-end;
+        padding: 6px;
+        font-size: 10px;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        border: 1px solid #e2e8f0;
+      }
+
+      .app-layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 0;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        min-height: 600px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .sidebar {
+        background: var(--sidebar-bg);
+        padding: 24px 16px;
+        border-right: 1px solid var(--border);
+      }
+      .sidebar-logo {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 32px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-primary);
+      }
+      .sidebar-logo .dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--accent-gradient);
+      }
+      .sidebar-nav {
+        list-style: none;
+      }
+      .sidebar-nav li {
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        font-size: 14px;
+        color: var(--sidebar-text);
+        cursor: pointer;
+      }
+      .sidebar-nav li:hover {
+        background: #f8fafc;
+      }
+      .sidebar-nav li.active {
+        background: var(--sidebar-active);
+        color: var(--sidebar-active-text);
+        font-weight: 600;
+      }
+
+      .main {
+        background: var(--bg-primary);
+        padding: 32px;
+      }
+      .main-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+      .main-title {
+        font-size: 22px;
+        font-weight: 600;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--accent-primary);
+        color: white;
+      }
+      .btn-outline {
+        background: transparent;
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+      }
+      .btn-gradient {
+        background: var(--accent-gradient);
+        color: white;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-secondary);
+      }
+      .btn-success {
+        background: var(--success);
+        color: white;
+      }
+      .btn-danger {
+        background: var(--error);
+        color: white;
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .card:hover {
+        border-color: var(--accent-primary);
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+      }
+      .card-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+      .card-value {
+        font-size: 28px;
+        font-weight: 700;
+      }
+      .card-change {
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .card-change.up {
+        color: var(--success);
+      }
+      .card-change.down {
+        color: var(--error);
+      }
+
+      .table-wrap {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        padding: 14px 16px;
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border);
+        background: #f8fafc;
+      }
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: #fafbfc;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .badge-success {
+        background: #ecfdf5;
+        color: #059669;
+      }
+      .badge-warning {
+        background: #fffbeb;
+        color: #d97706;
+      }
+      .badge-error {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+      .badge-info {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+
+      .input {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        color: var(--text-primary);
+        font-size: 14px;
+        outline: none;
+        width: 260px;
+      }
+      .input:focus {
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+      .input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .score {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .score-high {
+        background: #ecfdf5;
+        color: #059669;
+      }
+      .score-mid {
+        background: #fffbeb;
+        color: #d97706;
+      }
+      .score-low {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Scheme 3 — Light Professional</h1>
+      <p class="subtitle">
+        Clean light theme with indigo/purple accents. Minimal shadows, subtle
+        borders. Best for: Enterprise SaaS, professional HR platforms,
+        accessibility-first designs.
+      </p>
+
+      <div class="palette">
+        <div class="swatch" style="background: #fafbfc; color: #333">
+          BG Primary
+        </div>
+        <div class="swatch" style="background: #ffffff; color: #333">
+          BG Card
+        </div>
+        <div class="swatch" style="background: #e2e8f0; color: #333">
+          Border
+        </div>
+        <div class="swatch" style="background: #0f172a">Text</div>
+        <div class="swatch" style="background: #4f46e5">Accent</div>
+        <div class="swatch" style="background: #7c3aed">Accent 2</div>
+        <div class="swatch" style="background: #059669">Success</div>
+        <div class="swatch" style="background: #d97706">Warning</div>
+        <div class="swatch" style="background: #dc2626">Error</div>
+        <div class="swatch" style="background: #2563eb">Info</div>
+      </div>
+
+      <div class="app-layout">
+        <div class="sidebar">
+          <div class="sidebar-logo">
+            <div class="dot"></div>
+            InterviewAI
+          </div>
+          <ul class="sidebar-nav">
+            <li class="active">Dashboard</li>
+            <li>Templates</li>
+            <li>Interviews</li>
+            <li>Candidates</li>
+            <li>Companies</li>
+            <li>AI Analysis</li>
+            <li>Billing</li>
+            <li>Settings</li>
+          </ul>
+        </div>
+        <div class="main">
+          <div class="main-header">
+            <div class="main-title">Dashboard</div>
+            <div style="display: flex; gap: 8px; align-items: center">
+              <input class="input" placeholder="Search..." />
+              <button class="btn btn-primary">+ New Interview</button>
+            </div>
+          </div>
+          <div class="cards">
+            <div class="card">
+              <div class="card-label">Active Interviews</div>
+              <div class="card-value">24</div>
+              <div class="card-change up">+12% this month</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Candidates Reviewed</div>
+              <div class="card-value">156</div>
+              <div class="card-change up">+8% this month</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Avg. Score</div>
+              <div class="card-value">73.5</div>
+              <div class="card-change down">-2.1 vs last month</div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-gradient">Gradient</button>
+            <button class="btn btn-outline">Outline</button>
+            <button class="btn btn-ghost">Ghost</button>
+            <button class="btn btn-success">Approve</button>
+            <button class="btn btn-danger">Reject</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Template</th>
+                  <th>Score</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Anna Petrova</td>
+                  <td>Frontend Developer</td>
+                  <td><span class="score score-high">87</span></td>
+                  <td><span class="badge badge-success">Hire</span></td>
+                  <td style="color: var(--text-muted)">Apr 3, 2026</td>
+                </tr>
+                <tr>
+                  <td>Mark Johnson</td>
+                  <td>Backend Engineer</td>
+                  <td><span class="score score-mid">62</span></td>
+                  <td><span class="badge badge-warning">Consider</span></td>
+                  <td style="color: var(--text-muted)">Apr 2, 2026</td>
+                </tr>
+                <tr>
+                  <td>Elena Sokolova</td>
+                  <td>DevOps Lead</td>
+                  <td><span class="score score-low">38</span></td>
+                  <td><span class="badge badge-error">Reject</span></td>
+                  <td style="color: var(--text-muted)">Apr 1, 2026</td>
+                </tr>
+                <tr>
+                  <td>David Chen</td>
+                  <td>Full Stack Developer</td>
+                  <td><span class="score score-high">91</span></td>
+                  <td><span class="badge badge-info">In Progress</span></td>
+                  <td style="color: var(--text-muted)">Apr 4, 2026</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
