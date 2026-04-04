@@ -14,6 +14,8 @@
     "check-types": "turbo run check-types",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
+    "test:pipeline": "bash scripts/test-pipeline.sh",
+    "test:pipeline:no-system": "bash scripts/test-pipeline.sh --no-system",
     "system-test": "bash scripts/system-test.sh",
     "system-test:list": "bash scripts/system-test.sh --list",
     "system-test:sync": "bash scripts/system-test.sh -c 01-sync-http",

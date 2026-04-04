@@ -1,7 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { DeleteSkillCommand } from './delete-skill.command';
 import type { ISkillRepository } from '../../../../domain/repositories/skill.repository.interface';
+import { SkillNotFoundException } from '../../../../domain/exceptions/skill.exceptions';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 /**
@@ -17,7 +18,7 @@ export class DeleteSkillHandler implements ICommandHandler<DeleteSkillCommand> {
   ) {}
 
   async execute(command: DeleteSkillCommand): Promise<void> {
-    this.logger.warn('Hard deleting skill (CASCADE)', { 
+    this.logger.warn('Hard deleting skill (CASCADE)', {
       skillId: command.skillId,
       adminId: command.adminId,
     });
@@ -25,7 +26,7 @@ export class DeleteSkillHandler implements ICommandHandler<DeleteSkillCommand> {
     // 1. Check if skill exists
     const skill = await this.skillRepository.findById(command.skillId);
     if (!skill) {
-      throw new NotFoundException(`Skill with ID "${command.skillId}" not found`);
+      throw new SkillNotFoundException(command.skillId);
     }
 
     // 2. Hard delete (CASCADE removes candidate_skills)

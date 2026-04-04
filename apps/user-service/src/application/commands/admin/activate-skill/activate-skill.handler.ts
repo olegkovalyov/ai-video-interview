@@ -1,11 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { ActivateSkillCommand } from './activate-skill.command';
 import type { ISkillRepository } from '../../../../domain/repositories/skill.repository.interface';
+import { SkillNotFoundException } from '../../../../domain/exceptions/skill.exceptions';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 @CommandHandler(ActivateSkillCommand)
-export class ActivateSkillHandler implements ICommandHandler<ActivateSkillCommand> {
+export class ActivateSkillHandler
+  implements ICommandHandler<ActivateSkillCommand>
+{
   constructor(
     @Inject('ISkillRepository')
     private readonly skillRepository: ISkillRepository,
@@ -15,7 +18,7 @@ export class ActivateSkillHandler implements ICommandHandler<ActivateSkillComman
   async execute(command: ActivateSkillCommand): Promise<void> {
     const skill = await this.skillRepository.findById(command.skillId);
     if (!skill) {
-      throw new NotFoundException(`Skill with ID "${command.skillId}" not found`);
+      throw new SkillNotFoundException(command.skillId);
     }
 
     skill.activate();

@@ -3,7 +3,10 @@ import { CompanySize } from '../value-objects/company-size.vo';
 import { UserCompany } from '../entities/user-company.entity';
 import { DomainException } from '../exceptions/domain.exception';
 import { CompanyCreatedEvent } from '../events/company-created.event';
-import { CompanyUpdatedEvent, type CompanyChanges } from '../events/company-updated.event';
+import {
+  CompanyUpdatedEvent,
+  type CompanyChanges,
+} from '../events/company-updated.event';
 import { CompanyDeactivatedEvent } from '../events/company-deactivated.event';
 
 /**
@@ -57,7 +60,9 @@ export class Company extends AggregateRoot {
     }
 
     if (name.length > 255) {
-      throw new DomainException('Company name is too long (max 255 characters)');
+      throw new DomainException(
+        'Company name is too long (max 255 characters)',
+      );
     }
 
     if (!createdBy || createdBy.trim().length === 0) {
@@ -84,13 +89,7 @@ export class Company extends AggregateRoot {
     company.addUser(userCompanyId, createdBy, position, true);
 
     // Publish domain event
-    company.apply(
-      new CompanyCreatedEvent(
-        id,
-        name.trim(),
-        createdBy,
-      ),
-    );
+    company.apply(new CompanyCreatedEvent(id, name.trim(), createdBy));
 
     return company;
   }
@@ -151,7 +150,9 @@ export class Company extends AggregateRoot {
     }
 
     if (name.length > 255) {
-      throw new DomainException('Company name is too long (max 255 characters)');
+      throw new DomainException(
+        'Company name is too long (max 255 characters)',
+      );
     }
 
     const changes: CompanyChanges = {};
@@ -199,13 +200,8 @@ export class Company extends AggregateRoot {
 
     if (Object.keys(changes).length > 0) {
       this._updatedAt = new Date();
-      
-      this.apply(
-        new CompanyUpdatedEvent(
-          this._id,
-          changes,
-        ),
-      );
+
+      this.apply(new CompanyUpdatedEvent(this._id, changes));
     }
   }
 
@@ -219,7 +215,7 @@ export class Company extends AggregateRoot {
     isPrimary: boolean,
   ): void {
     // Check if user already associated
-    const exists = this._users.some(uc => uc.userId === userId);
+    const exists = this._users.some((uc) => uc.userId === userId);
     if (exists) {
       throw new DomainException('User already associated with this company');
     }
@@ -227,8 +223,8 @@ export class Company extends AggregateRoot {
     // If setting as primary, unset other primary users
     if (isPrimary) {
       this._users
-        .filter(uc => uc.isPrimary)
-        .forEach(uc => uc.unsetAsPrimary());
+        .filter((uc) => uc.isPrimary)
+        .forEach((uc) => uc.unsetAsPrimary());
     }
 
     const userCompany = UserCompany.create(
@@ -252,7 +248,7 @@ export class Company extends AggregateRoot {
       throw new DomainException('Cannot remove company creator');
     }
 
-    const index = this._users.findIndex(uc => uc.userId === userId);
+    const index = this._users.findIndex((uc) => uc.userId === userId);
     if (index === -1) {
       throw new DomainException('User not found in company');
     }
@@ -265,7 +261,7 @@ export class Company extends AggregateRoot {
    * Update user's position in company
    */
   public updateUserPosition(userId: string, position: string): void {
-    const userCompany = this._users.find(uc => uc.userId === userId);
+    const userCompany = this._users.find((uc) => uc.userId === userId);
     if (!userCompany) {
       throw new DomainException('User not found in company');
     }
@@ -278,15 +274,15 @@ export class Company extends AggregateRoot {
    * Set user's company as primary
    */
   public setUserPrimary(userId: string): void {
-    const userCompany = this._users.find(uc => uc.userId === userId);
+    const userCompany = this._users.find((uc) => uc.userId === userId);
     if (!userCompany) {
       throw new DomainException('User not found in company');
     }
 
     // Unset other primary for this user
     this._users
-      .filter(uc => uc.userId === userId && uc.id !== userCompany.id)
-      .forEach(uc => uc.unsetAsPrimary());
+      .filter((uc) => uc.userId === userId && uc.id !== userCompany.id)
+      .forEach((uc) => uc.unsetAsPrimary());
 
     userCompany.setAsPrimary();
     this._updatedAt = new Date();
@@ -303,9 +299,7 @@ export class Company extends AggregateRoot {
     this._isActive = false;
     this._updatedAt = new Date();
 
-    this.apply(
-      new CompanyDeactivatedEvent(this._id),
-    );
+    this.apply(new CompanyDeactivatedEvent(this._id));
   }
 
   /**
@@ -365,7 +359,7 @@ export class Company extends AggregateRoot {
   }
 
   public get users(): readonly UserCompany[] {
-    return this._users;
+    return [...this._users];
   }
 
   public get createdAt(): Date {

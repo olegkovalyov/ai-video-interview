@@ -14,18 +14,32 @@ import {
   UserDeletedException,
   InvalidUserOperationException,
 } from '../../../domain/exceptions/user.exceptions';
-import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../domain/exceptions/company.exceptions';
+import {
+  CompanyNotFoundException,
+  CompanyAccessDeniedException,
+} from '../../../domain/exceptions/company.exceptions';
+import {
+  SkillNotFoundException,
+  SkillAlreadyExistsException,
+  SkillCategoryNotFoundException,
+  SkillNotActiveException,
+} from '../../../domain/exceptions/skill.exceptions';
+import {
+  CandidateProfileNotFoundException,
+  CandidateSkillAlreadyExistsException,
+} from '../../../domain/exceptions/candidate.exceptions';
+import { AccessDeniedException } from '../../../domain/exceptions/access-denied.exception';
 
 /**
  * Domain Exception Filter
  * Catches domain-level exceptions and maps them to appropriate HTTP statuses.
  *
  * Mapping:
- * - UserNotFoundException, CompanyNotFoundException → 404 Not Found
- * - CompanyAccessDeniedException, UserSuspendedException → 403 Forbidden
- * - UserAlreadyExistsException → 409 Conflict
- * - UserDeletedException → 410 Gone
- * - InvalidUserOperationException → 422 Unprocessable Entity
+ * - *NotFoundException → 404 Not Found
+ * - *AccessDenied*, UserSuspended → 403 Forbidden
+ * - *AlreadyExists* → 409 Conflict
+ * - UserDeleted → 410 Gone
+ * - InvalidUserOperation, SkillNotActive, SkillCategoryNotFound → 422 Unprocessable Entity
  * - DomainException (default) → 400 Bad Request
  */
 @Catch(DomainException)
@@ -52,27 +66,56 @@ export class DomainExceptionFilter implements ExceptionFilter {
     });
   }
 
-  private mapExceptionToHttp(exception: DomainException): { status: number; error: string } {
-    if (exception instanceof UserNotFoundException || exception instanceof CompanyNotFoundException) {
+  private mapExceptionToHttp(exception: DomainException): {
+    status: number;
+    error: string;
+  } {
+    // 404 Not Found
+    if (
+      exception instanceof UserNotFoundException ||
+      exception instanceof CompanyNotFoundException ||
+      exception instanceof SkillNotFoundException ||
+      exception instanceof CandidateProfileNotFoundException
+    ) {
       return { status: HttpStatus.NOT_FOUND, error: 'Not Found' };
     }
 
-    if (exception instanceof CompanyAccessDeniedException || exception instanceof UserSuspendedException) {
+    // 403 Forbidden
+    if (
+      exception instanceof AccessDeniedException ||
+      exception instanceof CompanyAccessDeniedException ||
+      exception instanceof UserSuspendedException
+    ) {
       return { status: HttpStatus.FORBIDDEN, error: 'Forbidden' };
     }
 
-    if (exception instanceof UserAlreadyExistsException) {
+    // 409 Conflict
+    if (
+      exception instanceof UserAlreadyExistsException ||
+      exception instanceof SkillAlreadyExistsException ||
+      exception instanceof CandidateSkillAlreadyExistsException
+    ) {
       return { status: HttpStatus.CONFLICT, error: 'Conflict' };
     }
 
+    // 410 Gone
     if (exception instanceof UserDeletedException) {
       return { status: HttpStatus.GONE, error: 'Gone' };
     }
 
-    if (exception instanceof InvalidUserOperationException) {
-      return { status: HttpStatus.UNPROCESSABLE_ENTITY, error: 'Unprocessable Entity' };
+    // 422 Unprocessable Entity
+    if (
+      exception instanceof InvalidUserOperationException ||
+      exception instanceof SkillNotActiveException ||
+      exception instanceof SkillCategoryNotFoundException
+    ) {
+      return {
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        error: 'Unprocessable Entity',
+      };
     }
 
+    // 400 Bad Request (default for any DomainException)
     return { status: HttpStatus.BAD_REQUEST, error: 'Bad Request' };
   }
 }

@@ -1,8 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, ConflictException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CreateSkillCommand } from './create-skill.command';
 import { Skill } from '../../../../domain/entities/skill.entity';
 import type { ISkillRepository } from '../../../../domain/repositories/skill.repository.interface';
+import {
+  SkillAlreadyExistsException,
+  SkillCategoryNotFoundException,
+} from '../../../../domain/exceptions/skill.exceptions';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 import { v4 as uuid } from 'uuid';
 
@@ -28,14 +32,16 @@ export class CreateSkillHandler implements ICommandHandler<CreateSkillCommand> {
     // 1. Check if skill with this slug already exists
     const existingSkill = await this.skillRepository.findBySlug(command.slug);
     if (existingSkill) {
-      throw new ConflictException(`Skill with slug "${command.slug}" already exists`);
+      throw new SkillAlreadyExistsException(command.slug);
     }
 
     // 2. If categoryId provided, verify it exists
     if (command.categoryId) {
-      const categoryExists = await this.skillRepository.categoryExists(command.categoryId);
+      const categoryExists = await this.skillRepository.categoryExists(
+        command.categoryId,
+      );
       if (!categoryExists) {
-        throw new ConflictException(`Skill category "${command.categoryId}" not found`);
+        throw new SkillCategoryNotFoundException(command.categoryId);
       }
     }
 
@@ -52,7 +58,10 @@ export class CreateSkillHandler implements ICommandHandler<CreateSkillCommand> {
     // 4. Save to repository
     await this.skillRepository.save(skill);
 
-    this.logger.info('Skill created successfully', { skillId, name: command.name });
+    this.logger.info('Skill created successfully', {
+      skillId,
+      name: command.name,
+    });
 
     return { skillId };
   }

@@ -177,6 +177,181 @@ describe("[06-billing-stripe] Checkout & Cancel/Resume", () => {
   });
 });
 
+describe("[06-billing-stripe] Usage Tracking & Quota Enforcement", () => {
+  const hrUserId = uuid();
+  const candidateId = uuid();
+  let templateId: string;
+
+  beforeAll(async () => {
+    await cleanTestDatabases();
+    console.log(`[billing-usage] hrUserId=${hrUserId}`);
+
+    // Seed HR user (triggers free subscription creation via Kafka)
+    await seedUser({
+      userId: hrUserId,
+      email: `usage-hr-${Date.now()}@test.com`,
+      firstName: "Usage",
+      lastName: "HR",
+    });
+
+    // Seed candidate
+    await seedUser({
+      userId: candidateId,
+      email: `usage-cand-${Date.now()}@test.com`,
+      firstName: "Usage",
+      lastName: "Cand",
+    });
+
+    // Wait for free subscription to be created
+    await poll(
+      async () => {
+        const { status, data } = await direct(
+          "billing",
+          "/api/billing/subscription",
+          { headers: { "x-company-id": hrUserId } },
+        );
+        if (status === 200 && data.planType === "free" && data.id) return data;
+        return null;
+      },
+      { timeout: 30000, label: "free subscription for usage test" },
+    );
+
+    // Create template + question + publish
+    const { data: tmpl } = await direct("interview", "/api/templates", {
+      method: "POST",
+      headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
+      body: { title: "Usage Test", description: "Testing usage tracking" },
+    });
+    templateId = tmpl.id;
+
+    await direct("interview", `/api/templates/${templateId}/questions`, {
+      method: "POST",
+      headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
+      body: {
+        text: "Describe your experience",
+        type: "text",
+        order: 1,
+        timeLimit: 60,
+        required: true,
+      },
+    });
+
+    await direct("interview", `/api/templates/${templateId}/publish`, {
+      method: "PUT",
+      headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
+    });
+
+    console.log(`[billing-usage] template ready: ${templateId}`);
+  });
+
+  it("should show 0 interviews used before completing any", async () => {
+    const { status, data } = await direct("billing", `/api/billing/usage`, {
+      headers: { "x-company-id": hrUserId },
+    });
+    console.log(
+      `[billing-usage] initial usage: status=${status}, data=${JSON.stringify(data)}`,
+    );
+
+    expect(status).toBe(200);
+  });
+
+  it("should increment interview usage after completing interview", async () => {
+    // Create invitation + start + respond + complete
+    const { data: inv } = await direct("interview", "/api/invitations", {
+      method: "POST",
+      headers: { "x-user-id": hrUserId, "x-user-role": "hr" },
+      body: {
+        templateId,
+        candidateId,
+        companyName: "UsageCorp",
+        candidateEmail: `usage-cand-${Date.now()}@test.com`,
+        candidateName: "Usage Cand",
+        hrEmail: `usage-hr-${Date.now()}@test.com`,
+        hrName: "Usage HR",
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      },
+    });
+    const invitationId = inv.id;
+    console.log(`[billing-usage] invitation created: ${invitationId}`);
+
+    await direct("interview", `/api/invitations/${invitationId}/start`, {
+      method: "POST",
+      headers: { "x-user-id": candidateId, "x-user-role": "candidate" },
+    });
+
+    const { data: fullTemplate } = await direct(
+      "interview",
+      `/api/templates/${templateId}`,
+      { headers: { "x-user-id": hrUserId, "x-user-role": "hr" } },
+    );
+
+    await direct("interview", `/api/invitations/${invitationId}/responses`, {
+      method: "POST",
+      headers: { "x-user-id": candidateId, "x-user-role": "candidate" },
+      body: {
+        questionId: fullTemplate.questions[0].id,
+        questionIndex: 0,
+        questionText: fullTemplate.questions[0].text,
+        responseType: "text",
+        textAnswer: "I have 5 years of experience in software development.",
+        duration: 30,
+      },
+    });
+
+    await direct("interview", `/api/invitations/${invitationId}/complete`, {
+      method: "POST",
+      headers: { "x-user-id": candidateId, "x-user-role": "candidate" },
+    });
+    console.log(`[billing-usage] interview completed`);
+
+    // Poll for usage increment (Kafka: invitation.completed → billing usage tracking)
+    const quota = await poll(
+      async () => {
+        const { status, data } = await direct(
+          "billing",
+          `/api/billing/internal/quota/${hrUserId}/interviews`,
+        );
+        console.log(
+          `[billing-usage] quota poll: allowed=${data?.allowed}, remaining=${data?.remaining}, limit=${data?.limit}`,
+        );
+        if (
+          status === 200 &&
+          data.remaining !== undefined &&
+          data.remaining < data.limit
+        ) {
+          return data;
+        }
+        return null;
+      },
+      { timeout: 30000, label: "interview usage increment" },
+    );
+
+    expect(quota.allowed).toBe(true);
+    expect(quota.remaining).toBeLessThan(quota.limit);
+    console.log(
+      `[billing-usage] usage incremented: remaining=${quota.remaining}/${quota.limit}`,
+    );
+  });
+
+  it("should enforce quota limit on free plan", async () => {
+    const { status, data } = await direct(
+      "billing",
+      `/api/billing/internal/quota/${hrUserId}/interviews`,
+    );
+    console.log(
+      `[billing-usage] quota check: allowed=${data?.allowed}, remaining=${data?.remaining}, limit=${data?.limit}, plan=${data?.currentPlan}`,
+    );
+
+    expect(status).toBe(200);
+    expect(data.currentPlan).toBe("free");
+    expect(data.limit).toBeGreaterThan(0);
+  });
+
+  afterAll(async () => {
+    await waitForAsyncDrain();
+  });
+});
+
 describe("[06-billing-stripe] Stripe Webhook Processing", () => {
   it("should reject webhook with invalid signature", async () => {
     const { status } = await direct("billing", "/api/billing/webhooks/stripe", {

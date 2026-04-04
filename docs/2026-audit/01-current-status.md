@@ -8,7 +8,7 @@
 Services:        ████████████████░░░░  6/7 backend + 1 frontend
 Infrastructure:  ██████████████████░░  90%
 Observability:   ████████████████░░░░  75%
-Testing:         ████████████████░░░░  75%
+Testing:         ██████████████████░░  85%
 CI/CD:           ░░░░░░░░░░░░░░░░░░░░  0%
 Production:      ░░░░░░░░░░░░░░░░░░░░  0%
 ```
@@ -34,19 +34,20 @@ Production:      ░░░░░░░░░░░░░░░░░░░░  0
 | 30+ API Endpoints  | Done    | Auth, users, HR, candidates, skills, admin, templates, invitations, analysis, billing, notifications |
 | Tests              | Minimal | 1 test file — needs improvement                                                                      |
 
-### User Service (port 8002) — DONE (with known issues)
+### User Service (port 8002) — DONE
 
-| Area                | Status    | Details                                                                             |
-| ------------------- | --------- | ----------------------------------------------------------------------------------- |
-| Domain Layer        | Done      | 3 aggregates (User, Company, CandidateProfile), 8 value objects, 12 domain events   |
-| Commands (CQRS)     | Done      | 19 commands: CRUD + role selection + avatar + company + skills                      |
-| Queries (CQRS)      | Done      | 14 queries: users, companies, skills, candidates, stats                             |
-| TypeORM Persistence | Done      | 9 entities, 5 migrations, mappers                                                   |
-| Kafka Integration   | Done      | Consumes user-commands, publishes user-events (Outbox + BullMQ)                     |
-| MinIO Storage       | Done      | Avatar upload with presigned URLs                                                   |
-| Read Models         | Done      | Separate read repositories for optimized queries                                    |
-| Tests               | Good      | 14 test files                                                                       |
-| Known Bugs          | 22 issues | P0: missing Outbox events in Suspend/Activate/Company handlers, mutable Company bug |
+| Area                | Status | Details                                                                                                  |
+| ------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| Domain Layer        | Done   | 3 aggregates (User, Company, CandidateProfile), 8 value objects, 12 domain events                        |
+| Domain Exceptions   | Done   | 12 exception types: User, Company, Skill, Candidate, AccessDenied — all mapped via DomainExceptionFilter |
+| Commands (CQRS)     | Done   | 19 commands: CRUD + role selection + avatar + company + skills                                           |
+| Queries (CQRS)      | Done   | 14 queries: users, companies, skills, candidates, stats                                                  |
+| TypeORM Persistence | Done   | 9 entities, 5 migrations, mappers                                                                        |
+| Kafka Integration   | Done   | Consumes user-commands, publishes user-events (Outbox + BullMQ)                                          |
+| MinIO Storage       | Done   | Avatar upload with presigned URLs                                                                        |
+| Read Models         | Done   | Separate read repositories for optimized queries                                                         |
+| Tests               | Good   | 38 test suites, 581 tests passing                                                                        |
+| Known Bugs          | Minor  | console.log in migrations (acceptable), some P2/P3 code quality items                                    |
 
 ### Interview Service (port 8003) — DONE
 
@@ -175,16 +176,18 @@ Specification exists in docs (MEDIA_SERVICE.md), but **zero source code**. Only 
 
 ## Testing
 
-| Area                | Status      | Details                                                                                                   |
-| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
-| Unit Tests          | Done        | Per-service domain + application layer tests                                                              |
-| System E2E Tests    | Done        | 66 tests across 8 categories, all passing                                                                 |
-| System Test Runner  | Done        | `npm run system-test` — starts 6 services on test ports (9002-9010)                                       |
-| Test Categories     | Done        | sync-http, interview-lifecycle, kafka-async, ai-analysis, notifications, billing-stripe, auth, resilience |
-| Clean Kafka Startup | Done        | Delete consumer groups + recreate topics before test run                                                  |
-| Async Drain         | Done        | waitForAsyncDrain() polls outbox tables + analysis_results between categories                             |
-| Frontend Tests      | None        | No unit/component tests                                                                                   |
-| CI/CD               | Not Started | No GitHub Actions workflows                                                                               |
+| Area                | Status      | Details                                                                                                |
+| ------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| Unit Tests          | Done        | 6 services: user (581), interview (432), ai-analysis (221), billing (246), notification, api-gateway   |
+| Integration Tests   | Done        | 5 services: user, interview, ai-analysis (9), billing (5), notification — real PostgreSQL + migrations |
+| E2E Tests           | Done        | 5 services: user, interview, ai-analysis (7), billing (3), api-gateway (48) — full HTTP stack          |
+| System E2E Tests    | Done        | 69 tests across 8 categories, all passing                                                              |
+| Test Pipeline       | Done        | `npm run test:pipeline` — sequential: unit → integration → e2e → system, fail-fast                     |
+| System Test Runner  | Done        | `npm run system-test` — starts 6 services on test ports (9002-9010)                                    |
+| Clean Kafka Startup | Done        | Delete consumer groups + recreate topics before test run                                               |
+| Async Drain         | Done        | waitForAsyncDrain() polls outbox tables + analysis_results between categories                          |
+| Frontend Tests      | None        | No unit/component tests                                                                                |
+| CI/CD               | Not Started | No GitHub Actions workflows                                                                            |
 
 ---
 
@@ -196,6 +199,13 @@ Specification exists in docs (MEDIA_SERVICE.md), but **zero source code**. Only 
 - **Invitation denormalization** — candidateEmail, candidateName, hrEmail, hrName stored in invitation aggregate
 - **Kafka session timeout** — reduced default from 600s to 30s (only AI analysis consumer keeps 600s)
 - **System E2E test framework** — 66 tests, 8 categories, clean Kafka startup, async drain
+- **User Service DDD layer fix** — replaced 20 NestJS exceptions (NotFoundException, ConflictException, etc.) with 7 new domain exception classes across 13 handlers; DomainExceptionFilter updated with 12 exception→HTTP mappings
+- **Company aggregate hardening** — defensive copy for users getter
+- **Documentation cleanup** — removed 10 empty placeholders, fixed all port numbers, updated service statuses
+- **AI Analysis Service** — added integration tests (9 specs) + e2e tests (7 specs) with MockAnalysisEngine
+- **Billing Service** — added Kafka consumer unit tests (user-created + usage-tracking), system tests for usage tracking + quota enforcement
+- **Interview Service** — added `companyId` to invitation.completed outbox payload (was missing, broke billing usage tracking)
+- **Test Pipeline** — `npm run test:pipeline` runs unit → integration → e2e → system sequentially with fail-fast
 
 ---
 
