@@ -1,7 +1,7 @@
 # User Service
 
-**Status:** ✅ Implemented  
-**Port:** 3005  
+**Status:** ✅ Implemented
+**Port:** 8002
 **Technology Stack:** NestJS, TypeORM, PostgreSQL, Kafka, MinIO, Redis (BullMQ)  
 **Database:** `ai_video_interview_user`
 
@@ -12,6 +12,7 @@
 User Service manages all user-related operations for the AI Video Interview platform using Clean Architecture with CQRS and DDD patterns.
 
 **Key Responsibilities:**
+
 - User profile management
 - Role-based access control (admin, hr, candidate)
 - HR company management
@@ -25,7 +26,7 @@ User Service manages all user-related operations for the AI Video Interview plat
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           USER SERVICE (3005)                                   │
+│                           USER SERVICE (8002)                                   │
 │                                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐   │
 │  │                         HTTP Layer                                       │   │
@@ -128,7 +129,7 @@ src/
 │   │   │   ├── admin-create-user/
 │   │   │   ├── admin-update-user/
 │   │   │   ├── admin-assign-role/
-│   │   │   └── ... 
+│   │   │   └── ...
 │   │   ├── hr/                         # HR-specific commands
 │   │   │   ├── create-company/
 │   │   │   ├── update-company/
@@ -322,63 +323,63 @@ src/
 
 ### User Commands
 
-| Command | Handler | Description |
-|---------|---------|-------------|
-| `CreateUserCommand` | Creates new user from Kafka event |
-| `UpdateUserCommand` | Updates user profile |
-| `SuspendUserCommand` | Suspends user account |
-| `ActivateUserCommand` | Activates suspended user |
-| `SelectRoleCommand` | Sets user's active role |
-| `UploadAvatarCommand` | Uploads avatar to MinIO |
+| Command               | Handler                           | Description |
+| --------------------- | --------------------------------- | ----------- |
+| `CreateUserCommand`   | Creates new user from Kafka event |
+| `UpdateUserCommand`   | Updates user profile              |
+| `SuspendUserCommand`  | Suspends user account             |
+| `ActivateUserCommand` | Activates suspended user          |
+| `SelectRoleCommand`   | Sets user's active role           |
+| `UploadAvatarCommand` | Uploads avatar to MinIO           |
 
 ### Admin Commands
 
-| Command | Handler | Description |
-|---------|---------|-------------|
-| `AdminCreateUserCommand` | Admin creates user directly |
-| `AdminUpdateUserCommand` | Admin updates any user |
-| `AdminDeleteUserCommand` | Admin deletes user |
-| `AdminAssignRoleCommand` | Assigns role to user |
-| `AdminRemoveRoleCommand` | Removes role from user |
-| `AdminCreateSkillCommand` | Creates new skill |
-| `AdminUpdateSkillCommand` | Updates skill |
-| `AdminDeleteSkillCommand` | Deletes skill |
+| Command                   | Handler                     | Description |
+| ------------------------- | --------------------------- | ----------- |
+| `AdminCreateUserCommand`  | Admin creates user directly |
+| `AdminUpdateUserCommand`  | Admin updates any user      |
+| `AdminDeleteUserCommand`  | Admin deletes user          |
+| `AdminAssignRoleCommand`  | Assigns role to user        |
+| `AdminRemoveRoleCommand`  | Removes role from user      |
+| `AdminCreateSkillCommand` | Creates new skill           |
+| `AdminUpdateSkillCommand` | Updates skill               |
+| `AdminDeleteSkillCommand` | Deletes skill               |
 
 ### HR Commands
 
-| Command | Handler | Description |
-|---------|---------|-------------|
+| Command                | Handler            | Description |
+| ---------------------- | ------------------ | ----------- |
 | `CreateCompanyCommand` | HR creates company |
 | `UpdateCompanyCommand` | HR updates company |
 | `DeleteCompanyCommand` | HR deletes company |
 
 ### Candidate Commands
 
-| Command | Handler | Description |
-|---------|---------|-------------|
-| `UpdateCandidateProfileCommand` | Updates candidate profile |
-| `AddCandidateSkillCommand` | Adds skill to candidate |
-| `RemoveCandidateSkillCommand` | Removes skill from candidate |
-| `UpdateCandidateSkillCommand` | Updates skill proficiency |
+| Command                         | Handler                      | Description |
+| ------------------------------- | ---------------------------- | ----------- |
+| `UpdateCandidateProfileCommand` | Updates candidate profile    |
+| `AddCandidateSkillCommand`      | Adds skill to candidate      |
+| `RemoveCandidateSkillCommand`   | Removes skill from candidate |
+| `UpdateCandidateSkillCommand`   | Updates skill proficiency    |
 
 ---
 
 ## CQRS Queries
 
-| Query | Handler | Description |
-|-------|---------|-------------|
-| `GetUserQuery` | Get user by ID |
-| `GetUserByExternalAuthIdQuery` | Find by Keycloak ID |
-| `ListUsersQuery` | Paginated user list |
-| `GetUserPermissionsQuery` | Get user's permissions |
-| `GetUserStatsQuery` | Get user statistics |
-| `GetCandidateProfileQuery` | Get candidate profile |
-| `GetCandidateSkillsQuery` | Get candidate's skills |
-| `GetCompanyQuery` | Get company by ID |
-| `ListCompaniesQuery` | List HR's companies |
-| `GetSkillQuery` | Get skill by ID |
-| `ListSkillsQuery` | List all skills |
-| `SearchSkillsQuery` | Search skills by name |
+| Query                          | Handler                | Description |
+| ------------------------------ | ---------------------- | ----------- |
+| `GetUserQuery`                 | Get user by ID         |
+| `GetUserByExternalAuthIdQuery` | Find by Keycloak ID    |
+| `ListUsersQuery`               | Paginated user list    |
+| `GetUserPermissionsQuery`      | Get user's permissions |
+| `GetUserStatsQuery`            | Get user statistics    |
+| `GetCandidateProfileQuery`     | Get candidate profile  |
+| `GetCandidateSkillsQuery`      | Get candidate's skills |
+| `GetCompanyQuery`              | Get company by ID      |
+| `ListCompaniesQuery`           | List HR's companies    |
+| `GetSkillQuery`                | Get skill by ID        |
+| `ListSkillsQuery`              | List all skills        |
+| `SearchSkillsQuery`            | Search skills by name  |
 
 ---
 
@@ -386,74 +387,74 @@ src/
 
 ### Internal API (Service-to-Service)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/internal/users/:id` | Get user by ID |
-| `GET` | `/api/v1/internal/users/by-external-auth/:externalAuthId` | Find by Keycloak ID |
-| `POST` | `/api/v1/internal/users` | Create user (from Kafka) |
+| Method | Endpoint                                                  | Description              |
+| ------ | --------------------------------------------------------- | ------------------------ |
+| `GET`  | `/api/v1/internal/users/:id`                              | Get user by ID           |
+| `GET`  | `/api/v1/internal/users/by-external-auth/:externalAuthId` | Find by Keycloak ID      |
+| `POST` | `/api/v1/internal/users`                                  | Create user (from Kafka) |
 
 ### Users API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/users/:id` | Get user profile |
-| `PUT` | `/api/v1/users/:id` | Update user profile |
-| `POST` | `/api/v1/users/:id/avatar` | Upload avatar |
-| `DELETE` | `/api/v1/users/:id/avatar` | Remove avatar |
-| `POST` | `/api/v1/users/:id/select-role` | Select active role |
+| Method   | Endpoint                        | Description         |
+| -------- | ------------------------------- | ------------------- |
+| `GET`    | `/api/v1/users/:id`             | Get user profile    |
+| `PUT`    | `/api/v1/users/:id`             | Update user profile |
+| `POST`   | `/api/v1/users/:id/avatar`      | Upload avatar       |
+| `DELETE` | `/api/v1/users/:id/avatar`      | Remove avatar       |
+| `POST`   | `/api/v1/users/:id/select-role` | Select active role  |
 
 ### Candidates API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/candidates/:id/profile` | Get candidate profile |
-| `PUT` | `/api/v1/candidates/:id/profile` | Update candidate profile |
-| `GET` | `/api/v1/candidates/:id/skills` | Get candidate skills |
-| `POST` | `/api/v1/candidates/:id/skills` | Add skill |
-| `PUT` | `/api/v1/candidates/:id/skills/:skillId` | Update skill |
-| `DELETE` | `/api/v1/candidates/:id/skills/:skillId` | Remove skill |
+| Method   | Endpoint                                 | Description              |
+| -------- | ---------------------------------------- | ------------------------ |
+| `GET`    | `/api/v1/candidates/:id/profile`         | Get candidate profile    |
+| `PUT`    | `/api/v1/candidates/:id/profile`         | Update candidate profile |
+| `GET`    | `/api/v1/candidates/:id/skills`          | Get candidate skills     |
+| `POST`   | `/api/v1/candidates/:id/skills`          | Add skill                |
+| `PUT`    | `/api/v1/candidates/:id/skills/:skillId` | Update skill             |
+| `DELETE` | `/api/v1/candidates/:id/skills/:skillId` | Remove skill             |
 
 ### Companies API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/companies` | List user's companies |
-| `GET` | `/api/v1/companies/:id` | Get company |
-| `POST` | `/api/v1/companies` | Create company |
-| `PUT` | `/api/v1/companies/:id` | Update company |
-| `DELETE` | `/api/v1/companies/:id` | Delete company |
+| Method   | Endpoint                | Description           |
+| -------- | ----------------------- | --------------------- |
+| `GET`    | `/api/v1/companies`     | List user's companies |
+| `GET`    | `/api/v1/companies/:id` | Get company           |
+| `POST`   | `/api/v1/companies`     | Create company        |
+| `PUT`    | `/api/v1/companies/:id` | Update company        |
+| `DELETE` | `/api/v1/companies/:id` | Delete company        |
 
 ### Skills API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/skills` | List all skills |
-| `GET` | `/api/v1/skills/search` | Search skills |
-| `GET` | `/api/v1/skills/categories` | List categories |
+| Method | Endpoint                    | Description     |
+| ------ | --------------------------- | --------------- |
+| `GET`  | `/api/v1/skills`            | List all skills |
+| `GET`  | `/api/v1/skills/search`     | Search skills   |
+| `GET`  | `/api/v1/skills/categories` | List categories |
 
 ### Admin API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/admin/users` | List all users (paginated) |
-| `POST` | `/api/v1/admin/users` | Create user |
-| `PUT` | `/api/v1/admin/users/:id` | Update user |
-| `DELETE` | `/api/v1/admin/users/:id` | Delete user |
-| `POST` | `/api/v1/admin/users/:id/suspend` | Suspend user |
-| `POST` | `/api/v1/admin/users/:id/activate` | Activate user |
-| `POST` | `/api/v1/admin/users/:id/roles` | Assign role |
-| `DELETE` | `/api/v1/admin/users/:id/roles/:roleId` | Remove role |
-| `POST` | `/api/v1/admin/skills` | Create skill |
-| `PUT` | `/api/v1/admin/skills/:id` | Update skill |
-| `DELETE` | `/api/v1/admin/skills/:id` | Delete skill |
+| Method   | Endpoint                                | Description                |
+| -------- | --------------------------------------- | -------------------------- |
+| `GET`    | `/api/v1/admin/users`                   | List all users (paginated) |
+| `POST`   | `/api/v1/admin/users`                   | Create user                |
+| `PUT`    | `/api/v1/admin/users/:id`               | Update user                |
+| `DELETE` | `/api/v1/admin/users/:id`               | Delete user                |
+| `POST`   | `/api/v1/admin/users/:id/suspend`       | Suspend user               |
+| `POST`   | `/api/v1/admin/users/:id/activate`      | Activate user              |
+| `POST`   | `/api/v1/admin/users/:id/roles`         | Assign role                |
+| `DELETE` | `/api/v1/admin/users/:id/roles/:roleId` | Remove role                |
+| `POST`   | `/api/v1/admin/skills`                  | Create skill               |
+| `PUT`    | `/api/v1/admin/skills/:id`              | Update skill               |
+| `DELETE` | `/api/v1/admin/skills/:id`              | Delete skill               |
 
 ### Health
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/health/live` | Liveness probe |
-| `GET` | `/health/ready` | Readiness probe |
+| Method | Endpoint        | Description     |
+| ------ | --------------- | --------------- |
+| `GET`  | `/health`       | Health check    |
+| `GET`  | `/health/live`  | Liveness probe  |
+| `GET`  | `/health/ready` | Readiness probe |
 
 ---
 
@@ -461,28 +462,29 @@ src/
 
 ### Consumed Topics
 
-| Topic | Event | Action |
-|-------|-------|--------|
-| `user-commands` | `CREATE_USER` | Create user in database |
-| `user-commands` | `UPDATE_USER` | Update user profile |
-| `user-commands` | `DELETE_USER` | Soft delete user |
-| `user-commands` | `SUSPEND_USER` | Suspend user account |
-| `user-commands` | `ACTIVATE_USER` | Activate user account |
+| Topic           | Event           | Action                  |
+| --------------- | --------------- | ----------------------- |
+| `user-commands` | `CREATE_USER`   | Create user in database |
+| `user-commands` | `UPDATE_USER`   | Update user profile     |
+| `user-commands` | `DELETE_USER`   | Soft delete user        |
+| `user-commands` | `SUSPEND_USER`  | Suspend user account    |
+| `user-commands` | `ACTIVATE_USER` | Activate user account   |
 
 ### Published Events (via OUTBOX)
 
-| Topic | Event | Trigger |
-|-------|-------|---------|
-| `user-events` | `user.created` | User created |
-| `user-events` | `user.updated` | User updated |
-| `user-events` | `user.deleted` | User deleted |
-| `user-events` | `user.suspended` | User suspended |
-| `user-events` | `user.activated` | User activated |
-| `user-events` | `user.role_selected` | Role selected |
+| Topic         | Event                | Trigger        |
+| ------------- | -------------------- | -------------- |
+| `user-events` | `user.created`       | User created   |
+| `user-events` | `user.updated`       | User updated   |
+| `user-events` | `user.deleted`       | User deleted   |
+| `user-events` | `user.suspended`     | User suspended |
+| `user-events` | `user.activated`     | User activated |
+| `user-events` | `user.role_selected` | Role selected  |
 
 ### Event Schema
 
 **user.created**
+
 ```json
 {
   "eventId": "uuid",
@@ -540,7 +542,7 @@ Ensures reliable event publishing with at-least-once delivery.
 
 ```bash
 # Application
-PORT=3005
+PORT=8002
 NODE_ENV=development
 
 # Database
@@ -600,28 +602,33 @@ Located in `src/infrastructure/persistence/migrations/`
 ## Value Objects
 
 ### UserStatus
+
 - `active` - Normal account
 - `suspended` - Temporarily disabled
 - `deleted` - Soft deleted
 
 ### UserRole
+
 - `admin` - System administrator
 - `hr` - HR manager
 - `candidate` - Job candidate
 
 ### ExperienceLevel
+
 - `junior` - 0-2 years
 - `middle` - 2-5 years
 - `senior` - 5-10 years
 - `lead` - 10+ years
 
 ### ProficiencyLevel
+
 - `beginner` - Basic knowledge
 - `intermediate` - Working knowledge
 - `advanced` - Deep expertise
 - `expert` - Industry expert
 
 ### CompanySize
+
 - `startup` - 1-10 employees
 - `small` - 11-50 employees
 - `medium` - 51-200 employees
@@ -658,7 +665,7 @@ npm run migration:run --filter=user-service
 # Start service
 npm run dev --filter=user-service
 
-# Service available at http://localhost:3005
+# Service available at http://localhost:8002
 ```
 
 ### Testing

@@ -1,9 +1,10 @@
 # Notification Service
 
-**Status:** 🔴 Not Implemented  
-**Port:** 3008  
-**Technology Stack:** NestJS, TypeORM, PostgreSQL, Resend/SendGrid, Redis (BullMQ)  
-**Priority:** MEDIUM (Required for candidate invitations)
+**Status:** ✅ Implemented
+**Port:** 8006
+**Database:** PostgreSQL 15 (`ai_video_interview_notification`)
+**Technology Stack:** NestJS 11, TypeORM 0.3, PostgreSQL, Nodemailer (SMTP), Redis 7, Kafka 7.4, BullMQ
+**Architecture:** DDD + CQRS + Outbox (same as other services)
 
 ---
 
@@ -12,6 +13,7 @@
 Notification Service handles all outbound communications for the AI Video Interview platform including emails, webhooks, and future push notifications.
 
 **Key Capabilities:**
+
 - Transactional email delivery (Resend/SendGrid)
 - Email template management
 - Delivery tracking and retry logic
@@ -24,29 +26,29 @@ Notification Service handles all outbound communications for the AI Video Interv
 
 ### Email Notifications
 
-| Category | Trigger | Template | Priority |
-|----------|---------|----------|----------|
-| **Registration** | User signup | `welcome` | High |
-| **Interview** | Candidate invited | `interview_invitation` | High |
-| **Interview** | Interview reminder (24h) | `interview_reminder` | Medium |
-| **Interview** | Interview completed | `interview_completed` | Medium |
-| **Analysis** | Analysis ready | `analysis_ready` | Medium |
-| **Candidate** | Candidate approved | `candidate_approved` | High |
-| **Candidate** | Candidate rejected | `candidate_rejected` | High |
-| **Billing** | Subscription confirmed | `subscription_confirmed` | High |
-| **Billing** | Payment successful | `payment_successful` | Low |
-| **Billing** | Payment failed | `payment_failed` | Critical |
-| **Billing** | Trial ending | `trial_ending` | High |
-| **Security** | Password reset | `password_reset` | Critical |
-| **Security** | New login detected | `new_login` | Medium |
+| Category         | Trigger                  | Template                 | Priority |
+| ---------------- | ------------------------ | ------------------------ | -------- |
+| **Registration** | User signup              | `welcome`                | High     |
+| **Interview**    | Candidate invited        | `interview_invitation`   | High     |
+| **Interview**    | Interview reminder (24h) | `interview_reminder`     | Medium   |
+| **Interview**    | Interview completed      | `interview_completed`    | Medium   |
+| **Analysis**     | Analysis ready           | `analysis_ready`         | Medium   |
+| **Candidate**    | Candidate approved       | `candidate_approved`     | High     |
+| **Candidate**    | Candidate rejected       | `candidate_rejected`     | High     |
+| **Billing**      | Subscription confirmed   | `subscription_confirmed` | High     |
+| **Billing**      | Payment successful       | `payment_successful`     | Low      |
+| **Billing**      | Payment failed           | `payment_failed`         | Critical |
+| **Billing**      | Trial ending             | `trial_ending`           | High     |
+| **Security**     | Password reset           | `password_reset`         | Critical |
+| **Security**     | New login detected       | `new_login`              | Medium   |
 
 ### Webhook Notifications
 
-| Event | Payload | Use Case |
-|-------|---------|----------|
-| `interview.completed` | Interview + candidate data | ATS integration |
-| `analysis.ready` | Scores + feedback | Automated workflows |
-| `candidate.status_changed` | Status update | External systems |
+| Event                      | Payload                    | Use Case            |
+| -------------------------- | -------------------------- | ------------------- |
+| `interview.completed`      | Interview + candidate data | ATS integration     |
+| `analysis.ready`           | Scores + feedback          | Automated workflows |
+| `candidate.status_changed` | Status update              | External systems    |
 
 ---
 
@@ -54,7 +56,7 @@ Notification Service handles all outbound communications for the AI Video Interv
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                 NOTIFICATION SERVICE (3008)                     │
+│                 NOTIFICATION SERVICE (8006)                     │
 │                                                                 │
 │  ┌───────────────────────────────────────────────────────────┐ │
 │  │               Kafka Consumer Layer                         │ │
@@ -139,22 +141,24 @@ templates/
 ### Example Template: Interview Invitation
 
 **Subject (subject.hbs):**
+
 ```handlebars
 You've been invited to interview at {{companyName}}
 ```
 
 **HTML (html.hbs):**
+
 ```handlebars
 {{#extend "layouts/base"}}
   {{#content "body"}}
     <h1>Hello {{candidateName}},</h1>
-    
+
     <p>
-      <strong>{{hrName}}</strong> from <strong>{{companyName}}</strong> 
-      has invited you to complete a video interview for the 
+      <strong>{{hrName}}</strong> from <strong>{{companyName}}</strong>
+      has invited you to complete a video interview for the
       <strong>{{positionTitle}}</strong> position.
     </p>
-    
+
     <div class="interview-details">
       <p><strong>Interview:</strong> {{interviewTitle}}</p>
       <p><strong>Questions:</strong> {{questionCount}}</p>
@@ -163,17 +167,17 @@ You've been invited to interview at {{companyName}}
         <p><strong>Deadline:</strong> {{formatDate deadline "MMMM D, YYYY"}}</p>
       {{/if}}
     </div>
-    
-    {{> button 
-        text="Start Interview" 
-        url=interviewUrl 
+
+    {{> button
+        text="Start Interview"
+        url=interviewUrl
         color="primary"
     }}
-    
+
     <p class="note">
       This link is unique to you and will expire {{#if deadline}}on {{formatDate deadline}}{{else}}in 7 days{{/if}}.
     </p>
-    
+
     <p>
       Good luck!<br>
       The {{companyName}} Team
@@ -189,26 +193,26 @@ interface InterviewInvitationData {
   // Candidate
   candidateName: string;
   candidateEmail: string;
-  
+
   // Company
   companyName: string;
   companyLogo?: string;
-  
+
   // HR
   hrName: string;
   hrEmail: string;
-  
+
   // Interview
   interviewId: string;
   interviewTitle: string;
   positionTitle: string;
   questionCount: number;
-  totalTimeLimit: number;  // minutes
+  totalTimeLimit: number; // minutes
   deadline?: Date;
-  
+
   // Links
-  interviewUrl: string;  // Public interview link
-  
+  interviewUrl: string; // Public interview link
+
   // Branding (Pro plan)
   primaryColor?: string;
   logoUrl?: string;
@@ -221,14 +225,14 @@ interface InterviewInvitationData {
 
 ### Subscribed Topics
 
-| Topic | Event | Template | Recipient |
-|-------|-------|----------|-----------|
-| `user-events` | `user.created` | `welcome` | User |
-| `interview-events` | `invitation.created` | `interview_invitation` | Candidate |
-| `interview-events` | `interview.completed` | `interview_completed` | HR |
-| `analysis-events` | `analysis.completed` | `analysis_ready` | HR |
-| `billing-events` | `subscription.created` | `subscription_confirmed` | User |
-| `billing-events` | `payment.failed` | `payment_failed` | User |
+| Topic              | Event                  | Template                 | Recipient |
+| ------------------ | ---------------------- | ------------------------ | --------- |
+| `user-events`      | `user.created`         | `welcome`                | User      |
+| `interview-events` | `invitation.created`   | `interview_invitation`   | Candidate |
+| `interview-events` | `interview.completed`  | `interview_completed`    | HR        |
+| `analysis-events`  | `analysis.completed`   | `analysis_ready`         | HR        |
+| `billing-events`   | `subscription.created` | `subscription_confirmed` | User      |
+| `billing-events`   | `payment.failed`       | `payment_failed`         | User      |
 
 ### Event Processing Flow
 
@@ -276,10 +280,10 @@ interface InterviewInvitationData {
 
 ### Published Events
 
-| Topic | Event | Trigger |
-|-------|-------|---------|
-| `notification-events` | `email.sent` | Email delivered |
-| `notification-events` | `email.failed` | Delivery failed |
+| Topic                 | Event          | Trigger           |
+| --------------------- | -------------- | ----------------- |
+| `notification-events` | `email.sent`   | Email delivered   |
+| `notification-events` | `email.failed` | Delivery failed   |
 | `notification-events` | `webhook.sent` | Webhook delivered |
 
 ---
@@ -294,10 +298,10 @@ resend:
   from_email: noreply@yourdomain.com
   from_name: AI Video Interview
   reply_to: support@yourdomain.com
-  
+
   # Domain verification required
   domain: yourdomain.com
-  
+
   # Rate limits (Resend free tier)
   rate_limit:
     emails_per_day: 100
@@ -309,15 +313,15 @@ resend:
 ```typescript
 // Send email via Resend
 const response = await resend.emails.send({
-  from: 'AI Video Interview <noreply@yourdomain.com>',
-  to: ['candidate@email.com'],
-  subject: 'You\'ve been invited to interview at TechCorp',
+  from: "AI Video Interview <noreply@yourdomain.com>",
+  to: ["candidate@email.com"],
+  subject: "You've been invited to interview at TechCorp",
   html: renderedHtml,
   text: renderedText,
   tags: [
-    { name: 'template', value: 'interview_invitation' },
-    { name: 'interview_id', value: 'uuid' }
-  ]
+    { name: "template", value: "interview_invitation" },
+    { name: "interview_id", value: "uuid" },
+  ],
 });
 
 // response.id = "email_xxxxx" (for tracking)
@@ -398,6 +402,7 @@ Signature = HMAC-SHA256(
 ### Tables
 
 **notifications**
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ notifications                                                   │
@@ -426,6 +431,7 @@ Signature = HMAC-SHA256(
 ```
 
 **notification_preferences**
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ notification_preferences                                        │
@@ -448,6 +454,7 @@ Signature = HMAC-SHA256(
 ```
 
 **webhooks**
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ webhooks                                                        │
@@ -467,6 +474,7 @@ Signature = HMAC-SHA256(
 ```
 
 **webhook_deliveries**
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ webhook_deliveries                                              │
@@ -491,41 +499,41 @@ Signature = HMAC-SHA256(
 
 ### Notifications
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/notifications` | List user's notifications |
-| `GET` | `/api/v1/notifications/:id` | Get notification details |
+| Method | Endpoint                          | Description               |
+| ------ | --------------------------------- | ------------------------- |
+| `GET`  | `/api/v1/notifications`           | List user's notifications |
+| `GET`  | `/api/v1/notifications/:id`       | Get notification details  |
 | `POST` | `/api/v1/notifications/:id/retry` | Retry failed notification |
 
 ### Preferences
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/preferences` | Get notification preferences |
-| `PUT` | `/api/v1/preferences` | Update preferences |
-| `POST` | `/api/v1/preferences/unsubscribe` | Unsubscribe from type |
+| Method | Endpoint                          | Description                  |
+| ------ | --------------------------------- | ---------------------------- |
+| `GET`  | `/api/v1/preferences`             | Get notification preferences |
+| `PUT`  | `/api/v1/preferences`             | Update preferences           |
+| `POST` | `/api/v1/preferences/unsubscribe` | Unsubscribe from type        |
 
 ### Webhooks (Pro Plan)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/webhooks` | List organization webhooks |
-| `POST` | `/api/v1/webhooks` | Create webhook |
-| `PUT` | `/api/v1/webhooks/:id` | Update webhook |
-| `DELETE` | `/api/v1/webhooks/:id` | Delete webhook |
-| `GET` | `/api/v1/webhooks/:id/deliveries` | List delivery history |
-| `POST` | `/api/v1/webhooks/:id/test` | Send test webhook |
+| Method   | Endpoint                          | Description                |
+| -------- | --------------------------------- | -------------------------- |
+| `GET`    | `/api/v1/webhooks`                | List organization webhooks |
+| `POST`   | `/api/v1/webhooks`                | Create webhook             |
+| `PUT`    | `/api/v1/webhooks/:id`            | Update webhook             |
+| `DELETE` | `/api/v1/webhooks/:id`            | Delete webhook             |
+| `GET`    | `/api/v1/webhooks/:id/deliveries` | List delivery history      |
+| `POST`   | `/api/v1/webhooks/:id/test`       | Send test webhook          |
 
 ### Provider Webhooks
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+| Method | Endpoint                  | Description               |
+| ------ | ------------------------- | ------------------------- |
 | `POST` | `/api/v1/webhooks/resend` | Resend delivery callbacks |
 
 ### Internal
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+| Method | Endpoint         | Description                            |
+| ------ | ---------------- | -------------------------------------- |
 | `POST` | `/internal/send` | Send notification (service-to-service) |
 
 ---
@@ -540,14 +548,14 @@ queues:
     concurrency: 5
     limiter:
       max: 2
-      duration: 1000  # 2 emails/second (Resend limit)
+      duration: 1000 # 2 emails/second (Resend limit)
     defaultJobOptions:
       attempts: 3
       backoff:
         type: exponential
-        delay: 60000  # 1 min, 2 min, 4 min
+        delay: 60000 # 1 min, 2 min, 4 min
       removeOnComplete: 1000
-      
+
   webhook:
     concurrency: 10
     defaultJobOptions:
@@ -560,12 +568,12 @@ queues:
 
 ### Job Priority
 
-| Priority | Level | Examples |
-|----------|-------|----------|
-| Critical | 1 | Password reset, payment failed |
-| High | 2 | Interview invitation, candidate decision |
-| Medium | 3 | Reminders, analysis ready |
-| Low | 4 | Payment receipts, marketing |
+| Priority | Level | Examples                                 |
+| -------- | ----- | ---------------------------------------- |
+| Critical | 1     | Password reset, payment failed           |
+| High     | 2     | Interview invitation, candidate decision |
+| Medium   | 3     | Reminders, analysis ready                |
+| Low      | 4     | Payment receipts, marketing              |
 
 ---
 
@@ -575,7 +583,7 @@ queues:
 
 ```bash
 # Application
-PORT=3008
+PORT=8006
 NODE_ENV=development
 
 # Database
@@ -638,12 +646,12 @@ notification_retry_total{type="email|webhook"}
 
 ### Alerts
 
-| Alert | Condition | Severity |
-|-------|-----------|----------|
-| EmailDeliveryFailure | >10% failure in 1h | Warning |
-| WebhookEndpointDown | >5 consecutive failures | Warning |
-| QueueBacklog | >1000 pending jobs | Critical |
-| BounceRateHigh | >5% bounces | Warning |
+| Alert                | Condition               | Severity |
+| -------------------- | ----------------------- | -------- |
+| EmailDeliveryFailure | >10% failure in 1h      | Warning  |
+| WebhookEndpointDown  | >5 consecutive failures | Warning  |
+| QueueBacklog         | >1000 pending jobs      | Critical |
+| BounceRateHigh       | >5% bounces             | Warning  |
 
 ---
 
@@ -674,30 +682,35 @@ notification_retry_total{type="email|webhook"}
 ## Implementation Phases
 
 ### Phase 1: Foundation
+
 - [ ] NestJS project setup
 - [ ] Database schema + migrations
 - [ ] Resend integration
 - [ ] Basic email sending
 
 ### Phase 2: Templates
+
 - [ ] Handlebars template engine
 - [ ] Core email templates
 - [ ] i18n support
 - [ ] Template preview/test API
 
 ### Phase 3: Event Integration
+
 - [ ] Kafka consumers
 - [ ] Event-to-notification mapping
 - [ ] BullMQ queue processing
 - [ ] Retry logic
 
 ### Phase 4: Webhooks
+
 - [ ] Webhook management API
 - [ ] Delivery system
 - [ ] Signature verification
 - [ ] Delivery logs
 
 ### Phase 5: Production
+
 - [ ] Delivery tracking (opens, clicks)
 - [ ] Notification preferences
 - [ ] Metrics & monitoring

@@ -12,6 +12,7 @@
 API Gateway is the single entry point for all external requests to the AI Video Interview platform. It handles authentication, request routing, metrics collection, and distributed tracing.
 
 **Key Responsibilities:**
+
 - OAuth2/OIDC authentication via Keycloak
 - JWT token validation and refresh
 - Request routing to microservices
@@ -58,7 +59,7 @@ API Gateway is the single entry point for all external requests to the AI Video 
          │                    │                    │
          ▼                    ▼                    ▼
     User Service       Interview Service      Keycloak
-      (3005)              (3007)               (8090)
+      (8002)              (8003)               (8090)
 ```
 
 ---
@@ -222,122 +223,122 @@ src/
 
 ### Authentication (`/auth/*`)
 
-| Method | Endpoint | Guard | Description |
-|--------|----------|-------|-------------|
-| `GET` | `/auth/login` | — | Initiate OAuth2 login |
-| `GET` | `/auth/callback` | — | OAuth2 callback handler |
-| `POST` | `/auth/refresh` | JwtRefreshGuard | Refresh access token |
-| `POST` | `/auth/logout` | JwtAuthGuard | Logout and clear tokens |
-| `GET` | `/auth/me` | JwtAuthGuard | Get current user info |
+| Method | Endpoint         | Guard           | Description             |
+| ------ | ---------------- | --------------- | ----------------------- |
+| `GET`  | `/auth/login`    | —               | Initiate OAuth2 login   |
+| `GET`  | `/auth/callback` | —               | OAuth2 callback handler |
+| `POST` | `/auth/refresh`  | JwtRefreshGuard | Refresh access token    |
+| `POST` | `/auth/logout`   | JwtAuthGuard    | Logout and clear tokens |
+| `GET`  | `/auth/me`       | JwtAuthGuard    | Get current user info   |
 
 ### Users (`/api/users/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `GET` | `/api/users/me` | JwtAuth | Any | Get current user profile |
-| `PUT` | `/api/users/me` | JwtAuth | Any | Update current user |
-| `POST` | `/api/users/me/avatar` | JwtAuth | Any | Upload avatar |
-| `DELETE` | `/api/users/me/avatar` | JwtAuth | Any | Remove avatar |
-| `POST` | `/api/users/select-role` | JwtAuth | Any | Select HR/Candidate role |
+| Method   | Endpoint                 | Guard   | Roles | Description              |
+| -------- | ------------------------ | ------- | ----- | ------------------------ |
+| `GET`    | `/api/users/me`          | JwtAuth | Any   | Get current user profile |
+| `PUT`    | `/api/users/me`          | JwtAuth | Any   | Update current user      |
+| `POST`   | `/api/users/me/avatar`   | JwtAuth | Any   | Upload avatar            |
+| `DELETE` | `/api/users/me/avatar`   | JwtAuth | Any   | Remove avatar            |
+| `POST`   | `/api/users/select-role` | JwtAuth | Any   | Select HR/Candidate role |
 
 ### HR (`/api/hr/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `GET` | `/api/hr/profile` | JwtAuth | hr | Get HR profile |
-| `PUT` | `/api/hr/profile` | JwtAuth | hr | Update HR profile |
-| `GET` | `/api/hr/companies` | JwtAuth | hr | List companies |
-| `POST` | `/api/hr/companies` | JwtAuth | hr | Create company |
-| `PUT` | `/api/hr/companies/:id` | JwtAuth | hr | Update company |
-| `DELETE` | `/api/hr/companies/:id` | JwtAuth | hr | Delete company |
+| Method   | Endpoint                | Guard   | Roles | Description       |
+| -------- | ----------------------- | ------- | ----- | ----------------- |
+| `GET`    | `/api/hr/profile`       | JwtAuth | hr    | Get HR profile    |
+| `PUT`    | `/api/hr/profile`       | JwtAuth | hr    | Update HR profile |
+| `GET`    | `/api/hr/companies`     | JwtAuth | hr    | List companies    |
+| `POST`   | `/api/hr/companies`     | JwtAuth | hr    | Create company    |
+| `PUT`    | `/api/hr/companies/:id` | JwtAuth | hr    | Update company    |
+| `DELETE` | `/api/hr/companies/:id` | JwtAuth | hr    | Delete company    |
 
 ### Candidate (`/api/candidate/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `GET` | `/api/candidate/profile` | JwtAuth | candidate | Get candidate profile |
-| `PUT` | `/api/candidate/profile` | JwtAuth | candidate | Update candidate profile |
-| `GET` | `/api/candidate/skills` | JwtAuth | candidate | Get candidate skills |
-| `POST` | `/api/candidate/skills` | JwtAuth | candidate | Add skill |
-| `DELETE` | `/api/candidate/skills/:id` | JwtAuth | candidate | Remove skill |
+| Method   | Endpoint                    | Guard   | Roles     | Description              |
+| -------- | --------------------------- | ------- | --------- | ------------------------ |
+| `GET`    | `/api/candidate/profile`    | JwtAuth | candidate | Get candidate profile    |
+| `PUT`    | `/api/candidate/profile`    | JwtAuth | candidate | Update candidate profile |
+| `GET`    | `/api/candidate/skills`     | JwtAuth | candidate | Get candidate skills     |
+| `POST`   | `/api/candidate/skills`     | JwtAuth | candidate | Add skill                |
+| `DELETE` | `/api/candidate/skills/:id` | JwtAuth | candidate | Remove skill             |
 
 ### Skills (`/api/skills/*`)
 
-| Method | Endpoint | Guard | Description |
-|--------|----------|-------|-------------|
-| `GET` | `/api/skills` | JwtAuth | List all skills (catalog) |
-| `GET` | `/api/skills/search` | JwtAuth | Search skills |
+| Method | Endpoint             | Guard   | Description               |
+| ------ | -------------------- | ------- | ------------------------- |
+| `GET`  | `/api/skills`        | JwtAuth | List all skills (catalog) |
+| `GET`  | `/api/skills/search` | JwtAuth | Search skills             |
 
 ### Admin - Users (`/api/admin/users/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `GET` | `/api/admin/users` | JwtAuth | admin | List all users (paginated) |
-| `GET` | `/api/admin/users/:id` | JwtAuth | admin | Get user by ID |
-| `POST` | `/api/admin/users` | JwtAuth | admin | Create user (Keycloak + DB) |
-| `PUT` | `/api/admin/users/:id` | JwtAuth | admin | Update user |
-| `DELETE` | `/api/admin/users/:id` | JwtAuth | admin | Delete user |
+| Method   | Endpoint               | Guard   | Roles | Description                 |
+| -------- | ---------------------- | ------- | ----- | --------------------------- |
+| `GET`    | `/api/admin/users`     | JwtAuth | admin | List all users (paginated)  |
+| `GET`    | `/api/admin/users/:id` | JwtAuth | admin | Get user by ID              |
+| `POST`   | `/api/admin/users`     | JwtAuth | admin | Create user (Keycloak + DB) |
+| `PUT`    | `/api/admin/users/:id` | JwtAuth | admin | Update user                 |
+| `DELETE` | `/api/admin/users/:id` | JwtAuth | admin | Delete user                 |
 
 ### Admin - Actions (`/api/admin/users/:id/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `POST` | `/api/admin/users/:id/suspend` | JwtAuth | admin | Suspend user |
-| `POST` | `/api/admin/users/:id/activate` | JwtAuth | admin | Activate user |
-| `POST` | `/api/admin/users/:id/roles` | JwtAuth | admin | Assign role |
-| `DELETE` | `/api/admin/users/:id/roles/:roleId` | JwtAuth | admin | Remove role |
+| Method   | Endpoint                             | Guard   | Roles | Description   |
+| -------- | ------------------------------------ | ------- | ----- | ------------- |
+| `POST`   | `/api/admin/users/:id/suspend`       | JwtAuth | admin | Suspend user  |
+| `POST`   | `/api/admin/users/:id/activate`      | JwtAuth | admin | Activate user |
+| `POST`   | `/api/admin/users/:id/roles`         | JwtAuth | admin | Assign role   |
+| `DELETE` | `/api/admin/users/:id/roles/:roleId` | JwtAuth | admin | Remove role   |
 
 ### Admin - Skills (`/api/admin/skills/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `GET` | `/api/admin/skills` | JwtAuth | admin | List all skills |
-| `POST` | `/api/admin/skills` | JwtAuth | admin | Create skill |
-| `PUT` | `/api/admin/skills/:id` | JwtAuth | admin | Update skill |
-| `DELETE` | `/api/admin/skills/:id` | JwtAuth | admin | Delete skill |
+| Method   | Endpoint                | Guard   | Roles | Description     |
+| -------- | ----------------------- | ------- | ----- | --------------- |
+| `GET`    | `/api/admin/skills`     | JwtAuth | admin | List all skills |
+| `POST`   | `/api/admin/skills`     | JwtAuth | admin | Create skill    |
+| `PUT`    | `/api/admin/skills/:id` | JwtAuth | admin | Update skill    |
+| `DELETE` | `/api/admin/skills/:id` | JwtAuth | admin | Delete skill    |
 
 ### Templates (`/api/templates/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `GET` | `/api/templates` | JwtAuth | hr, admin | List templates |
-| `GET` | `/api/templates/:id` | JwtAuth | hr, admin | Get template |
-| `POST` | `/api/templates` | JwtAuth | hr, admin | Create template |
-| `PUT` | `/api/templates/:id` | JwtAuth | hr, admin | Update template |
-| `DELETE` | `/api/templates/:id` | JwtAuth | hr, admin | Delete template |
-| `POST` | `/api/templates/:id/publish` | JwtAuth | hr, admin | Publish template |
-| `POST` | `/api/templates/:id/questions` | JwtAuth | hr, admin | Add question |
-| `PUT` | `/api/templates/:id/questions/:qId` | JwtAuth | hr, admin | Update question |
-| `DELETE` | `/api/templates/:id/questions/:qId` | JwtAuth | hr, admin | Remove question |
-| `PUT` | `/api/templates/:id/questions/reorder` | JwtAuth | hr, admin | Reorder questions |
+| Method   | Endpoint                               | Guard   | Roles     | Description       |
+| -------- | -------------------------------------- | ------- | --------- | ----------------- |
+| `GET`    | `/api/templates`                       | JwtAuth | hr, admin | List templates    |
+| `GET`    | `/api/templates/:id`                   | JwtAuth | hr, admin | Get template      |
+| `POST`   | `/api/templates`                       | JwtAuth | hr, admin | Create template   |
+| `PUT`    | `/api/templates/:id`                   | JwtAuth | hr, admin | Update template   |
+| `DELETE` | `/api/templates/:id`                   | JwtAuth | hr, admin | Delete template   |
+| `POST`   | `/api/templates/:id/publish`           | JwtAuth | hr, admin | Publish template  |
+| `POST`   | `/api/templates/:id/questions`         | JwtAuth | hr, admin | Add question      |
+| `PUT`    | `/api/templates/:id/questions/:qId`    | JwtAuth | hr, admin | Update question   |
+| `DELETE` | `/api/templates/:id/questions/:qId`    | JwtAuth | hr, admin | Remove question   |
+| `PUT`    | `/api/templates/:id/questions/reorder` | JwtAuth | hr, admin | Reorder questions |
 
 ### Invitations (`/api/invitations/*`)
 
-| Method | Endpoint | Guard | Roles | Description |
-|--------|----------|-------|-------|-------------|
-| `GET` | `/api/invitations` | JwtAuth | hr | List HR's invitations |
-| `GET` | `/api/invitations/candidate` | JwtAuth | candidate | Candidate's invitations |
-| `GET` | `/api/invitations/:id` | JwtAuth | hr, candidate | Get invitation |
-| `POST` | `/api/invitations` | JwtAuth | hr | Create invitation |
-| `POST` | `/api/invitations/:id/start` | JwtAuth | candidate | Start interview |
-| `POST` | `/api/invitations/:id/responses` | JwtAuth | candidate | Submit response |
-| `POST` | `/api/invitations/:id/complete` | JwtAuth | candidate | Complete interview |
+| Method | Endpoint                         | Guard   | Roles         | Description             |
+| ------ | -------------------------------- | ------- | ------------- | ----------------------- |
+| `GET`  | `/api/invitations`               | JwtAuth | hr            | List HR's invitations   |
+| `GET`  | `/api/invitations/candidate`     | JwtAuth | candidate     | Candidate's invitations |
+| `GET`  | `/api/invitations/:id`           | JwtAuth | hr, candidate | Get invitation          |
+| `POST` | `/api/invitations`               | JwtAuth | hr            | Create invitation       |
+| `POST` | `/api/invitations/:id/start`     | JwtAuth | candidate     | Start interview         |
+| `POST` | `/api/invitations/:id/responses` | JwtAuth | candidate     | Submit response         |
+| `POST` | `/api/invitations/:id/complete`  | JwtAuth | candidate     | Complete interview      |
 
 ### Health (`/health/*`)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Basic health check |
-| `GET` | `/health/live` | Liveness probe |
-| `GET` | `/health/ready` | Readiness probe |
+| Method | Endpoint        | Description        |
+| ------ | --------------- | ------------------ |
+| `GET`  | `/health`       | Basic health check |
+| `GET`  | `/health/live`  | Liveness probe     |
+| `GET`  | `/health/ready` | Readiness probe    |
 
 ### Metrics & Docs
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/metrics` | Prometheus metrics |
-| `GET` | `/api/docs` | Swagger UI |
-| `GET` | `/api/docs-json` | OpenAPI JSON spec |
+| Method | Endpoint         | Description        |
+| ------ | ---------------- | ------------------ |
+| `GET`  | `/metrics`       | Prometheus metrics |
+| `GET`  | `/api/docs`      | Swagger UI         |
+| `GET`  | `/api/docs-json` | OpenAPI JSON spec  |
 
 ---
 
@@ -345,17 +346,18 @@ src/
 
 ### Published Events
 
-| Topic | Event | Trigger |
-|-------|-------|---------|
-| `user-commands` | `CREATE_USER` | New user login (RegistrationSaga) |
-| `user-commands` | `UPDATE_USER` | User profile update |
-| `user-commands` | `DELETE_USER` | User deletion |
-| `user-commands` | `SUSPEND_USER` | User suspension |
-| `user-commands` | `ACTIVATE_USER` | User activation |
+| Topic           | Event           | Trigger                           |
+| --------------- | --------------- | --------------------------------- |
+| `user-commands` | `CREATE_USER`   | New user login (RegistrationSaga) |
+| `user-commands` | `UPDATE_USER`   | User profile update               |
+| `user-commands` | `DELETE_USER`   | User deletion                     |
+| `user-commands` | `SUSPEND_USER`  | User suspension                   |
+| `user-commands` | `ACTIVATE_USER` | User activation                   |
 
 ### Event Schema
 
 **CREATE_USER Command:**
+
 ```json
 {
   "type": "CREATE_USER",
@@ -398,8 +400,8 @@ NEXT_PUBLIC_WEB_ORIGIN=http://localhost:3000
 AUTH_CALLBACK_URL=http://localhost:8001/auth/callback
 
 # Microservices
-USER_SERVICE_URL=http://localhost:3005
-INTERVIEW_SERVICE_URL=http://localhost:3007
+USER_SERVICE_URL=http://localhost:8002
+INTERVIEW_SERVICE_URL=http://localhost:8003
 
 # Kafka
 KAFKA_BROKERS=localhost:9092
@@ -513,12 +515,12 @@ kafka_messages_published_total{topic}
 
 ### Log Levels
 
-| Level | Use Case |
-|-------|----------|
-| `error` | Exceptions, failures |
-| `warn` | Degraded states, retries |
-| `info` | Business events, requests |
-| `debug` | Detailed debugging |
+| Level   | Use Case                  |
+| ------- | ------------------------- |
+| `error` | Exceptions, failures      |
+| `warn`  | Degraded states, retries  |
+| `info`  | Business events, requests |
+| `debug` | Detailed debugging        |
 
 ---
 
@@ -555,16 +557,16 @@ View traces at: http://localhost:16686
 
 ### Error Codes
 
-| Code | Description |
-|------|-------------|
-| 400 | Bad Request - Invalid input |
-| 401 | Unauthorized - Missing/invalid token |
-| 403 | Forbidden - Insufficient permissions |
-| 404 | Not Found - Resource doesn't exist |
-| 429 | Too Many Requests - Rate limited |
-| 500 | Internal Server Error |
-| 502 | Bad Gateway - Downstream service error |
-| 503 | Service Unavailable - Circuit open |
+| Code | Description                            |
+| ---- | -------------------------------------- |
+| 400  | Bad Request - Invalid input            |
+| 401  | Unauthorized - Missing/invalid token   |
+| 403  | Forbidden - Insufficient permissions   |
+| 404  | Not Found - Resource doesn't exist     |
+| 429  | Too Many Requests - Rate limited       |
+| 500  | Internal Server Error                  |
+| 502  | Bad Gateway - Downstream service error |
+| 503  | Service Unavailable - Circuit open     |
 
 ---
 
