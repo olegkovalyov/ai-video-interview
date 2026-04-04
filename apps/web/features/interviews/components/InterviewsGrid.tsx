@@ -28,7 +28,7 @@ export function InterviewsGrid() {
             <p className="text-white/80 mb-8 max-w-md mx-auto">
               Get started by creating your first AI-powered video interview template.
             </p>
-            <Button asChild variant="brand" size="lg">
+            <Button asChild variant="default" size="lg">
               <Link href="/interviews/create" className="flex items-center space-x-2">
                 <Plus className="w-5 h-5" />
                 <span>Create Your First Interview</span>

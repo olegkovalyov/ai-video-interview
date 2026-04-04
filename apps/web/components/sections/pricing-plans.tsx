@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Check } from "lucide-react"
-import Link from "next/link"
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
+import Link from "next/link";
 
 const plans = [
   {
@@ -15,11 +15,11 @@ const plans = [
       "Basic AI analysis",
       "Standard templates",
       "Email support",
-      "Video recording storage (30 days)"
-    ]
+      "Video recording storage (30 days)",
+    ],
   },
   {
-    name: "Professional", 
+    name: "Professional",
     price: "$99",
     description: "For growing companies",
     popular: true,
@@ -27,15 +27,15 @@ const plans = [
       "Up to 200 interviews/month",
       "Advanced AI analysis & insights",
       "Custom question templates",
-      "Priority support", 
+      "Priority support",
       "Video recording storage (90 days)",
       "Team collaboration tools",
-      "Advanced analytics dashboard"
-    ]
+      "Advanced analytics dashboard",
+    ],
   },
   {
     name: "Enterprise",
-    price: "$299", 
+    price: "$299",
     description: "For large organizations",
     popular: false,
     features: [
@@ -45,20 +45,20 @@ const plans = [
       "24/7 dedicated support",
       "Unlimited storage",
       "Custom integrations",
-      "Advanced security & compliance"
-    ]
-  }
-]
+      "Advanced security & compliance",
+    ],
+  },
+];
 
 export function PricingPlans() {
   return (
     <section className="container mx-auto px-6 py-16">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {plans.map((plan, index) => (
-          <Card 
-            key={index} 
+          <Card
+            key={index}
             className={`relative bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300 ${
-              plan.popular ? 'border-yellow-400 border-2' : ''
+              plan.popular ? "border-yellow-400 border-2" : ""
             }`}
           >
             {plan.popular && (
@@ -68,35 +68,44 @@ export function PricingPlans() {
                 </Badge>
               </div>
             )}
-            
+
             <CardHeader className="text-center pb-6">
-              <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {plan.name}
+              </h3>
               <p className="text-white/70">{plan.description}</p>
-              
+
               <div className="mt-6">
-                <div className="text-5xl font-bold text-yellow-400">{plan.price}</div>
+                <div className="text-5xl font-bold text-yellow-400">
+                  {plan.price}
+                </div>
                 <div className="text-white/60 text-sm mt-1">per month</div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="pt-0">
               <div className="space-y-3 mb-8">
                 {plan.features.map((feature, featureIndex) => (
-                  <div key={featureIndex} className="flex items-center text-white/90">
+                  <div
+                    key={featureIndex}
+                    className="flex items-center text-white/90"
+                  >
                     <Check className="h-4 w-4 text-yellow-400 mr-3 flex-shrink-0" />
                     <span className="text-sm">{feature}</span>
                   </div>
                 ))}
               </div>
-              
-              <Button 
-                asChild 
-                variant={plan.popular ? "brand" : "glass"} 
+
+              <Button
+                asChild
+                variant={plan.popular ? "default" : "outline"}
                 className="w-full"
                 size="lg"
               >
                 <Link href="/register">
-                  {plan.name === "Enterprise" ? "Contact Sales" : "Start Free Trial"}
+                  {plan.name === "Enterprise"
+                    ? "Contact Sales"
+                    : "Start Free Trial"}
                 </Link>
               </Button>
             </CardContent>
@@ -104,5 +113,5 @@ export function PricingPlans() {
         ))}
       </div>
     </section>
-  )
+  );
 }

@@ -510,7 +510,7 @@ export default function CreateInterviewPage() {
               <Button
                 onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                 disabled={currentStep === 1}
-                variant="glass"
+                variant="outline"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Previous
@@ -522,14 +522,14 @@ export default function CreateInterviewPage() {
                     <Button
                       onClick={() => handleSubmit(true)}
                       disabled={!isFormValid() || loading}
-                      variant="glass"
+                      variant="outline"
                     >
                       {loading ? 'Creating...' : 'Save as Draft'}
                     </Button>
                     <Button
                       onClick={() => handleSubmit(false)}
                       disabled={!isFormValid() || loading}
-                      variant="brand"
+                      variant="default"
                     >
                       {loading ? 'Creating...' : 'Create & Publish'}
                     </Button>
@@ -538,7 +538,7 @@ export default function CreateInterviewPage() {
                   <Button
                     onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
                     disabled={currentStep === 2 && form.questions.length === 0}
-                    variant="brand"
+                    variant="default"
                   >
                     Next
                     <ArrowRight className="w-4 h-4 ml-2" />

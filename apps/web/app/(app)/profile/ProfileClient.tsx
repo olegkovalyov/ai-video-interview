@@ -161,7 +161,7 @@ export function ProfileClient() {
               {!isEditMode ? (
                 <Button
                   type="button"
-                  variant="glass"
+                  variant="outline"
                   onClick={() => setIsEditMode(true)}
                   className="flex items-center gap-2"
                 >
@@ -172,7 +172,7 @@ export function ProfileClient() {
                 <div className="flex gap-2">
                   <Button
                     type="submit"
-                    variant="brand"
+                    variant="default"
                     disabled={isSubmitting}
                     className="flex items-center gap-2"
                   >
@@ -181,7 +181,7 @@ export function ProfileClient() {
                   </Button>
                   <Button
                     type="button"
-                    variant="glass"
+                    variant="outline"
                     onClick={handleCancel}
                     disabled={isSubmitting}
                   >

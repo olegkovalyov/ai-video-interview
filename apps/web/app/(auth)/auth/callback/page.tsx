@@ -85,7 +85,7 @@ export default function AuthCallbackPage() {
               <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-lg mb-6">
                 {error}
               </div>
-              <Button asChild variant="brand" size="lg" className="w-full">
+              <Button asChild variant="default" size="lg" className="w-full">
                 <Link href="/login">Try Again</Link>
               </Button>
             </div>

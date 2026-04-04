@@ -13,10 +13,15 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN || "http://localhost:3000";
+      const webOrigin =
+        process.env.NEXT_PUBLIC_WEB_ORIGIN || "http://localhost:3000";
       const callbackUrl = `${webOrigin}/auth/callback`;
       const qs = new URLSearchParams({ redirect_uri: callbackUrl }).toString();
-      const { authUrl } = await apiGet<{ authUrl: string; state: string; redirectUri: string }>(`/auth/login?${qs}`);
+      const { authUrl } = await apiGet<{
+        authUrl: string;
+        state: string;
+        redirectUri: string;
+      }>(`/auth/login?${qs}`);
       window.location.assign(authUrl);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
@@ -30,9 +35,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen p-6">
       <Card className="bg-white/10 backdrop-blur-md border-white/20 w-full max-w-md">
         <CardContent className="p-8 text-center">
-          <h1 className="text-3xl font-bold text-white mb-6">
-            Welcome Back
-          </h1>
+          <h1 className="text-3xl font-bold text-white mb-6">Welcome Back</h1>
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-3 rounded-lg mb-6">
@@ -43,7 +46,7 @@ export default function LoginPage() {
           <Button
             onClick={beginLogin}
             disabled={loading}
-            variant={loading ? "secondary" : "brand"}
+            variant={loading ? "secondary" : "default"}
             size="lg"
             className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200"
           >

@@ -41,10 +41,10 @@ export default function PricingPage() {
                 Cancel anytime. Setup takes less than 5 minutes.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild variant="brand" size="xl">
+                <Button asChild variant="default" size="xl">
                   <Link href="/register">Start Free Trial</Link>
                 </Button>
-                <Button asChild variant="glass" size="xl">
+                <Button asChild variant="outline" size="xl">
                   <Link href="/about">Learn More</Link>
                 </Button>
               </div>

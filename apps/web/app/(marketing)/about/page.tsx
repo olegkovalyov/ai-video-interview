@@ -84,10 +84,10 @@ export default function AboutPage() {
                 Join thousands of companies already using AI Video Interview to find their perfect candidates.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild variant="brand" size="xl">
+                <Button asChild variant="default" size="xl">
                   <Link href="/register">Start Free Trial</Link>
                 </Button>
-                <Button asChild variant="glass" size="xl">
+                <Button asChild variant="outline" size="xl">
                   <Link href="/pricing">View Pricing</Link>
                 </Button>
               </div>

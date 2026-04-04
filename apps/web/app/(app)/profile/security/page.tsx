@@ -47,7 +47,7 @@ export default function SecurityPage() {
               </p>
               
               <Button
-                variant="brand"
+                variant="default"
                 onClick={handlePasswordChange}
                 className="flex items-center gap-2"
                 size="lg"

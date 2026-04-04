@@ -96,7 +96,7 @@ export function AvatarSection({ avatarUrl, initials, onUploadComplete }: AvatarS
                   Upload a professional photo. Max size: 5MB
                 </p>
                 <Button
-                  variant="glass"
+                  variant="outline"
                   onClick={() => setShowUpload(true)}
                   className="flex items-center gap-2"
                 >
@@ -121,7 +121,7 @@ export function AvatarSection({ avatarUrl, initials, onUploadComplete }: AvatarS
                 />
                 <div className="flex gap-3">
                   <Button
-                    variant="brand"
+                    variant="default"
                     onClick={handleUpload}
                     disabled={!selectedFile}
                     className="flex items-center gap-2"
@@ -129,7 +129,7 @@ export function AvatarSection({ avatarUrl, initials, onUploadComplete }: AvatarS
                     <Upload className="w-4 h-4" />
                     Upload
                   </Button>
-                  <Button variant="glass" onClick={handleCancel}>
+                  <Button variant="outline" onClick={handleCancel}>
                     Cancel
                   </Button>
                 </div>

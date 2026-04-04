@@ -25,7 +25,7 @@ export default function LandingPage() {
                 <p className="text-white/80 mb-6 leading-relaxed">
                   Discover our mission, meet our team, and understand how we are revolutionizing the hiring process.
                 </p>
-                <Button asChild variant="glass" className="w-full">
+                <Button asChild variant="outline" className="w-full">
                   <Link href="/about">Learn More</Link>
                 </Button>
               </CardContent>
@@ -38,7 +38,7 @@ export default function LandingPage() {
                 <p className="text-white/80 mb-6 leading-relaxed">
                   Explore our transparent pricing plans and find the perfect fit for your organization needs.
                 </p>
-                <Button asChild variant="glass" className="w-full">
+                <Button asChild variant="outline" className="w-full">
                   <Link href="/pricing">View Pricing</Link>
                 </Button>
               </CardContent>
@@ -57,10 +57,10 @@ export default function LandingPage() {
                 Join thousands of companies already using AI Video Interview to find their perfect candidates.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <SignInButton variant="brand" size="xl" mode="register">
+                <SignInButton variant="default" size="xl" mode="register">
                   Create Account
                 </SignInButton>
-                <SignInButton variant="glass" size="xl" mode="login">
+                <SignInButton variant="outline" size="xl" mode="login">
                   Sign In
                 </SignInButton>
               </div>

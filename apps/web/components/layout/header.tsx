@@ -192,10 +192,10 @@ export function Header({ userRoles = [] }: HeaderProps) {
               </DropdownMenu>
             ) : (
               <>
-                <SignInButton variant="glass" size="sm" mode="login">
+                <SignInButton variant="outline" size="sm" mode="login">
                   Login
                 </SignInButton>
-                <SignInButton variant="brand" size="sm" mode="register">
+                <SignInButton variant="default" size="sm" mode="register">
                   Sign Up
                 </SignInButton>
               </>

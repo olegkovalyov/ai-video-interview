@@ -39,7 +39,7 @@ export function InterviewsList() {
           <p className="text-white/80 mb-8 max-w-md mx-auto">
             Create your first interview to start evaluating candidates with AI-powered analysis
           </p>
-          <Button asChild variant="brand" size="lg">
+          <Button asChild variant="default" size="lg">
             <Link href="/dashboard/interviews/create">Create Your First Interview</Link>
           </Button>
         </CardContent>

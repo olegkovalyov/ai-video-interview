@@ -48,7 +48,7 @@ export function InterviewListItem({ interview }: InterviewListItemProps) {
           </div>
 
           <div className="flex gap-2 flex-shrink-0">
-            <Button asChild variant="glass" size="sm">
+            <Button asChild variant="outline" size="sm">
               <Link href={`/dashboard/interviews/${interview.id}`}>View</Link>
             </Button>
             {interview.publicUrl && (

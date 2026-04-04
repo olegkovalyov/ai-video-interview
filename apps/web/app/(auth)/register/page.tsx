@@ -47,7 +47,7 @@ export default function RegisterPage() {
           <Button 
             onClick={handleRegister}
             disabled={loading}
-            variant="brand"
+            variant="default"
             size="lg"
             className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >

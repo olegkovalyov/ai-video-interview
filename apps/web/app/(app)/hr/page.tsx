@@ -60,7 +60,7 @@ export default function HRDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Create and manage interview templates
               </p>
-              <Button asChild variant="brand" className="w-full mt-auto">
+              <Button asChild variant="default" className="w-full mt-auto">
                 <Link href="/hr/templates">Manage Templates</Link>
               </Button>
             </CardContent>
@@ -74,7 +74,7 @@ export default function HRDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Search candidates and send interview invitations
               </p>
-              <Button asChild variant="glass" className="w-full mt-auto">
+              <Button asChild variant="outline" className="w-full mt-auto">
                 <Link href="/hr/candidates">Find Candidates</Link>
               </Button>
             </CardContent>
@@ -88,7 +88,7 @@ export default function HRDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Manage your companies and positions
               </p>
-              <Button asChild variant="glass" className="w-full mt-auto">
+              <Button asChild variant="outline" className="w-full mt-auto">
                 <Link href="/hr/companies">View Companies</Link>
               </Button>
             </CardContent>

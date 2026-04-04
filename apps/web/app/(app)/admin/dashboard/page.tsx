@@ -66,7 +66,7 @@ export default function AdminDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Create, edit, and manage user accounts
               </p>
-              <Button asChild variant="brand" className="w-full mt-auto">
+              <Button asChild variant="default" className="w-full mt-auto">
                 <Link href="/admin/users">Manage Users</Link>
               </Button>
             </CardContent>
@@ -79,7 +79,7 @@ export default function AdminDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Configure system-wide settings
               </p>
-              <Button asChild variant="glass" className="w-full mt-auto">
+              <Button asChild variant="outline" className="w-full mt-auto">
                 <Link href="/admin/settings">Settings</Link>
               </Button>
             </CardContent>
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 View system-wide analytics and reports
               </p>
-              <Button asChild variant="glass" className="w-full mt-auto">
+              <Button asChild variant="outline" className="w-full mt-auto">
                 <Link href="/admin/analytics">View Reports</Link>
               </Button>
             </CardContent>

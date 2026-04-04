@@ -62,7 +62,7 @@ export function UserFilters({
 
           {/* Create Button */}
           {onCreateClick && (
-            <Button variant="brand" onClick={onCreateClick} className="flex items-center gap-2">
+            <Button variant="default" onClick={onCreateClick} className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Create User
             </Button>

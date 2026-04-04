@@ -219,14 +219,14 @@ export default function CreateUserPage() {
                 {/* Action Buttons */}
                 <div className="flex items-center justify-between pt-6 border-t border-white/20">
                   <Link href="/admin/users">
-                    <Button type="button" variant="glass">
+                    <Button type="button" variant="outline">
                       Cancel
                     </Button>
                   </Link>
                   
                   <Button 
                     type="submit" 
-                    variant="brand"
+                    variant="default"
                     disabled={!isFormValid() || isCreating}
                     className="flex items-center space-x-2"
                   >

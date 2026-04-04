@@ -60,7 +60,7 @@ export default function CandidateDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 View and start your pending interviews
               </p>
-              <Button asChild variant="brand" className="w-full mt-auto">
+              <Button asChild variant="default" className="w-full mt-auto">
                 <Link href="/candidate/invitations">View Invitations</Link>
               </Button>
             </CardContent>
@@ -74,7 +74,7 @@ export default function CandidateDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Review your completed interview responses
               </p>
-              <Button asChild variant="glass" className="w-full mt-auto">
+              <Button asChild variant="outline" className="w-full mt-auto">
                 <Link href="/candidate/submissions">View All</Link>
               </Button>
             </CardContent>
@@ -88,7 +88,7 @@ export default function CandidateDashboardPage() {
               <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                 Update your profile and preferences
               </p>
-              <Button asChild variant="glass" className="w-full mt-auto">
+              <Button asChild variant="outline" className="w-full mt-auto">
                 <Link href="/profile">Edit Profile</Link>
               </Button>
             </CardContent>

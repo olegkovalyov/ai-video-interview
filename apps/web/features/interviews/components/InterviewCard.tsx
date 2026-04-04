@@ -50,13 +50,13 @@ export function InterviewCard({ interview }: InterviewCardProps) {
         </div>
 
         <div className="flex space-x-2 mt-auto">
-          <Button asChild variant="brand" size="sm" className="flex-1">
+          <Button asChild variant="default" size="sm" className="flex-1">
             <Link href={`/interviews/${interview.id}`} className="cursor-pointer">
               View Details
             </Link>
           </Button>
           {interview.status === 'active' && (
-            <Button asChild variant="glass" size="sm" className="cursor-pointer">
+            <Button asChild variant="outline" size="sm" className="cursor-pointer">
               <Link href={`/interviews/${interview.id}/candidates`}>
                 <Users className="w-4 h-4" />
               </Link>
