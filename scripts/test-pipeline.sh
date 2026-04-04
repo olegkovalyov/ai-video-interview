@@ -40,6 +40,8 @@ while [[ $# -gt 0 ]]; do
     --e2e) RUN_E2E=true; EXPLICIT=true; shift ;;
     --system) RUN_SYSTEM=true; EXPLICIT=true; shift ;;
     --no-system) RUN_UNIT=true; RUN_INTEGRATION=true; RUN_E2E=true; EXPLICIT=true; shift ;;
+    -v|--verbose)
+      shift ;;
     -h|--help)
       echo "Usage: $0 [options]"
       echo ""
@@ -49,9 +51,11 @@ while [[ $# -gt 0 ]]; do
       echo "  --e2e           Run only E2E tests"
       echo "  --system        Run only system tests"
       echo "  --no-system     Run unit + integration + e2e (skip system)"
+      echo "  -v, --verbose   Show full test output (no noise suppression)"
       echo "  -h, --help      Show this help"
       echo ""
-      echo "No options = run everything sequentially"
+      echo "Default: quiet mode — shows only pass/fail + test counts"
+      echo "Use --verbose (-v) to see full Jest output for debugging"
       exit 0
       ;;
     *) echo -e "${RED}Unknown option: $1${NC}"; exit 1 ;;
@@ -70,19 +74,48 @@ PASSED=()
 TOTAL_TESTS=0
 START_TIME=$(date +%s)
 
+VERBOSE=false
+for arg in "$@"; do
+  [[ "$arg" == "--verbose" || "$arg" == "-v" ]] && VERBOSE=true
+done
+
 run_step() {
   local label=$1
   local cmd=$2
+  local logfile="/tmp/test-pipeline-$$.log"
 
-  echo -e "\n${CYAN}━━━ ${label} ━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  if eval "$cmd"; then
-    PASSED+=("${GREEN}✓ ${label}${NC}")
-    echo -e "${GREEN}✓ ${label} passed${NC}"
+  echo -en "${CYAN}━━━ ${label} ━━━${NC} "
+
+  if [ "$VERBOSE" = true ]; then
+    # Verbose: show full output
+    echo ""
+    if eval "$cmd"; then
+      PASSED+=("${GREEN}✓ ${label}${NC}")
+      echo -e "${GREEN}✓ ${label} passed${NC}"
+    else
+      echo -e "\n${RED}✗ ${label} FAILED${NC}"
+      echo -e "${RED}Pipeline stopped. Fix the error above and re-run.${NC}"
+      print_summary
+      exit 1
+    fi
   else
-    echo -e "\n${RED}✗ ${label} FAILED${NC}"
-    echo -e "${RED}Pipeline stopped. Fix the error above and re-run.${NC}"
-    print_summary
-    exit 1
+    # Quiet: capture output, show only summary line
+    if eval "$cmd" > "$logfile" 2>&1; then
+      # Extract test count from Jest output
+      local summary
+      summary=$(grep -E "Tests:|Test Suites:" "$logfile" | tail -2 | tr '\n' ' ')
+      PASSED+=("${GREEN}✓ ${label}${NC}")
+      echo -e "${GREEN}✓${NC} ${DIM}${summary}${NC}"
+    else
+      echo -e "${RED}✗ FAILED${NC}"
+      echo ""
+      # Show last 30 lines of output for debugging
+      tail -30 "$logfile"
+      echo -e "\n${RED}Pipeline stopped. Full log: ${logfile}${NC}"
+      print_summary
+      exit 1
+    fi
+    rm -f "$logfile"
   fi
 }
 
