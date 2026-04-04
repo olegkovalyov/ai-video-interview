@@ -1,27 +1,27 @@
 "use client";
 
-import { PricingPlans } from "@/components/sections/pricing-plans"
-import { FAQ } from "@/components/sections/faq"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { PricingPlans } from "@/components/sections/pricing-plans";
+import { FAQ } from "@/components/sections/faq";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      
+    <div className="min-h-screen bg-background">
       <main>
-        {/* Hero Section */}
-        <section className="container mx-auto px-6 py-20 text-center">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+        {/* Hero */}
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-purple-50 to-info/5" />
+          <div className="relative container mx-auto px-6 py-24 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 leading-tight tracking-tight">
               Simple,{" "}
-              <span className="text-yellow-400">Transparent Pricing</span>
+              <span className="bg-gradient-to-r from-brand to-purple-600 bg-clip-text text-transparent">
+                Transparent Pricing
+              </span>
             </h1>
-            
-            <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Choose the perfect plan for your hiring needs. All plans include our core AI analysis 
-              and come with a 14-day free trial.
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Start free. Upgrade when you need more. All plans include AI
+              analysis and scoring.
             </p>
           </div>
         </section>
@@ -29,27 +29,30 @@ export default function PricingPage() {
         <PricingPlans />
         <FAQ />
 
-        {/* Final CTA Section */}
-        <section className="container mx-auto px-6 py-20">
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 max-w-4xl mx-auto">
-            <CardContent className="p-12 text-center">
-              <h2 className="text-3xl font-bold text-white mb-6">
-                Ready to Transform Your Hiring Process?
-              </h2>
-              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-                Start your 14-day free trial today. No credit card required. 
-                Cancel anytime. Setup takes less than 5 minutes.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild variant="default" size="xl">
-                  <Link href="/register">Start Free Trial</Link>
-                </Button>
-                <Button asChild variant="outline" size="xl">
-                  <Link href="/about">Learn More</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Final CTA */}
+        <section className="bg-gradient-to-r from-brand to-purple-600 py-20">
+          <div className="container mx-auto px-6 text-center max-w-3xl">
+            <h2 className="text-3xl font-bold text-white mb-6">
+              Ready to Transform Your Hiring?
+            </h2>
+            <p className="text-lg text-white/90 mb-8">
+              Start free today. No credit card required. Setup in under 5
+              minutes.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild variant="secondary" size="xl">
+                <Link href="/register">Start Free</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="xl"
+                className="border-white/30 text-white hover:bg-white/10"
+              >
+                <Link href="/about">Learn More</Link>
+              </Button>
+            </div>
+          </div>
         </section>
       </main>
     </div>

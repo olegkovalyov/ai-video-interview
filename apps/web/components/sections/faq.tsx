@@ -1,40 +1,44 @@
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card";
 
 const faqs = [
   {
-    question: "What's included in the free trial?",
-    answer: "All plans come with a 14-day free trial that includes full access to all features in your chosen plan. No credit card required to start."
+    question: "What's included in the free plan?",
+    answer:
+      "The free plan includes 3 interviews per month, AI analysis with scoring and recommendations, 5 templates, and email notifications. No credit card required.",
   },
   {
     question: "Can I change plans anytime?",
-    answer: "Yes! You can upgrade or downgrade your plan at any time. Changes take effect at your next billing cycle, and we'll prorate any differences."
+    answer:
+      "Yes! You can upgrade or downgrade your plan at any time. Changes take effect at your next billing cycle, and we'll prorate any differences.",
   },
   {
-    question: "What happens to my data if I cancel?", 
-    answer: "Your data remains accessible for 30 days after cancellation. You can export all your interviews and candidate data during this period."
+    question: "How does AI analysis work?",
+    answer:
+      "After a candidate completes their interview, our AI scores each response on relevance, completeness, clarity, and depth (0-100). You get an overall score, hire/consider/reject recommendation, and detailed feedback.",
   },
   {
     question: "Do you offer volume discounts?",
-    answer: "Yes! For organizations conducting more than 500 interviews per month, we offer custom pricing with significant discounts. Contact our sales team."
-  }
-]
+    answer:
+      "Yes! The Pro plan offers unlimited interviews. For custom enterprise needs, contact our sales team for tailored pricing.",
+  },
+];
 
 export function FAQ() {
   return (
     <section className="container mx-auto px-6 py-16">
-      <Card className="bg-white/10 backdrop-blur-md border-white/20 max-w-4xl mx-auto">
-        <CardContent className="p-12">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">
+      <Card className="max-w-4xl mx-auto">
+        <CardContent className="p-10">
+          <h2 className="text-3xl font-bold text-foreground text-center mb-10">
             Frequently Asked Questions
           </h2>
-          
+
           <div className="space-y-8">
             {faqs.map((faq, index) => (
               <div key={index}>
-                <h3 className="text-xl font-semibold text-yellow-400 mb-3">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   {faq.question}
                 </h3>
-                <p className="text-white/80 leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed">
                   {faq.answer}
                 </p>
               </div>
@@ -43,5 +47,5 @@ export function FAQ() {
         </CardContent>
       </Card>
     </section>
-  )
+  );
 }
