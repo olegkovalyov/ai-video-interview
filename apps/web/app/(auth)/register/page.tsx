@@ -2,8 +2,14 @@
 import { useState } from "react";
 import { apiGet } from "@/lib/api";
 import Link from "next/link";
+import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardFooter,
+} from "@/components/ui/card";
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
@@ -13,10 +19,15 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
     try {
-      const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN || "http://localhost:3000";
+      const webOrigin =
+        process.env.NEXT_PUBLIC_WEB_ORIGIN || "http://localhost:3000";
       const callbackUrl = `${webOrigin}/auth/callback`;
       const qs = new URLSearchParams({ redirect_uri: callbackUrl }).toString();
-      const { authUrl } = await apiGet<{ authUrl: string; state: string; redirectUri: string }>(`/auth/register?${qs}`);
+      const { authUrl } = await apiGet<{
+        authUrl: string;
+        state: string;
+        redirectUri: string;
+      }>(`/auth/register?${qs}`);
       window.location.assign(authUrl);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
@@ -27,57 +38,50 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-6">
-      <Card className="bg-white/10 backdrop-blur-md border-white/20 w-full max-w-md">
-        <CardContent className="p-8 text-center">
-          <h1 className="text-3xl font-bold text-white mb-6">
-            Create Account
-          </h1>
-          
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-3 rounded-lg mb-6">
-              {error}
-            </div>
-          )}
-          
-          <p className="text-white/90 mb-8 leading-relaxed">
-            Join AI Video Interview platform to revolutionize your hiring process with intelligent candidate evaluation.
-          </p>
-          
-          <Button 
-            onClick={handleRegister}
-            disabled={loading}
-            variant="default"
-            size="lg"
-            className="w-full mb-6 cursor-pointer hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin">🔄</span>
-                Redirecting...
-              </span>
-            ) : (
-              "Continue with Keycloak"
-            )}
-          </Button>
-          
-          <p className="text-white/90 mb-6">
-            Already have an account?{" "}
-            <Link 
-              href="/login"
-              className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
-            >
-              Sign in
-            </Link>
-          </p>
-          
-          <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
-            <p className="text-white/80 text-sm">
-              You will be redirected to our secure registration system. After creating your account, you will automatically return to the dashboard.
-            </p>
+    <Card className="w-full max-w-sm shadow-lg border">
+      <CardHeader className="text-center space-y-1 pb-2">
+        <h1 className="text-2xl font-bold text-foreground">Create account</h1>
+        <p className="text-sm text-muted-foreground">
+          Get started with AI-powered interview platform
+        </p>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {error}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+
+        <Button
+          onClick={handleRegister}
+          disabled={loading}
+          size="lg"
+          className="w-full cursor-pointer"
+        >
+          <UserPlus className="mr-2 h-4 w-4" />
+          {loading ? "Redirecting..." : "Continue with Keycloak"}
+        </Button>
+
+        <div className="rounded-lg bg-muted p-3">
+          <p className="text-xs text-muted-foreground text-center">
+            You will be redirected to our secure registration system. After
+            creating your account, you&apos;ll return here automatically.
+          </p>
+        </div>
+      </CardContent>
+
+      <CardFooter className="justify-center">
+        <p className="text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-primary hover:underline"
+          >
+            Sign in
+          </Link>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }

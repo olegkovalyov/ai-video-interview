@@ -30,25 +30,20 @@ export default function PricingPage() {
         <FAQ />
 
         {/* Final CTA */}
-        <section className="bg-gradient-to-r from-brand to-purple-600 py-20">
-          <div className="container mx-auto px-6 text-center max-w-3xl">
-            <h2 className="text-3xl font-bold text-white mb-6">
+        <section className="border-t bg-muted/50 py-20">
+          <div className="container mx-auto px-6 text-center max-w-2xl">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
               Ready to Transform Your Hiring?
             </h2>
-            <p className="text-lg text-white/90 mb-8">
+            <p className="text-muted-foreground mb-8">
               Start free today. No credit card required. Setup in under 5
               minutes.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button asChild variant="secondary" size="xl">
+              <Button asChild size="lg">
                 <Link href="/register">Start Free</Link>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="xl"
-                className="border-white/30 text-white hover:bg-white/10"
-              >
+              <Button asChild variant="outline" size="lg">
                 <Link href="/about">Learn More</Link>
               </Button>
             </div>

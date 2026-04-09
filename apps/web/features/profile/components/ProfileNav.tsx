@@ -1,8 +1,9 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { User, Shield, Star } from 'lucide-react';
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { User, Shield, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ProfileNavProps {
   userRoles?: string[];
@@ -10,49 +11,50 @@ interface ProfileNavProps {
 
 export function ProfileNav({ userRoles = [] }: ProfileNavProps) {
   const pathname = usePathname();
-  const isCandidate = userRoles.includes('candidate');
+  const isCandidate = userRoles.includes("candidate");
 
   const tabs = [
     {
-      name: 'Personal Info',
-      href: '/profile',
+      name: "Personal Info",
+      href: "/profile",
       icon: User,
-      active: pathname === '/profile',
-      visible: true, // всем
+      active: pathname === "/profile",
+      visible: true,
     },
     {
-      name: 'Security',
-      href: '/profile/security',
+      name: "Security",
+      href: "/profile/security",
       icon: Shield,
-      active: pathname === '/profile/security',
-      visible: true, // всем
+      active: pathname === "/profile/security",
+      visible: true,
     },
     {
-      name: 'Skills',
-      href: '/profile/skills',
+      name: "Skills",
+      href: "/profile/skills",
       icon: Star,
-      active: pathname === '/profile/skills',
-      visible: isCandidate, // только candidate
+      active: pathname === "/profile/skills",
+      visible: isCandidate,
     },
-  ].filter(tab => tab.visible);
+  ].filter((tab) => tab.visible);
 
   return (
-    <aside className="w-64 flex-shrink-0">
-      <nav className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-2">
+    <aside className="w-56 flex-shrink-0">
+      <nav className="rounded-lg border bg-card p-1.5 space-y-0.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                 tab.active
-                  ? 'bg-white/20 text-white shadow-lg'
-                  : 'text-white/70 hover:bg-white/10 hover:text-white'
-              }`}
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              )}
             >
-              <Icon className="w-5 h-5" />
-              <span className="font-medium">{tab.name}</span>
+              <Icon className="h-4 w-4" />
+              <span>{tab.name}</span>
             </Link>
           );
         })}

@@ -7,14 +7,21 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <Link 
-        href="/" 
-        className="absolute top-6 left-6 hover:opacity-80 transition-opacity z-10"
-      >
-        <LogoWithText />
-      </Link>
-      {children}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Decorative top band */}
+      <div className="h-1.5 bg-gradient-to-r from-brand via-brand-light to-brand" />
+
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
+        <Link href="/" className="mb-10 hover:opacity-80 transition-opacity">
+          <LogoWithText variant="dark" />
+        </Link>
+        {children}
+      </div>
+
+      {/* Footer */}
+      <p className="pb-6 text-center text-xs text-muted-foreground">
+        AI Interview Platform
+      </p>
     </div>
   );
 }

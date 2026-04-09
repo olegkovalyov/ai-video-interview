@@ -1,19 +1,19 @@
-import { Header } from '@/components/layout/header';
-import { getUserRoles } from '@/lib/auth/get-user-roles';
-import { redirect } from 'next/navigation';
-import { TokenRefreshProvider } from '@/components/auth/TokenRefreshProvider';
-import { QueryClientProvider } from '@/lib/query/query-client';
+import { getUserRoles } from "@/lib/auth/get-user-roles";
+import { redirect } from "next/navigation";
+import { TokenRefreshProvider } from "@/components/auth/TokenRefreshProvider";
+import { QueryClientProvider } from "@/lib/query/query-client";
+import { AppShell } from "@/components/layout/app-shell";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * BULLETPROOF AUTH - Level 2 Server-Side Protection
- * 
+ *
  * Layout для authenticated страниц
  * - Получает роли через getUserRoles (с auto-refresh)
  * - Редиректит pending пользователей на /select-role
  * - Включает TokenRefreshProvider для proactive refresh (каждые 4 мин)
- * 
+ *
  * Role-based protection происходит в middleware
  */
 export default async function AppLayout({
@@ -21,23 +21,21 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Читаем роли из JWT на сервере (с auto-refresh если expired)
   const userRoles = await getUserRoles();
 
-  // Проверяем наличие реальной роли (не только pending)
-  const hasRealRole = userRoles.some(role => ['admin', 'hr', 'candidate'].includes(role));
-  const hasPendingRole = userRoles.includes('pending');
-  
-  // Если ТОЛЬКО pending (нет реальной роли) - редиректим на страницу выбора роли
+  const hasRealRole = userRoles.some((role) =>
+    ["admin", "hr", "candidate"].includes(role),
+  );
+  const hasPendingRole = userRoles.includes("pending");
+
   if (!hasRealRole && (userRoles.length === 0 || hasPendingRole)) {
-    redirect('/select-role');
+    redirect("/select-role");
   }
 
   return (
     <QueryClientProvider>
       <TokenRefreshProvider>
-        <Header userRoles={userRoles} />
-        <main>{children}</main>
+        <AppShell userRoles={userRoles}>{children}</AppShell>
       </TokenRefreshProvider>
     </QueryClientProvider>
   );

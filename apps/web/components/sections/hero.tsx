@@ -25,11 +25,21 @@ export function Hero() {
             instantly — scoring, recommendations, and detailed feedback.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <SignInButton variant="default" size="xl" mode="register">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <SignInButton
+              variant="default"
+              size="lg"
+              mode="register"
+              className="shadow-md hover:shadow-lg px-8"
+            >
               Get Started Free
             </SignInButton>
-            <SignInButton variant="outline" size="xl" mode="login">
+            <SignInButton
+              variant="outline"
+              size="lg"
+              mode="login"
+              className="px-8"
+            >
               Sign In
             </SignInButton>
           </div>
