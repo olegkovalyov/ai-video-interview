@@ -11,7 +11,6 @@ export class DropHrProfilesTable1733512800000 implements MigrationInterface {
     // Drop hr_profiles table (it has no data and no code using it)
     await queryRunner.query(`DROP TABLE IF EXISTS hr_profiles CASCADE`);
     
-    console.log('✅ Dropped unused hr_profiles table');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -28,6 +27,5 @@ export class DropHrProfilesTable1733512800000 implements MigrationInterface {
       )
     `);
     
-    console.log('✅ Recreated hr_profiles table');
   }
 }

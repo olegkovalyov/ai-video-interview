@@ -4,7 +4,6 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', { 
       tsconfig: '<rootDir>/tsconfig.json',
-      isolatedModules: true,
     }],
   },
   moduleFileExtensions: ['ts', 'js', 'json'],

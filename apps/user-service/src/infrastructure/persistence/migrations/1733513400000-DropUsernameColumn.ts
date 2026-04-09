@@ -14,7 +14,6 @@ export class DropUsernameColumn1733513400000 implements MigrationInterface {
     // Drop the column
     await queryRunner.query(`ALTER TABLE users DROP COLUMN IF EXISTS username`);
     
-    console.log('✅ Dropped unused username column from users table');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -29,6 +28,5 @@ export class DropUsernameColumn1733513400000 implements MigrationInterface {
       CREATE UNIQUE INDEX "idx_users_username" ON users(username) WHERE username IS NOT NULL
     `);
     
-    console.log('✅ Recreated username column in users table');
   }
 }

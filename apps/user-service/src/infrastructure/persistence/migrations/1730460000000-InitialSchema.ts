@@ -401,7 +401,6 @@ export class InitialSchema1730460000000 implements MigrationInterface {
       }),
     );
 
-    console.log('✅ Created all tables: users, candidate_profiles, hr_profiles, outbox');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -411,6 +410,5 @@ export class InitialSchema1730460000000 implements MigrationInterface {
     await queryRunner.dropTable('candidate_profiles', true);
     await queryRunner.dropTable('users', true);
 
-    console.log('✅ Dropped all tables');
   }
 }
