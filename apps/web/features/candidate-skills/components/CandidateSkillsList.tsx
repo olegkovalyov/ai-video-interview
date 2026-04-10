@@ -1,27 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { logger } from '@/lib/logger';
-import { CandidateSkillsTable } from './CandidateSkillsTable';
-import { EditSkillForm } from './EditSkillForm';
-import { ExperienceLevelSelector } from './ExperienceLevelSelector';
-import { 
-  getMyCandidateSkills, 
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
+import { CandidateSkillsTable } from "./CandidateSkillsTable";
+import { EditSkillForm } from "./EditSkillForm";
+import { ExperienceLevelSelector } from "./ExperienceLevelSelector";
+import {
+  getMyCandidateSkills,
   removeMyCandidateSkill,
   type CandidateSkillsByCategory,
   type CandidateSkill,
-  type ExperienceLevel
-} from '@/lib/api/candidate-skills';
-import { toast } from 'sonner';
+  type ExperienceLevel,
+} from "@/lib/api/candidate-skills";
+import { toast } from "sonner";
 
 export function CandidateSkillsList() {
-  const [skillsByCategory, setSkillsByCategory] = useState<CandidateSkillsByCategory[]>([]);
-  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel | null>(null);
+  const [skillsByCategory, setSkillsByCategory] = useState<
+    CandidateSkillsByCategory[]
+  >([]);
+  const [experienceLevel, setExperienceLevel] =
+    useState<ExperienceLevel | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingSkills, setLoadingSkills] = useState<Set<string>>(new Set());
   const [editingSkill, setEditingSkill] = useState<CandidateSkill | null>(null);
 
-  // Fetch skills and profile (aggregated response from API)
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -29,32 +32,35 @@ export function CandidateSkillsList() {
       setSkillsByCategory(response.skills);
       setExperienceLevel(response.experienceLevel);
     } catch (error) {
-      logger.error('Failed to fetch data:', error);
-      toast.error('Failed to load your profile');
+      logger.error("Failed to fetch data:", error);
+      toast.error("Failed to load your profile");
     } finally {
       setLoading(false);
     }
   };
 
-  // Alias for refreshing
   const fetchSkills = fetchData;
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Row-level locking helper
-  const withSkillLock = async <T,>(skillId: string, action: () => Promise<T>): Promise<T | void> => {
-    setLoadingSkills(prev => new Set(prev).add(skillId));
+  const withSkillLock = async <T,>(
+    skillId: string,
+    action: () => Promise<T>,
+  ): Promise<T | void> => {
+    setLoadingSkills((prev) => new Set(prev).add(skillId));
     try {
       const result = await action();
-      await fetchSkills(); // Refresh data
+      await fetchSkills();
       return result;
-    } catch (error: any) {
-      logger.error('Operation failed:', error);
-      toast.error(error.message || 'Operation failed');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Operation failed";
+      logger.error("Operation failed:", error);
+      toast.error(message);
     } finally {
-      setLoadingSkills(prev => {
+      setLoadingSkills((prev) => {
         const next = new Set(prev);
         next.delete(skillId);
         return next;
@@ -62,55 +68,46 @@ export function CandidateSkillsList() {
     }
   };
 
-  // Handle edit
   const handleEdit = (skillId: string) => {
     const skill = skillsByCategory
-      .flatMap(cat => cat.skills)
-      .find(s => s.skillId === skillId);
-    
-    if (skill) {
-      setEditingSkill(skill);
-    }
+      .flatMap((cat) => cat.skills)
+      .find((s) => s.skillId === skillId);
+    if (skill) setEditingSkill(skill);
   };
 
-  // Handle remove
   const handleRemove = async (skillId: string) => {
     const skill = skillsByCategory
-      .flatMap(cat => cat.skills)
-      .find(s => s.skillId === skillId);
-    
+      .flatMap((cat) => cat.skills)
+      .find((s) => s.skillId === skillId);
     if (!skill) return;
-
-    if (!confirm(`Remove "${skill.skillName}" from your profile?`)) {
-      return;
-    }
+    if (!confirm(`Remove "${skill.skillName}" from your profile?`)) return;
 
     await withSkillLock(skillId, async () => {
       await removeMyCandidateSkill(skillId);
-      toast.success('Skill removed');
+      toast.success("Skill removed");
     });
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-white/80">Loading your skills...</div>
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  // Calculate totals
-  const totalSkills = skillsByCategory.reduce((sum, cat) => sum + cat.skills.length, 0);
+  const totalSkills = skillsByCategory.reduce(
+    (sum, cat) => sum + cat.skills.length,
+    0,
+  );
 
   return (
     <>
-      {/* Experience Level Selector */}
-      <ExperienceLevelSelector 
+      <ExperienceLevelSelector
         currentLevel={experienceLevel}
         onUpdate={(level) => setExperienceLevel(level)}
       />
 
-      {/* Edit Skill Form */}
       {editingSkill && (
         <EditSkillForm
           skill={editingSkill}
@@ -122,13 +119,16 @@ export function CandidateSkillsList() {
         />
       )}
 
-      {/* Summary */}
-      <div className="mb-6 text-white/80">
-        You have <span className="text-white font-semibold">{totalSkills}</span> skill{totalSkills !== 1 ? 's' : ''} across{' '}
-        <span className="text-white font-semibold">{skillsByCategory.length}</span> categor{skillsByCategory.length !== 1 ? 'ies' : 'y'}
-      </div>
+      <p className="mb-4 text-sm text-muted-foreground">
+        You have{" "}
+        <span className="font-medium text-foreground">{totalSkills}</span> skill
+        {totalSkills !== 1 ? "s" : ""} across{" "}
+        <span className="font-medium text-foreground">
+          {skillsByCategory.length}
+        </span>{" "}
+        categor{skillsByCategory.length !== 1 ? "ies" : "y"}
+      </p>
 
-      {/* Skills by Category */}
       {skillsByCategory.length === 0 ? (
         <CandidateSkillsTable
           skills={[]}
@@ -137,14 +137,14 @@ export function CandidateSkillsList() {
           loadingSkills={loadingSkills}
         />
       ) : (
-        <div className="space-y-8">
-          {skillsByCategory.map(category => (
+        <div className="space-y-6">
+          {skillsByCategory.map((category) => (
             <div key={category.categoryId}>
-              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                <span className="w-1 h-6 bg-yellow-400 rounded"></span>
+              <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+                <span className="h-5 w-1 rounded bg-primary" />
                 {category.categoryName}
-                <span className="text-white/50 text-base font-normal ml-2">
-                  ({category.skills.length} skill{category.skills.length !== 1 ? 's' : ''})
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({category.skills.length})
                 </span>
               </h2>
               <CandidateSkillsTable

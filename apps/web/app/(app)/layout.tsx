@@ -28,7 +28,14 @@ export default async function AppLayout({
   );
   const hasPendingRole = userRoles.includes("pending");
 
-  if (!hasRealRole && (userRoles.length === 0 || hasPendingRole)) {
+  console.log(
+    "[APP-LAYOUT] getUserRoles result:",
+    JSON.stringify({ userRoles, hasRealRole, hasPendingRole }),
+  );
+
+  // Only redirect to select-role if we KNOW user is pending (not when tokens expired)
+  if (hasPendingRole && !hasRealRole) {
+    console.log("[APP-LAYOUT] REDIRECTING to /select-role — user is pending");
     redirect("/select-role");
   }
 

@@ -1,35 +1,50 @@
-import { getUserRoles } from "@/lib/auth/get-user-roles";
-import { redirect } from "next/navigation";
-import { logger } from '@/lib/logger';
+"use client";
 
-export const dynamic = 'force-dynamic';
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useUserRoles } from "@/lib/auth/roles-context";
+import { apiPost } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 /**
  * Dashboard Redirect Page
- * 
- * Редиректит на role-specific dashboard:
- * - admin → /admin/dashboard
- * - hr → /hr/dashboard
- * - candidate → /candidate/dashboard
+ *
+ * Reads roles from RolesContext (provided by AppShell).
+ * If roles are empty (token expired during SSR), triggers a client-side
+ * refresh and reloads the page so the server can read the new cookies.
  */
-export default async function DashboardRedirectPage() {
-  const userRoles = await getUserRoles();
-  
-  logger.debug('[Dashboard Redirect] User roles:', userRoles);
-  
-  // Redirect based on role priority: admin > hr > candidate
-  if (userRoles.includes('admin')) {
-    logger.debug('[Dashboard Redirect] Redirecting to /admin/dashboard');
-    redirect('/admin/dashboard');
-  } else if (userRoles.includes('hr')) {
-    logger.debug('[Dashboard Redirect] Redirecting to /hr/dashboard');
-    redirect('/hr/dashboard');
-  } else if (userRoles.includes('candidate')) {
-    logger.debug('[Dashboard Redirect] Redirecting to /candidate/dashboard');
-    redirect('/candidate/dashboard');
-  }
-  
-  // Fallback - should not reach here if user has valid role
-  logger.debug('[Dashboard Redirect] No valid role found - redirecting to /select-role');
-  redirect('/select-role');
+export default function DashboardRedirectPage() {
+  const roles = useUserRoles();
+  const router = useRouter();
+  const refreshAttempted = useRef(false);
+
+  useEffect(() => {
+    if (roles.includes("admin")) {
+      router.replace("/admin/dashboard");
+    } else if (roles.includes("hr")) {
+      router.replace("/hr/dashboard");
+    } else if (roles.includes("candidate")) {
+      router.replace("/candidate/dashboard");
+    } else if (!refreshAttempted.current) {
+      // Roles empty — token was expired during SSR.
+      // Refresh on client side, then reload so server gets new cookies.
+      refreshAttempted.current = true;
+      apiPost("/auth/refresh")
+        .then(() => {
+          window.location.reload();
+        })
+        .catch(() => {
+          router.replace("/login");
+        });
+    }
+  }, [roles, router]);
+
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-center space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
+        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+      </div>
+    </div>
+  );
 }

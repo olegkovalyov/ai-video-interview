@@ -13,6 +13,7 @@ import {
   Send,
   PanelLeftClose,
   PanelLeft,
+  UserCircle,
 } from "lucide-react";
 import { LogoWithText } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
@@ -182,8 +183,23 @@ export function AppSidebar({
         })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="border-t border-[hsl(var(--sidebar-border))] p-3">
+      {/* Bottom section: Profile + Collapse */}
+      <div className="border-t border-[hsl(var(--sidebar-border))] px-3 py-2 space-y-1">
+        <Link
+          href="/profile"
+          title={collapsed ? "My Profile" : undefined}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            pathname.startsWith("/profile")
+              ? "bg-primary/10 text-primary"
+              : "text-[hsl(var(--sidebar-foreground))] hover:bg-accent hover:text-accent-foreground",
+            collapsed && "justify-center px-0",
+          )}
+        >
+          <UserCircle className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span>My Profile</span>}
+        </Link>
+
         <button
           onClick={onToggle}
           className="flex w-full items-center justify-center rounded-lg p-2 text-[hsl(var(--sidebar-foreground))] hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"

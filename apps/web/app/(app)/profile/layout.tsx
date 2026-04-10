@@ -1,7 +1,7 @@
-export const dynamic = 'force-dynamic';
-import { ProfileNav } from '@/features/profile';
-import { ProfileWrapper } from '@/features/profile';
-import { getUserRoles } from '@/lib/auth/get-user-roles';
+export const dynamic = "force-dynamic";
+import { ProfileWrapper } from "@/features/profile";
+import { ProfileTabs } from "@/features/profile/components/ProfileTabs";
+import { getUserRoles } from "@/lib/auth/get-user-roles";
 
 export default async function ProfileLayout({
   children,
@@ -12,28 +12,19 @@ export default async function ProfileLayout({
 
   return (
     <ProfileWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-        <div className="container mx-auto px-6 py-12">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
-              Profile Settings
-            </h1>
-            <p className="text-lg text-white/80">
-              Manage your account settings and preferences
-            </p>
-          </div>
-
-          <div className="flex gap-6">
-            {/* Vertical Sidebar */}
-            <ProfileNav userRoles={userRoles} />
-
-            {/* Content Area */}
-            <div className="flex-1">
-              {children}
-            </div>
-          </div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Profile Settings
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage your account settings and preferences
+          </p>
         </div>
+
+        <ProfileTabs userRoles={userRoles} />
+
+        {children}
       </div>
     </ProfileWrapper>
   );

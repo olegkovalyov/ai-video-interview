@@ -2,7 +2,127 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "API Gateway",
+      "type": "process",
+      "command": "npm",
+      "args": ["run", "start:dev", "--workspace=apps/api-gateway"],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "silent",
+        "close": false
+      },
+      "isBackground": true
+    },
+    {
+      "label": "User Service",
+      "type": "process",
+      "command": "npm",
+      "args": ["run", "start:dev", "--workspace=apps/user-service"],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "silent",
+        "close": false
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Interview Service",
+      "type": "process",
+      "command": "npm",
+      "args": ["run", "start:dev", "--workspace=apps/interview-service"],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "silent",
+        "close": false
+      },
+      "isBackground": true
+    },
+    {
+      "label": "AI Analysis Service",
+      "type": "process",
+      "command": "npm",
+      "args": ["run", "start:dev", "--workspace=apps/ai-analysis-service"],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "silent",
+        "close": false
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Billing Service",
+      "type": "process",
+      "command": "npm",
+      "args": ["run", "start:dev", "--workspace=apps/billing-service"],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "silent",
+        "close": false
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Notification Service",
+      "type": "process",
+      "command": "npm",
+      "args": ["run", "start:dev", "--workspace=apps/notification-service"],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "silent",
+        "close": false
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Web (Next.js)",
+      "type": "process",
+      "command": "npm",
+      "args": ["run", "dev", "--workspace=apps/web"],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "silent",
+        "close": false
+      },
+      "isBackground": true
+    },
+    {
       "label": "Dev: All Services",
+      "dependsOn": [
+        "API Gateway",
+        "User Service",
+        "Interview Service",
+        "AI Analysis Service",
+        "Billing Service",
+        "Notification Service",
+        "Web (Next.js)"
+      ],
+      "dependsOrder": "parallel",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Backend Only",
+      "dependsOn": [
+        "API Gateway",
+        "User Service",
+        "Interview Service",
+        "AI Analysis Service",
+        "Billing Service",
+        "Notification Service"
+      ],
+      "dependsOrder": "parallel",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: All (turborepo)",
       "type": "shell",
       "command": "npm run dev:all",
       "group": "build",
@@ -10,49 +130,23 @@
       "problemMatcher": []
     },
     {
-      "label": "Dev: Backend Only",
+      "label": "Infra: Start",
       "type": "shell",
-      "command": "npm run dev:services",
-      "group": "build",
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Dev: Web Only",
-      "type": "shell",
-      "command": "npm run dev:web",
-      "group": "build",
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Infra: Start (PG + Redis + MinIO)",
-      "type": "shell",
-      "command": "npm run infra:up",
-      "problemMatcher": []
+      "command": "docker compose up -d",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always" }
     },
     {
       "label": "Infra: Stop",
       "type": "shell",
-      "command": "npm run infra:down",
-      "problemMatcher": []
+      "command": "docker compose down",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always" }
     },
     {
-      "label": "Kafka: Start",
+      "label": "Test: Pipeline",
       "type": "shell",
-      "command": "npm run kafka:up",
-      "problemMatcher": []
-    },
-    {
-      "label": "Kafka: Stop",
-      "type": "shell",
-      "command": "npm run kafka:down",
-      "problemMatcher": []
-    },
-    {
-      "label": "Test: All",
-      "type": "shell",
-      "command": "npm run test",
+      "command": "./scripts/test-pipeline.sh --no-system",
       "group": "test",
       "problemMatcher": []
     },
@@ -70,12 +164,6 @@
       "problemMatcher": ["$eslint-stylish"]
     },
     {
-      "label": "Format: All",
-      "type": "shell",
-      "command": "npm run format",
-      "problemMatcher": []
-    },
-    {
       "label": "TypeCheck: All",
       "type": "shell",
       "command": "npm run check-types",
@@ -85,24 +173,14 @@
       "label": "Migration: Generate",
       "type": "shell",
       "command": "npm run migration:generate -- src/infrastructure/persistence/migrations/${input:migrationName}",
-      "options": {
-        "cwd": "${fileDirname}"
-      },
+      "options": { "cwd": "${fileDirname}" },
       "problemMatcher": []
     },
     {
       "label": "Migration: Run",
       "type": "shell",
       "command": "npm run migration:run",
-      "options": {
-        "cwd": "${fileDirname}"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Generate: API Types",
-      "type": "shell",
-      "command": "npm run generate:types",
+      "options": { "cwd": "${fileDirname}" },
       "problemMatcher": []
     }
   ],
