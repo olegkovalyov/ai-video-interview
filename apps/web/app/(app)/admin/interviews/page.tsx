@@ -1,70 +1,149 @@
+"use client";
+
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { FileText, CheckCircle, MessageSquare, BarChart3 } from "lucide-react";
+
+const MOCK_STATS = [
+  {
+    label: "Total Templates",
+    value: 24,
+    icon: FileText,
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    label: "Active",
+    value: 18,
+    icon: CheckCircle,
+    color: "text-success",
+    bg: "bg-success-light",
+  },
+  {
+    label: "Total Responses",
+    value: 342,
+    icon: MessageSquare,
+    color: "text-info",
+    bg: "bg-info-light",
+  },
+  {
+    label: "Avg Score",
+    value: "84%",
+    icon: BarChart3,
+    color: "text-warning",
+    bg: "bg-warning-light",
+  },
+];
+
+const MOCK_TEMPLATES = [
+  {
+    id: "1",
+    title: "Frontend Developer Interview",
+    createdBy: "Jane Smith (HR)",
+    status: "active",
+    candidates: 15,
+    responses: 12,
+    avgScore: "86%",
+  },
+  {
+    id: "2",
+    title: "Backend Engineer Interview",
+    createdBy: "Mike Johnson (HR)",
+    status: "active",
+    candidates: 22,
+    responses: 18,
+    avgScore: "79%",
+  },
+  {
+    id: "3",
+    title: "DevOps Assessment",
+    createdBy: "Jane Smith (HR)",
+    status: "draft",
+    candidates: 0,
+    responses: 0,
+    avgScore: "—",
+  },
+];
+
 export default function AdminInterviewsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <div className="container mx-auto px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            All Interview Templates
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Interview Management
           </h1>
-          <p className="text-lg text-white/80">
-            Manage all interview templates across the platform
-          </p>
+          <Badge variant="warning">Mock Data</Badge>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-white/80 text-sm font-medium mb-2">Total Templates</h3>
-            <p className="text-4xl font-bold text-white">24</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-white/80 text-sm font-medium mb-2">Active</h3>
-            <p className="text-4xl font-bold text-white">18</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-white/80 text-sm font-medium mb-2">Total Responses</h3>
-            <p className="text-4xl font-bold text-white">342</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-white/80 text-sm font-medium mb-2">Avg Score</h3>
-            <p className="text-4xl font-bold text-white">84%</p>
-          </div>
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20">
-          <h2 className="text-2xl font-bold text-white mb-6">Interview Templates by HR</h2>
-          <div className="space-y-4">
-            <div className="p-6 bg-white/5 hover:bg-white/10 rounded-lg transition-all">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="text-xl text-white font-semibold mb-1">Frontend Developer Interview</h3>
-                  <p className="text-white/70">Created by Jane Smith (HR)</p>
-                </div>
-                <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">
-                  Active
-                </span>
-              </div>
-              <div className="flex gap-4 text-sm text-white/60 mb-4">
-                <span>15 candidates</span>
-                <span>•</span>
-                <span>12 responses</span>
-                <span>•</span>
-                <span>Avg: 86%</span>
-              </div>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors">
-                  View Details
-                </button>
-                <button className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg font-medium transition-colors">
-                  Disable
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Monitor interview templates and activity across the platform
+        </p>
       </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {MOCK_STATS.map((stat) => (
+          <Card key={stat.label}>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-lg ${stat.bg}`}
+              >
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground">
+                  {stat.value}
+                </p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-foreground">
+            Interview Templates
+          </h2>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y">
+            {MOCK_TEMPLATES.map((template) => (
+              <div
+                key={template.id}
+                className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">
+                      {template.title}
+                    </p>
+                    <Badge
+                      variant={
+                        template.status === "active" ? "success" : "secondary"
+                      }
+                    >
+                      {template.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{template.createdBy}</span>
+                    <span>{template.candidates} candidates</span>
+                    <span>{template.responses} responses</span>
+                    <span>Avg: {template.avgScore}</span>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm">
+                    View
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

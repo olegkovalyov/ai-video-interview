@@ -1,47 +1,69 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { UserStats } from '../types/user.types';
+import { Card, CardContent } from "@/components/ui/card";
+import { Users, UserCheck, UserX, Shield, Briefcase } from "lucide-react";
+import { UserStats } from "../types/user.types";
 
 interface UserStatsCardsProps {
   stats: UserStats;
 }
 
+const STAT_CONFIG = [
+  {
+    key: "total" as const,
+    label: "Total Users",
+    icon: Users,
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    key: "active" as const,
+    label: "Active",
+    icon: UserCheck,
+    color: "text-success",
+    bg: "bg-success-light",
+  },
+  {
+    key: "suspended" as const,
+    label: "Suspended",
+    icon: UserX,
+    color: "text-error",
+    bg: "bg-error-light",
+  },
+  {
+    key: "admins" as const,
+    label: "Admins",
+    icon: Shield,
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    key: "hrs" as const,
+    label: "HR Managers",
+    icon: Briefcase,
+    color: "text-info",
+    bg: "bg-info-light",
+  },
+];
+
 export function UserStatsCards({ stats }: UserStatsCardsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-4">
-          <div className="text-white/70 text-sm">Total Users</div>
-          <div className="text-2xl font-bold text-white mt-1">{stats.total}</div>
-        </CardContent>
-      </Card>
-      
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-4">
-          <div className="text-white/70 text-sm">Active</div>
-          <div className="text-2xl font-bold text-green-300 mt-1">{stats.active}</div>
-        </CardContent>
-      </Card>
-      
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-4">
-          <div className="text-white/70 text-sm">Suspended</div>
-          <div className="text-2xl font-bold text-red-300 mt-1">{stats.suspended}</div>
-        </CardContent>
-      </Card>
-      
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-4">
-          <div className="text-white/70 text-sm">Admins</div>
-          <div className="text-2xl font-bold text-purple-300 mt-1">{stats.admins}</div>
-        </CardContent>
-      </Card>
-      
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-4">
-          <div className="text-white/70 text-sm">HR Managers</div>
-          <div className="text-2xl font-bold text-blue-300 mt-1">{stats.hrs}</div>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      {STAT_CONFIG.map((s) => (
+        <Card key={s.key}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-lg ${s.bg}`}
+            >
+              <s.icon className={`h-4 w-4 ${s.color}`} />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground">
+                {stats[s.key]}
+              </p>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

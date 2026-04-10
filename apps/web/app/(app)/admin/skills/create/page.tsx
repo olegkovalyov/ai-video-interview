@@ -1,195 +1,136 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { createSkill, listCategories, type SkillCategory } from '@/lib/api/skills';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Save } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useSkillCategories, useCreateSkill } from "@/lib/query/hooks/use-skills";
+
+const selectClass =
+  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 export default function CreateSkillPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<SkillCategory[]>([]);
-  
+  const { data: categoriesData } = useSkillCategories();
+  const createMutation = useCreateSkill();
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
+
   const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    categoryId: '',
-    description: '',
+    name: "",
+    slug: "",
+    categoryId: "",
+    description: "",
   });
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await listCategories();
-        setCategories(data);
-        const firstCategory = data[0];
-        if (firstCategory) {
-          setFormData(prev => ({ ...prev, categoryId: firstCategory.id }));
-        }
-      } catch (error) {
-        toast.error('Failed to load categories');
-      }
-    };
-    fetchCategories();
-  }, []);
+  // Auto-select first category when loaded
+  if (categories.length > 0 && !formData.categoryId && categories[0]) {
+    setFormData((prev) => ({ ...prev, categoryId: categories[0]!.id }));
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      toast.error('Skill name is required');
-      return;
-    }
-    
-    if (!formData.slug.trim()) {
-      toast.error('Slug is required');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await createSkill(formData);
-      toast.success('Skill created successfully');
-      router.push('/admin/skills');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create skill');
-    } finally {
-      setLoading(false);
-    }
+    createMutation.mutate(formData, {
+      onSuccess: () => router.push("/admin/skills"),
+    });
   };
 
   const handleNameChange = (name: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       name,
-      slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      slug: name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
     }));
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        {/* Header */}
-        <div className="mb-8">
-          <Link 
-            href="/admin/skills"
-            className="inline-flex items-center text-white/80 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Skills
-          </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Create New Skill
-          </h1>
-          <p className="text-white/80">
-            Add a new technical skill to the system
-          </p>
-        </div>
-
-        {/* Form */}
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Skill Name */}
-              <div>
-                <label className="block text-white font-medium mb-2">
-                  Skill Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="e.g. React, TypeScript, Docker"
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-                  required
-                />
-              </div>
-
-              {/* Slug */}
-              <div>
-                <label className="block text-white font-medium mb-2">
-                  Slug <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                  placeholder="e.g. react, typescript, docker"
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-                  required
-                />
-                <p className="text-white/60 text-sm mt-1">
-                  URL-friendly version (auto-generated from name)
-                </p>
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-white font-medium mb-2">
-                  Category <span className="text-red-400">*</span>
-                </label>
-                <select
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
-                  required
-                >
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id} className="bg-gray-800">
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-white font-medium mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Brief description of the skill..."
-                  rows={4}
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 resize-none"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <Link href="/admin/skills">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  >
-                    Cancel
-                  </Button>
-                </Link>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold"
-                >
-                  {loading ? (
-                    <>Creating...</>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Create Skill
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <Link
+          href="/admin/skills"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Skills
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Create New Skill
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Add a new technical skill to the system
+        </p>
       </div>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <h2 className="text-lg font-semibold text-foreground">Skill Details</h2>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name <span className="text-destructive">*</span></Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="e.g. React, TypeScript, Docker"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Slug <span className="text-destructive">*</span></Label>
+              <Input
+                value={formData.slug}
+                onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
+                placeholder="e.g. react, typescript, docker"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                URL-friendly version (auto-generated from name)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Category <span className="text-destructive">*</span></Label>
+              <select
+                value={formData.categoryId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, categoryId: e.target.value }))}
+                className={selectClass}
+                required
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief description of the skill..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button asChild type="button" variant="outline" size="sm">
+                <Link href="/admin/skills">Cancel</Link>
+              </Button>
+              <Button type="submit" size="sm" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Creating..." : <><Save className="mr-2 h-4 w-4" />Create Skill</>}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,117 +1,143 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useUsers } from '@/lib/query/hooks/use-users';
+import Link from "next/link";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useUsers } from "@/lib/query/hooks/use-users";
+import { Users, ClipboardList, Star, Activity } from "lucide-react";
 
 export default function AdminDashboardPage() {
   const { data: users = [] } = useUsers();
 
-  const stats = {
-    totalUsers: users.length,
-    activeInterviews: 0,
-    totalCandidates: 0,
-    totalHRs: 0,
-  };
+  const totalUsers = users.length;
+  const activeUsers = users.filter(
+    (u: { enabled?: boolean }) => u.enabled !== false,
+  ).length;
+
+  const stats = [
+    {
+      label: "Total Users",
+      value: totalUsers,
+      icon: Users,
+      color: "text-primary",
+      bg: "bg-primary/10",
+    },
+    {
+      label: "Active Users",
+      value: activeUsers,
+      icon: Activity,
+      color: "text-success",
+      bg: "bg-success-light",
+    },
+    {
+      label: "Interviews",
+      value: "\u2014",
+      icon: ClipboardList,
+      color: "text-info",
+      bg: "bg-info-light",
+    },
+    {
+      label: "Skills",
+      value: "\u2014",
+      icon: Star,
+      color: "text-warning",
+      bg: "bg-warning-light",
+    },
+  ];
+
+  const quickLinks = [
+    {
+      href: "/admin/users",
+      label: "Manage Users",
+      description: "Create, edit, and manage user accounts",
+      icon: Users,
+    },
+    {
+      href: "/admin/interviews",
+      label: "Interviews",
+      description: "Monitor interview templates and activity",
+      icon: ClipboardList,
+    },
+    {
+      href: "/admin/skills",
+      label: "Skills",
+      description: "Manage skill taxonomy and categories",
+      icon: Star,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-
-      <div className="container mx-auto px-6 py-12">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Admin Dashboard
-          </h1>
-          <p className="text-lg text-white/80">
-            System overview and user management
-          </p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-yellow-400 mb-2">{stats.totalUsers}</div>
-              <div className="text-sm text-white/80">Total Users</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-green-400 mb-2">{stats.activeInterviews}</div>
-              <div className="text-sm text-white/80">Active Interviews</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-blue-400 mb-2">{stats.totalCandidates}</div>
-              <div className="text-sm text-white/80">Total Candidates</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold text-purple-400 mb-2">{stats.totalHRs}</div>
-              <div className="text-sm text-white/80">HR Users</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Manage Users</h3>
-              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                Create, edit, and manage user accounts
-              </p>
-              <Button asChild variant="default" className="w-full mt-auto">
-                <Link href="/admin/users">Manage Users</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">⚙️</div>
-              <h3 className="text-xl font-semibold text-white mb-3">System Settings</h3>
-              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                Configure system-wide settings
-              </p>
-              <Button asChild variant="outline" className="w-full mt-auto">
-                <Link href="/admin/settings">Settings</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-8 text-center flex flex-col h-full">
-              <div className="text-5xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold text-white mb-3">Analytics</h3>
-              <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                View system-wide analytics and reports
-              </p>
-              <Button asChild variant="outline" className="w-full mt-auto">
-                <Link href="/admin/analytics">View Reports</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Activity */}
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardContent className="p-8">
-            <h2 className="text-2xl font-semibold text-white mb-6">System Activity</h2>
-            <div className="text-center py-12">
-              <div className="text-5xl mb-4">🔒</div>
-              <p className="text-white/80 text-lg">
-                Admin activity monitoring coming soon
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Admin Dashboard
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          System overview and management
+        </p>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Card key={stat.label}>
+            <CardContent className="flex items-center gap-4 p-5">
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.bg}`}
+              >
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">
+                  {stat.value}
+                </p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {quickLinks.map((link) => (
+          <Card
+            key={link.href}
+            className="transition-all hover:shadow-md hover:border-primary/30"
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <link.icon className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground">
+                  {link.label}
+                </h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                {link.description}
+              </p>
+              <Button asChild variant="outline" size="sm" className="w-full">
+                <Link href={link.href}>Open</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-foreground">
+            Recent Activity
+          </h2>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Activity className="h-10 w-10 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Activity monitoring coming soon
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
