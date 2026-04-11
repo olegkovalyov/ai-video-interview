@@ -9,43 +9,46 @@ Built with microservices architecture using Turborepo, NestJS 11, Next.js 15, an
 ## Architecture
 
 ```
-                    ┌────────────────────────────────┐
-                    │      Frontend (Next.js 15)     │
-                    │  Port 3000 · App Router · shadcn│
-                    └───────────────┬────────────────┘
-                                    │ HTTP (cookies)
-                                    ▼
-                    ┌────────────────────────────────┐
-                    │    API Gateway (NestJS 11)     │
-                    │          Port 8001             │
-                    │ OIDC · Circuit Breaker · Sagas │
-                    └──┬─────┬─────┬─────┬─────┬────┘
-                       │     │     │     │     │
-     ┌─────────────────┼─────┼─────┼─────┼─────┼─────────────────┐
-     ▼                 ▼     ▼     ▼     ▼     ▼                 ▼
- ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
- │  User    │ │Interview │ │Analysis  │ │  Media   │ │ Notif.   │ │ Billing  │
- │  :8002   │ │  :8003   │ │  :8005   │ │  :8004   │ │  :8006   │ │  :8007   │
- │          │ │          │ │          │ │          │ │          │ │          │
- │Users     │ │Templates │ │Groq LLM  │ │Video     │ │Email     │ │Stripe    │
- │Companies │ │Questions │ │Scoring   │ │Audio     │ │In-App    │ │Plans     │
- │Skills    │ │Invites   │ │Recommend.│ │Transcr.  │ │Webhooks  │ │Usage     │
- └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
-   DB ▼         DB ▼         DB ▼       (planned)      DB ▼         DB ▼
-  [user]    [interview]   [analysis]                  [notif]     [billing]
-      │          │             │             │           │            │
-      └──────────┴─────────────┴─────────────┴───────────┴────────────┘
-                                    │
-                                    ▼
-                    ┌────────────────────────────────┐
-                    │     Apache Kafka (KRaft)       │
-                    │          Port 9092             │
-                    │                                │
-                    │ user-events · interview-events │
-                    │ analysis-events · auth-events  │
-                    │ billing-events · notif-events  │
-                    │ user-commands · user-analytics  │
-                    └────────────────────────────────┘
+                          ┌──────────────────────────────────┐
+                          │     Frontend (Next.js 15)        │
+                          │          Port: 3000              │
+                          │   App Router · React 19 · shadcn │
+                          └───────────────┬──────────────────┘
+                                          │ HTTP (cookies)
+                                          ▼
+                          ┌──────────────────────────────────┐
+                          │      API Gateway (NestJS)        │
+                          │          Port: 8001              │
+                          │  Keycloak OIDC · Circuit Breaker │
+                          │  Rate Limiting · Tracing · Sagas │
+                          └──┬──────┬──────┬──────┬──────┬───┘
+                             │      │      │      │      │
+          ┌──────────────────┼──────┼──────┼──────┼──────┼──────────────────┐
+          ▼                  ▼      ▼      ▼      ▼      ▼                  ▼
+   ┌─────────────┐  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
+   │   User      │  │ Interview  │ │ AI Analysis│ │   Media    │ │Notification│ │  Billing   │
+   │  Service    │  │  Service   │ │  Service   │ │  Service   │ │  Service   │ │  Service   │
+   │  :8002      │  │  :8003     │ │  :8005     │ │  :8004     │ │  :8006     │ │  :8007     │
+   │             │  │            │ │            │ │            │ │            │ │            │
+   │Users, Roles │  │ Templates  │ │ Groq LLM  │ │Video/Audio │ │Email, Push │ │  Stripe    │
+   │Companies    │  │ Invitations│ │ Scoring    │ │Transcripts │ │In-App, SMS │ │Subscriptions│
+   │Skills, MinIO│  │ Responses  │ │Recommend.  │ │Thumbnails  │ │Preferences │ │Usage, Quota│
+   └──────┬──────┘  └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘
+          │  DB ▼          │  DB ▼        │  DB ▼        │ (planned)    │  DB ▼        │  DB ▼
+          │ [user]         │ [interview]  │ [analysis]   │              │ [notification]│ [billing]
+          │                │              │              │              │              │
+          └────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
+                                          │
+                                          ▼
+                          ┌──────────────────────────────────┐
+                          │        Apache Kafka (KRaft)      │
+                          │           Port: 9092             │
+                          │                                  │
+                          │  user-events · interview-events  │
+                          │  analysis-events · billing-events│
+                          │  notification-events · auth-events│
+                          │  user-commands · user-analytics   │
+                          └──────────────────────────────────┘
 ```
 
 ### Services
