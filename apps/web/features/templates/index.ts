@@ -4,13 +4,13 @@
  */
 
 // Components
-export { TemplatesList } from './components/TemplatesList';
-export { TemplatesTable } from './components/TemplatesTable';
+export { TemplatesList } from "./components/TemplatesList";
+export { TemplatesTable } from "./components/TemplatesTable";
 // TemplateFilters component not exported - conflicts with TemplateFilters type
-export { TemplateStatsCards } from './components/TemplateStatsCards';
-export { TemplateStatusBadge } from './components/TemplateStatusBadge';
-export { EditTemplateForm } from './components/EditTemplateForm';
-export * from './components/CreateTemplateWizard';
+export { TemplateStatsCards } from "./components/TemplateStatsCards";
+export { TemplateStatusBadge } from "./components/TemplateStatusBadge";
+export { EditTemplateForm } from "./components/EditTemplateForm";
+export * from "./components/CreateTemplateWizard";
 
 // Types
 export type {
@@ -25,12 +25,10 @@ export type {
   AddQuestionDto,
   TemplateFilters,
   TemplateStats,
-} from './types/template.types';
+} from "./types/template.types";
 
-// Services 
-export * from './services/templates-api';
-export * from './services/mock-data';
-// storage.service not exported - conflicts with templates-api and not used
+// Services
+export * from "./services/templates-api";
 
 // Utils
-export * from './utils/template-helpers';
+export * from "./utils/template-helpers";

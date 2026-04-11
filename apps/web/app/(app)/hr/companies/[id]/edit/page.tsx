@@ -60,10 +60,10 @@ export default function EditCompanyPage() {
 
   if (isPending) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+      <div className="space-y-6 max-w-2xl">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-12">
-            <div className="text-white/80">Loading company...</div>
+            <div className="text-muted-foreground">Loading company...</div>
           </div>
         </div>
       </div>
@@ -75,68 +75,68 @@ export default function EditCompanyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="space-y-6 max-w-2xl">
+      <div className="">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/hr/companies"
-            className="inline-flex items-center text-white/80 hover:text-white mb-4 transition-colors"
+            className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Companies
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
             Edit Company
           </h1>
-          <p className="text-white/80">
+          <p className="text-muted-foreground">
             Update company information
           </p>
         </div>
 
         {/* Form */}
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
+        <Card className="">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Company Name */}
               <div>
-                <label className="block text-white font-medium mb-2">
-                  Company Name <span className="text-red-400">*</span>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Company Name <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. TechCorp Inc."
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="w-full px-4 py-2  text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   required
                 />
               </div>
 
               {/* Industry */}
               <div>
-                <label className="block text-white font-medium mb-2">
-                  Industry <span className="text-red-400">*</span>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Industry <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.industry}
                   onChange={(e) => setFormData(prev => ({ ...prev, industry: e.target.value }))}
                   placeholder="e.g. Software Development, AI/ML, FinTech"
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="w-full px-4 py-2  text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   required
                 />
               </div>
 
               {/* Size */}
               <div>
-                <label className="block text-white font-medium mb-2">
-                  Company Size <span className="text-red-400">*</span>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Company Size <span className="text-destructive">*</span>
                 </label>
                 <select
                   value={formData.size}
                   onChange={(e) => setFormData(prev => ({ ...prev, size: e.target.value }))}
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
+                  className="w-full px-4 py-2  text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                   required
                 >
                   {sizeOptions.map(size => (
@@ -149,7 +149,7 @@ export default function EditCompanyPage() {
 
               {/* Website */}
               <div>
-                <label className="block text-white font-medium mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Website
                 </label>
                 <input
@@ -157,13 +157,13 @@ export default function EditCompanyPage() {
                   value={formData.website}
                   onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
                   placeholder="https://company.com"
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="w-full px-4 py-2  text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-white font-medium mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Location
                 </label>
                 <input
@@ -171,13 +171,13 @@ export default function EditCompanyPage() {
                   value={formData.location}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="e.g. San Francisco, CA"
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                  className="w-full px-4 py-2  text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-white font-medium mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Description
                 </label>
                 <textarea
@@ -185,13 +185,13 @@ export default function EditCompanyPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Brief description of the company..."
                   rows={4}
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 resize-none"
+                  className="w-full px-4 py-2  text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                 />
               </div>
 
               {/* Metadata */}
               <div className="border-t border-white/20 pt-4">
-                <div className="grid grid-cols-2 gap-4 text-sm text-white/60">
+                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                   <div>
                     <span className="font-medium">Created:</span> {new Date(company.createdAt).toLocaleDateString()}
                   </div>
@@ -210,7 +210,7 @@ export default function EditCompanyPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    className=""
                   >
                     Cancel
                   </Button>
@@ -218,7 +218,7 @@ export default function EditCompanyPage() {
                 <Button
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold"
+                  className=""
                 >
                   {updateMutation.isPending ? (
                     <>Saving...</>

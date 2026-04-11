@@ -79,8 +79,11 @@ create_company() {
     -d "{\"name\":\"${name}\",\"industry\":\"${industry}\",\"size\":\"${size}\",\"description\":\"${desc}\",\"location\":\"${location}\",\"createdBy\":\"${USER_ID}\"}")
 
   COMPANY_ID=$(echo "$COMPANY_RESPONSE" | jq -r '.data.companyId // .id')
+  ERROR_CODE=$(echo "$COMPANY_RESPONSE" | jq -r '.code // empty')
 
-  if [ "$COMPANY_ID" == "null" ] || [ -z "$COMPANY_ID" ]; then
+  if [ "$ERROR_CODE" == "COMPANY_ALREADY_EXISTS" ]; then
+    log_success "  Already exists: ${name} (skipped)"
+  elif [ "$COMPANY_ID" == "null" ] || [ -z "$COMPANY_ID" ]; then
     log_error "  Failed: ${name}"
     echo "$COMPANY_RESPONSE" | jq .
   else

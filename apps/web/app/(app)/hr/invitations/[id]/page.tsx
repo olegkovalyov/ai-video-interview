@@ -59,7 +59,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
           </div>
 
           <button
-            onClick={() => router.push(`/hr/interviews/${id}/edit`)}
+            onClick={() => router.push(`/hr/invitations/${id}/edit`)}
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all flex items-center gap-2 shadow-lg cursor-pointer"
           >
             <Edit className="w-4 h-4" />

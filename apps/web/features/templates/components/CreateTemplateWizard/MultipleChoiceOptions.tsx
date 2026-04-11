@@ -1,14 +1,17 @@
-import { useState } from 'react';
-import { Plus, X, Check } from 'lucide-react';
-import { QuestionOption } from '../../types/template.types';
+import { useState } from "react";
+import { Plus, X, Check } from "lucide-react";
+import { QuestionOption } from "../../types/template.types";
 
 interface MultipleChoiceOptionsProps {
   options: QuestionOption[];
   onChange: (options: QuestionOption[]) => void;
 }
 
-export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptionsProps) {
-  const [newOptionText, setNewOptionText] = useState('');
+export function MultipleChoiceOptions({
+  options,
+  onChange,
+}: MultipleChoiceOptionsProps) {
+  const [newOptionText, setNewOptionText] = useState("");
 
   const handleAddOption = () => {
     if (!newOptionText.trim()) return;
@@ -20,32 +23,33 @@ export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptio
     };
 
     onChange([...options, newOption]);
-    setNewOptionText('');
+    setNewOptionText("");
   };
 
   const handleRemoveOption = (id: string) => {
-    onChange(options.filter(opt => opt.id !== id));
+    onChange(options.filter((opt) => opt.id !== id));
   };
 
   const handleToggleCorrect = (id: string) => {
     onChange(
-      options.map(opt =>
+      options.map((opt) =>
         opt.id === id ? { ...opt, isCorrect: !opt.isCorrect } : opt,
       ),
     );
   };
 
-  const correctAnswers = options.filter(opt => opt.isCorrect);
+  const correctAnswers = options.filter((opt) => opt.isCorrect);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="block text-white font-medium">
-          Answer Options <span className="text-red-400">*</span>
+        <label className="block text-sm font-medium text-foreground">
+          Answer Options <span className="text-destructive">*</span>
         </label>
         {correctAnswers.length > 0 && (
-          <span className="text-sm text-green-400">
-            ✓ {correctAnswers.length} correct answer{correctAnswers.length !== 1 ? 's' : ''}
+          <span className="text-sm text-success">
+            ✓ {correctAnswers.length} correct answer
+            {correctAnswers.length !== 1 ? "s" : ""}
           </span>
         )}
       </div>
@@ -56,7 +60,7 @@ export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptio
           {options.map((option, index) => (
             <div
               key={option.id}
-              className="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10"
+              className="flex items-center gap-2 p-3 rounded-lg border bg-card"
             >
               {/* Correct checkbox */}
               <button
@@ -66,8 +70,8 @@ export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptio
                   flex items-center justify-center w-6 h-6 rounded border-2 transition-all cursor-pointer
                   ${
                     option.isCorrect
-                      ? 'bg-green-500 border-green-500'
-                      : 'bg-transparent border-white/30 hover:border-white/50'
+                      ? "bg-green-500 border-green-500"
+                      : "bg-transparent border-input hover:border-white/50"
                   }
                 `}
               >
@@ -75,13 +79,15 @@ export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptio
               </button>
 
               {/* Option label */}
-              <span className="text-white/70 font-semibold text-sm min-w-[20px]">
+              <span className="text-muted-foreground font-semibold text-sm min-w-[20px]">
                 {String.fromCharCode(65 + index)})
               </span>
 
               {/* Option text */}
               <div className="flex-1">
-                <span className={`text-white ${option.isCorrect ? 'font-semibold' : ''}`}>
+                <span
+                  className={`text-foreground ${option.isCorrect ? "font-semibold" : ""}`}
+                >
                   {option.text}
                 </span>
               </div>
@@ -90,7 +96,7 @@ export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptio
               <button
                 type="button"
                 onClick={() => handleRemoveOption(option.id)}
-                className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
+                className="p-1 text-destructive hover:text-red-300 hover:bg-destructive/5 rounded transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -105,15 +111,15 @@ export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptio
           type="text"
           value={newOptionText}
           onChange={(e) => setNewOptionText(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleAddOption()}
+          onKeyPress={(e) => e.key === "Enter" && handleAddOption()}
           placeholder="Enter answer option..."
-          className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          className="flex-1 h-9 px-3 py-1 border border-input rounded-md bg-background text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
         <button
           type="button"
           onClick={handleAddOption}
           disabled={!newOptionText.trim()}
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:text-white/30 text-white font-semibold rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-sm font-medium text-primary-foreground rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           Add
@@ -121,13 +127,14 @@ export function MultipleChoiceOptions({ options, onChange }: MultipleChoiceOptio
       </div>
 
       {/* Help text */}
-      <div className="text-sm text-white/50">
-        💡 Click the checkbox to mark correct answers. Multiple correct answers are allowed.
+      <div className="text-sm text-muted-foreground">
+        💡 Click the checkbox to mark correct answers. Multiple correct answers
+        are allowed.
       </div>
 
       {/* Validation warning */}
       {options.length > 0 && correctAnswers.length === 0 && (
-        <div className="text-sm text-yellow-300">
+        <div className="text-sm text-warning">
           ⚠️ Please mark at least one answer as correct
         </div>
       )}

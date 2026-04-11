@@ -1,22 +1,31 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsIn,
+  IsArray,
+  Min,
+  Max,
+  MinLength,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * Question Option DTO
- * For multiple choice questions
  */
 export class QuestionOptionDto {
-  @ApiProperty({
-    description: 'Answer option text',
-    example: 'Paris',
-    minLength: 1,
-    maxLength: 200,
-  })
+  @ApiProperty({ description: 'Answer option text', example: 'Paris' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
   text: string;
 
-  @ApiProperty({
-    description: 'Whether this option is a correct answer',
-    example: true,
-  })
+  @ApiProperty({ description: 'Whether this option is correct', example: true })
+  @IsBoolean()
   isCorrect: boolean;
 }
 
@@ -24,101 +33,27 @@ export class QuestionOptionDto {
  * Question Option Response DTO
  */
 export class QuestionOptionResponseDto {
-  @ApiProperty({
-    description: 'Option ID',
-    example: 'opt-123e4567-e89b-12d3-a456-426614174000',
-  })
+  @ApiProperty({ example: 'opt-123' })
   id: string;
 
-  @ApiProperty({
-    description: 'Answer option text',
-    example: 'Paris',
-  })
+  @ApiProperty({ example: 'Paris' })
   text: string;
 
-  @ApiProperty({
-    description: 'Whether this option is correct',
-    example: true,
-  })
+  @ApiProperty({ example: true })
   isCorrect: boolean;
 }
 
 /**
  * Add Question DTO
- * Creates a new question in the template
  */
 export class AddQuestionDto {
   @ApiProperty({
     description: 'Question text',
-    example: 'Describe your experience with microservices architecture and event-driven design patterns.',
-    minLength: 10,
-    maxLength: 500,
+    example: 'Describe your experience with microservices.',
   })
-  text: string;
-
-  @ApiProperty({
-    description: 'Type of question response',
-    enum: ['video', 'text', 'multiple_choice'],
-    example: 'video',
-  })
-  type: 'video' | 'text' | 'multiple_choice';
-
-  @ApiProperty({
-    description: 'Display order of the question (1-based)',
-    example: 1,
-    minimum: 1,
-  })
-  order: number;
-
-  @ApiProperty({
-    description: 'Time limit for answering the question in seconds',
-    example: 180,
-    minimum: 30,
-    maximum: 600,
-  })
-  timeLimit: number;
-
-  @ApiProperty({
-    description: 'Whether this question is mandatory',
-    example: true,
-  })
-  required: boolean;
-
-  @ApiProperty({
-    description: 'Optional hints for the candidate',
-    example: 'Focus on real-world examples from your previous projects',
-    maxLength: 200,
-    required: false,
-  })
-  hints?: string;
-
-  @ApiProperty({
-    description: 'Answer options for multiple choice questions (required for multiple_choice type)',
-    type: [QuestionOptionDto],
-    required: false,
-    example: [
-      { text: 'Paris', isCorrect: true },
-      { text: 'London', isCorrect: false },
-      { text: 'Berlin', isCorrect: false },
-    ],
-  })
-  options?: QuestionOptionDto[];
-}
-
-/**
- * Question Response DTO
- */
-export class QuestionResponseDto {
-  @ApiProperty({
-    description: 'Question UUID',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  id: string;
-
-  @ApiProperty({
-    description: 'Question text',
-    example: 'Describe your experience with microservices',
-  })
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
   text: string;
 
   @ApiProperty({
@@ -126,59 +61,82 @@ export class QuestionResponseDto {
     enum: ['video', 'text', 'multiple_choice'],
     example: 'video',
   })
+  @IsString()
+  @IsIn(['video', 'text', 'multiple_choice'])
   type: 'video' | 'text' | 'multiple_choice';
 
-  @ApiProperty({
-    description: 'Display order (1-based)',
-    example: 1,
-  })
+  @ApiProperty({ description: 'Display order (1-based)', example: 1 })
+  @IsInt()
+  @Min(1)
   order: number;
 
-  @ApiProperty({
-    description: 'Time limit in seconds',
-    example: 180,
-  })
+  @ApiProperty({ description: 'Time limit in seconds', example: 180 })
+  @IsInt()
+  @Min(30)
+  @Max(600)
   timeLimit: number;
 
-  @ApiProperty({
-    description: 'Whether question is mandatory',
-    example: true,
-  })
+  @ApiProperty({ description: 'Whether question is mandatory', example: true })
+  @IsBoolean()
   required: boolean;
 
-  @ApiProperty({
-    description: 'Optional hints for candidates',
-    example: 'Focus on real-world examples',
-    required: false,
-  })
+  @ApiProperty({ description: 'Hints for the candidate', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   hints?: string;
 
   @ApiProperty({
-    description: 'Answer options for multiple choice questions',
-    type: [QuestionOptionResponseDto],
+    description: 'Options for multiple choice',
+    type: [QuestionOptionDto],
     required: false,
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => QuestionOptionDto)
+  options?: QuestionOptionDto[];
+}
+
+/**
+ * Question Response DTO
+ */
+export class QuestionResponseDto {
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  id: string;
+
+  @ApiProperty({ example: 'Describe your experience with microservices' })
+  text: string;
+
+  @ApiProperty({ enum: ['video', 'text', 'multiple_choice'], example: 'video' })
+  type: 'video' | 'text' | 'multiple_choice';
+
+  @ApiProperty({ example: 1 })
+  order: number;
+
+  @ApiProperty({ example: 180 })
+  timeLimit: number;
+
+  @ApiProperty({ example: true })
+  required: boolean;
+
+  @ApiProperty({ required: false })
+  hints?: string;
+
+  @ApiProperty({ type: [QuestionOptionResponseDto], required: false })
   options?: QuestionOptionResponseDto[];
 
-  @ApiProperty({
-    description: 'Creation timestamp',
-    example: '2024-11-05T22:00:00Z',
-    type: String,
-    format: 'date-time',
-  })
+  @ApiProperty({ example: '2024-11-05T22:00:00Z' })
   createdAt: string;
 }
 
 /**
  * Reorder Questions DTO
- * Updates the order of all questions in a template
  */
 export class ReorderQuestionsDto {
-  @ApiProperty({
-    description: 'Array of question IDs in desired order. Must include all questions.',
-    example: ['q3-uuid-here', 'q1-uuid-here', 'q2-uuid-here'],
-    type: [String],
-  })
+  @ApiProperty({ description: 'Question IDs in desired order', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
   questionIds: string[];
 }
 
@@ -186,10 +144,7 @@ export class ReorderQuestionsDto {
  * Get Questions Response DTO
  */
 export class GetQuestionsResponseDto {
-  @ApiProperty({
-    description: 'List of questions',
-    type: [QuestionResponseDto],
-  })
+  @ApiProperty({ type: [QuestionResponseDto] })
   questions: QuestionResponseDto[];
 }
 
@@ -197,10 +152,6 @@ export class GetQuestionsResponseDto {
  * Add Question Response DTO
  */
 export class AddQuestionResponseDto {
-  @ApiProperty({
-    description: 'Created question ID',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    format: 'uuid',
-  })
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
   id: string;
 }

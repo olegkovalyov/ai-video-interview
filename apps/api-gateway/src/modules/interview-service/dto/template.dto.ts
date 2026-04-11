@@ -1,5 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { InterviewSettingsDto, InterviewSettingsResponseDto } from './settings.dto';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  InterviewSettingsDto,
+  InterviewSettingsResponseDto,
+} from './settings.dto';
 import { QuestionResponseDto } from './question.dto';
 
 /**
@@ -10,17 +21,18 @@ export class CreateTemplateDto {
   @ApiProperty({
     description: 'Interview template title',
     example: 'Senior Developer Interview',
-    minLength: 1,
-    maxLength: 200,
   })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
   title: string;
 
   @ApiProperty({
     description: 'Detailed description of the interview template',
-    example: 'Comprehensive interview for senior backend developers with focus on system design and architecture',
-    minLength: 1,
-    maxLength: 1000,
   })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(1000)
   description: string;
 
   @ApiProperty({
@@ -28,6 +40,9 @@ export class CreateTemplateDto {
     type: InterviewSettingsDto,
     required: false,
   })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InterviewSettingsDto)
   settings?: InterviewSettingsDto;
 }
 
@@ -38,10 +53,11 @@ export class CreateTemplateDto {
 export class UpdateTemplateDto {
   @ApiProperty({
     description: 'Updated interview template title',
-    example: 'Senior Full-Stack Developer Interview',
-    maxLength: 200,
     required: false,
   })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   title?: string;
 
   @ApiProperty({
@@ -50,6 +66,9 @@ export class UpdateTemplateDto {
     maxLength: 1000,
     required: false,
   })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
   description?: string;
 
   @ApiProperty({
@@ -57,6 +76,9 @@ export class UpdateTemplateDto {
     type: InterviewSettingsDto,
     required: false,
   })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InterviewSettingsDto)
   settings?: InterviewSettingsDto;
 }
 

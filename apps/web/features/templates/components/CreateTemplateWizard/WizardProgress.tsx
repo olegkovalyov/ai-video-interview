@@ -35,10 +35,10 @@ export function WizardProgress({ currentStep, steps = DEFAULT_STEPS }: WizardPro
                     w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300
                     ${
                       isCompleted
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-green-500 text-foreground'
                         : isCurrent
-                        ? 'bg-blue-500 text-white ring-4 ring-blue-500/30'
-                        : 'bg-white/10 text-white/50'
+                        ? 'bg-blue-500 text-foreground ring-4 ring-blue-500/30'
+                        : 'bg-muted text-muted-foreground'
                     }
                   `}
                 >
@@ -52,19 +52,19 @@ export function WizardProgress({ currentStep, steps = DEFAULT_STEPS }: WizardPro
                   <div
                     className={`
                       text-sm font-semibold
-                      ${isCurrent ? 'text-white' : 'text-white/70'}
+                      ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}
                     `}
                   >
                     {step.title}
                   </div>
-                  <div className="text-xs text-white/50 mt-1">{step.description}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{step.description}</div>
                 </div>
               </div>
 
               {/* Connector Line */}
               {index < steps.length - 1 && (
                 <div className="flex-1 h-1 mx-4 relative" style={{ top: '-36px' }}>
-                  <div className="h-full bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-muted rounded-full overflow-hidden">
                     <div
                       className={`
                         h-full transition-all duration-500

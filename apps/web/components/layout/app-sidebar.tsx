@@ -46,19 +46,13 @@ const NAV_CONFIG: { admin: NavItem[]; hr: NavItem[]; candidate: NavItem[] } = {
   hr: [
     { href: "/hr/dashboard", label: "Dashboard", icon: LayoutDashboard },
     {
-      href: "/hr/interviews/templates",
+      href: "/hr/templates",
       label: "Templates",
       icon: FileText,
       matchPrefix: true,
     },
     {
-      href: "/hr/interviews",
-      label: "Interviews",
-      icon: ClipboardList,
-      matchPrefix: false,
-    },
-    {
-      href: "/hr/interviews/invitations",
+      href: "/hr/invitations",
       label: "Invitations",
       icon: Send,
       matchPrefix: true,

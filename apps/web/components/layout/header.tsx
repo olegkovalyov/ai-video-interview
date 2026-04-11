@@ -39,7 +39,7 @@ const NAV_CONFIG = {
   hr: [
     { href: "/hr/dashboard", label: "Dashboard" },
     {
-      href: "/hr/interviews/templates",
+      href: "/hr/templates",
       label: "Interviews",
       matchPrefix: true,
     },
