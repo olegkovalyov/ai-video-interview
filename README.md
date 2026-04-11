@@ -25,30 +25,30 @@ Built with microservices architecture using Turborepo, NestJS 11, Next.js 15, an
                              │      │      │      │      │
           ┌──────────────────┼──────┼──────┼──────┼──────┼──────────────────┐
           ▼                  ▼      ▼      ▼      ▼      ▼                  ▼
-   ┌─────────────┐  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
-   │   User      │  │ Interview  │ │ AI Analysis│ │   Media    │ │Notification│ │  Billing   │
-   │  Service    │  │  Service   │ │  Service   │ │  Service   │ │  Service   │ │  Service   │
-   │  :8002      │  │  :8003     │ │  :8005     │ │  :8004     │ │  :8006     │ │  :8007     │
-   │             │  │            │ │            │ │            │ │            │ │            │
-   │Users, Roles │  │ Templates  │ │ Groq LLM  │ │Video/Audio │ │Email, Push │ │  Stripe    │
+   ┌─────────────┐  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────-──┐
+   │   User      │  │ Interview  │ │ AI Analysis│ │   Media    │ │Notification│ │  Billing    │
+   │  Service    │  │  Service   │ │  Service   │ │  Service   │ │  Service   │ │  Service    │
+   │  :8002      │  │  :8003     │ │  :8005     │ │  :8004     │ │  :8006     │ │  :8007      │
+   │             │  │            │ │            │ │            │ │            │ │             │
+   │Users, Roles │  │ Templates  │ │ Groq LLM   │ │Video/Audio │ │Email, Push │ │  Stripe     │
    │Companies    │  │ Invitations│ │ Scoring    │ │Transcripts │ │In-App, SMS │ │Subscriptions│
-   │Skills, MinIO│  │ Responses  │ │Recommend.  │ │Thumbnails  │ │Preferences │ │Usage, Quota│
+   │Skills, MinIO│  │ Responses  │ │Recommend.  │ │Thumbnails  │ │Preferences │ │Usage, Quota │
    └──────┬──────┘  └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘
-          │  DB ▼          │  DB ▼        │  DB ▼        │ (planned)    │  DB ▼        │  DB ▼
-          │ [user]         │ [interview]  │ [analysis]   │              │ [notification]│ [billing]
-          │                │              │              │              │              │
-          └────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
+          │  DB ▼         │  DB ▼        │  DB ▼        │ (planned)    │  DB ▼        │  DB ▼
+          │ [user]        │ [interview]  │ [analysis]   │              │ [notification]│ [billing]
+          │               │              │              │              │              │
+          └───────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
                                           │
                                           ▼
-                          ┌──────────────────────────────────┐
-                          │        Apache Kafka (KRaft)      │
-                          │           Port: 9092             │
-                          │                                  │
-                          │  user-events · interview-events  │
-                          │  analysis-events · billing-events│
+                          ┌─────────────────────────────────-─┐
+                          │        Apache Kafka (KRaft)       │
+                          │           Port: 9092              │
+                          │                                   │
+                          │  user-events · interview-events   │
+                          │  analysis-events · billing-events │
                           │  notification-events · auth-events│
                           │  user-commands · user-analytics   │
-                          └──────────────────────────────────┘
+                          └─────────────────────────────────-─┘
 ```
 
 ### Services
