@@ -1,10 +1,18 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { AddCandidateSkillCommand } from './add-candidate-skill.command';
 import { ProficiencyLevel } from '../../../../domain/value-objects/proficiency-level.vo';
 import { YearsOfExperience } from '../../../../domain/value-objects/years-of-experience.vo';
 import type { ICandidateProfileRepository } from '../../../../domain/repositories/candidate-profile.repository.interface';
 import type { ISkillReadRepository } from '../../../../domain/repositories/skill-read.repository.interface';
+import {
+  SkillNotFoundException,
+  SkillNotActiveException,
+} from '../../../../domain/exceptions/skill.exceptions';
+import {
+  CandidateProfileNotFoundException,
+  CandidateSkillAlreadyExistsException,
+} from '../../../../domain/exceptions/candidate.exceptions';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 import { v4 as uuid } from 'uuid';
 
@@ -13,7 +21,9 @@ import { v4 as uuid } from 'uuid';
  * Candidate adds a skill to their profile
  */
 @CommandHandler(AddCandidateSkillCommand)
-export class AddCandidateSkillHandler implements ICommandHandler<AddCandidateSkillCommand> {
+export class AddCandidateSkillHandler
+  implements ICommandHandler<AddCandidateSkillCommand>
+{
   constructor(
     @Inject('ICandidateProfileRepository')
     private readonly profileRepository: ICandidateProfileRepository,
@@ -23,7 +33,9 @@ export class AddCandidateSkillHandler implements ICommandHandler<AddCandidateSki
     private readonly logger: LoggerService,
   ) {}
 
-  async execute(command: AddCandidateSkillCommand): Promise<{ candidateSkillId: string }> {
+  async execute(
+    command: AddCandidateSkillCommand,
+  ): Promise<{ candidateSkillId: string }> {
     this.logger.info('Adding skill to candidate profile', {
       candidateId: command.candidateId,
       skillId: command.skillId,
@@ -32,31 +44,37 @@ export class AddCandidateSkillHandler implements ICommandHandler<AddCandidateSki
     // 1. Check if skill exists and is active
     const skill = await this.skillReadRepository.findById(command.skillId);
     if (!skill) {
-      throw new NotFoundException(`Skill with ID "${command.skillId}" not found`);
+      throw new SkillNotFoundException(command.skillId);
     }
     if (!skill.isActive) {
-      throw new BadRequestException(`Skill "${skill.name}" is not active and cannot be added`);
+      throw new SkillNotActiveException(skill.name);
     }
 
     // 2. Find candidate profile
-    const profile = await this.profileRepository.findByUserId(command.candidateId);
+    const profile = await this.profileRepository.findByUserId(
+      command.candidateId,
+    );
     if (!profile) {
-      throw new NotFoundException(`Candidate profile for user "${command.candidateId}" not found`);
+      throw new CandidateProfileNotFoundException(command.candidateId);
     }
 
     // 3. Check if skill already exists in profile
-    const hasSkill = await this.profileRepository.hasSkill(command.candidateId, command.skillId);
+    const hasSkill = await this.profileRepository.hasSkill(
+      command.candidateId,
+      command.skillId,
+    );
     if (hasSkill) {
-      throw new ConflictException(`Skill "${skill.name}" is already in your profile`);
+      throw new CandidateSkillAlreadyExistsException(skill.name);
     }
 
     // 4. Create value objects (null means not specified)
     const proficiency = command.proficiencyLevel
       ? ProficiencyLevel.fromString(command.proficiencyLevel)
       : null;
-    const years = command.yearsOfExperience !== null
-      ? YearsOfExperience.fromNumber(command.yearsOfExperience)
-      : null;
+    const years =
+      command.yearsOfExperience !== null
+        ? YearsOfExperience.fromNumber(command.yearsOfExperience)
+        : null;
 
     // 5. Add skill to profile
     const candidateSkillId = uuid();

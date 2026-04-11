@@ -56,10 +56,10 @@ export function CandidatesList() {
                   Showing 1 to {filteredCandidates.length} of {stats.total} candidates
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="glass" size="sm" disabled>
+                  <Button variant="outline" size="sm" disabled>
                     Previous
                   </Button>
-                  <Button variant="brand" size="sm" disabled={filteredCandidates.length === stats.total}>
+                  <Button variant="default" size="sm" disabled={filteredCandidates.length === stats.total}>
                     Next
                   </Button>
                 </div>

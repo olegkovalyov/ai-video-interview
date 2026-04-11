@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsIn } from 'class-validator';
 
 /**
  * DTO for updating user profile (PUT /api/users/me)
@@ -57,6 +57,8 @@ export class SelectRoleDto {
     enum: ['candidate', 'hr', 'admin'],
     example: 'candidate',
   })
+  @IsString()
+  @IsIn(['candidate', 'hr', 'admin'])
   role: 'candidate' | 'hr' | 'admin';
 }
 

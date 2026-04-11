@@ -1,11 +1,14 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { RemoveCandidateSkillCommand } from './remove-candidate-skill.command';
 import type { ICandidateProfileRepository } from '../../../../domain/repositories/candidate-profile.repository.interface';
+import { CandidateProfileNotFoundException } from '../../../../domain/exceptions/candidate.exceptions';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 @CommandHandler(RemoveCandidateSkillCommand)
-export class RemoveCandidateSkillHandler implements ICommandHandler<RemoveCandidateSkillCommand> {
+export class RemoveCandidateSkillHandler
+  implements ICommandHandler<RemoveCandidateSkillCommand>
+{
   constructor(
     @Inject('ICandidateProfileRepository')
     private readonly profileRepository: ICandidateProfileRepository,
@@ -20,9 +23,11 @@ export class RemoveCandidateSkillHandler implements ICommandHandler<RemoveCandid
     });
 
     // 1. Find candidate profile
-    const profile = await this.profileRepository.findByUserId(command.candidateId);
+    const profile = await this.profileRepository.findByUserId(
+      command.candidateId,
+    );
     if (!profile) {
-      throw new NotFoundException(`Candidate profile for user "${command.candidateId}" not found`);
+      throw new CandidateProfileNotFoundException(command.candidateId);
     }
 
     // 2. Remove skill (throws if not found)

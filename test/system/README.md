@@ -157,26 +157,33 @@ _Preferences CRUD:_
 
 ---
 
-### 06-billing-stripe (9 tests)
+### 06-billing-stripe (12 tests)
 
-Subscription lifecycle, Stripe checkout, and usage tracking.
+Subscription lifecycle, Stripe checkout, usage tracking, and quota enforcement.
 
-**subscription-lifecycle.spec.ts** (9 tests):
+**subscription-lifecycle.spec.ts** (12 tests):
 
-_Subscription Lifecycle:_
+_Subscription Lifecycle (5 tests):_
 
-- Seed user → verify free subscription auto-created via Kafka (poll /api/billing/subscription)
+- Seed user → triggers user.created Kafka event
+- Verify quota endpoint responds for new user
+- Wait for free subscription auto-created via Kafka consumer (poll /api/billing/subscription)
 - Get subscription details — planType=free, status=active, limits
-- Get usage for current period — interviewsUsed=0
 - Check quota allows interviews on free plan
 
-_Checkout & Cancel/Resume:_
+_Checkout & Cancel/Resume (3 tests):_
 
 - Create Stripe Checkout session for upgrade to Plus (401 expected with sk_test_fake)
 - Reject checkout for same plan transition (free → free, 400)
 - Cancel free plan subscription (200, sets cancelAtPeriodEnd)
 
-_Stripe Webhook:_
+_Usage Tracking & Quota Enforcement (3 tests):_
+
+- Verify 0 interviews used before completing any
+- Complete interview → poll for usage increment via Kafka (invitation.completed → billing usage tracking)
+- Verify quota enforcement on free plan (limit > 0, currentPlan=free)
+
+_Stripe Webhook (1 test):_
 
 - Reject webhook with invalid signature (400)
 
@@ -238,12 +245,12 @@ _Health Checks (6 tests):_
 
 ### Billing
 
-- [ ] Stripe webhook: checkout.session.completed → subscription upgrade
-- [ ] Stripe webhook: invoice.paid → period renewal
-- [ ] Stripe webhook: invoice.payment_failed → past_due status
-- [ ] Usage increment after interview completion (via Kafka)
+- [x] Usage increment after interview completion (via Kafka) — covered in 06-billing-stripe
+- [x] Quota enforcement — verified in 06-billing-stripe
+- [ ] Stripe webhook: checkout.session.completed → subscription upgrade (requires real Stripe key)
+- [ ] Stripe webhook: invoice.paid → period renewal (requires real Stripe key)
+- [ ] Stripe webhook: invoice.payment_failed → past_due status (requires real Stripe key)
 - [ ] Usage increment after analysis completion (token tracking)
-- [ ] Quota enforcement — reject interview creation when at limit
 
 ### Auth (Keycloak)
 

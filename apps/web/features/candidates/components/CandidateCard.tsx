@@ -69,11 +69,11 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
 
         <div className="flex space-x-2">
-          <Button asChild variant="brand" size="sm" className="flex-1">
+          <Button asChild variant="default" size="sm" className="flex-1">
             <Link href={`/candidates/${candidate.id}`}>View Profile</Link>
           </Button>
           {candidate.status === 'completed' && (
-            <Button asChild variant="glass" size="sm">
+            <Button asChild variant="outline" size="sm">
               <Link href={`/candidates/${candidate.id}/results`}>Results</Link>
             </Button>
           )}

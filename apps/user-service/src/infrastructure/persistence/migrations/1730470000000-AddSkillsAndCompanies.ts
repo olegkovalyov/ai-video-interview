@@ -647,9 +647,6 @@ export class AddSkillsAndCompanies1730470000000 implements MigrationInterface {
       END $$;
     `);
 
-    console.log('✅ Created all tables: skill_categories, skills, companies, user_companies, candidate_skills');
-    console.log('✅ Updated existing tables: candidate_profiles, hr_profiles');
-    console.log('✅ Seeded 8 categories and 52 IT skills');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -673,7 +670,5 @@ export class AddSkillsAndCompanies1730470000000 implements MigrationInterface {
       ADD COLUMN position VARCHAR(255)
     `);
 
-    console.log('✅ Dropped all skills & companies tables');
-    console.log('✅ Restored candidate_profiles.skills and hr_profiles columns');
   }
 }

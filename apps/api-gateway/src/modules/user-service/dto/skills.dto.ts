@@ -1,4 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsInt,
+  Min,
+  Max,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 /**
  * Skills DTOs for API Gateway
@@ -14,34 +25,30 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * POST /api/admin/skills
  */
 export class CreateSkillDto {
-  @ApiProperty({
-    description: 'Skill name',
-    example: 'TypeScript',
-    minLength: 1,
-    maxLength: 100,
-  })
+  @ApiProperty({ description: 'Skill name', example: 'TypeScript' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
   name: string;
 
   @ApiProperty({
     description: 'Skill slug (URL-friendly)',
     example: 'typescript',
-    minLength: 1,
-    maxLength: 100,
   })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
   slug: string;
 
-  @ApiPropertyOptional({
-    description: 'Skill category ID',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    format: 'uuid',
-  })
+  @ApiPropertyOptional({ description: 'Skill category ID', format: 'uuid' })
+  @IsOptional()
+  @IsString()
   categoryId?: string;
 
-  @ApiPropertyOptional({
-    description: 'Skill description',
-    example: 'JavaScript superset with static typing',
-    maxLength: 500,
-  })
+  @ApiPropertyOptional({ description: 'Skill description', maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   description?: string;
 }
 
@@ -50,19 +57,16 @@ export class CreateSkillDto {
  * PUT /api/admin/skills/:id
  */
 export class UpdateSkillDto {
-  @ApiPropertyOptional({
-    description: 'Skill name',
-    example: 'TypeScript',
-    minLength: 1,
-    maxLength: 100,
-  })
+  @ApiPropertyOptional({ description: 'Skill name' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional({
-    description: 'Skill description',
-    example: 'JavaScript superset with static typing',
-    maxLength: 500,
-  })
+  @ApiPropertyOptional({ description: 'Skill description' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   description?: string;
 
   @ApiPropertyOptional({
@@ -70,6 +74,8 @@ export class UpdateSkillDto {
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
   })
+  @IsOptional()
+  @IsString()
   categoryId?: string;
 }
 
@@ -234,33 +240,33 @@ export enum ProficiencyLevel {
  * POST /api/me/skills
  */
 export class AddCandidateSkillDto {
-  @ApiProperty({
-    description: 'Skill ID to add',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    format: 'uuid',
-  })
+  @ApiProperty({ description: 'Skill ID to add', format: 'uuid' })
+  @IsString()
   skillId: string;
 
-  @ApiPropertyOptional({
-    description: 'Skill description or notes',
-    example: 'Used in production for 2 years',
-    maxLength: 500,
-  })
+  @ApiPropertyOptional({ description: 'Skill description or notes' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   description?: string;
 
   @ApiPropertyOptional({
     description: 'Proficiency level',
     enum: ProficiencyLevel,
-    example: ProficiencyLevel.INTERMEDIATE,
   })
+  @IsOptional()
+  @IsEnum(ProficiencyLevel)
   proficiencyLevel?: ProficiencyLevel;
 
   @ApiPropertyOptional({
-    description: 'Years of experience with this skill',
-    example: 2,
+    description: 'Years of experience',
     minimum: 0,
     maximum: 50,
   })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(50)
   yearsOfExperience?: number;
 }
 
@@ -269,18 +275,18 @@ export class AddCandidateSkillDto {
  * PUT /api/me/skills/:skillId
  */
 export class UpdateCandidateSkillDto {
-  @ApiPropertyOptional({
-    description: 'Skill description or notes',
-    example: 'Used in production for 2 years',
-    maxLength: 500,
-  })
+  @ApiPropertyOptional({ description: 'Skill description or notes' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   description?: string;
 
   @ApiPropertyOptional({
     description: 'Proficiency level',
     enum: ProficiencyLevel,
-    example: ProficiencyLevel.ADVANCED,
   })
+  @IsOptional()
+  @IsEnum(ProficiencyLevel)
   proficiencyLevel?: ProficiencyLevel;
 
   @ApiPropertyOptional({
@@ -289,6 +295,10 @@ export class UpdateCandidateSkillDto {
     minimum: 0,
     maximum: 50,
   })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(50)
   yearsOfExperience?: number;
 }
 

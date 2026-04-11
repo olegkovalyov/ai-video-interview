@@ -1,8 +1,9 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { UpdateCandidateExperienceLevelCommand } from './update-experience-level.command';
 import { ExperienceLevel } from '../../../../domain/value-objects/experience-level.vo';
 import type { ICandidateProfileRepository } from '../../../../domain/repositories/candidate-profile.repository.interface';
+import { CandidateProfileNotFoundException } from '../../../../domain/exceptions/candidate.exceptions';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 @CommandHandler(UpdateCandidateExperienceLevelCommand)
@@ -22,9 +23,11 @@ export class UpdateCandidateExperienceLevelHandler
     });
 
     // 1. Find candidate profile
-    const profile = await this.profileRepository.findByUserId(command.candidateId);
+    const profile = await this.profileRepository.findByUserId(
+      command.candidateId,
+    );
     if (!profile) {
-      throw new NotFoundException(`Candidate profile for user "${command.candidateId}" not found`);
+      throw new CandidateProfileNotFoundException(command.candidateId);
     }
 
     // 2. Create value object

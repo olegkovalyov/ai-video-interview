@@ -14,4 +14,14 @@ export class CallbackQueryDto {
   @IsOptional()
   @IsString()
   redirect_uri?: string;
+
+  @ApiPropertyOptional({ description: 'Keycloak session state' })
+  @IsOptional()
+  @IsString()
+  session_state?: string;
+
+  @ApiPropertyOptional({ description: 'Keycloak issuer URL' })
+  @IsOptional()
+  @IsString()
+  iss?: string;
 }

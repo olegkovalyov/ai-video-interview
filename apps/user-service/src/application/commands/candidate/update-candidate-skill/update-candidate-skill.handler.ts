@@ -1,13 +1,16 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { UpdateCandidateSkillCommand } from './update-candidate-skill.command';
 import { ProficiencyLevel } from '../../../../domain/value-objects/proficiency-level.vo';
 import { YearsOfExperience } from '../../../../domain/value-objects/years-of-experience.vo';
 import type { ICandidateProfileRepository } from '../../../../domain/repositories/candidate-profile.repository.interface';
+import { CandidateProfileNotFoundException } from '../../../../domain/exceptions/candidate.exceptions';
 import { LoggerService } from '../../../../infrastructure/logger/logger.service';
 
 @CommandHandler(UpdateCandidateSkillCommand)
-export class UpdateCandidateSkillHandler implements ICommandHandler<UpdateCandidateSkillCommand> {
+export class UpdateCandidateSkillHandler
+  implements ICommandHandler<UpdateCandidateSkillCommand>
+{
   constructor(
     @Inject('ICandidateProfileRepository')
     private readonly profileRepository: ICandidateProfileRepository,
@@ -22,18 +25,21 @@ export class UpdateCandidateSkillHandler implements ICommandHandler<UpdateCandid
     });
 
     // 1. Find candidate profile
-    const profile = await this.profileRepository.findByUserId(command.candidateId);
+    const profile = await this.profileRepository.findByUserId(
+      command.candidateId,
+    );
     if (!profile) {
-      throw new NotFoundException(`Candidate profile for user "${command.candidateId}" not found`);
+      throw new CandidateProfileNotFoundException(command.candidateId);
     }
 
     // 2. Create value objects (null means not specified/remove value)
     const proficiency = command.proficiencyLevel
       ? ProficiencyLevel.fromString(command.proficiencyLevel)
       : null;
-    const years = command.yearsOfExperience !== null
-      ? YearsOfExperience.fromNumber(command.yearsOfExperience)
-      : null;
+    const years =
+      command.yearsOfExperience !== null
+        ? YearsOfExperience.fromNumber(command.yearsOfExperience)
+        : null;
 
     // 3. Update skill (throws if not found)
     profile.updateSkill(

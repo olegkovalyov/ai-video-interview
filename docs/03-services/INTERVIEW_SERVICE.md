@@ -1,7 +1,7 @@
 # Interview Service
 
-**Status:** ✅ Implemented  
-**Port:** 3007  
+**Status:** ✅ Implemented
+**Port:** 8003
 **Technology Stack:** NestJS, TypeORM, PostgreSQL, Kafka, Redis (BullMQ)  
 **Database:** `ai_video_interview_interview`
 
@@ -12,6 +12,7 @@
 Interview Service manages interview templates, questions, candidate invitations, and response collection for the AI Video Interview platform using Clean Architecture with CQRS and DDD patterns.
 
 **Key Responsibilities:**
+
 - Interview template management
 - Question bank management
 - Candidate invitation workflow
@@ -25,7 +26,7 @@ Interview Service manages interview templates, questions, candidate invitations,
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        INTERVIEW SERVICE (3007)                                 │
+│                        INTERVIEW SERVICE (8003)                                 │
 │                                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐   │
 │  │                         HTTP Layer                                       │   │
@@ -338,35 +339,40 @@ src/
 ## Value Objects
 
 ### TemplateStatus
+
 - `draft` - Template being edited
 - `published` - Available for invitations
 - `archived` - No longer in use
 
 ### InvitationStatus
+
 - `pending` - Invitation sent, not started
 - `started` - Candidate started interview
 - `completed` - All responses submitted
 - `expired` - Deadline passed
 
 ### QuestionType
+
 - `video` - Video response required
 - `text` - Text response required
 - `multiple_choice` - Select from options
 
 ### ResponseType
+
 - `video` - Video recording
 - `text` - Text answer
 - `choice` - Selected option(s)
 
 ### InterviewSettings
+
 ```typescript
 {
-  totalTimeLimit: number;      // Total interview time (minutes)
-  questionTimeLimit: number;   // Default per-question limit
-  allowRetakes: boolean;       // Can re-record video
-  maxRetakes: number;          // Max retake attempts
-  shuffleQuestions: boolean;   // Randomize order
-  showProgress: boolean;       // Show progress indicator
+  totalTimeLimit: number; // Total interview time (minutes)
+  questionTimeLimit: number; // Default per-question limit
+  allowRetakes: boolean; // Can re-record video
+  maxRetakes: number; // Max retake attempts
+  shuffleQuestions: boolean; // Randomize order
+  showProgress: boolean; // Show progress indicator
 }
 ```
 
@@ -376,43 +382,43 @@ src/
 
 ### Template Commands
 
-| Command | Description |
-|---------|-------------|
-| `CreateTemplateCommand` | Create new template (draft) |
-| `UpdateTemplateCommand` | Update template details |
-| `DeleteTemplateCommand` | Delete template |
-| `PublishTemplateCommand` | Publish template for use |
-| `ArchiveTemplateCommand` | Archive template |
+| Command                  | Description                 |
+| ------------------------ | --------------------------- |
+| `CreateTemplateCommand`  | Create new template (draft) |
+| `UpdateTemplateCommand`  | Update template details     |
+| `DeleteTemplateCommand`  | Delete template             |
+| `PublishTemplateCommand` | Publish template for use    |
+| `ArchiveTemplateCommand` | Archive template            |
 
 ### Question Commands
 
-| Command | Description |
-|---------|-------------|
-| `AddQuestionCommand` | Add question to template |
-| `UpdateQuestionCommand` | Update question |
-| `RemoveQuestionCommand` | Remove question |
-| `ReorderQuestionsCommand` | Change question order |
+| Command                   | Description              |
+| ------------------------- | ------------------------ |
+| `AddQuestionCommand`      | Add question to template |
+| `UpdateQuestionCommand`   | Update question          |
+| `RemoveQuestionCommand`   | Remove question          |
+| `ReorderQuestionsCommand` | Change question order    |
 
 ### Invitation Commands
 
-| Command | Description |
-|---------|-------------|
-| `CreateInvitationCommand` | Invite candidate |
-| `StartInvitationCommand` | Candidate starts interview |
-| `SubmitResponseCommand` | Submit answer to question |
-| `CompleteInvitationCommand` | Complete the interview |
+| Command                     | Description                |
+| --------------------------- | -------------------------- |
+| `CreateInvitationCommand`   | Invite candidate           |
+| `StartInvitationCommand`    | Candidate starts interview |
+| `SubmitResponseCommand`     | Submit answer to question  |
+| `CompleteInvitationCommand` | Complete the interview     |
 
 ---
 
 ## CQRS Queries
 
-| Query | Description |
-|-------|-------------|
-| `GetTemplateQuery` | Get template by ID |
-| `ListTemplatesQuery` | List HR's templates |
-| `GetTemplateQuestionsQuery` | Get template questions |
-| `GetInvitationQuery` | Get invitation by ID |
-| `ListHrInvitationsQuery` | List HR's sent invitations |
+| Query                           | Description                  |
+| ------------------------------- | ---------------------------- |
+| `GetTemplateQuery`              | Get template by ID           |
+| `ListTemplatesQuery`            | List HR's templates          |
+| `GetTemplateQuestionsQuery`     | Get template questions       |
+| `GetInvitationQuery`            | Get invitation by ID         |
+| `ListHrInvitationsQuery`        | List HR's sent invitations   |
 | `ListCandidateInvitationsQuery` | List candidate's invitations |
 
 ---
@@ -421,45 +427,45 @@ src/
 
 ### Templates API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/templates` | List HR's templates |
-| `GET` | `/api/v1/templates/:id` | Get template details |
-| `POST` | `/api/v1/templates` | Create template |
-| `PUT` | `/api/v1/templates/:id` | Update template |
-| `DELETE` | `/api/v1/templates/:id` | Delete template |
-| `POST` | `/api/v1/templates/:id/publish` | Publish template |
-| `POST` | `/api/v1/templates/:id/archive` | Archive template |
+| Method   | Endpoint                        | Description          |
+| -------- | ------------------------------- | -------------------- |
+| `GET`    | `/api/v1/templates`             | List HR's templates  |
+| `GET`    | `/api/v1/templates/:id`         | Get template details |
+| `POST`   | `/api/v1/templates`             | Create template      |
+| `PUT`    | `/api/v1/templates/:id`         | Update template      |
+| `DELETE` | `/api/v1/templates/:id`         | Delete template      |
+| `POST`   | `/api/v1/templates/:id/publish` | Publish template     |
+| `POST`   | `/api/v1/templates/:id/archive` | Archive template     |
 
 ### Questions API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/templates/:id/questions` | Get questions |
-| `POST` | `/api/v1/templates/:id/questions` | Add question |
-| `PUT` | `/api/v1/templates/:id/questions/:qId` | Update question |
-| `DELETE` | `/api/v1/templates/:id/questions/:qId` | Remove question |
-| `PUT` | `/api/v1/templates/:id/questions/reorder` | Reorder questions |
+| Method   | Endpoint                                  | Description       |
+| -------- | ----------------------------------------- | ----------------- |
+| `GET`    | `/api/v1/templates/:id/questions`         | Get questions     |
+| `POST`   | `/api/v1/templates/:id/questions`         | Add question      |
+| `PUT`    | `/api/v1/templates/:id/questions/:qId`    | Update question   |
+| `DELETE` | `/api/v1/templates/:id/questions/:qId`    | Remove question   |
+| `PUT`    | `/api/v1/templates/:id/questions/reorder` | Reorder questions |
 
 ### Invitations API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/invitations` | List HR's invitations |
-| `GET` | `/api/v1/invitations/candidate` | Candidate's invitations |
-| `GET` | `/api/v1/invitations/:id` | Get invitation details |
-| `POST` | `/api/v1/invitations` | Create invitation |
-| `POST` | `/api/v1/invitations/:id/start` | Start interview |
-| `POST` | `/api/v1/invitations/:id/responses` | Submit response |
-| `POST` | `/api/v1/invitations/:id/complete` | Complete interview |
+| Method | Endpoint                            | Description             |
+| ------ | ----------------------------------- | ----------------------- |
+| `GET`  | `/api/v1/invitations`               | List HR's invitations   |
+| `GET`  | `/api/v1/invitations/candidate`     | Candidate's invitations |
+| `GET`  | `/api/v1/invitations/:id`           | Get invitation details  |
+| `POST` | `/api/v1/invitations`               | Create invitation       |
+| `POST` | `/api/v1/invitations/:id/start`     | Start interview         |
+| `POST` | `/api/v1/invitations/:id/responses` | Submit response         |
+| `POST` | `/api/v1/invitations/:id/complete`  | Complete interview      |
 
 ### Health
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/health/live` | Liveness probe |
-| `GET` | `/health/ready` | Readiness probe |
+| Method | Endpoint        | Description     |
+| ------ | --------------- | --------------- |
+| `GET`  | `/health`       | Health check    |
+| `GET`  | `/health/live`  | Liveness probe  |
+| `GET`  | `/health/ready` | Readiness probe |
 
 ---
 
@@ -467,19 +473,20 @@ src/
 
 ### Published Events (via OUTBOX)
 
-| Topic | Event | Trigger |
-|-------|-------|---------|
-| `interview-events` | `template.created` | Template created |
-| `interview-events` | `template.published` | Template published |
-| `interview-events` | `template.archived` | Template archived |
-| `interview-events` | `invitation.created` | Candidate invited |
-| `interview-events` | `invitation.started` | Interview started |
-| `interview-events` | `response.submitted` | Response submitted |
+| Topic              | Event                  | Trigger             |
+| ------------------ | ---------------------- | ------------------- |
+| `interview-events` | `template.created`     | Template created    |
+| `interview-events` | `template.published`   | Template published  |
+| `interview-events` | `template.archived`    | Template archived   |
+| `interview-events` | `invitation.created`   | Candidate invited   |
+| `interview-events` | `invitation.started`   | Interview started   |
+| `interview-events` | `response.submitted`   | Response submitted  |
 | `interview-events` | `invitation.completed` | Interview completed |
 
 ### Event Schemas
 
 **invitation.created**
+
 ```json
 {
   "eventId": "uuid",
@@ -499,6 +506,7 @@ src/
 ```
 
 **invitation.completed**
+
 ```json
 {
   "eventId": "uuid",
@@ -517,6 +525,7 @@ src/
 ```
 
 **response.submitted**
+
 ```json
 {
   "eventId": "uuid",
@@ -596,7 +605,7 @@ src/
 
 ```bash
 # Application
-PORT=3007
+PORT=8003
 NODE_ENV=development
 
 # Database
@@ -648,16 +657,16 @@ interview_completion_duration_seconds
 
 ### Domain Exceptions
 
-| Exception | HTTP Code | Description |
-|-----------|-----------|-------------|
-| `TemplateNotFoundException` | 404 | Template not found |
-| `TemplateNotPublishedException` | 400 | Cannot invite for unpublished template |
-| `InvitationNotFoundException` | 404 | Invitation not found |
-| `InvitationExpiredException` | 400 | Invitation has expired |
-| `InvitationAlreadyStartedException` | 400 | Interview already started |
-| `InvitationNotStartedException` | 400 | Must start before submitting |
-| `QuestionNotFoundException` | 404 | Question not found |
-| `ResponseAlreadySubmittedException` | 400 | Already answered this question |
+| Exception                           | HTTP Code | Description                            |
+| ----------------------------------- | --------- | -------------------------------------- |
+| `TemplateNotFoundException`         | 404       | Template not found                     |
+| `TemplateNotPublishedException`     | 400       | Cannot invite for unpublished template |
+| `InvitationNotFoundException`       | 404       | Invitation not found                   |
+| `InvitationExpiredException`        | 400       | Invitation has expired                 |
+| `InvitationAlreadyStartedException` | 400       | Interview already started              |
+| `InvitationNotStartedException`     | 400       | Must start before submitting           |
+| `QuestionNotFoundException`         | 404       | Question not found                     |
+| `ResponseAlreadySubmittedException` | 400       | Already answered this question         |
 
 ---
 
@@ -675,7 +684,7 @@ npm run migration:run --filter=interview-service
 # Start service
 npm run dev --filter=interview-service
 
-# Service available at http://localhost:3007
+# Service available at http://localhost:8003
 ```
 
 ### Testing

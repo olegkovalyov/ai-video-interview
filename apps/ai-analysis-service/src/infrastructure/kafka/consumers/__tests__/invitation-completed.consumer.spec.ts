@@ -105,7 +105,7 @@ describe("InvitationCompletedConsumer", () => {
         "interview-events",
         "ai-analysis-service-invitation-consumer",
         expect.any(Function),
-        { fromBeginning: true, autoCommit: true },
+        { fromBeginning: true, autoCommit: true, sessionTimeout: 600000 },
       );
     });
   });

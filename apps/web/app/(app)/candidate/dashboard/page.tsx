@@ -1,16 +1,33 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCandidateInvitations, useStartInvitation } from '@/lib/query/hooks/use-invitations';
-import { Loader2, RefreshCw, Clock, CheckCircle, AlertCircle, Play } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useCandidateInvitations,
+  useStartInvitation,
+} from "@/lib/query/hooks/use-invitations";
+import {
+  Loader2,
+  RefreshCw,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Play,
+  Inbox,
+  ClipboardList,
+  BarChart3,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function CandidateDashboardPage() {
   const router = useRouter();
   const [startingId, setStartingId] = useState<string | null>(null);
 
-  const { data, isPending, error, refetch, isFetching } = useCandidateInvitations({ limit: 100 });
+  const { data, isPending, error, refetch, isFetching } =
+    useCandidateInvitations({ limit: 100 });
   const startMutation = useStartInvitation();
 
   const invitations = data?.items ?? [];
@@ -19,51 +36,55 @@ export default function CandidateDashboardPage() {
     setStartingId(id);
     startMutation.mutate(id, {
       onSuccess: () => {
-        toast.success('Interview started!');
+        toast.success("Interview started!");
         router.push(`/interview/${id}`);
       },
       onError: (err) => {
-        const message = err instanceof Error ? err.message : 'Failed to start interview';
+        const message =
+          err instanceof Error ? err.message : "Failed to start interview";
         toast.error(message);
       },
       onSettled: () => setStartingId(null),
     });
   };
 
-  // Calculate stats
-  const pendingCount = invitations.filter(i => i.status === 'pending').length;
-  const inProgressCount = invitations.filter(i => i.status === 'in_progress').length;
-  const completedCount = invitations.filter(i => i.status === 'completed').length;
+  const pendingCount = invitations.filter((i) => i.status === "pending").length;
+  const inProgressCount = invitations.filter(
+    (i) => i.status === "in_progress",
+  ).length;
+  const completedCount = invitations.filter(
+    (i) => i.status === "completed",
+  ).length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return (
-          <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+          <Badge variant="warning">
+            <Clock className="mr-1 h-3 w-3" />
             Pending
-          </span>
+          </Badge>
         );
-      case 'in_progress':
+      case "in_progress":
         return (
-          <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm flex items-center gap-1">
-            <Play className="w-3 h-3" />
+          <Badge variant="info">
+            <Play className="mr-1 h-3 w-3" />
             In Progress
-          </span>
+          </Badge>
         );
-      case 'completed':
+      case "completed":
         return (
-          <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" />
+          <Badge variant="success">
+            <CheckCircle className="mr-1 h-3 w-3" />
             Completed
-          </span>
+          </Badge>
         );
-      case 'expired':
+      case "expired":
         return (
-          <span className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+          <Badge variant="error">
+            <AlertCircle className="mr-1 h-3 w-3" />
             Expired
-          </span>
+          </Badge>
         );
       default:
         return null;
@@ -76,8 +97,8 @@ export default function CandidateDashboardPage() {
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString();
   };
@@ -86,143 +107,195 @@ export default function CandidateDashboardPage() {
     return new Date(expiresAt) < new Date();
   };
 
+  const stats = [
+    {
+      label: "Pending",
+      value: isPending ? "-" : pendingCount,
+      icon: Clock,
+      color: "text-warning",
+      bg: "bg-warning-light",
+    },
+    {
+      label: "In Progress",
+      value: isPending ? "-" : inProgressCount,
+      icon: ClipboardList,
+      color: "text-info",
+      bg: "bg-info-light",
+    },
+    {
+      label: "Completed",
+      value: isPending ? "-" : completedCount,
+      icon: BarChart3,
+      color: "text-success",
+      bg: "bg-success-light",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
-      <div className="container mx-auto px-6 py-12">
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">
-              My Dashboard
-            </h1>
-            <p className="text-lg text-white/80">
-              Track your interview invitations and progress
-            </p>
-          </div>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            aria-label="Refresh invitations"
-            className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-5 h-5 text-white ${isFetching ? 'animate-spin' : ''}`} />
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            My Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Track your interview invitations and progress
+          </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </Button>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" aria-live="polite" aria-busy={isPending}>
-          {/* Stats Cards */}
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-white/80 text-sm font-medium mb-2">Pending Interviews</h3>
-            <p className="text-4xl font-bold text-white">{isPending ? '-' : pendingCount}</p>
-          </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {stats.map((stat) => (
+          <Card key={stat.label}>
+            <CardContent className="flex items-center gap-4 p-5">
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.bg}`}
+              >
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">
+                  {stat.value}
+                </p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-white/80 text-sm font-medium mb-2">In Progress</h3>
-            <p className="text-4xl font-bold text-white">{isPending ? '-' : inProgressCount}</p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h3 className="text-white/80 text-sm font-medium mb-2">Completed</h3>
-            <p className="text-4xl font-bold text-white">{isPending ? '-' : completedCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20" aria-busy={isPending}>
-          <h2 className="text-2xl font-bold text-white mb-4">Your Interviews</h2>
-
+      {/* Interview list */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-foreground">
+            Your Interviews
+          </h2>
+        </CardHeader>
+        <CardContent>
           {isPending ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-              <p className="text-white/80 mb-4">{error instanceof Error ? error.message : 'Failed to load invitations'}</p>
-              <button
-                onClick={() => refetch()}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-              >
+              <AlertCircle className="mx-auto mb-3 h-10 w-10 text-destructive" />
+              <p className="text-sm text-muted-foreground mb-4">
+                {error instanceof Error
+                  ? error.message
+                  : "Failed to load invitations"}
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
                 Try Again
-              </button>
+              </Button>
             </div>
           ) : invitations.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-white/60">No interview invitations yet</p>
+              <Inbox className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                No interview invitations yet
+              </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y">
               {invitations.map((invitation) => (
                 <div
                   key={invitation.id}
-                  className="p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
+                  className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="text-white font-semibold">{invitation.templateTitle}</h3>
-                      <p className="text-white/60 text-sm">{invitation.companyName}</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-medium text-foreground">
+                        {invitation.templateTitle}
+                      </p>
+                      {getStatusBadge(invitation.status)}
                     </div>
-                    {getStatusBadge(invitation.status)}
-                  </div>
-
-                  <div className="flex items-center gap-4 text-white/70 text-sm mb-3">
-                    <span>Invited {formatDate(invitation.createdAt)}</span>
-                    {invitation.progress && (
-                      <span>• Progress: {invitation.progress.answered}/{invitation.progress.total}</span>
-                    )}
-                    {invitation.status === 'pending' && !isExpired(invitation.expiresAt) && (
-                      <span>• Expires: {new Date(invitation.expiresAt).toLocaleDateString()}</span>
-                    )}
-                  </div>
-
-                  {invitation.status === 'pending' && !isExpired(invitation.expiresAt) && (
-                    <button
-                      onClick={() => handleStartInterview(invitation.id)}
-                      disabled={startingId === invitation.id}
-                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-500/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      {startingId === invitation.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Starting...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-4 h-4" />
-                          Start Interview
-                        </>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{invitation.companyName}</span>
+                      <span>Invited {formatDate(invitation.createdAt)}</span>
+                      {invitation.progress && (
+                        <span>
+                          Progress: {invitation.progress.answered}/
+                          {invitation.progress.total}
+                        </span>
                       )}
-                    </button>
-                  )}
+                      {invitation.status === "pending" &&
+                        !isExpired(invitation.expiresAt) && (
+                          <span>
+                            Expires:{" "}
+                            {new Date(
+                              invitation.expiresAt,
+                            ).toLocaleDateString()}
+                          </span>
+                        )}
+                    </div>
+                    {invitation.status === "pending" &&
+                      isExpired(invitation.expiresAt) && (
+                        <p className="text-xs text-destructive">
+                          This invitation has expired
+                        </p>
+                      )}
+                  </div>
 
-                  {invitation.status === 'in_progress' && (
-                    <button
-                      onClick={() => router.push(`/interview/${invitation.id}`)}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      <Play className="w-4 h-4" />
-                      Resume Interview
-                    </button>
-                  )}
+                  <div>
+                    {invitation.status === "pending" &&
+                      !isExpired(invitation.expiresAt) && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartInterview(invitation.id)}
+                          disabled={startingId === invitation.id}
+                        >
+                          {startingId === invitation.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Play className="mr-2 h-4 w-4" />
+                          )}
+                          {startingId === invitation.id
+                            ? "Starting..."
+                            : "Start"}
+                        </Button>
+                      )}
 
-                  {invitation.status === 'completed' && (
-                    <button
-                      onClick={() => {
-                        toast.info('Results page coming soon');
-                      }}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors cursor-pointer"
-                    >
-                      View Results
-                    </button>
-                  )}
+                    {invitation.status === "in_progress" && (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/interview/${invitation.id}`)
+                        }
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Resume
+                      </Button>
+                    )}
 
-                  {invitation.status === 'pending' && isExpired(invitation.expiresAt) && (
-                    <span className="text-red-400 text-sm">This invitation has expired</span>
-                  )}
+                    {invitation.status === "completed" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toast.info("Results page coming soon")}
+                      >
+                        View Results
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

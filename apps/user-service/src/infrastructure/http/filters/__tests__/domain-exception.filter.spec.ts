@@ -1,4 +1,7 @@
-import { ArgumentsHost, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, HttpStatus, Logger } from '@nestjs/common';
+
+// Suppress Logger.warn output from filter (tested behavior, not debug info)
+jest.spyOn(Logger.prototype, 'warn').mockImplementation();
 import { DomainExceptionFilter } from '../domain-exception.filter';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import {
@@ -180,7 +183,9 @@ describe('DomainExceptionFilter', () => {
   });
 
   it('should map InvalidUserOperationException to 422 Unprocessable Entity', () => {
-    const exception = new InvalidUserOperationException('User is already suspended');
+    const exception = new InvalidUserOperationException(
+      'User is already suspended',
+    );
     const host = createMockHost();
 
     filter.catch(exception, host);

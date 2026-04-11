@@ -1,33 +1,33 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { CheckCircle, Star, Clock, Eye, Bot, MoreVertical, Trophy, Loader2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useHRInvitations } from '@/lib/query/hooks/use-invitations';
-
-function getScoreColor(score: number) {
-  if (score >= 90) return 'text-green-400';
-  if (score >= 75) return 'text-yellow-400';
-  if (score >= 60) return 'text-orange-400';
-  return 'text-red-400';
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCircle, Star, Clock, Eye, Trophy, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useHRInvitations } from "@/lib/query/hooks/use-invitations";
 
 function getScoreBadge(score: number) {
-  if (score >= 90) return { label: 'Excellent', bg: 'bg-green-500/20', text: 'text-green-300' };
-  if (score >= 75) return { label: 'Good', bg: 'bg-yellow-500/20', text: 'text-yellow-300' };
-  if (score >= 60) return { label: 'Average', bg: 'bg-orange-500/20', text: 'text-orange-300' };
-  return { label: 'Below Average', bg: 'bg-red-500/20', text: 'text-red-300' };
+  if (score >= 90) return { label: "Excellent", variant: "success" as const };
+  if (score >= 75) return { label: "Good", variant: "warning" as const };
+  if (score >= 60) return { label: "Average", variant: "info" as const };
+  return { label: "Below Average", variant: "error" as const };
+}
+
+function getScoreColor(score: number) {
+  if (score >= 90) return "text-success";
+  if (score >= 75) return "text-warning";
+  if (score >= 60) return "text-info";
+  return "text-error";
 }
 
 function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -35,77 +35,90 @@ function generateRandomScore(id: string): number {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     const char = id.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return 60 + Math.abs(hash % 40);
 }
 
+const selectClass =
+  "flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
 export function CandidateCompletedTab() {
   const router = useRouter();
-  const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
+  const [sortBy, setSortBy] = useState<"date" | "score">("date");
 
-  const { data, isPending } = useHRInvitations({ status: 'completed', limit: 100 });
+  const { data, isPending } = useHRInvitations({
+    status: "completed",
+    limit: 100,
+  });
   const invitations = data?.items ?? [];
 
-  const invitationsWithScores = invitations.map(inv => ({
+  const invitationsWithScores = invitations.map((inv) => ({
     ...inv,
     score: generateRandomScore(inv.id),
   }));
 
   const sortedInterviews = [...invitationsWithScores].sort((a, b) => {
-    if (sortBy === 'score') {
-      return b.score - a.score;
-    }
+    if (sortBy === "score") return b.score - a.score;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const avgScore = invitationsWithScores.length > 0
-    ? Math.round(invitationsWithScores.reduce((sum, i) => sum + i.score, 0) / invitationsWithScores.length)
-    : 0;
+  const avgScore =
+    invitationsWithScores.length > 0
+      ? Math.round(
+          invitationsWithScores.reduce((sum, i) => sum + i.score, 0) /
+            invitationsWithScores.length,
+        )
+      : 0;
 
   if (isPending) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-white animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 bg-green-500/20 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-green-400" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-light">
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
             <div>
-              <p className="text-white/60 text-sm">Completed</p>
-              <p className="text-2xl font-bold text-white">{invitations.length}</p>
+              <p className="text-xl font-bold text-foreground">
+                {invitations.length}
+              </p>
+              <p className="text-xs text-muted-foreground">Completed</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 bg-yellow-500/20 rounded-lg">
-              <Trophy className="w-6 h-6 text-yellow-400" />
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning-light">
+              <Trophy className="h-4 w-4 text-warning" />
             </div>
             <div>
-              <p className="text-white/60 text-sm">Average Score</p>
-              <p className="text-2xl font-bold text-white">{avgScore > 0 ? `${avgScore}%` : '-'}</p>
+              <p className="text-xl font-bold text-foreground">
+                {avgScore > 0 ? `${avgScore}%` : "\u2014"}
+              </p>
+              <p className="text-xs text-muted-foreground">Average Score</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-lg">
-              <Eye className="w-6 h-6 text-blue-400" />
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-info-light">
+              <Eye className="h-4 w-4 text-info" />
             </div>
             <div>
-              <p className="text-white/60 text-sm">Needs Review</p>
-              <p className="text-2xl font-bold text-white">{invitations.length}</p>
+              <p className="text-xl font-bold text-foreground">
+                {invitations.length}
+              </p>
+              <p className="text-xs text-muted-foreground">Needs Review</p>
             </div>
           </CardContent>
         </Card>
@@ -113,123 +126,100 @@ export function CandidateCompletedTab() {
 
       {invitations.length === 0 ? (
         <div className="text-center py-12">
-          <CheckCircle className="w-16 h-16 text-white/20 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No completed interviews yet</h3>
-          <p className="text-white/60">
+          <CheckCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+          <h3 className="text-sm font-medium text-foreground mb-1">
+            No completed interviews yet
+          </h3>
+          <p className="text-xs text-muted-foreground">
             Completed interviews will appear here for review
           </p>
         </div>
       ) : (
         <>
-          {/* Sort */}
           <div className="flex items-center justify-between">
-            <p className="text-white/70 text-sm" aria-live="polite">
-              Showing {sortedInterviews.length} completed interview{sortedInterviews.length !== 1 ? 's' : ''}
+            <p className="text-sm text-muted-foreground">
+              Showing {sortedInterviews.length} completed interview
+              {sortedInterviews.length !== 1 ? "s" : ""}
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-white/60 text-sm">Sort by:</span>
+              <span className="text-xs text-muted-foreground">Sort by:</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'date' | 'score')}
-                aria-label="Sort by"
-                className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400/50 cursor-pointer"
+                onChange={(e) => setSortBy(e.target.value as "date" | "score")}
+                className={selectClass}
               >
-                <option value="date" className="bg-gray-800">Date</option>
-                <option value="score" className="bg-gray-800">Score</option>
+                <option value="date">Date</option>
+                <option value="score">Score</option>
               </select>
             </div>
           </div>
 
-          {/* Interviews List */}
-          <div className="space-y-4">
-            {sortedInterviews.map(interview => {
+          <div className="space-y-3">
+            {sortedInterviews.map((interview) => {
               const scoreBadge = getScoreBadge(interview.score);
-              const candidateName = interview.candidateName || interview.candidateEmail?.split('@')[0] || 'Unknown';
-              const initials = candidateName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+              const candidateName =
+                interview.candidateName ||
+                interview.candidateEmail?.split("@")[0] ||
+                "Unknown";
+              const initials = candidateName
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2);
 
               return (
-                <Card key={interview.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        {/* Avatar */}
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                <Card
+                  key={interview.id}
+                  className="transition-all hover:shadow-md hover:border-primary/30"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary flex-shrink-0">
                           {initials}
                         </div>
-
-                        {/* Info */}
-                        <div>
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-lg font-bold text-white">{candidateName}</h3>
-                            <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${scoreBadge.bg} ${scoreBadge.text}`}>
-                              <Star className="w-3 h-3" />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground">
+                              {candidateName}
+                            </p>
+                            <Badge variant={scoreBadge.variant}>
+                              <Star className="mr-1 h-3 w-3" />
                               {scoreBadge.label}
-                            </span>
-                            <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-medium">
-                              New
-                            </span>
+                            </Badge>
                           </div>
-                          <p className="text-white/60 text-sm mb-3">{interview.candidateEmail}</p>
-
-                          <div className="flex flex-wrap gap-4 text-sm">
-                            <div className="flex items-center gap-1.5 text-white/70">
-                              <span className="text-white/50">Template:</span>
-                              <span className="text-white">{interview.templateTitle}</span>
-                            </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>{interview.templateTitle}</span>
                             {interview.companyName && (
-                              <div className="flex items-center gap-1.5 text-white/70">
-                                <span className="text-white/50">Company:</span>
-                                <span className="text-white">{interview.companyName}</span>
-                              </div>
+                              <span>{interview.companyName}</span>
                             )}
-                          </div>
-
-                          {/* Score & Duration */}
-                          <div className="flex items-center gap-6 mt-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-white/50 text-sm">Score:</span>
-                              <span className={`text-2xl font-bold ${getScoreColor(interview.score)}`}>
-                                {interview.score}%
-                              </span>
-                            </div>
                             {interview.progress && (
-                              <div className="flex items-center gap-1.5 text-white/60 text-sm">
-                                <Clock className="w-4 h-4" />
-                                {interview.progress.answered}/{interview.progress.total} questions
-                              </div>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {interview.progress.answered}/
+                                {interview.progress.total} questions
+                              </span>
                             )}
-                            <div className="text-white/50 text-sm">
-                              {formatDate(interview.createdAt)}
-                            </div>
+                            <span>{formatDate(interview.createdAt)}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold cursor-pointer"
-                          onClick={() => router.push(`/hr/interviews/review/${interview.id}`)}
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`text-xl font-bold ${getScoreColor(interview.score)}`}
                         >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Results
-                        </Button>
+                          {interview.score}%
+                        </span>
                         <Button
-                          variant="outline"
-                          disabled
-                          className="bg-white/5 border-white/10 text-white/40 cursor-not-allowed"
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/hr/review/${interview.id}`)
+                          }
                         >
-                          <Bot className="w-4 h-4 mr-2" />
-                          AI Review
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="More options"
-                          className="text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
-                          onClick={() => toast.info('More options - coming soon')}
-                        >
-                          <MoreVertical className="w-4 h-4" />
+                          <Eye className="mr-2 h-4 w-4" />
+                          Review
                         </Button>
                       </div>
                     </div>

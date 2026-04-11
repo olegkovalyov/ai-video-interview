@@ -1,6 +1,11 @@
-import { Edit2, Trash2, Star } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { CandidateSkill, ProficiencyLevel } from '../types/candidate-skill.types';
+import { Edit2, Trash2, Star } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  CandidateSkill,
+  ProficiencyLevel,
+} from "../types/candidate-skill.types";
 
 interface CandidateSkillsTableProps {
   skills: CandidateSkill[];
@@ -16,44 +21,58 @@ const getProficiencyStars = (level: ProficiencyLevel): number => {
 
 const getProficiencyColor = (level: ProficiencyLevel): string => {
   const map = {
-    beginner: 'text-yellow-400',
-    intermediate: 'text-blue-400',
-    advanced: 'text-purple-400',
-    expert: 'text-green-400',
+    beginner: "text-warning",
+    intermediate: "text-info",
+    advanced: "text-primary",
+    expert: "text-success",
   };
   return map[level];
 };
 
-export function CandidateSkillsTable({ 
-  skills, 
-  onEdit, 
-  onRemove, 
-  loadingSkills = new Set() 
+export function CandidateSkillsTable({
+  skills,
+  onEdit,
+  onRemove,
+  loadingSkills = new Set(),
 }: CandidateSkillsTableProps) {
   if (skills.length === 0) {
     return (
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-12 text-center">
-          <Star className="w-16 h-16 text-white/40 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No skills added yet</h3>
-          <p className="text-white/70">Add your first skill to showcase your expertise</p>
+      <Card>
+        <CardContent className="py-12 text-center">
+          <Star className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+          <h3 className="text-sm font-medium text-foreground mb-1">
+            No skills added yet
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Add your first skill to showcase your expertise
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+    <Card>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-white/20">
-              <tr>
-                <th className="text-left p-4 text-white/70 font-semibold">Skill</th>
-                <th className="text-left p-4 text-white/70 font-semibold">Proficiency</th>
-                <th className="text-center p-4 text-white/70 font-semibold">Experience</th>
-                <th className="text-left p-4 text-white/70 font-semibold">Description</th>
-                <th className="text-right p-4 text-white/70 font-semibold">Actions</th>
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                  Skill
+                </th>
+                <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                  Proficiency
+                </th>
+                <th className="p-3 text-center text-xs font-medium text-muted-foreground">
+                  Experience
+                </th>
+                <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                  Description
+                </th>
+                <th className="p-3 text-right text-xs font-medium text-muted-foreground">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -61,69 +80,67 @@ export function CandidateSkillsTable({
                 const isLoading = loadingSkills.has(skill.skillId);
                 const stars = getProficiencyStars(skill.proficiencyLevel);
                 const starColor = getProficiencyColor(skill.proficiencyLevel);
-                
-                return (
-                  <tr 
-                    key={skill.skillId}
-                    className={`
-                      border-b border-white/10 hover:bg-white/5 transition-all duration-200
-                      ${isLoading ? 'opacity-60 blur-[0.5px]' : ''}
-                    `}
-                  >
-                    {/* Skill Name */}
-                    <td className="p-4">
-                      <div className="text-white font-medium">{skill.skillName}</div>
-                      <div className="text-white/50 text-xs">{skill.categoryName}</div>
-                    </td>
 
-                    {/* Proficiency */}
-                    <td className="p-4">
+                return (
+                  <tr
+                    key={skill.skillId}
+                    className={cn(
+                      "border-b last:border-0 hover:bg-muted/30 transition-colors",
+                      isLoading && "opacity-50",
+                    )}
+                  >
+                    <td className="p-3">
+                      <div className="text-sm font-medium text-foreground">
+                        {skill.skillName}
+                      </div>
+                    </td>
+                    <td className="p-3">
                       <div className="flex items-center gap-1">
                         {[...Array(4)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-4 h-4 ${
-                              i < stars ? `${starColor} fill-current` : 'text-white/20'
-                            }`}
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              i < stars
+                                ? `${starColor} fill-current`
+                                : "text-muted-foreground/20",
+                            )}
                           />
                         ))}
                       </div>
-                      <div className="text-white/70 text-xs mt-1 capitalize">
+                      <div className="mt-0.5 text-xs capitalize text-muted-foreground">
                         {skill.proficiencyLevel}
                       </div>
                     </td>
-
-                    {/* Years of Experience */}
-                    <td className="p-4 text-center">
-                      <span className="text-white font-medium">
-                        {skill.yearsOfExperience} year{skill.yearsOfExperience !== 1 ? 's' : ''}
+                    <td className="p-3 text-center">
+                      <span className="text-sm text-foreground">
+                        {skill.yearsOfExperience} yr
+                        {skill.yearsOfExperience !== 1 ? "s" : ""}
                       </span>
                     </td>
-
-                    {/* Description */}
-                    <td className="p-4 text-white/80 text-sm max-w-xs truncate">
-                      {skill.description || '—'}
+                    <td className="max-w-xs truncate p-3 text-sm text-muted-foreground">
+                      {skill.description || "\u2014"}
                     </td>
-
-                    {/* Actions */}
-                    <td className="p-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
+                    <td className="p-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => onEdit(skill.skillId)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Edit"
+                          className="h-8 w-8"
                         >
-                          <Edit2 className="w-4 h-4 text-blue-400" />
-                        </button>
-                        <button
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => onRemove(skill.skillId)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Remove"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="w-4 h-4 text-red-400" />
-                        </button>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </td>
                   </tr>

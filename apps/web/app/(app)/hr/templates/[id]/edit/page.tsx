@@ -1,11 +1,22 @@
 import { use } from 'react';
-import { redirect } from 'next/navigation';
+import { EditTemplateForm } from '@/features/templates/components/EditTemplateForm';
 
-interface EditTemplateRedirectProps {
-  params: Promise<{ id: string }>;
+export const metadata = {
+  title: 'Edit Interview Template | AI Video Interview',
+  description: 'Edit interview template details, questions and settings',
+};
+
+interface EditTemplatePageProps {
+  params: Promise<{
+    id: string;
+  }>;
 }
 
-export default function EditTemplateRedirectPage({ params }: EditTemplateRedirectProps) {
+export default function EditTemplatePage({ params }: EditTemplatePageProps) {
   const { id } = use(params);
-  redirect(`/hr/interviews/templates/${id}/edit`);
+  return (
+    <div>
+      <EditTemplateForm templateId={id} />
+    </div>
+  );
 }

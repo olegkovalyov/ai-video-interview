@@ -1,34 +1,30 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsBoolean, IsInt, IsOptional, Min, Max } from 'class-validator';
 
 /**
  * Interview Settings DTO
- * Configures interview behavior and constraints
  */
 export class InterviewSettingsDto {
-  @ApiProperty({
-    description: 'Total time limit for the interview in minutes',
-    example: 60,
-    minimum: 1,
-    maximum: 480,
-  })
+  @ApiProperty({ description: 'Total time limit in minutes', example: 60 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(480)
   totalTimeLimit: number;
 
-  @ApiProperty({
-    description: 'Allow candidates to retake the interview',
-    example: false,
-  })
+  @ApiProperty({ description: 'Allow retakes', example: false })
+  @IsOptional()
+  @IsBoolean()
   allowRetakes: boolean;
 
-  @ApiProperty({
-    description: 'Show timer to candidates during interview',
-    example: true,
-  })
+  @ApiProperty({ description: 'Show timer', example: true })
+  @IsOptional()
+  @IsBoolean()
   showTimer: boolean;
 
-  @ApiProperty({
-    description: 'Randomize question order for each candidate',
-    example: false,
-  })
+  @ApiProperty({ description: 'Randomize questions', example: false })
+  @IsOptional()
+  @IsBoolean()
   randomizeQuestions: boolean;
 }
 
@@ -36,27 +32,15 @@ export class InterviewSettingsDto {
  * Interview Settings Response DTO
  */
 export class InterviewSettingsResponseDto {
-  @ApiProperty({
-    description: 'Total time limit in minutes',
-    example: 60,
-  })
+  @ApiProperty({ example: 60 })
   totalTimeLimit: number;
 
-  @ApiProperty({
-    description: 'Allow candidates to retake the interview',
-    example: false,
-  })
+  @ApiProperty({ example: false })
   allowRetakes: boolean;
 
-  @ApiProperty({
-    description: 'Show timer during interview',
-    example: true,
-  })
+  @ApiProperty({ example: true })
   showTimer: boolean;
 
-  @ApiProperty({
-    description: 'Randomize question order',
-    example: false,
-  })
+  @ApiProperty({ example: false })
   randomizeQuestions: boolean;
 }

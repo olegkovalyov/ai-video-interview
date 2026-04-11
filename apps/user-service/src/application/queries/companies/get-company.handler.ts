@@ -1,8 +1,12 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { GetCompanyQuery } from './get-company.query';
 import type { ICompanyReadRepository } from '../../../domain/repositories/company-read.repository.interface';
 import type { CompanyReadModel } from '../../../domain/read-models/company.read-model';
+import {
+  CompanyNotFoundException,
+  CompanyAccessDeniedException,
+} from '../../../domain/exceptions/company.exceptions';
 
 /**
  * Get Company Query Handler
@@ -17,9 +21,9 @@ export class GetCompanyHandler implements IQueryHandler<GetCompanyQuery> {
 
   async execute(query: GetCompanyQuery): Promise<CompanyReadModel> {
     const company = await this.companyReadRepository.findById(query.companyId);
-    
+
     if (!company) {
-      throw new NotFoundException(`Company with ID "${query.companyId}" not found`);
+      throw new CompanyNotFoundException(query.companyId);
     }
 
     // Check access: ADMIN or HR from this company
@@ -28,9 +32,11 @@ export class GetCompanyHandler implements IQueryHandler<GetCompanyQuery> {
         query.companyId,
         query.currentUserId,
       );
-      
+
       if (!hasAccess) {
-        throw new ForbiddenException('You do not have access to this company');
+        throw new CompanyAccessDeniedException(
+          'You do not have access to this company',
+        );
       }
     }
 

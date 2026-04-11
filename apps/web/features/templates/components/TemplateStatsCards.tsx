@@ -1,65 +1,66 @@
-import { FileText, CheckCircle, FileEdit, Archive } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { TemplateStats } from '../types/template.types';
+import { FileText, CheckCircle, FileEdit, Archive } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { TemplateStats } from "../types/template.types";
 
 interface TemplateStatsCardsProps {
   stats: TemplateStats;
   loading?: boolean;
 }
 
-export function TemplateStatsCards({ stats, loading = false }: TemplateStatsCardsProps) {
-  const cards = [
-    {
-      label: 'Total Templates',
-      value: stats.total,
-      icon: FileText,
-      color: 'from-blue-500 to-cyan-500',
-    },
-    {
-      label: 'Active',
-      value: stats.active,
-      icon: CheckCircle,
-      color: 'from-green-500 to-emerald-500',
-    },
-    {
-      label: 'Draft',
-      value: stats.draft,
-      icon: FileEdit,
-      color: 'from-yellow-500 to-orange-500',
-    },
-    {
-      label: 'Archived',
-      value: stats.archived,
-      icon: Archive,
-      color: 'from-gray-500 to-slate-500',
-    },
-  ];
+const STAT_CONFIG = [
+  {
+    key: "total" as const,
+    label: "Total Templates",
+    icon: FileText,
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    key: "active" as const,
+    label: "Active",
+    icon: CheckCircle,
+    color: "text-success",
+    bg: "bg-success-light",
+  },
+  {
+    key: "draft" as const,
+    label: "Draft",
+    icon: FileEdit,
+    color: "text-warning",
+    bg: "bg-warning-light",
+  },
+  {
+    key: "archived" as const,
+    label: "Archived",
+    icon: Archive,
+    color: "text-muted-foreground",
+    bg: "bg-muted",
+  },
+];
 
+export function TemplateStatsCards({
+  stats,
+  loading = false,
+}: TemplateStatsCardsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <Card
-            key={card.label}
-            className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/70 text-sm mb-1">{card.label}</p>
-                  <p className="text-3xl font-bold text-white">
-                    {loading ? '...' : card.value}
-                  </p>
-                </div>
-                <div className={`p-3 rounded-lg bg-gradient-to-br ${card.color}`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {STAT_CONFIG.map((s) => (
+        <Card key={s.key}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-lg ${s.bg}`}
+            >
+              <s.icon className={`h-4 w-4 ${s.color}`} />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground">
+                {loading ? "..." : stats[s.key]}
+              </p>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

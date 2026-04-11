@@ -19,6 +19,10 @@ export class ExpirationSchedulerService {
     private readonly logger: LoggerService,
   ) {}
 
+  /**
+   * Handle expired invitations (pending or in_progress past expiresAt).
+   * Uses markAsExpired() directly — no CompleteInvitationCommand needed.
+   */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async handleExpiredInvitations(): Promise<void> {
     if (this.isProcessingExpired) return;
@@ -39,9 +43,8 @@ export class ExpirationSchedulerService {
 
       for (const invitation of expired) {
         try {
-          await this.commandBus.execute(
-            new CompleteInvitationCommand(invitation.id, null, 'expired'),
-          );
+          invitation.markAsExpired();
+          await this.invitationRepository.save(invitation);
 
           this.logger.info(`Auto-expired invitation ${invitation.id}`, {
             action: 'invitation_expired',
@@ -66,6 +69,11 @@ export class ExpirationSchedulerService {
     }
   }
 
+  /**
+   * Handle timed-out invitations (in_progress with no activity for TIMEOUT_MINUTES).
+   * Uses CompleteInvitationCommand with 'auto_timeout' reason — these ARE in_progress
+   * so complete() is valid.
+   */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async handleTimedOutInvitations(): Promise<void> {
     if (this.isProcessingTimedOut) return;

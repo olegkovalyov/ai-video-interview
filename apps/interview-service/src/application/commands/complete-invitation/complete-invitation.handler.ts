@@ -71,6 +71,7 @@ export class CompleteInvitationHandler
     const outboxPayload = {
       invitationId: invitation.id,
       candidateId: invitation.candidateId,
+      companyId: invitation.invitedBy,
       templateId: invitation.templateId,
       templateTitle: template.title,
       companyName: invitation.companyName,

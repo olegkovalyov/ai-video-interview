@@ -1,6 +1,9 @@
-import { Edit2, Trash2, Wrench } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skill } from '../types/skill.types';
+import { Edit2, Trash2, Wrench } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Skill } from "../types/skill.types";
 
 interface SkillsTableProps {
   skills: Skill[];
@@ -15,32 +18,46 @@ export function SkillsTable({
   onToggleStatus,
   onEdit,
   onDelete,
-  loadingSkills = new Set()
+  loadingSkills = new Set(),
 }: SkillsTableProps) {
   if (skills.length === 0) {
     return (
-      <Card className="bg-white/10 backdrop-blur-md border-white/20">
-        <CardContent className="p-12 text-center">
-          <Wrench className="w-16 h-16 text-white/40 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No skills found</h3>
-          <p className="text-white/70">Try adjusting your filters or create a new skill</p>
+      <Card>
+        <CardContent className="py-12 text-center">
+          <Wrench className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+          <h3 className="text-sm font-medium text-foreground mb-1">
+            No skills found
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Try adjusting your filters or create a new skill
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+    <Card>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-white/20">
-              <tr>
-                <th className="text-left p-4 text-white/70 font-semibold">Skill Name</th>
-                <th className="text-left p-4 text-white/70 font-semibold">Category</th>
-                <th className="text-left p-4 text-white/70 font-semibold">Description</th>
-                <th className="text-center p-4 text-white/70 font-semibold">Status</th>
-                <th className="text-right p-4 text-white/70 font-semibold">Actions</th>
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                  Skill Name
+                </th>
+                <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                  Category
+                </th>
+                <th className="p-3 text-left text-xs font-medium text-muted-foreground">
+                  Description
+                </th>
+                <th className="p-3 text-center text-xs font-medium text-muted-foreground">
+                  Status
+                </th>
+                <th className="p-3 text-right text-xs font-medium text-muted-foreground">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -49,69 +66,76 @@ export function SkillsTable({
                 return (
                   <tr
                     key={skill.id || `skill-${index}`}
-                    className={`
-                      border-b border-white/10 hover:bg-white/5 transition-all duration-200
-                      ${isLoading ? 'opacity-60 blur-[0.5px]' : ''}
-                    `}
+                    className={cn(
+                      "border-b last:border-0 hover:bg-muted/30 transition-colors",
+                      isLoading && "opacity-50",
+                    )}
                   >
-                    {/* Skill Name */}
-                    <td className="p-4">
-                      <div className="text-white font-medium">{skill.name}</div>
-                      <div className="text-white/50 text-xs">{skill.slug}</div>
+                    <td className="p-3">
+                      <div className="text-sm font-medium text-foreground">
+                        {skill.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {skill.slug}
+                      </div>
                     </td>
-
-                    {/* Category */}
-                    <td className="p-4">
-                      <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-sm">
-                        {skill.categoryName}
-                      </span>
+                    <td className="p-3">
+                      <Badge variant="secondary">{skill.categoryName}</Badge>
                     </td>
-
-                    {/* Description */}
-                    <td className="p-4 text-white/80 text-sm max-w-xs truncate">
-                      {skill.description || '—'}
+                    <td className="max-w-xs truncate p-3 text-sm text-muted-foreground">
+                      {skill.description || "\u2014"}
                     </td>
-
-                    {/* Status Toggle */}
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="p-3">
+                      <div className="flex items-center justify-center">
                         <button
                           onClick={() => onToggleStatus(skill.id)}
                           disabled={isLoading}
-                          className={`
-                            relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-                            ${isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-                            ${skill.isActive ? 'bg-green-500' : 'bg-gray-600'}
-                          `}
-                          title={skill.isActive ? 'Click to deactivate' : 'Click to activate'}
+                          className={cn(
+                            "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                            isLoading
+                              ? "cursor-not-allowed opacity-50"
+                              : "cursor-pointer",
+                            skill.isActive
+                              ? "bg-success"
+                              : "bg-muted-foreground/30",
+                          )}
+                          title={
+                            skill.isActive
+                              ? "Click to deactivate"
+                              : "Click to activate"
+                          }
                         >
-                          <span className={`
-                            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                            ${skill.isActive ? 'translate-x-6' : 'translate-x-1'}
-                          `} />
+                          <span
+                            className={cn(
+                              "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
+                              skill.isActive
+                                ? "translate-x-5"
+                                : "translate-x-0.5",
+                            )}
+                          />
                         </button>
                       </div>
                     </td>
-
-                    {/* Actions */}
-                    <td className="p-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
+                    <td className="p-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => onEdit(skill.id)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                          title="Edit"
+                          className="h-8 w-8"
                         >
-                          <Edit2 className="w-4 h-4 text-blue-400" />
-                        </button>
-                        <button
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => onDelete(skill.id)}
                           disabled={isLoading}
-                          className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                          title="Delete"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="w-4 h-4 text-red-400" />
-                        </button>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
