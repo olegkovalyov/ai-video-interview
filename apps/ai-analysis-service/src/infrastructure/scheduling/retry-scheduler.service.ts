@@ -14,6 +14,9 @@ export class RetrySchedulerService {
   private readonly logger = new Logger(RetrySchedulerService.name);
   private isProcessing = false;
 
+  /** Tracks retry attempts per analysis ID (resets on service restart) */
+  private readonly retryCounts = new Map<string, number>();
+
   constructor(
     @Inject(ANALYSIS_RESULT_REPOSITORY)
     private readonly repository: IAnalysisResultRepository,
@@ -34,7 +37,7 @@ export class RetrySchedulerService {
       if (failedAnalyses.length === 0) return;
 
       const retryableAnalyses = failedAnalyses.filter((analysis) => {
-        const retryCount = (analysis as any).metadata?.retryCount ?? 0;
+        const retryCount = this.retryCounts.get(analysis.id) ?? 0;
         if (retryCount >= MAX_AUTO_RETRIES) return false;
 
         const failedAt = analysis.updatedAt;
@@ -51,15 +54,33 @@ export class RetrySchedulerService {
       );
 
       for (const analysis of retryableAnalyses) {
+        const retryCount = this.retryCounts.get(analysis.id) ?? 0;
+
+        // Check if source event data exists before attempting retry
+        const sourceEventData = await this.repository.getSourceEventData(
+          analysis.id,
+        );
+        if (!sourceEventData) {
+          this.logger.warn(
+            `Skipping retry for analysis ${analysis.id}: no source event data (legacy record)`,
+          );
+          this.retryCounts.set(analysis.id, MAX_AUTO_RETRIES);
+          continue;
+        }
+
         try {
+          this.retryCounts.set(analysis.id, retryCount + 1);
           await this.commandBus.execute(new RetryAnalysisCommand(analysis.id));
 
           this.logger.log(`Auto-retried analysis ${analysis.id}`, {
             invitationId: analysis.invitationId,
+            attempt: retryCount + 1,
           });
+          // Success — clean up counter
+          this.retryCounts.delete(analysis.id);
         } catch (error) {
           this.logger.error(
-            `Auto-retry failed for analysis ${analysis.id}: ${error.message}`,
+            `Auto-retry failed for analysis ${analysis.id} (attempt ${retryCount + 1}/${MAX_AUTO_RETRIES}): ${error.message}`,
           );
         }
       }

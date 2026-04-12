@@ -8,6 +8,26 @@ import {
 } from "kafkajs";
 import { KAFKA_CONFIG } from "../events";
 
+function decodeHeaders(
+  headers?: Record<string, Buffer | string | (string | Buffer)[] | undefined>,
+): Record<string, string> {
+  if (!headers) return {};
+  const decoded: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value === undefined) continue;
+    if (Buffer.isBuffer(value)) {
+      decoded[key] = value.toString("utf-8");
+    } else if (Array.isArray(value)) {
+      decoded[key] = value
+        .map((v) => (Buffer.isBuffer(v) ? v.toString("utf-8") : String(v)))
+        .join(", ");
+    } else {
+      decoded[key] = String(value);
+    }
+  }
+  return decoded;
+}
+
 export class KafkaService {
   private kafka: Kafka;
   private producer: Producer | null = null;
@@ -177,7 +197,7 @@ export class KafkaService {
                   `📥 Received message from ${batch.topic}:${batch.partition}`,
                   {
                     key: message.key?.toString(),
-                    headers: message.headers,
+                    headers: decodeHeaders(message.headers),
                     offset: message.offset,
                   },
                 );
@@ -230,7 +250,7 @@ export class KafkaService {
             try {
               console.log(`📥 Received message from ${topic}:${partition}`, {
                 key: message.key?.toString(),
-                headers: message.headers,
+                headers: decodeHeaders(message.headers),
               });
 
               await handler(message);
@@ -287,7 +307,7 @@ export class KafkaService {
         originalTopic,
         originalMessage: message.value?.toString(),
         originalKey: message.key?.toString(),
-        originalHeaders: message.headers,
+        originalHeaders: decodeHeaders(message.headers),
         originalOffset: message.offset,
         error: {
           message: error.message,
