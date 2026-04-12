@@ -52,7 +52,10 @@ describe('Invitation Aggregate', () => {
     });
   };
 
-  const createCompleteData = (userId: string | null, reason: 'manual' | 'auto_timeout' | 'expired' = 'manual'): CompleteInvitationData => ({
+  const createCompleteData = (
+    userId: string | null,
+    reason: 'manual' | 'auto_timeout' | 'expired' = 'manual',
+  ): CompleteInvitationData => ({
     userId,
     reason,
     templateTitle: 'Test Template',
@@ -133,7 +136,9 @@ describe('Invitation Aggregate', () => {
           pastDate,
           totalQuestions,
         ),
-      ).toThrow('Invalid invitation data: Expiration date must be in the future');
+      ).toThrow(
+        'Invalid invitation data: Expiration date must be in the future',
+      );
     });
 
     it('should throw error for missing companyName', () => {
@@ -188,7 +193,9 @@ describe('Invitation Aggregate', () => {
           futureDate,
           0,
         ),
-      ).toThrow('Invalid invitation data: Template must have at least one question');
+      ).toThrow(
+        'Invalid invitation data: Template must have at least one question',
+      );
     });
   });
 
@@ -382,9 +389,9 @@ describe('Invitation Aggregate', () => {
       invitation.start(candidateId);
       invitation.submitResponse(candidateId, createResponse('q1', 0));
 
-      expect(() => invitation.complete(createCompleteData(candidateId, 'manual'))).toThrow(
-        'Cannot complete: 1/3 questions answered',
-      );
+      expect(() =>
+        invitation.complete(createCompleteData(candidateId, 'manual')),
+      ).toThrow('Cannot complete: 1/3 questions answered');
     });
 
     it('should allow auto_timeout complete with partial answers', () => {
@@ -420,17 +427,95 @@ describe('Invitation Aggregate', () => {
       invitation.start(candidateId);
       invitation.submitResponse(candidateId, createResponse('q1', 0));
 
-      expect(() => invitation.complete(createCompleteData('other-user', 'manual'))).toThrow(
-        'Only the invited candidate can complete this interview',
-      );
+      expect(() =>
+        invitation.complete(createCompleteData('other-user', 'manual')),
+      ).toThrow('Only the invited candidate can complete this interview');
     });
 
     it('should throw error if not in progress', () => {
       const invitation = createValidInvitation();
 
-      expect(() => invitation.complete(createCompleteData(candidateId, 'manual'))).toThrow(
-        'Cannot complete invitation in pending state',
+      expect(() =>
+        invitation.complete(createCompleteData(candidateId, 'manual')),
+      ).toThrow('Cannot complete invitation in pending state');
+    });
+
+    it('should allow early_finish with partial answers', () => {
+      const invitation = Invitation.create(
+        'inv-1',
+        templateId,
+        candidateId,
+        companyName,
+        invitedBy,
+        futureDate,
+        3,
       );
+      invitation.start(candidateId);
+      invitation.submitResponse(candidateId, createResponse('q1', 0));
+
+      invitation.complete(createCompleteData(candidateId, 'early_finish'));
+
+      expect(invitation.status.isCompleted()).toBe(true);
+      expect(invitation.completedReason).toBe('early_finish');
+    });
+
+    it('should allow early_finish with zero answers', () => {
+      const invitation = Invitation.create(
+        'inv-1',
+        templateId,
+        candidateId,
+        companyName,
+        invitedBy,
+        futureDate,
+        3,
+      );
+      invitation.start(candidateId);
+
+      invitation.complete(createCompleteData(candidateId, 'early_finish'));
+
+      expect(invitation.status.isCompleted()).toBe(true);
+      expect(invitation.completedReason).toBe('early_finish');
+    });
+
+    it('should verify user identity for early_finish', () => {
+      const invitation = Invitation.create(
+        'inv-1',
+        templateId,
+        candidateId,
+        companyName,
+        invitedBy,
+        futureDate,
+        3,
+      );
+      invitation.start(candidateId);
+
+      expect(() =>
+        invitation.complete(createCompleteData('other-user', 'early_finish')),
+      ).toThrow('Only the invited candidate can complete this interview');
+    });
+
+    it('should raise InvitationCompletedEvent with early_finish reason', () => {
+      const invitation = Invitation.create(
+        'inv-1',
+        templateId,
+        candidateId,
+        companyName,
+        invitedBy,
+        futureDate,
+        3,
+      );
+      invitation.start(candidateId);
+      invitation.submitResponse(candidateId, createResponse('q1', 0));
+      invitation.clearEvents();
+
+      invitation.complete(createCompleteData(candidateId, 'early_finish'));
+
+      const events = invitation.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(InvitationCompletedEvent);
+      expect(events[0].reason).toBe('early_finish');
+      expect(events[0].answeredCount).toBe(1);
+      expect(events[0].totalQuestions).toBe(3);
     });
   });
 

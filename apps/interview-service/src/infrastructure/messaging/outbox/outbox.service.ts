@@ -174,6 +174,8 @@ export class OutboxService implements IOutboxService {
           type: 'exponential',
           delay: OUTBOX_CONFIG.BACKOFF_DELAY_MS,
         },
+        // Delay to ensure DB transaction commits before processor reads the event
+        delay: 500,
       },
     );
   }
@@ -191,6 +193,7 @@ export class OutboxService implements IOutboxService {
           type: 'exponential',
           delay: OUTBOX_CONFIG.BACKOFF_DELAY_MS,
         },
+        delay: 500,
       },
     }));
 

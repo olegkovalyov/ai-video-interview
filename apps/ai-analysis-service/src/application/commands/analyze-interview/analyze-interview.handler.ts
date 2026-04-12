@@ -224,6 +224,7 @@ export class AnalyzeInterviewHandler
     summaryResult: Awaited<ReturnType<IAnalysisEngine["generateSummary"]>>;
   }> {
     let totalTokensUsed = 0;
+    let questionIndex = 0;
 
     for (const response of eventData.responses) {
       const question = eventData.questions.find(
@@ -235,6 +236,16 @@ export class AnalyzeInterviewHandler
         );
         continue;
       }
+
+      // Rate limit delay between LLM calls (Groq free tier: 8000 TPM)
+      if (questionIndex > 0) {
+        const delayMs = 8000;
+        this.logger.debug(
+          `Rate limit: waiting ${delayMs / 1000}s before question ${questionIndex + 1}...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+      questionIndex++;
 
       let responseText = this.getResponseText(response, question);
       if (!responseText) {

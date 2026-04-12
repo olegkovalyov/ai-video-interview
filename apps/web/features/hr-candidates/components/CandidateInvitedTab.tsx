@@ -1,37 +1,44 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Clock, Play, MoreVertical, AlertCircle, Loader2, RefreshCw, Calendar } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useHRInvitations } from '@/lib/query/hooks/use-invitations';
-import type { InvitationStatus } from '@/lib/api/invitations';
+import { useState } from "react";
+import {
+  Clock,
+  Play,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+  Calendar,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useHRInvitations } from "@/lib/query/hooks/use-invitations";
+import type { InvitationStatus } from "@/lib/api/invitations";
 
-type FilterStatus = 'all' | 'pending' | 'in_progress';
+type FilterStatus = "all" | "pending" | "in_progress";
 
 function getStatusBadge(status: InvitationStatus) {
   switch (status) {
-    case 'pending':
+    case "pending":
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs font-medium">
-          <Clock className="w-3 h-3" />
+        <Badge variant="warning">
+          <Clock className="w-3 h-3 mr-1" />
           Pending
-        </span>
+        </Badge>
       );
-    case 'in_progress':
+    case "in_progress":
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-medium">
-          <Play className="w-3 h-3" />
+        <Badge variant="info">
+          <Play className="w-3 h-3 mr-1" />
           In Progress
-        </span>
+        </Badge>
       );
-    case 'expired':
+    case "expired":
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 text-red-300 rounded-full text-xs font-medium">
-          <AlertCircle className="w-3 h-3" />
+        <Badge variant="error">
+          <AlertCircle className="w-3 h-3 mr-1" />
           Expired
-        </span>
+        </Badge>
       );
     default:
       return null;
@@ -39,183 +46,198 @@ function getStatusBadge(status: InvitationStatus) {
 }
 
 function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 export function CandidateInvitedTab() {
-  const [filter, setFilter] = useState<FilterStatus>('all');
+  const [filter, setFilter] = useState<FilterStatus>("all");
 
-  const { data, isPending, error, refetch, isFetching } = useHRInvitations({ limit: 100 });
+  const { data, isPending, error, refetch, isFetching } = useHRInvitations({
+    limit: 100,
+  });
 
-  // Filter out completed — they go to another tab
   const invitations = (data?.items ?? []).filter(
-    inv => inv.status === 'pending' || inv.status === 'in_progress' || inv.status === 'expired'
+    (inv) =>
+      inv.status === "pending" ||
+      inv.status === "in_progress" ||
+      inv.status === "expired",
   );
 
-  const filteredInvitations = invitations.filter(inv => {
-    if (filter === 'all') return true;
+  const filteredInvitations = invitations.filter((inv) => {
+    if (filter === "all") return true;
     return inv.status === filter;
   });
 
-  const pendingCount = invitations.filter(i => i.status === 'pending').length;
-  const inProgressCount = invitations.filter(i => i.status === 'in_progress').length;
+  const pendingCount = invitations.filter((i) => i.status === "pending").length;
+  const inProgressCount = invitations.filter(
+    (i) => i.status === "in_progress",
+  ).length;
 
   return (
     <div className="space-y-6">
-      {/* Filter Pills */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
-            filter === 'all'
-              ? 'bg-white text-gray-900'
-              : 'bg-white/10 text-white hover:bg-white/20'
-          }`}
+      {/* Filter Pills + Refresh */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant={filter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("all")}
         >
           All ({invitations.length})
-        </button>
-        <button
-          onClick={() => setFilter('pending')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
-            filter === 'pending'
-              ? 'bg-yellow-400 text-gray-900'
-              : 'bg-white/10 text-white hover:bg-white/20'
-          }`}
+        </Button>
+        <Button
+          variant={filter === "pending" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("pending")}
         >
           Pending ({pendingCount})
-        </button>
-        <button
-          onClick={() => setFilter('in_progress')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
-            filter === 'in_progress'
-              ? 'bg-blue-500 text-white'
-              : 'bg-white/10 text-white hover:bg-white/20'
-          }`}
+        </Button>
+        <Button
+          variant={filter === "in_progress" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilter("in_progress")}
         >
           In Progress ({inProgressCount})
-        </button>
+        </Button>
 
-        {/* Refresh Button */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="ml-auto px-3 py-2 rounded-full text-sm font-medium bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+          className="ml-auto"
         >
-          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`}
+          />
           Refresh
-        </button>
+        </Button>
       </div>
 
       {/* Loading State */}
       {isPending ? (
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardContent className="p-12 text-center">
-            <Loader2 className="w-12 h-12 text-white/50 mx-auto mb-4 animate-spin" />
-            <p className="text-white/70">Loading invitations...</p>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       ) : error ? (
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
+        <Card>
           <CardContent className="p-12 text-center">
-            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Failed to load</h3>
-            <p className="text-white/70 mb-4">{error instanceof Error ? error.message : 'Unknown error'}</p>
-            <Button onClick={() => refetch()} className="bg-yellow-400 hover:bg-yellow-500 text-gray-900">
+            <AlertCircle className="w-10 h-10 text-error mx-auto mb-3" />
+            <h3 className="text-sm font-medium text-foreground mb-1">
+              Failed to load invitations
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              {error instanceof Error ? error.message : "Unknown error"}
+            </p>
+            <Button size="sm" onClick={() => refetch()}>
               Try Again
             </Button>
           </CardContent>
         </Card>
       ) : filteredInvitations.length === 0 ? (
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardContent className="p-12 text-center">
-            <AlertCircle className="w-16 h-16 text-white/40 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No invitations found</h3>
-            <p className="text-white/70">Invite candidates from the Search tab</p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12">
+          <Clock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+          <h3 className="text-sm font-medium text-foreground mb-1">
+            No invitations found
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Invite candidates from the Search tab
+          </p>
+        </div>
       ) : (
-        <div className="space-y-4">
-          {filteredInvitations.map(invitation => (
-            <Card key={invitation.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    {/* Avatar */}
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {(invitation.candidateName || 'U').split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
+        <div className="space-y-3">
+          {filteredInvitations.map((invitation) => {
+            const candidateName =
+              invitation.candidateName ||
+              invitation.candidateEmail?.split("@")[0] ||
+              "Unknown";
+            const initials = candidateName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
 
-                    {/* Info */}
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-bold text-white">{invitation.candidateName || 'Unknown'}</h3>
-                        {getStatusBadge(invitation.status)}
-                      </div>
-                      <p className="text-white/60 text-sm mb-3">{invitation.candidateEmail || invitation.candidateId}</p>
-
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <div className="flex items-center gap-1.5 text-white/70">
-                          <span className="text-white/50">Template:</span>
-                          <span className="text-white">{invitation.templateTitle}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-white/70">
-                          <span className="text-white/50">Company:</span>
-                          <span className="text-white">{invitation.companyName}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-white/70">
-                          <Calendar className="w-3.5 h-3.5 text-white/50" />
-                          <span className="text-white/50">Expires:</span>
-                          <span className="text-white">{formatDate(invitation.expiresAt)}</span>
-                        </div>
+            return (
+              <Card
+                key={invitation.id}
+                className="transition-all hover:shadow-md hover:border-primary/30"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      {/* Avatar */}
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary flex-shrink-0">
+                        {initials}
                       </div>
 
-                      {/* Progress bar for in_progress */}
-                      {invitation.status === 'in_progress' && invitation.progress && (
-                        <div className="mt-3">
-                          <div className="flex items-center justify-between text-xs text-white/60 mb-1">
-                            <span>Progress</span>
-                            <span>{invitation.progress.answered}/{invitation.progress.total} questions</span>
-                          </div>
-                          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-500 rounded-full transition-all"
-                              style={{ width: `${invitation.progress.percentage}%` }}
-                            />
-                          </div>
+                      {/* Info */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {candidateName}
+                          </p>
+                          {getStatusBadge(invitation.status)}
                         </div>
-                      )}
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {invitation.candidateEmail || invitation.candidateId}
+                        </p>
 
-                      {/* Timestamps */}
-                      <div className="flex gap-4 mt-3 text-xs text-white/50">
-                        <span>Invited: {formatDate(invitation.createdAt)}</span>
-                        {invitation.startedAt && (
-                          <span>Started: {formatDate(invitation.startedAt)}</span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          <span>{invitation.templateTitle}</span>
+                          {invitation.companyName && (
+                            <span>{invitation.companyName}</span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            Expires: {formatDate(invitation.expiresAt)}
+                          </span>
+                        </div>
+
+                        {/* Progress bar for in_progress */}
+                        {invitation.status === "in_progress" &&
+                          invitation.progress && (
+                            <div className="mt-2 max-w-xs">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                                <span>Progress</span>
+                                <span>
+                                  {invitation.progress.answered}/
+                                  {invitation.progress.total} questions
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary rounded-full transition-all"
+                                  style={{
+                                    width: `${invitation.progress.percentage}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Timestamps */}
+                        <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                          <span>
+                            Invited: {formatDate(invitation.createdAt)}
+                          </span>
+                          {invitation.startedAt && (
+                            <span>
+                              Started: {formatDate(invitation.startedAt)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label="More options"
-                      className="text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
-                      onClick={() => toast.info('More options - coming soon')}
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

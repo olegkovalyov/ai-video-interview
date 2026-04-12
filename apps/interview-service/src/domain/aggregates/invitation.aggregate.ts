@@ -335,7 +335,7 @@ export class Invitation extends AggregateRoot {
    * Complete the interview
    * Business Rule: Can only complete when in_progress
    * Business Rule: For manual completion, all questions must be answered
-   * Business Rule: For auto_timeout, complete with whatever answers exist
+   * Business Rule: For auto_timeout/early_finish, complete with whatever answers exist
    */
   complete(data: CompleteInvitationData): void {
     const {
@@ -346,8 +346,8 @@ export class Invitation extends AggregateRoot {
       questions,
     } = data;
 
-    // For manual completion, verify user
-    if (reason === 'manual') {
+    // For manual/early_finish completion, verify user
+    if (reason === 'manual' || reason === 'early_finish') {
       if (!userId || this.candidateId !== userId) {
         throw new InvitationAccessDeniedException(
           'Only the invited candidate can complete this interview',
@@ -363,6 +363,7 @@ export class Invitation extends AggregateRoot {
     }
 
     // For manual completion, verify all questions are answered
+    // early_finish and auto_timeout accept incomplete answers
     if (
       reason === 'manual' &&
       this.props.responses.length < this.totalQuestions

@@ -14,6 +14,7 @@ describe('ExpirationSchedulerService', () => {
     mockRepository = {
       findExpiredInvitations: jest.fn().mockResolvedValue([]),
       findTimedOutInvitations: jest.fn().mockResolvedValue([]),
+      save: jest.fn().mockResolvedValue(undefined),
     };
 
     mockLogger = {
@@ -40,40 +41,68 @@ describe('ExpirationSchedulerService', () => {
       await service.handleExpiredInvitations();
 
       expect(mockRepository.findExpiredInvitations).toHaveBeenCalled();
-      expect(mockCommandBus.execute).not.toHaveBeenCalled();
+      expect(mockRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should complete each expired invitation with reason expired', async () => {
+    it('should mark each expired invitation as expired via aggregate', async () => {
+      const mockInv1 = {
+        id: 'inv-1',
+        candidateId: 'c-1',
+        markAsExpired: jest.fn(),
+      };
+      const mockInv2 = {
+        id: 'inv-2',
+        candidateId: 'c-2',
+        markAsExpired: jest.fn(),
+      };
+
       mockRepository.findExpiredInvitations.mockResolvedValue([
-        { id: 'inv-1', candidateId: 'c-1' },
-        { id: 'inv-2', candidateId: 'c-2' },
+        mockInv1,
+        mockInv2,
       ]);
 
       await service.handleExpiredInvitations();
 
-      expect(mockCommandBus.execute).toHaveBeenCalledTimes(2);
-      expect(mockCommandBus.execute).toHaveBeenCalledWith(
-        new CompleteInvitationCommand('inv-1', null, 'expired'),
-      );
-      expect(mockCommandBus.execute).toHaveBeenCalledWith(
-        new CompleteInvitationCommand('inv-2', null, 'expired'),
-      );
+      expect(mockInv1.markAsExpired).toHaveBeenCalledTimes(1);
+      expect(mockInv2.markAsExpired).toHaveBeenCalledTimes(1);
+      expect(mockRepository.save).toHaveBeenCalledTimes(2);
+      expect(mockRepository.save).toHaveBeenCalledWith(mockInv1);
+      expect(mockRepository.save).toHaveBeenCalledWith(mockInv2);
     });
 
     it('should continue processing remaining invitations if one fails', async () => {
+      const mockInv1 = {
+        id: 'inv-1',
+        candidateId: 'c-1',
+        markAsExpired: jest.fn(),
+      };
+      const mockInv2 = {
+        id: 'inv-2',
+        candidateId: 'c-2',
+        markAsExpired: jest.fn(),
+      };
+      const mockInv3 = {
+        id: 'inv-3',
+        candidateId: 'c-3',
+        markAsExpired: jest.fn(),
+      };
+
       mockRepository.findExpiredInvitations.mockResolvedValue([
-        { id: 'inv-1', candidateId: 'c-1' },
-        { id: 'inv-2', candidateId: 'c-2' },
-        { id: 'inv-3', candidateId: 'c-3' },
+        mockInv1,
+        mockInv2,
+        mockInv3,
       ]);
-      mockCommandBus.execute
+      mockRepository.save
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error('DB error'))
         .mockResolvedValueOnce(undefined);
 
       await service.handleExpiredInvitations();
 
-      expect(mockCommandBus.execute).toHaveBeenCalledTimes(3);
+      expect(mockInv1.markAsExpired).toHaveBeenCalled();
+      expect(mockInv2.markAsExpired).toHaveBeenCalled();
+      expect(mockInv3.markAsExpired).toHaveBeenCalled();
+      expect(mockRepository.save).toHaveBeenCalledTimes(3);
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('inv-2'),
         expect.anything(),
@@ -87,10 +116,13 @@ describe('ExpirationSchedulerService', () => {
         resolveFirst = r;
       });
 
-      mockRepository.findExpiredInvitations.mockResolvedValue([
-        { id: 'inv-1', candidateId: 'c-1' },
-      ]);
-      mockCommandBus.execute.mockImplementationOnce(() => firstCallBlocks);
+      const mockInv = {
+        id: 'inv-1',
+        candidateId: 'c-1',
+        markAsExpired: jest.fn(),
+      };
+      mockRepository.findExpiredInvitations.mockResolvedValue([mockInv]);
+      mockRepository.save.mockImplementationOnce(() => firstCallBlocks);
 
       const first = service.handleExpiredInvitations();
       const second = service.handleExpiredInvitations();
