@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { invitationKeys, templateKeys } from '../query-keys';
-import { interviews as t } from '@/lib/i18n';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { invitationKeys, templateKeys } from "../query-keys";
+import { interviews as t } from "@/lib/i18n";
 import {
   listHRInvitations,
   listCandidateInvitations,
@@ -11,7 +11,7 @@ import {
   completeInvitation,
   type InvitationFilters,
   type CreateInvitationDto,
-} from '@/lib/api/invitations';
+} from "@/lib/api/invitations";
 
 // ── HR Queries ────────────────────────────────
 
@@ -50,7 +50,6 @@ export function useCreateInvitation() {
     mutationFn: (dto: CreateInvitationDto) => createInvitation(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: invitationKeys.hr() });
-      toast.success(t.toast.invitationCreated);
     },
   });
 }

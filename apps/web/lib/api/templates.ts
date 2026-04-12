@@ -3,7 +3,7 @@
  * Methods for working with Interview Templates via API Gateway
  */
 
-import { apiGet } from '@/lib/api';
+import { apiGet } from "@/lib/api";
 
 // ========================================
 // TYPES
@@ -13,7 +13,7 @@ export interface Template {
   id: string;
   title: string;
   description?: string;
-  status: 'draft' | 'active' | 'archived';
+  status: "draft" | "active" | "archived";
   questionsCount: number;
   createdBy: string;
   createdAt: string;
@@ -23,7 +23,7 @@ export interface Template {
 export interface TemplateQuestion {
   id: string;
   text: string;
-  type: 'text' | 'multiple_choice' | 'video';
+  type: "text" | "multiple_choice" | "video";
   order: number;
   timeLimit?: number;
   required: boolean;
@@ -48,7 +48,7 @@ export interface TemplatesListResponse {
 }
 
 export interface TemplateFilters {
-  status?: 'draft' | 'active' | 'archived';
+  status?: "draft" | "active" | "archived";
   page?: number;
   limit?: number;
 }
@@ -61,16 +61,34 @@ export interface TemplateFilters {
  * List templates with optional filters
  * GET /api/templates
  */
-export async function listTemplates(filters: TemplateFilters = {}): Promise<TemplatesListResponse> {
+export async function listTemplates(
+  filters: TemplateFilters = {},
+): Promise<TemplatesListResponse> {
   const params = new URLSearchParams();
-  if (filters.status) params.append('status', filters.status);
-  if (filters.page) params.append('page', String(filters.page));
-  if (filters.limit) params.append('limit', String(filters.limit));
-  
+  if (filters.status) params.append("status", filters.status);
+  if (filters.page) params.append("page", String(filters.page));
+  if (filters.limit) params.append("limit", String(filters.limit));
+
   const queryString = params.toString();
-  const url = queryString ? `/api/templates?${queryString}` : '/api/templates';
-  
-  return apiGet<TemplatesListResponse>(url);
+  const url = queryString ? `/api/templates?${queryString}` : "/api/templates";
+
+  // Interview service returns { items, total, page, limit, totalPages }
+  // Normalize to { data, pagination } format
+  const raw = await apiGet<any>(url);
+
+  if (raw.data && raw.pagination) {
+    return raw as TemplatesListResponse;
+  }
+
+  return {
+    data: raw.items ?? raw.data ?? [],
+    pagination: {
+      total: raw.total ?? 0,
+      page: raw.page ?? 1,
+      limit: raw.limit ?? 10,
+      totalPages: raw.totalPages ?? 1,
+    },
+  };
 }
 
 /**
@@ -86,6 +104,6 @@ export async function getTemplate(id: string): Promise<TemplateWithQuestions> {
  * Convenience wrapper for listTemplates({ status: 'active' })
  */
 export async function listActiveTemplates(): Promise<Template[]> {
-  const response = await listTemplates({ status: 'active', limit: 100 });
+  const response = await listTemplates({ status: "active", limit: 100 });
   return response.data || [];
 }
