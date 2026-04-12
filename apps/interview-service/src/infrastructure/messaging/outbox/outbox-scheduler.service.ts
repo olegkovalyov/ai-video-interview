@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
@@ -43,12 +43,11 @@ export class OutboxSchedulerService {
     this.isPolling = true;
 
     try {
-      const threshold = new Date(Date.now() - OUTBOX_CONFIG.STUCK_THRESHOLD_MS);
-
+      // Find ALL pending events regardless of age — they may have been missed
+      // due to race conditions (BullMQ job ran before transaction committed)
       const pendingEvents = await this.outboxRepository.find({
         where: {
           status: OUTBOX_STATUS.PENDING,
-          createdAt: MoreThan(threshold),
         },
         take: OUTBOX_CONFIG.PENDING_BATCH_SIZE,
         order: { createdAt: 'ASC' },

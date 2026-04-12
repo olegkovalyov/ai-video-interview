@@ -2,24 +2,54 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Star, Clock, Eye, Trophy, Loader2 } from "lucide-react";
+import {
+  CheckCircle,
+  Star,
+  Clock,
+  Eye,
+  Trophy,
+  Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  HelpCircle,
+  Bot,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useHRInvitations } from "@/lib/query/hooks/use-invitations";
 
-function getScoreBadge(score: number) {
-  if (score >= 90) return { label: "Excellent", variant: "success" as const };
-  if (score >= 75) return { label: "Good", variant: "warning" as const };
-  if (score >= 60) return { label: "Average", variant: "info" as const };
+function getScoreBadge(score: number | undefined) {
+  if (score === undefined || score === null)
+    return { label: "Pending", variant: "info" as const };
+  if (score >= 75) return { label: "Excellent", variant: "success" as const };
+  if (score >= 50) return { label: "Good", variant: "warning" as const };
+  if (score >= 25) return { label: "Average", variant: "info" as const };
   return { label: "Below Average", variant: "error" as const };
 }
 
-function getScoreColor(score: number) {
-  if (score >= 90) return "text-success";
-  if (score >= 75) return "text-warning";
-  if (score >= 60) return "text-info";
+function getScoreColor(score: number | undefined) {
+  if (score === undefined || score === null) return "text-muted-foreground";
+  if (score >= 75) return "text-success";
+  if (score >= 50) return "text-warning";
   return "text-error";
+}
+
+function getRecommendationBadge(rec: string | undefined) {
+  switch (rec) {
+    case "hire":
+      return { label: "Hire", variant: "success" as const, icon: ThumbsUp };
+    case "consider":
+      return {
+        label: "Consider",
+        variant: "warning" as const,
+        icon: HelpCircle,
+      };
+    case "reject":
+      return { label: "Reject", variant: "error" as const, icon: ThumbsDown };
+    default:
+      return null;
+  }
 }
 
 function formatDate(dateString: string) {
@@ -29,16 +59,6 @@ function formatDate(dateString: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function generateRandomScore(id: string): number {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    const char = id.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return 60 + Math.abs(hash % 40);
 }
 
 const selectClass =
@@ -54,23 +74,25 @@ export function CandidateCompletedTab() {
   });
   const invitations = data?.items ?? [];
 
-  const invitationsWithScores = invitations.map((inv) => ({
-    ...inv,
-    score: generateRandomScore(inv.id),
-  }));
-
-  const sortedInterviews = [...invitationsWithScores].sort((a, b) => {
-    if (sortBy === "score") return b.score - a.score;
+  const sortedInterviews = [...invitations].sort((a, b) => {
+    if (sortBy === "score")
+      return (b.analysisScore ?? -1) - (a.analysisScore ?? -1);
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
+  const scored = invitations.filter(
+    (i) => i.analysisScore !== undefined && i.analysisScore !== null,
+  );
   const avgScore =
-    invitationsWithScores.length > 0
+    scored.length > 0
       ? Math.round(
-          invitationsWithScores.reduce((sum, i) => sum + i.score, 0) /
-            invitationsWithScores.length,
+          scored.reduce((sum, i) => sum + (i.analysisScore ?? 0), 0) /
+            scored.length,
         )
-      : 0;
+      : null;
+  const needsReview = invitations.filter(
+    (i) => !i.analysisStatus || i.analysisStatus === "completed",
+  ).length;
 
   if (isPending) {
     return (
@@ -103,7 +125,7 @@ export function CandidateCompletedTab() {
             </div>
             <div>
               <p className="text-xl font-bold text-foreground">
-                {avgScore > 0 ? `${avgScore}%` : "\u2014"}
+                {avgScore !== null ? `${avgScore}%` : "\u2014"}
               </p>
               <p className="text-xs text-muted-foreground">Average Score</p>
             </div>
@@ -115,9 +137,7 @@ export function CandidateCompletedTab() {
               <Eye className="h-4 w-4 text-info" />
             </div>
             <div>
-              <p className="text-xl font-bold text-foreground">
-                {invitations.length}
-              </p>
+              <p className="text-xl font-bold text-foreground">{needsReview}</p>
               <p className="text-xs text-muted-foreground">Needs Review</p>
             </div>
           </CardContent>
@@ -156,7 +176,11 @@ export function CandidateCompletedTab() {
 
           <div className="space-y-3">
             {sortedInterviews.map((interview) => {
-              const scoreBadge = getScoreBadge(interview.score);
+              const score = interview.analysisScore;
+              const scoreBadge = getScoreBadge(score ?? undefined);
+              const recBadge = getRecommendationBadge(
+                interview.analysisRecommendation ?? undefined,
+              );
               const candidateName =
                 interview.candidateName ||
                 interview.candidateEmail?.split("@")[0] ||
@@ -167,6 +191,9 @@ export function CandidateCompletedTab() {
                 .join("")
                 .toUpperCase()
                 .slice(0, 2);
+              const analysisInProgress =
+                interview.analysisStatus === "pending" ||
+                interview.analysisStatus === "in_progress";
 
               return (
                 <Card
@@ -184,10 +211,24 @@ export function CandidateCompletedTab() {
                             <p className="text-sm font-medium text-foreground">
                               {candidateName}
                             </p>
-                            <Badge variant={scoreBadge.variant}>
-                              <Star className="mr-1 h-3 w-3" />
-                              {scoreBadge.label}
-                            </Badge>
+                            {score !== undefined && score !== null && (
+                              <Badge variant={scoreBadge.variant}>
+                                <Star className="mr-1 h-3 w-3" />
+                                {scoreBadge.label}
+                              </Badge>
+                            )}
+                            {recBadge && (
+                              <Badge variant={recBadge.variant}>
+                                <recBadge.icon className="mr-1 h-3 w-3" />
+                                {recBadge.label}
+                              </Badge>
+                            )}
+                            {analysisInProgress && (
+                              <Badge variant="info">
+                                <Bot className="mr-1 h-3 w-3 animate-spin" />
+                                Analyzing...
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span>{interview.templateTitle}</span>
@@ -207,11 +248,17 @@ export function CandidateCompletedTab() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span
-                          className={`text-xl font-bold ${getScoreColor(interview.score)}`}
-                        >
-                          {interview.score}%
-                        </span>
+                        {score !== undefined && score !== null ? (
+                          <span
+                            className={`text-xl font-bold ${getScoreColor(score)}`}
+                          >
+                            {score}%
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            &mdash;
+                          </span>
+                        )}
                         <Button
                           size="sm"
                           onClick={() =>
