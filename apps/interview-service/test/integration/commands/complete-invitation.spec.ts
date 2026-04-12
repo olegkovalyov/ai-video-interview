@@ -85,7 +85,11 @@ describe('CompleteInvitationCommand Integration', () => {
         ),
       );
 
-      const command = new CompleteInvitationCommand(invitationId, candidateId, 'manual');
+      const command = new CompleteInvitationCommand(
+        invitationId,
+        candidateId,
+        'manual',
+      );
 
       // Act
       await commandBus.execute(command);
@@ -136,7 +140,11 @@ describe('CompleteInvitationCommand Integration', () => {
       );
 
       // Auto-complete by system (userId = null)
-      const command = new CompleteInvitationCommand(invitationId, null, 'auto_timeout');
+      const command = new CompleteInvitationCommand(
+        invitationId,
+        null,
+        'auto_timeout',
+      );
 
       // Act
       await commandBus.execute(command);
@@ -149,6 +157,100 @@ describe('CompleteInvitationCommand Integration', () => {
       expect(entity!.status).toBe('completed');
       expect(entity!.completedReason).toBe('auto_timeout');
     });
+
+    it('should complete with early_finish and partial answers', async () => {
+      // Arrange
+      const hrUserId = uuidv4();
+      const candidateId = uuidv4();
+
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Test Interview',
+        description: 'Test',
+        createdBy: hrUserId,
+        status: 'active',
+        questionsCount: 3,
+      });
+
+      const invitationId = await seedInvitation(dataSource, {
+        templateId,
+        candidateId,
+        invitedBy: hrUserId,
+        status: 'in_progress',
+        totalQuestions: 3,
+      });
+
+      // Submit only 1 of 3 responses
+      await commandBus.execute(
+        new SubmitResponseCommand(
+          invitationId,
+          candidateId,
+          uuidv4(),
+          0,
+          'Question 1?',
+          'text',
+          60,
+          'Answer 1',
+        ),
+      );
+
+      // Early finish by candidate
+      const command = new CompleteInvitationCommand(
+        invitationId,
+        candidateId,
+        'early_finish',
+      );
+
+      // Act
+      await commandBus.execute(command);
+
+      // Assert
+      const entity = await dataSource
+        .getRepository(InvitationEntity)
+        .findOne({ where: { id: invitationId } });
+
+      expect(entity!.status).toBe('completed');
+      expect(entity!.completedReason).toBe('early_finish');
+    });
+
+    it('should complete with early_finish and zero answers', async () => {
+      // Arrange
+      const hrUserId = uuidv4();
+      const candidateId = uuidv4();
+
+      const templateId = await seedTemplate(dataSource, {
+        title: 'Test Interview',
+        description: 'Test',
+        createdBy: hrUserId,
+        status: 'active',
+        questionsCount: 3,
+      });
+
+      const invitationId = await seedInvitation(dataSource, {
+        templateId,
+        candidateId,
+        invitedBy: hrUserId,
+        status: 'in_progress',
+        totalQuestions: 3,
+      });
+
+      // No responses submitted — candidate immediately finishes
+      const command = new CompleteInvitationCommand(
+        invitationId,
+        candidateId,
+        'early_finish',
+      );
+
+      // Act
+      await commandBus.execute(command);
+
+      // Assert
+      const entity = await dataSource
+        .getRepository(InvitationEntity)
+        .findOne({ where: { id: invitationId } });
+
+      expect(entity!.status).toBe('completed');
+      expect(entity!.completedReason).toBe('early_finish');
+    });
   });
 
   describe('Error Cases', () => {
@@ -157,7 +259,11 @@ describe('CompleteInvitationCommand Integration', () => {
       const fakeInvitationId = uuidv4();
       const candidateId = uuidv4();
 
-      const command = new CompleteInvitationCommand(fakeInvitationId, candidateId, 'manual');
+      const command = new CompleteInvitationCommand(
+        fakeInvitationId,
+        candidateId,
+        'manual',
+      );
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow();
@@ -199,7 +305,11 @@ describe('CompleteInvitationCommand Integration', () => {
         ),
       );
 
-      const command = new CompleteInvitationCommand(invitationId, wrongUserId, 'manual');
+      const command = new CompleteInvitationCommand(
+        invitationId,
+        wrongUserId,
+        'manual',
+      );
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow();
@@ -240,7 +350,11 @@ describe('CompleteInvitationCommand Integration', () => {
         ),
       );
 
-      const command = new CompleteInvitationCommand(invitationId, candidateId, 'manual');
+      const command = new CompleteInvitationCommand(
+        invitationId,
+        candidateId,
+        'manual',
+      );
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow(
@@ -269,7 +383,11 @@ describe('CompleteInvitationCommand Integration', () => {
         totalQuestions: 1,
       });
 
-      const command = new CompleteInvitationCommand(invitationId, candidateId, 'manual');
+      const command = new CompleteInvitationCommand(
+        invitationId,
+        candidateId,
+        'manual',
+      );
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow();

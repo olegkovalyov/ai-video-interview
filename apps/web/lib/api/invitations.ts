@@ -250,8 +250,11 @@ export async function submitResponse(
  * Complete interview (Candidate)
  * POST /api/invitations/:id/complete
  */
-export async function completeInvitation(id: string): Promise<Invitation> {
-  return apiPost<Invitation>(`/api/invitations/${id}/complete`, {});
+export async function completeInvitation(
+  id: string,
+  reason: "manual" | "early_finish" = "manual",
+): Promise<Invitation> {
+  return apiPost<Invitation>(`/api/invitations/${id}/complete`, { reason });
 }
 
 /**

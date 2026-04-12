@@ -24,6 +24,8 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   matchPrefix?: boolean;
+  /** Additional path prefixes that also highlight this item */
+  alsoMatchPrefixes?: string[];
 }
 
 const NAV_CONFIG: { admin: NavItem[]; hr: NavItem[]; candidate: NavItem[] } = {
@@ -68,6 +70,7 @@ const NAV_CONFIG: { admin: NavItem[]; hr: NavItem[]; candidate: NavItem[] } = {
       label: "Candidates",
       icon: Search,
       matchPrefix: true,
+      alsoMatchPrefixes: ["/hr/review"],
     },
   ],
   candidate: [
@@ -109,6 +112,9 @@ export function AppSidebar({
   const roleLabel = getRoleLabel(userRoles);
 
   const isActive = (item: NavItem) => {
+    if (item.alsoMatchPrefixes?.some((p) => pathname.startsWith(p))) {
+      return true;
+    }
     if (item.matchPrefix) {
       return pathname.startsWith(item.href.split("/").slice(0, 3).join("/"));
     }

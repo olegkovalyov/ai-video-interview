@@ -110,6 +110,7 @@ describe('OutboxService', () => {
               type: 'exponential',
               delay: OUTBOX_CONFIG.BACKOFF_DELAY_MS,
             },
+            delay: 500,
           },
         );
       });
@@ -237,6 +238,7 @@ describe('OutboxService', () => {
               type: 'exponential',
               delay: OUTBOX_CONFIG.BACKOFF_DELAY_MS,
             },
+            delay: 500,
           },
         });
       });
@@ -343,6 +345,7 @@ describe('OutboxService', () => {
             type: 'exponential',
             delay: OUTBOX_CONFIG.BACKOFF_DELAY_MS,
           },
+          delay: 500,
         },
       );
       expect(mockOutboxQueue.addBulk).not.toHaveBeenCalled();

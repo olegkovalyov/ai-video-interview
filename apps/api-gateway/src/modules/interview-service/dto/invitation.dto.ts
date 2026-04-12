@@ -121,7 +121,8 @@ export class SubmitResponseDto {
 
   @ApiPropertyOptional({
     description: 'Code answer (required when responseType is "code")',
-    example: 'function fibonacci(n) { return n <= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }',
+    example:
+      'function fibonacci(n) { return n <= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }',
   })
   @IsOptional()
   @IsString()
@@ -139,13 +140,13 @@ export class SubmitResponseDto {
 export class CompleteInvitationDto {
   @ApiPropertyOptional({
     description: 'Reason for completing the interview',
-    enum: ['manual', 'auto_timeout'],
+    enum: ['manual', 'auto_timeout', 'early_finish'],
     default: 'manual',
     example: 'manual',
   })
   @IsOptional()
-  @IsEnum(['manual', 'auto_timeout'])
-  reason?: 'manual' | 'auto_timeout';
+  @IsEnum(['manual', 'auto_timeout', 'early_finish'])
+  reason?: 'manual' | 'auto_timeout' | 'early_finish';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -191,10 +192,17 @@ export class ResponseItemDto {
   @ApiProperty({ description: 'Question index (0-based)', example: 0 })
   questionIndex: number;
 
-  @ApiProperty({ description: 'Question text snapshot', example: 'What is your experience?' })
+  @ApiProperty({
+    description: 'Question text snapshot',
+    example: 'What is your experience?',
+  })
   questionText: string;
 
-  @ApiProperty({ description: 'Response type', enum: ['text', 'code', 'video'], example: 'text' })
+  @ApiProperty({
+    description: 'Response type',
+    enum: ['text', 'code', 'video'],
+    example: 'text',
+  })
   responseType: string;
 
   @ApiPropertyOptional({ description: 'Text answer' })
@@ -226,7 +234,10 @@ export class InvitationResponseDto {
   @ApiProperty({ description: 'Company name', example: 'TechCorp Inc.' })
   companyName: string;
 
-  @ApiProperty({ description: 'HR user ID who created invitation', format: 'uuid' })
+  @ApiProperty({
+    description: 'HR user ID who created invitation',
+    format: 'uuid',
+  })
   invitedBy: string;
 
   @ApiProperty({
@@ -271,7 +282,10 @@ export class InvitationResponseDto {
 }
 
 export class InvitationWithTemplateDto extends InvitationResponseDto {
-  @ApiProperty({ description: 'Template title', example: 'Frontend Developer Interview' })
+  @ApiProperty({
+    description: 'Template title',
+    example: 'Frontend Developer Interview',
+  })
   templateTitle: string;
 
   @ApiProperty({ description: 'Template description' })
@@ -295,7 +309,10 @@ export class InvitationListItemDto {
   @ApiProperty({ description: 'Template ID', format: 'uuid' })
   templateId: string;
 
-  @ApiProperty({ description: 'Template title', example: 'Frontend Developer Interview' })
+  @ApiProperty({
+    description: 'Template title',
+    example: 'Frontend Developer Interview',
+  })
   templateTitle: string;
 
   @ApiProperty({ description: 'Candidate ID', format: 'uuid' })
@@ -331,7 +348,10 @@ export class InvitationListItemDto {
 }
 
 export class PaginatedInvitationsResponseDto {
-  @ApiProperty({ description: 'List of invitations', type: [InvitationListItemDto] })
+  @ApiProperty({
+    description: 'List of invitations',
+    type: [InvitationListItemDto],
+  })
   items: InvitationListItemDto[];
 
   @ApiProperty({ description: 'Total count', example: 25 })

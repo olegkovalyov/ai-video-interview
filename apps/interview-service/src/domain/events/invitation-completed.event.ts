@@ -1,6 +1,10 @@
 import { IDomainEvent } from './domain-event.interface';
 
-export type CompletedReason = 'manual' | 'auto_timeout' | 'expired';
+export type CompletedReason =
+  | 'manual'
+  | 'auto_timeout'
+  | 'expired'
+  | 'early_finish';
 
 export interface QuestionData {
   id: string;
