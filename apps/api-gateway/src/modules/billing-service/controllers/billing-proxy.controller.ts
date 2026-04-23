@@ -38,16 +38,25 @@ export class BillingProxyController {
   constructor(private readonly billingClient: BillingServiceClient) {}
 
   /**
-   * Extract companyId from request.
-   * Tries JWT user claims first, then falls back to x-company-id header.
+   * Resolve companyId for the current request.
+   *
+   * Priority:
+   *   1. `x-company-id` header (explicit override, e.g. admin acting on behalf)
+   *   2. `user.companyId` from JWT claims (future: when multi-company support lands)
+   *   3. `user.userId` — current convention: one HR user == one company.
+   *      Matches billing-service `UserCreatedConsumer` which creates the
+   *      subscription with `companyId = userId` on user.created events.
    */
   private extractCompanyId(user: CurrentUserData | null, req: Request): string {
-    const companyId =
-      (user as any)?.companyId || (req.headers['x-company-id'] as string);
+    const headerCompanyId = req.headers['x-company-id'] as string | undefined;
+    const jwtCompanyId = (user as { companyId?: string } | null)?.companyId;
+    const fallbackCompanyId = user?.userId;
+
+    const companyId = headerCompanyId || jwtCompanyId || fallbackCompanyId;
 
     if (!companyId) {
       throw new Error(
-        'Company ID is required. Provide it via JWT claims or x-company-id header.',
+        'Company ID could not be resolved: no header, no JWT claim, no authenticated user.',
       );
     }
 

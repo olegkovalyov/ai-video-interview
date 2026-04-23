@@ -73,3 +73,23 @@ export class InvalidInvitationDataException extends DomainException {
     super(`Invalid invitation data: ${reason}`);
   }
 }
+
+/**
+ * Candidate decision already made for this invitation
+ */
+export class DecisionAlreadyMadeException extends DomainException {
+  constructor(invitationId: string, currentDecision: string) {
+    super(
+      `Invitation ${invitationId} already has a decision: ${currentDecision}`,
+    );
+  }
+}
+
+/**
+ * Cannot decide: invitation must be completed first
+ */
+export class InvitationNotCompletedException extends DomainException {
+  constructor(invitationId: string) {
+    super(`Cannot make decision: invitation ${invitationId} is not completed`);
+  }
+}

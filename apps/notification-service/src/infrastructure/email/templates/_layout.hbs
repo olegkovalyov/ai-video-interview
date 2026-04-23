@@ -2,53 +2,155 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Interview Platform</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Deep Interview</title>
+    <style>
+      /* Reset for email clients */
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        outline: none;
+        text-decoration: none;
+      }
+
+      /* CTA button */
+      .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        background-color: #6366f1;
+        color: #ffffff !important;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 6px;
+        line-height: 1;
+      }
+      .btn:hover {
+        background-color: #4f46e5;
+      }
+
+      /* Responsive */
+      @media screen and (max-width: 600px) {
+        .email-container {
+          width: 100% !important;
+          border-radius: 0 !important;
+        }
+        .email-content {
+          padding: 24px 20px !important;
+        }
+        .email-header {
+          padding: 20px !important;
+        }
+      }
+    </style>
   </head>
   <body
-    style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;"
+    style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #0f172a; line-height: 1.5;"
   >
     <table
       role="presentation"
       width="100%"
       cellpadding="0"
       cellspacing="0"
-      style="background-color: #f4f4f7;"
+      style="background-color: #f8fafc;"
     >
       <tr>
-        <td align="center" style="padding: 24px 0;">
+        <td align="center" style="padding: 32px 16px;">
           <table
             role="presentation"
             width="600"
             cellpadding="0"
             cellspacing="0"
-            style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);"
+            class="email-container"
+            style="background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;"
           >
             <!-- Header -->
             <tr>
               <td
-                style="background-color: #1a1a2e; padding: 24px 32px; text-align: center;"
+                class="email-header"
+                style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 28px 32px; text-align: center;"
               >
                 <h1
-                  style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;"
-                >AI Interview Platform</h1>
+                  style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.3px;"
+                >🎥 Deep Interview</h1>
+                <p
+                  style="margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 12px;"
+                >
+                  AI-powered interview platform
+                </p>
               </td>
             </tr>
+
             <!-- Content -->
             <tr>
-              <td style="padding: 32px;">
+              <td
+                class="email-content"
+                style="padding: 40px 32px; color: #0f172a; font-size: 15px;"
+              >
                 {{{content}}}
               </td>
             </tr>
+
             <!-- Footer -->
             <tr>
               <td
-                style="background-color: #f8f9fa; padding: 20px 32px; border-top: 1px solid #e9ecef;"
+                style="background-color: #f8fafc; padding: 24px 32px; border-top: 1px solid #e2e8f0;"
               >
                 <p
-                  style="margin: 0; color: #868e96; font-size: 12px; text-align: center; line-height: 1.6;"
+                  style="margin: 0 0 8px; color: #64748b; font-size: 12px; text-align: center; line-height: 1.6;"
                 >
-                  This email was sent by AI Interview Platform.<br />
-                  If you did not expect this email, please ignore it.
+                  You received this email because of activity on your
+                  <a
+                    href="{{frontendUrl}}"
+                    style="color: #6366f1; text-decoration: none;"
+                  >Deep Interview</a>
+                  account.
+                </p>
+                <p
+                  style="margin: 0; color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.6;"
+                >
+                  <a
+                    href="{{frontendUrl}}/profile/notifications"
+                    style="color: #94a3b8; text-decoration: underline;"
+                  >Manage preferences</a>
+                  &middot;
+                  <a
+                    href="{{frontendUrl}}"
+                    style="color: #94a3b8; text-decoration: underline;"
+                  >Visit platform</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Legal footer -->
+          <table
+            role="presentation"
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            class="email-container"
+          >
+            <tr>
+              <td style="padding: 16px 32px; text-align: center;">
+                <p
+                  style="margin: 0; color: #94a3b8; font-size: 11px; line-height: 1.5;"
+                >
+                  &copy;
+                  {{year}}
+                  Deep Interview. All rights reserved.
                 </p>
               </td>
             </tr>

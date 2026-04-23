@@ -9,6 +9,8 @@ import type { CandidateSearchResult } from "@/lib/api/candidate-search";
 import { useActiveTemplates } from "@/lib/query/hooks/use-templates";
 import { useCompanies } from "@/lib/query/hooks/use-companies";
 import { useCreateInvitation } from "@/lib/query/hooks/use-invitations";
+import { ApiError } from "@/lib/api";
+import { QuotaExceededDialog } from "@/features/billing/components/QuotaExceededDialog";
 
 interface InviteModalProps {
   open: boolean;
@@ -34,6 +36,11 @@ export function InviteModal({
   const [expiresAt, setExpiresAt] = useState("");
   const [allowPause, setAllowPause] = useState(true);
   const [showTimer, setShowTimer] = useState(true);
+  const [quotaInfo, setQuotaInfo] = useState<null | {
+    resource?: string;
+    currentPlan?: string;
+    limit?: number;
+  }>(null);
 
   const { data: templates = [], isPending: templatesLoading } =
     useActiveTemplates();
@@ -96,6 +103,23 @@ export function InviteModal({
           });
           onSuccess?.();
           onClose();
+        },
+        onError: (err) => {
+          if (err instanceof ApiError && err.statusCode === 402) {
+            const details = (err.details ?? {}) as { message?: string };
+            const text = details.message ?? err.message ?? "";
+            const quotaPattern = /limit of (\d+) reached on (\w+) plan/i;
+            const match = text.match(quotaPattern);
+            setQuotaInfo({
+              resource: "interviews",
+              limit: match ? Number(match[1]) : undefined,
+              currentPlan: match ? match[2] : undefined,
+            });
+            return;
+          }
+          const message =
+            err instanceof Error ? err.message : "Failed to send invitation";
+          toast.error(message);
         },
       },
     );
@@ -286,6 +310,14 @@ export function InviteModal({
           </Button>
         </div>
       </div>
+
+      <QuotaExceededDialog
+        open={quotaInfo !== null}
+        onClose={() => setQuotaInfo(null)}
+        resource={quotaInfo?.resource}
+        currentPlan={quotaInfo?.currentPlan}
+        limit={quotaInfo?.limit}
+      />
     </div>
   );
 }

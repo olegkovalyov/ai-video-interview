@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { BaseServiceProxy, ServiceProxyError } from '../../../proxies/base/base-service-proxy';
+import {
+  BaseServiceProxy,
+  ServiceProxyError,
+} from '../../../proxies/base/base-service-proxy';
 import { LoggerService } from '../../../core/logging/logger.service';
 import { MetricsService } from '../../../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
@@ -67,7 +70,7 @@ export class AnalysisServiceClient extends BaseServiceProxy {
   protected circuitBreakerOptions = {
     failureThreshold: 3,
     successThreshold: 2,
-    timeout: 30000,   // 30s — LLM processing takes time
+    timeout: 30000, // 30s — LLM processing takes time
     resetTimeout: 120000, // 2 min — give Groq API time to recover
   };
 
@@ -81,8 +84,10 @@ export class AnalysisServiceClient extends BaseServiceProxy {
     super(httpService, loggerService, metricsService, circuitBreakerRegistry);
 
     this.baseUrl =
-      this.configService.get<string>('AI_ANALYSIS_SERVICE_URL') || 'http://localhost:8005';
-    this.internalToken = this.configService.get<string>('INTERNAL_SERVICE_TOKEN') || '';
+      this.configService.get<string>('AI_ANALYSIS_SERVICE_URL') ||
+      'http://localhost:8005';
+    this.internalToken =
+      this.configService.get<string>('INTERNAL_SERVICE_TOKEN') || '';
 
     this.initCircuitBreaker();
   }
@@ -134,5 +139,29 @@ export class AnalysisServiceClient extends BaseServiceProxy {
         headers: { 'x-user-id': userId, 'x-user-role': role },
       },
     );
+  }
+
+  /**
+   * GET /api/v1/analysis/candidate/:invitationId
+   * Get candidate-safe analysis results (limited fields, owner-only access).
+   */
+  async getCandidateAnalysis(
+    invitationId: string,
+    userId: string,
+    role: string,
+  ): Promise<AnalysisResultDto | null> {
+    try {
+      return await this.get<AnalysisResultDto>(
+        `/api/v1/analysis/candidate/${invitationId}`,
+        {
+          headers: { 'x-user-id': userId, 'x-user-role': role },
+        },
+      );
+    } catch (error) {
+      if (error instanceof ServiceProxyError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
   }
 }

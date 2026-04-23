@@ -4,8 +4,8 @@ import { QuestionOptionDto } from './add-question.dto';
 // ==================== Simple Response DTOs ====================
 
 export class CreateInvitationResponseDto {
-  @ApiProperty({ 
-    description: 'Created invitation UUID', 
+  @ApiProperty({
+    description: 'Created invitation UUID',
     format: 'uuid',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
@@ -13,8 +13,8 @@ export class CreateInvitationResponseDto {
 }
 
 export class SubmitResponseResponseDto {
-  @ApiProperty({ 
-    description: 'Created response UUID', 
+  @ApiProperty({
+    description: 'Created response UUID',
     format: 'uuid',
     example: '550e8400-e29b-41d4-a716-446655440001',
   })
@@ -22,8 +22,8 @@ export class SubmitResponseResponseDto {
 }
 
 export class SuccessResponseDto {
-  @ApiProperty({ 
-    description: 'Operation success status', 
+  @ApiProperty({
+    description: 'Operation success status',
     example: true,
   })
   success: boolean;
@@ -35,10 +35,16 @@ export class QuestionItemDto {
   @ApiProperty({ description: 'Question UUID', format: 'uuid' })
   id: string;
 
-  @ApiProperty({ description: 'Question text', example: 'Describe your experience with React' })
+  @ApiProperty({
+    description: 'Question text',
+    example: 'Describe your experience with React',
+  })
   text: string;
 
-  @ApiProperty({ description: 'Question type', enum: ['video', 'text', 'code', 'multiple_choice'] })
+  @ApiProperty({
+    description: 'Question type',
+    enum: ['video', 'text', 'code', 'multiple_choice'],
+  })
   type: string;
 
   @ApiProperty({ description: 'Question order (1-based)', example: 1 })
@@ -53,7 +59,10 @@ export class QuestionItemDto {
   @ApiPropertyOptional({ description: 'Hints for the candidate' })
   hints?: string;
 
-  @ApiPropertyOptional({ description: 'Options for multiple choice questions', type: [QuestionOptionDto] })
+  @ApiPropertyOptional({
+    description: 'Options for multiple choice questions',
+    type: [QuestionOptionDto],
+  })
   options?: QuestionOptionDto[];
 }
 
@@ -69,22 +78,41 @@ export class ResponseItemDto {
   @ApiProperty({ description: 'Question index (0-based)', example: 0 })
   questionIndex: number;
 
-  @ApiProperty({ description: 'Question text snapshot at submission time', example: 'What is your experience?' })
+  @ApiProperty({
+    description: 'Question text snapshot at submission time',
+    example: 'What is your experience?',
+  })
   questionText: string;
 
-  @ApiProperty({ description: 'Response type', enum: ['text', 'code', 'video'], example: 'text' })
+  @ApiProperty({
+    description: 'Response type',
+    enum: ['text', 'code', 'video'],
+    example: 'text',
+  })
   responseType: string;
 
-  @ApiPropertyOptional({ description: 'Text answer (for text type)', example: 'I have 5 years of experience.' })
+  @ApiPropertyOptional({
+    description: 'Text answer (for text type)',
+    example: 'I have 5 years of experience.',
+  })
   textAnswer?: string;
 
-  @ApiPropertyOptional({ description: 'Code answer (for code type)', example: 'function hello() { return "world"; }' })
+  @ApiPropertyOptional({
+    description: 'Code answer (for code type)',
+    example: 'function hello() { return "world"; }',
+  })
   codeAnswer?: string;
 
-  @ApiPropertyOptional({ description: 'Video URL (for video type)', example: 'https://storage.example.com/videos/abc123.webm' })
+  @ApiPropertyOptional({
+    description: 'Video URL (for video type)',
+    example: 'https://storage.example.com/videos/abc123.webm',
+  })
   videoUrl?: string;
 
-  @ApiProperty({ description: 'Time spent on this question (seconds)', example: 60 })
+  @ApiProperty({
+    description: 'Time spent on this question (seconds)',
+    example: 60,
+  })
   duration: number;
 
   @ApiProperty({ description: 'Submission timestamp' })
@@ -105,21 +133,27 @@ export class InvitationProgressDto {
 // ==================== Analysis DTOs ====================
 
 export class AnalysisResultDto {
-  @ApiPropertyOptional({ description: 'Analysis UUID from AI Analysis Service', format: 'uuid' })
+  @ApiPropertyOptional({
+    description: 'Analysis UUID from AI Analysis Service',
+    format: 'uuid',
+  })
   analysisId?: string;
 
-  @ApiPropertyOptional({ 
-    description: 'Analysis processing status', 
+  @ApiPropertyOptional({
+    description: 'Analysis processing status',
     enum: ['pending', 'in_progress', 'completed', 'failed'],
     example: 'completed',
   })
   status?: string;
 
-  @ApiPropertyOptional({ description: 'Overall interview score (0-100)', example: 85 })
+  @ApiPropertyOptional({
+    description: 'Overall interview score (0-100)',
+    example: 85,
+  })
   score?: number;
 
-  @ApiPropertyOptional({ 
-    description: 'Hiring recommendation', 
+  @ApiPropertyOptional({
+    description: 'Hiring recommendation',
     enum: ['strongly_recommend', 'recommend', 'consider', 'not_recommend'],
     example: 'recommend',
   })
@@ -145,20 +179,29 @@ export class InvitationResponseDto {
   @ApiProperty({ description: 'Company name', example: 'TechCorp Inc.' })
   companyName: string;
 
-  @ApiProperty({ description: 'HR user ID who created this invitation', format: 'uuid' })
+  @ApiProperty({
+    description: 'HR user ID who created this invitation',
+    format: 'uuid',
+  })
   invitedBy: string;
 
-  @ApiProperty({ 
-    description: 'Current invitation status', 
+  @ApiProperty({
+    description: 'Current invitation status',
     enum: ['pending', 'in_progress', 'completed', 'expired'],
     example: 'pending',
   })
   status: string;
 
-  @ApiProperty({ description: 'Can candidate pause and resume the interview?', example: true })
+  @ApiProperty({
+    description: 'Can candidate pause and resume the interview?',
+    example: true,
+  })
   allowPause: boolean;
 
-  @ApiProperty({ description: 'Show countdown timer during interview?', example: true })
+  @ApiProperty({
+    description: 'Show countdown timer during interview?',
+    example: true,
+  })
   showTimer: boolean;
 
   @ApiProperty({ description: 'Deadline for completing the interview' })
@@ -170,20 +213,29 @@ export class InvitationResponseDto {
   @ApiPropertyOptional({ description: 'When interview was completed' })
   completedAt?: Date;
 
-  @ApiPropertyOptional({ 
-    description: 'Reason for completion', 
+  @ApiPropertyOptional({
+    description: 'Reason for completion',
     enum: ['manual', 'auto_timeout', 'expired'],
     example: 'manual',
   })
   completedReason?: string;
 
-  @ApiProperty({ description: 'Interview progress information', type: InvitationProgressDto })
+  @ApiProperty({
+    description: 'Interview progress information',
+    type: InvitationProgressDto,
+  })
   progress: InvitationProgressDto;
 
-  @ApiProperty({ description: 'List of submitted responses', type: [ResponseItemDto] })
+  @ApiProperty({
+    description: 'List of submitted responses',
+    type: [ResponseItemDto],
+  })
   responses: ResponseItemDto[];
 
-  @ApiPropertyOptional({ description: 'AI analysis results (available after completion)', type: AnalysisResultDto })
+  @ApiPropertyOptional({
+    description: 'AI analysis results (available after completion)',
+    type: AnalysisResultDto,
+  })
   analysis?: AnalysisResultDto;
 
   @ApiProperty({ description: 'When invitation was created' })
@@ -194,13 +246,22 @@ export class InvitationResponseDto {
 }
 
 export class InvitationWithTemplateDto extends InvitationResponseDto {
-  @ApiProperty({ description: 'Interview template title', example: 'Frontend Developer Interview' })
+  @ApiProperty({
+    description: 'Interview template title',
+    example: 'Frontend Developer Interview',
+  })
   templateTitle: string;
 
-  @ApiProperty({ description: 'Interview template description', example: 'Questions about React and TypeScript' })
+  @ApiProperty({
+    description: 'Interview template description',
+    example: 'Questions about React and TypeScript',
+  })
   templateDescription: string;
 
-  @ApiProperty({ description: 'List of interview questions', type: [QuestionItemDto] })
+  @ApiProperty({
+    description: 'List of interview questions',
+    type: [QuestionItemDto],
+  })
   questions: QuestionItemDto[];
 }
 
@@ -211,62 +272,98 @@ export class InvitationListItemDto {
   @ApiProperty({ description: 'Template ID', format: 'uuid' })
   templateId: string;
 
-  @ApiProperty({ description: 'Interview template title', example: 'Frontend Developer Interview' })
+  @ApiProperty({
+    description: 'Interview template title',
+    example: 'Frontend Developer Interview',
+  })
   templateTitle: string;
 
   @ApiProperty({ description: 'Candidate user ID', format: 'uuid' })
   candidateId: string;
 
-  @ApiPropertyOptional({ description: 'Candidate full name', example: 'John Doe' })
+  @ApiPropertyOptional({
+    description: 'Candidate full name',
+    example: 'John Doe',
+  })
   candidateName?: string;
 
-  @ApiPropertyOptional({ description: 'Candidate email', example: 'john.doe@example.com' })
+  @ApiPropertyOptional({
+    description: 'Candidate email',
+    example: 'john.doe@example.com',
+  })
   candidateEmail?: string;
 
   @ApiProperty({ description: 'Company name', example: 'TechCorp Inc.' })
   companyName: string;
 
-  @ApiProperty({ 
-    description: 'Current invitation status', 
+  @ApiProperty({
+    description: 'Current invitation status',
     enum: ['pending', 'in_progress', 'completed', 'expired'],
     example: 'pending',
   })
   status: string;
 
-  @ApiProperty({ description: 'Can candidate pause the interview?', example: true })
+  @ApiProperty({
+    description: 'Can candidate pause the interview?',
+    example: true,
+  })
   allowPause: boolean;
 
   @ApiProperty({ description: 'Deadline for completing the interview' })
   expiresAt: Date;
 
-  @ApiProperty({ description: 'Interview progress', type: InvitationProgressDto })
+  @ApiProperty({
+    description: 'Interview progress',
+    type: InvitationProgressDto,
+  })
   progress: InvitationProgressDto;
 
-  @ApiPropertyOptional({ 
-    description: 'AI analysis status', 
+  @ApiPropertyOptional({
+    description: 'AI analysis status',
     enum: ['pending', 'in_progress', 'completed', 'failed'],
     example: 'completed',
   })
   analysisStatus?: string;
 
-  @ApiPropertyOptional({ description: 'AI analysis score (0-100)', example: 85 })
+  @ApiPropertyOptional({
+    description: 'AI analysis score (0-100)',
+    example: 85,
+  })
   analysisScore?: number;
 
-  @ApiPropertyOptional({ 
-    description: 'AI recommendation', 
+  @ApiPropertyOptional({
+    description: 'AI recommendation',
     enum: ['strongly_recommend', 'recommend', 'consider', 'not_recommend'],
   })
   analysisRecommendation?: string;
+
+  @ApiPropertyOptional({
+    description: 'HR decision on the candidate',
+    enum: ['approved', 'rejected'],
+  })
+  decision?: string;
+
+  @ApiPropertyOptional({ description: 'When HR made the decision' })
+  decisionAt?: Date;
+
+  @ApiPropertyOptional({ description: 'HR note to the candidate' })
+  decisionNote?: string;
 
   @ApiProperty({ description: 'When invitation was created' })
   createdAt: Date;
 }
 
 export class PaginatedInvitationsResponseDto {
-  @ApiProperty({ description: 'List of invitations', type: [InvitationListItemDto] })
+  @ApiProperty({
+    description: 'List of invitations',
+    type: [InvitationListItemDto],
+  })
   items: InvitationListItemDto[];
 
-  @ApiProperty({ description: 'Total number of matching invitations', example: 25 })
+  @ApiProperty({
+    description: 'Total number of matching invitations',
+    example: 25,
+  })
   total: number;
 
   @ApiProperty({ description: 'Current page number (1-based)', example: 1 })

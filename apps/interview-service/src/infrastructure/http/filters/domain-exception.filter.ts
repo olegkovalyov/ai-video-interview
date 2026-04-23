@@ -25,6 +25,7 @@ import {
   InvalidInvitationStateException,
   InvitationIncompleteException,
 } from '../../../domain/exceptions/invitation.exceptions';
+import { QuotaExceededException } from '../../../domain/exceptions/quota.exceptions';
 import { LoggerService } from '../../logger/logger.service';
 
 /**
@@ -102,12 +103,23 @@ export class DomainExceptionFilter implements ExceptionFilter {
       exception instanceof TemplateArchivedException ||
       exception instanceof InvitationIncompleteException
     ) {
-      return { status: HttpStatus.UNPROCESSABLE_ENTITY, error: 'Unprocessable Entity' };
+      return {
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        error: 'Unprocessable Entity',
+      };
     }
 
     // 410 Gone
     if (exception instanceof InvitationExpiredException) {
       return { status: HttpStatus.GONE, error: 'Gone' };
+    }
+
+    // 402 Payment Required — quota exceeded on current plan
+    if (exception instanceof QuotaExceededException) {
+      return {
+        status: HttpStatus.PAYMENT_REQUIRED,
+        error: 'Payment Required',
+      };
     }
 
     // 400 Bad Request (default for all other domain exceptions)

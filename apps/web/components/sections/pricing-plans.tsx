@@ -1,11 +1,19 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
-import Link from "next/link";
+import { PlanCheckoutButton } from "@/features/billing/components/PlanCheckoutButton";
+import type { PlanType } from "@/lib/api/billing";
 
-const plans = [
+const plans: Array<{
+  type: PlanType;
+  name: string;
+  price: string;
+  description: string;
+  popular: boolean;
+  features: string[];
+}> = [
   {
+    type: "free",
     name: "Free",
     price: "$0",
     description: "Get started with basics",
@@ -19,6 +27,7 @@ const plans = [
     ],
   },
   {
+    type: "plus",
     name: "Plus",
     price: "$29",
     description: "For growing teams",
@@ -34,6 +43,7 @@ const plans = [
     ],
   },
   {
+    type: "pro",
     name: "Pro",
     price: "$99",
     description: "For large organizations",
@@ -100,16 +110,12 @@ export function PricingPlans() {
                 ))}
               </div>
 
-              <Button
-                asChild
+              <PlanCheckoutButton
+                planType={plan.type}
                 variant={plan.popular ? "default" : "outline"}
                 className="w-full"
                 size="lg"
-              >
-                <Link href="/register">
-                  {plan.price === "$0" ? "Start Free" : "Start Free Trial"}
-                </Link>
-              </Button>
+              />
             </CardContent>
           </Card>
         ))}

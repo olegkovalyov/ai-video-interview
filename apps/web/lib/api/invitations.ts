@@ -103,6 +103,9 @@ export interface InvitationListItem {
   analysisStatus?: string;
   analysisScore?: number;
   analysisRecommendation?: "hire" | "consider" | "reject";
+  decision?: "approved" | "rejected";
+  decisionAt?: string;
+  decisionNote?: string;
   createdAt: string;
 }
 
@@ -263,4 +266,30 @@ export async function completeInvitation(
  */
 export async function sendHeartbeat(id: string): Promise<{ success: boolean }> {
   return apiPost<{ success: boolean }>(`/api/invitations/${id}/heartbeat`, {});
+}
+
+/**
+ * Approve candidate (HR)
+ * POST /api/invitations/:id/approve
+ */
+export async function approveCandidate(
+  id: string,
+  note?: string,
+): Promise<{ success: boolean }> {
+  return apiPost<{ success: boolean }>(`/api/invitations/${id}/approve`, {
+    note,
+  });
+}
+
+/**
+ * Reject candidate (HR) — note is required
+ * POST /api/invitations/:id/reject
+ */
+export async function rejectCandidate(
+  id: string,
+  note: string,
+): Promise<{ success: boolean }> {
+  return apiPost<{ success: boolean }>(`/api/invitations/${id}/reject`, {
+    note,
+  });
 }

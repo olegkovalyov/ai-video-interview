@@ -169,13 +169,35 @@ export class SubmitResponseDto {
 export class CompleteInvitationDto {
   @ApiPropertyOptional({
     description: 'Reason for completing the interview',
-    enum: ['manual', 'auto_timeout'],
+    enum: ['manual', 'auto_timeout', 'early_finish'],
     default: 'manual',
     example: 'manual',
   })
   @IsOptional()
-  @IsEnum(['manual', 'auto_timeout'])
-  reason?: 'manual' | 'auto_timeout' = 'manual';
+  @IsEnum(['manual', 'auto_timeout', 'early_finish'])
+  reason?: 'manual' | 'auto_timeout' | 'early_finish' = 'manual';
+}
+
+export class ApproveCandidateDto {
+  @ApiPropertyOptional({
+    description: 'Optional message from HR to the candidate',
+    example: 'Great work! We would like to invite you to the next round.',
+    maxLength: 2000,
+  })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class RejectCandidateDto {
+  @ApiPropertyOptional({
+    description: 'Feedback message to the candidate (required)',
+    example:
+      'Thank you for your time. We decided to move forward with other candidates.',
+    maxLength: 2000,
+  })
+  @IsString()
+  note: string;
 }
 
 export class ListInvitationsQueryDto {

@@ -147,13 +147,22 @@ export class ProcessStripeWebhookHandler
       return;
     }
 
-    const periodStart = new Date(
-      (invoice.period_start || Math.floor(Date.now() / 1000)) * 1000,
-    );
-    const periodEnd = new Date(
-      (invoice.period_end ||
-        Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60) * 1000,
-    );
+    // Stripe's top-level invoice.period_start/end represent the invoice
+    // generation window — for a subscription's first invoice they often
+    // collapse to a 0-second period. The authoritative subscription period
+    // lives on the invoice line item (`lines.data[0].period`). Prefer that.
+    const lines = invoice.lines?.data as
+      | Array<{ period?: { start?: number; end?: number } }>
+      | undefined;
+    const linePeriod = lines?.[0]?.period;
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const periodStartSec = linePeriod?.start ?? invoice.period_start ?? nowSec;
+    const periodEndSec =
+      linePeriod?.end ?? invoice.period_end ?? nowSec + 30 * 24 * 60 * 60;
+
+    const periodStart = new Date(periodStartSec * 1000);
+    const periodEnd = new Date(periodEndSec * 1000);
 
     subscription.renewPeriod(periodStart, periodEnd);
 

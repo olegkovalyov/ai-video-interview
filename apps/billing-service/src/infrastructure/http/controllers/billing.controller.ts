@@ -112,8 +112,8 @@ export class BillingController {
       new CreateCheckoutSessionCommand(
         companyId,
         dto.planType,
-        dto.successUrl || `${frontendUrl}/billing?success=true`,
-        dto.cancelUrl || `${frontendUrl}/billing?canceled=true`,
+        dto.successUrl || `${frontendUrl}/profile/billing?success=true`,
+        dto.cancelUrl || `${frontendUrl}/profile/billing?canceled=true`,
       ),
     );
   }
@@ -147,7 +147,7 @@ export class BillingController {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     return this.stripeService.createPortalSession({
       stripeCustomerId: subscription.stripeCustomerId,
-      returnUrl: `${frontendUrl}/billing`,
+      returnUrl: `${frontendUrl}/profile/billing`,
     });
   }
 

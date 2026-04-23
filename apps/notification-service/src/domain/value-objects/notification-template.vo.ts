@@ -8,6 +8,8 @@ export const NOTIFICATION_TEMPLATES = [
   "interview_completed",
   "analysis_ready",
   "analysis_failed",
+  "candidate_approved",
+  "candidate_rejected",
   "payment_confirmed",
   "payment_failed",
   "quota_exceeded",

@@ -1,4 +1,7 @@
-import { Invitation } from '../../../domain/aggregates/invitation.aggregate';
+import {
+  Invitation,
+  CandidateDecision,
+} from '../../../domain/aggregates/invitation.aggregate';
 import { Response } from '../../../domain/entities/response.entity';
 import { InvitationStatus } from '../../../domain/value-objects/invitation-status.vo';
 import { ResponseType } from '../../../domain/value-objects/response-type.vo';
@@ -40,6 +43,10 @@ export class InvitationMapper {
       completedReason: entity.completedReason as CompletedReason | undefined,
       responses,
       totalQuestions: entity.totalQuestions,
+      decision: (entity.decision as CandidateDecision) || undefined,
+      decisionAt: entity.decisionAt || undefined,
+      decisionBy: entity.decisionBy || undefined,
+      decisionNote: entity.decisionNote || undefined,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     });
@@ -71,6 +78,10 @@ export class InvitationMapper {
     entity.lastActivityAt = aggregate.lastActivityAt || null;
     entity.completedReason = aggregate.completedReason || null;
     entity.totalQuestions = aggregate.totalQuestions;
+    entity.decision = aggregate.decision || null;
+    entity.decisionAt = aggregate.decisionAt || null;
+    entity.decisionBy = aggregate.decisionBy || null;
+    entity.decisionNote = aggregate.decisionNote || null;
     entity.createdAt = aggregate.createdAt;
     entity.updatedAt = aggregate.updatedAt;
 

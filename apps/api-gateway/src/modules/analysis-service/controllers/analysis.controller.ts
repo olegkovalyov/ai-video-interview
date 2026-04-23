@@ -1,15 +1,19 @@
+import { Controller, Get, Param, UseGuards, HttpStatus } from '@nestjs/common';
 import {
-  Controller,
-  Get,
-  Param,
-  UseGuards,
-  HttpStatus,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../core/auth/guards/roles.guard';
 import { Roles } from '../../../core/auth/guards/roles.decorator';
-import { CurrentUser, CurrentUserData, extractPrimaryRole } from '../../../core/auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  CurrentUserData,
+  extractPrimaryRole,
+} from '../../../core/auth/decorators/current-user.decorator';
 import { AnalysisServiceClient } from '../clients/analysis-service.client';
 
 @ApiTags('Analysis')
@@ -21,13 +25,25 @@ export class AnalysisController {
 
   @Get(':invitationId')
   @Roles('hr', 'admin')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get full analysis results',
-    description: 'Returns complete analysis results including overall score, summary, strengths, weaknesses, recommendation, and individual question analyses.',
+    description:
+      'Returns complete analysis results including overall score, summary, strengths, weaknesses, recommendation, and individual question analyses.',
   })
-  @ApiParam({ name: 'invitationId', description: 'Invitation UUID', type: 'string', format: 'uuid' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Analysis results with question analyses' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Analysis not found' })
+  @ApiParam({
+    name: 'invitationId',
+    description: 'Invitation UUID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Analysis results with question analyses',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Analysis not found',
+  })
   async getAnalysisByInvitation(
     @Param('invitationId') invitationId: string,
     @CurrentUser() user: CurrentUserData,
@@ -55,11 +71,17 @@ export class AnalysisController {
 
   @Get('status/:invitationId')
   @Roles('hr', 'admin', 'candidate')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get analysis status',
-    description: 'Returns the processing status of an analysis. Candidates can check if their interview has been analyzed.',
+    description:
+      'Returns the processing status of an analysis. Candidates can check if their interview has been analyzed.',
   })
-  @ApiParam({ name: 'invitationId', description: 'Invitation UUID', type: 'string', format: 'uuid' })
+  @ApiParam({
+    name: 'invitationId',
+    description: 'Invitation UUID',
+    type: 'string',
+    format: 'uuid',
+  })
   @ApiResponse({ status: HttpStatus.OK, description: 'Analysis status' })
   async getAnalysisStatus(
     @Param('invitationId') invitationId: string,
@@ -75,6 +97,56 @@ export class AnalysisController {
     return {
       success: true,
       data: status,
+    };
+  }
+
+  @Get('candidate/:invitationId')
+  @Roles('candidate')
+  @ApiOperation({
+    summary: 'Get analysis for candidate view',
+    description:
+      'Returns candidate-safe analysis results (limited fields, owner-only access). Excludes HR-only metadata.',
+  })
+  @ApiParam({
+    name: 'invitationId',
+    description: 'Invitation UUID',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Candidate-facing analysis results',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Not the candidate of this analysis',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Analysis not found',
+  })
+  async getCandidateAnalysis(
+    @Param('invitationId') invitationId: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    const role = extractPrimaryRole(user);
+    const result = await this.analysisClient.getCandidateAnalysis(
+      invitationId,
+      user.userId,
+      role,
+    );
+
+    if (!result) {
+      return {
+        success: false,
+        message: 'Analysis not found for this invitation',
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      data: result,
     };
   }
 }

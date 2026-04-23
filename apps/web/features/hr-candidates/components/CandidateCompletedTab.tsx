@@ -229,6 +229,18 @@ export function CandidateCompletedTab() {
                                 Analyzing...
                               </Badge>
                             )}
+                            {interview.decision === "approved" && (
+                              <Badge variant="success">
+                                <ThumbsUp className="mr-1 h-3 w-3" />
+                                Approved
+                              </Badge>
+                            )}
+                            {interview.decision === "rejected" && (
+                              <Badge variant="error">
+                                <ThumbsDown className="mr-1 h-3 w-3" />
+                                Rejected
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span>{interview.templateTitle}</span>

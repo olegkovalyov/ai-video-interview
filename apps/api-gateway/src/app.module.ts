@@ -30,6 +30,7 @@ import { UserServiceModule } from './modules/user-service/user-service.module';
 import { InterviewServiceModule } from './modules/interview-service/interview-service.module';
 import { AnalysisServiceModule } from './modules/analysis-service/analysis-service.module';
 import { BillingServiceModule } from './modules/billing-service/billing-service.module';
+import { NotificationServiceModule } from './modules/notification-service/notification-service.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { BillingServiceModule } from './modules/billing-service/billing-service.
     InterviewServiceModule,
     AnalysisServiceModule,
     BillingServiceModule,
+    NotificationServiceModule,
   ],
   controllers: [AppController, MetricsController],
   providers: [

@@ -661,6 +661,153 @@ describe('Invitation Aggregate', () => {
     });
   });
 
+  describe('approve', () => {
+    const completedInvitation = () => {
+      const invitation = Invitation.create(
+        'inv-1',
+        templateId,
+        candidateId,
+        companyName,
+        invitedBy,
+        futureDate,
+        1,
+      );
+      invitation.start(candidateId);
+      invitation.submitResponse(candidateId, createResponse('q1', 0));
+      invitation.complete(createCompleteData(candidateId, 'manual'));
+      invitation.clearEvents();
+      return invitation;
+    };
+
+    it('should approve a completed invitation', () => {
+      const invitation = completedInvitation();
+      invitation.approve('hr-1', 'Senior Engineer', 'Great work!');
+
+      expect(invitation.decision).toBe('approved');
+      expect(invitation.decisionNote).toBe('Great work!');
+      expect(invitation.decisionBy).toBe('hr-1');
+      expect(invitation.decisionAt).toBeInstanceOf(Date);
+    });
+
+    it('should approve without note (optional)', () => {
+      const invitation = completedInvitation();
+      invitation.approve('hr-1', 'Senior Engineer');
+
+      expect(invitation.decision).toBe('approved');
+      expect(invitation.decisionNote).toBeUndefined();
+    });
+
+    it('should raise CandidateApprovedEvent', () => {
+      const invitation = completedInvitation();
+      invitation.approve('hr-1', 'Senior Engineer', 'Welcome');
+
+      const events = invitation.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0].eventName).toBe('CandidateApproved');
+      expect(events[0].note).toBe('Welcome');
+    });
+
+    it('should throw if invitation not completed', () => {
+      const invitation = createValidInvitation();
+      expect(() => invitation.approve('hr-1', 'Senior Engineer')).toThrow(
+        /not completed/,
+      );
+    });
+
+    it('should throw if decision already made', () => {
+      const invitation = completedInvitation();
+      invitation.approve('hr-1', 'Senior Engineer');
+
+      expect(() => invitation.approve('hr-1', 'Senior Engineer')).toThrow(
+        /already has a decision/,
+      );
+    });
+
+    it('should throw if trying to flip to reject after approve', () => {
+      const invitation = completedInvitation();
+      invitation.approve('hr-1', 'Senior Engineer');
+
+      expect(() =>
+        invitation.reject('hr-1', 'Senior Engineer', 'Changed my mind'),
+      ).toThrow(/already has a decision/);
+    });
+  });
+
+  describe('reject', () => {
+    const completedInvitation = () => {
+      const invitation = Invitation.create(
+        'inv-1',
+        templateId,
+        candidateId,
+        companyName,
+        invitedBy,
+        futureDate,
+        1,
+      );
+      invitation.start(candidateId);
+      invitation.submitResponse(candidateId, createResponse('q1', 0));
+      invitation.complete(createCompleteData(candidateId, 'manual'));
+      invitation.clearEvents();
+      return invitation;
+    };
+
+    it('should reject a completed invitation with note', () => {
+      const invitation = completedInvitation();
+      invitation.reject('hr-1', 'Senior Engineer', 'Not a fit for this role');
+
+      expect(invitation.decision).toBe('rejected');
+      expect(invitation.decisionNote).toBe('Not a fit for this role');
+      expect(invitation.decisionBy).toBe('hr-1');
+    });
+
+    it('should raise CandidateRejectedEvent', () => {
+      const invitation = completedInvitation();
+      invitation.reject('hr-1', 'Senior Engineer', 'Feedback here');
+
+      const events = invitation.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+      expect(events[0].eventName).toBe('CandidateRejected');
+      expect(events[0].note).toBe('Feedback here');
+    });
+
+    it('should throw if note is empty', () => {
+      const invitation = completedInvitation();
+      expect(() => invitation.reject('hr-1', 'Senior Engineer', '')).toThrow(
+        /Rejection note is required/,
+      );
+    });
+
+    it('should throw if note is whitespace only', () => {
+      const invitation = completedInvitation();
+      expect(() => invitation.reject('hr-1', 'Senior Engineer', '   ')).toThrow(
+        /Rejection note is required/,
+      );
+    });
+
+    it('should trim whitespace from note', () => {
+      const invitation = completedInvitation();
+      invitation.reject('hr-1', 'Senior Engineer', '  Good feedback  ');
+
+      expect(invitation.decisionNote).toBe('Good feedback');
+    });
+
+    it('should throw if invitation not completed', () => {
+      const invitation = createValidInvitation();
+      expect(() =>
+        invitation.reject('hr-1', 'Senior Engineer', 'Note'),
+      ).toThrow(/not completed/);
+    });
+
+    it('should throw if decision already made', () => {
+      const invitation = completedInvitation();
+      invitation.reject('hr-1', 'Senior Engineer', 'First rejection');
+
+      expect(() =>
+        invitation.reject('hr-1', 'Senior Engineer', 'Second try'),
+      ).toThrow(/already has a decision/);
+    });
+  });
+
   describe('reconstitute', () => {
     it('should reconstitute from persisted data', () => {
       const props = {

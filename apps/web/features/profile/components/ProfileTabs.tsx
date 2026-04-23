@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { User, Shield, Star } from "lucide-react";
+import { User, Shield, Star, Bell, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProfileTabsProps {
@@ -12,6 +12,8 @@ interface ProfileTabsProps {
 export function ProfileTabs({ userRoles = [] }: ProfileTabsProps) {
   const pathname = usePathname();
   const isCandidate = userRoles.includes("candidate");
+  const canManageBilling =
+    userRoles.includes("hr") || userRoles.includes("admin");
 
   const tabs = [
     {
@@ -27,6 +29,20 @@ export function ProfileTabs({ userRoles = [] }: ProfileTabsProps) {
       icon: Shield,
       active: pathname === "/profile/security",
       visible: true,
+    },
+    {
+      name: "Notifications",
+      href: "/profile/notifications",
+      icon: Bell,
+      active: pathname === "/profile/notifications",
+      visible: true,
+    },
+    {
+      name: "Billing",
+      href: "/profile/billing",
+      icon: CreditCard,
+      active: pathname === "/profile/billing",
+      visible: canManageBilling,
     },
     {
       name: "Skills",

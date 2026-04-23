@@ -46,7 +46,9 @@ export class InvitationReadRepository implements IInvitationReadRepository {
   /**
    * Get invitation with template data (для GetInvitationQuery с includeTemplate)
    */
-  async findByIdWithTemplate(id: string): Promise<InvitationWithTemplateDto | null> {
+  async findByIdWithTemplate(
+    id: string,
+  ): Promise<InvitationWithTemplateDto | null> {
     const entity = await this.invitationRepository.findOne({
       where: { id },
       relations: ['responses', 'template', 'template.questions'],
@@ -216,7 +218,9 @@ export class InvitationReadRepository implements IInvitationReadRepository {
   /**
    * Map Analysis fields to DTO
    */
-  private mapAnalysisToDto(entity: InvitationEntity): AnalysisResultDto | undefined {
+  private mapAnalysisToDto(
+    entity: InvitationEntity,
+  ): AnalysisResultDto | undefined {
     if (!entity.analysisId && !entity.analysisStatus) {
       return undefined;
     }
@@ -234,7 +238,9 @@ export class InvitationReadRepository implements IInvitationReadRepository {
   /**
    * Map Entity to DTO with Template (для GetInvitationQuery с includeTemplate)
    */
-  private mapToWithTemplateDto(entity: InvitationEntity): InvitationWithTemplateDto {
+  private mapToWithTemplateDto(
+    entity: InvitationEntity,
+  ): InvitationWithTemplateDto {
     const baseDto = this.mapToDto(entity);
 
     const questions = entity.template.questions
@@ -279,6 +285,9 @@ export class InvitationReadRepository implements IInvitationReadRepository {
       analysisStatus: entity.analysisStatus || undefined,
       analysisScore: entity.analysisScore || undefined,
       analysisRecommendation: entity.analysisRecommendation || undefined,
+      decision: entity.decision || undefined,
+      decisionAt: entity.decisionAt || undefined,
+      decisionNote: entity.decisionNote || undefined,
       createdAt: entity.createdAt,
     };
   }

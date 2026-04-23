@@ -119,6 +119,19 @@ export class InvitationEntity {
   @Column({ name: 'analysis_error_message', type: 'text', nullable: true })
   analysisErrorMessage: string | null;
 
+  // HR decision after analysis
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  decision: string | null; // 'approved' | 'rejected'
+
+  @Column({ name: 'decision_at', type: 'timestamp', nullable: true })
+  decisionAt: Date | null;
+
+  @Column({ name: 'decision_by', type: 'uuid', nullable: true })
+  decisionBy: string | null;
+
+  @Column({ name: 'decision_note', type: 'text', nullable: true })
+  decisionNote: string | null;
+
   @ManyToOne(() => InterviewTemplateEntity)
   @JoinColumn({ name: 'template_id' })
   template: InterviewTemplateEntity;
