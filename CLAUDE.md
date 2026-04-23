@@ -28,6 +28,7 @@ ai-video-interview/
 ## Service Routing Guide
 
 When a task involves:
+
 - **Authentication, OIDC, JWT, Keycloak, proxying, circuit breaker, metrics endpoints** → work in `apps/api-gateway/`
 - **Users, roles, companies, skills, avatars, MinIO uploads** → work in `apps/user-service/`
 - **Interview templates, questions, invitations, candidate responses** → work in `apps/interview-service/`
@@ -39,43 +40,47 @@ When a task involves:
 
 ## Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Runtime | Node.js | >=18 |
-| Language | TypeScript | 5.8.3 |
-| Monorepo | Turborepo | 2.5 |
-| Package Manager | npm | 10.9.2 |
-| Backend Framework | NestJS | 11.x |
-| Frontend Framework | Next.js (App Router) | 15.x |
-| React | React | 19.x |
-| ORM | TypeORM | 0.3.x |
-| Database | PostgreSQL | 15 |
-| Cache/Queue | Redis 7 / BullMQ | -- |
-| Messaging | Kafka (KRaft, no Zookeeper) | 7.4 |
-| Auth | Keycloak (OIDC) | latest |
-| Object Storage | MinIO (S3-compatible) | latest |
-| LLM | Groq API (Llama 3.3 / GPT-OSS) | -- |
-| CSS | Tailwind CSS | 4.x |
-| UI Components | shadcn/ui + Radix UI | -- |
-| Testing | Jest | 30.x |
-| Tracing | OpenTelemetry + Jaeger | -- |
-| Metrics | Prometheus + Grafana | -- |
-| Logging | Winston + Loki | -- |
+| Layer              | Technology                     | Version |
+| ------------------ | ------------------------------ | ------- |
+| Runtime            | Node.js                        | >=18    |
+| Language           | TypeScript                     | 5.8.3   |
+| Monorepo           | Turborepo                      | 2.5     |
+| Package Manager    | npm                            | 10.9.2  |
+| Backend Framework  | NestJS                         | 11.x    |
+| Frontend Framework | Next.js (App Router)           | 15.x    |
+| React              | React                          | 19.x    |
+| ORM                | TypeORM                        | 0.3.x   |
+| Database           | PostgreSQL                     | 15      |
+| Cache/Queue        | Redis 7 / BullMQ               | --      |
+| Messaging          | Kafka (KRaft, no Zookeeper)    | 7.4     |
+| Auth               | Keycloak (OIDC)                | latest  |
+| Object Storage     | MinIO (S3-compatible)          | latest  |
+| LLM                | Groq API (Llama 3.3 / GPT-OSS) | --      |
+| CSS                | Tailwind CSS                   | 4.x     |
+| UI Components      | shadcn/ui + Radix UI           | --      |
+| Testing            | Jest                           | 30.x    |
+| Tracing            | OpenTelemetry + Jaeger         | --      |
+| Metrics            | Prometheus + Grafana           | --      |
+| Logging            | Winston + Loki                 | --      |
 
 ## Architecture Patterns
 
 ### DDD (Domain-Driven Design)
+
 All backend services (except API Gateway) follow strict DDD with three layers:
+
 - **Domain Layer** (`src/domain/`) — Aggregates, entities, value objects, domain events, repository interfaces, exceptions. ZERO framework dependencies.
 - **Application Layer** (`src/application/`) — Commands, queries, handlers (CQRS), DTOs, ports. Depends only on domain.
 - **Infrastructure Layer** (`src/infrastructure/`) — TypeORM repositories, Kafka consumers/producers, HTTP controllers, persistence entities, mappers. Implements domain interfaces.
 
 ### CQRS via @nestjs/cqrs
+
 - Commands: imperative names (`CreateUserCommand` + `CreateUserHandler`)
 - Queries: interrogative names (`GetUserQuery` + `GetUserHandler`)
 - Each command/query lives in its own directory with `.command.ts`/`.query.ts` and `.handler.ts`
 
 ### Event-Driven Architecture (Kafka)
+
 - **Domain Events** — Internal to a service, published via NestJS EventBus
 - **Integration Events** — Cross-service, published via Kafka through Outbox pattern
 - **Command Events** — Instructions from API Gateway to services via Kafka
@@ -83,6 +88,7 @@ All backend services (except API Gateway) follow strict DDD with three layers:
 - Event contracts defined in `packages/shared/src/events/`
 
 ### Kafka Topics
+
 - `user-commands` / `user-commands-dlq` — Commands TO User Service
 - `user-events` — User domain integration events
 - `interview-events` — Interview domain integration events
@@ -92,28 +98,28 @@ All backend services (except API Gateway) follow strict DDD with three layers:
 
 ## Naming Conventions
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Files | kebab-case | `create-user.command.ts` |
-| Classes | PascalCase | `CreateUserHandler` |
-| Aggregates | `*.aggregate.ts` | `user.aggregate.ts` |
-| Value Objects | `*.vo.ts` | `email.vo.ts` |
-| Domain Events | `*-created.event.ts` | `user-created.event.ts` |
-| Repository Interfaces | `I` prefix | `IUserRepository` |
-| Kafka Integration Events | past-tense dotted | `user.created`, `analysis.completed` |
-| Kafka Command Events | present-tense dotted | `user.create`, `user.update` |
-| Kafka Topics | kebab-case | `user-events`, `interview-events` |
-| TypeORM Entities | `*.entity.ts` (infrastructure) | `user.entity.ts` |
-| Migrations | timestamp prefix | `1730900000000-InitialSchema.ts` |
+| Element                  | Convention                     | Example                              |
+| ------------------------ | ------------------------------ | ------------------------------------ |
+| Files                    | kebab-case                     | `create-user.command.ts`             |
+| Classes                  | PascalCase                     | `CreateUserHandler`                  |
+| Aggregates               | `*.aggregate.ts`               | `user.aggregate.ts`                  |
+| Value Objects            | `*.vo.ts`                      | `email.vo.ts`                        |
+| Domain Events            | `*-created.event.ts`           | `user-created.event.ts`              |
+| Repository Interfaces    | `I` prefix                     | `IUserRepository`                    |
+| Kafka Integration Events | past-tense dotted              | `user.created`, `analysis.completed` |
+| Kafka Command Events     | present-tense dotted           | `user.create`, `user.update`         |
+| Kafka Topics             | kebab-case                     | `user-events`, `interview-events`    |
+| TypeORM Entities         | `*.entity.ts` (infrastructure) | `user.entity.ts`                     |
+| Migrations               | timestamp prefix               | `1730900000000-InitialSchema.ts`     |
 
 ## Databases (Separate per Service)
 
-| Database | Service | Port |
-|----------|---------|------|
-| `ai_video_interview_user` | User Service | 5432 |
-| `ai_video_interview_interview` | Interview Service | 5432 |
-| `ai_video_interview_analysis` | AI Analysis Service | 5432 |
-| `keycloak` | Keycloak (separate PostgreSQL) | 5433 |
+| Database                       | Service                        | Port |
+| ------------------------------ | ------------------------------ | ---- |
+| `ai_video_interview_user`      | User Service                   | 5432 |
+| `ai_video_interview_interview` | Interview Service              | 5432 |
+| `ai_video_interview_analysis`  | AI Analysis Service            | 5432 |
+| `keycloak`                     | Keycloak (separate PostgreSQL) | 5433 |
 
 Each service has its own TypeORM config at `src/infrastructure/persistence/typeorm.config.ts`.
 Migrations stored in `src/infrastructure/persistence/migrations/`.
@@ -182,7 +188,7 @@ npm run generate:types       # Generate TS types from OpenAPI specs
 ## Git Workflow
 
 - Branch from `develop` for features
-- Main branch is `master` (production)
+- Main branch is `main` (production)
 - Commit format: `feat(service-name): description`, `fix(service-name): description`, `docs: description`
 - Use conventional commits with scope matching service name
 
