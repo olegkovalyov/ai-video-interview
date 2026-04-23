@@ -2,64 +2,88 @@
 
 # =============================================================================
 # Stripe Billing Flow — integration smoke test
-# Prerequisites:
-#   - docker compose up -d (all services running)
-#   - npm run dev:all  (or at least api-gateway + billing-service)
-#   - stripe CLI installed + `stripe listen --forward-to localhost:8007/api/billing/webhooks/stripe`
-#     running in another terminal (so webhooks come back to our backend)
-#   - STRIPE_PRICE_PLUS, STRIPE_PRICE_PRO in apps/billing-service/.env
 #
-# Usage:
-#   ./scripts/test-billing-flow.sh <hr_email> <hr_password>
+# ONE-TIME SETUP (do once on a fresh machine)
+#   brew install stripe/stripe-cli/stripe
+#   stripe login
+#   ./scripts/setup/create-test-users.sh   # creates HR users, etc.
+#   ./scripts/setup/backfill-billing.sh    # seed free subscriptions for HRs
 #
-# What this does:
-#   1. Logs in as HR to get JWT
-#   2. Checks current subscription (expects "free")
-#   3. Creates a Stripe checkout session → prints URL to open in browser
-#   4. Tells you what to do next
+# RUNTIME DEPENDENCIES (must be up for this script to pass)
+#   - docker compose up -d  (postgres, redis, kafka, keycloak)
+#   - npm run dev:api + dev:user + dev:billing  (or dev:all)
+#   - In a separate terminal, webhook forwarder:
+#       stripe listen --forward-to localhost:8007/api/billing/webhooks/stripe
+#   - apps/billing-service/.env must contain:
+#       STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+#       STRIPE_PRICE_PLUS, STRIPE_PRICE_PRO
+#
+# USAGE
+#   ./scripts/test-billing-flow.sh <hr_email> <hr_password> [plan]
+#   plan = plus | pro (default: plus)
+#
+#   Default creds from create-test-users.sh: hr@test.com / 123456
+#
+# WHAT THIS SCRIPT DOES
+#   1. Gets JWT via Keycloak direct-grant (password flow).
+#      Works because the ai-video-interview-app Keycloak client has
+#      "Direct Access Grants Enabled" for dev.
+#   2. GET /api/billing/subscription → prints current plan.
+#   3. POST /api/billing/checkout { planType } → prints Stripe URL.
+#      You open the URL in a browser and pay with a Stripe test card.
+#   4. After paying, re-run to see the plan upgrade.
+#
+# TEST CARDS (Stripe sandbox)
+#   4242 4242 4242 4242 — always succeeds
+#   4000 0000 0000 0002 — declined at checkout
+#   4000 0000 0000 9995 — first payment ok, recurring fails (tests past_due)
+#   4000 0025 0000 3155 — 3DS authentication required
 # =============================================================================
 
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 HR_EMAIL="${1:-hr@test.com}"
-HR_PASSWORD="${2:-Test123!}"
+HR_PASSWORD="${2:-123456}"
+PLAN="${3:-plus}"
 
 echo -e "${BLUE}=== Stripe Billing Flow Test ===${NC}"
 echo "HR user: $HR_EMAIL"
+echo "Plan:    $PLAN"
 echo ""
 
-# --- 1. Login --------------------------------------------------------------
-echo -e "${BLUE}[1/4] Logging in as $HR_EMAIL ...${NC}"
-LOGIN_RESP=$(curl -s -c /tmp/billing-test-cookies.txt -X POST "$API_GATEWAY/auth/login" \
-  -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$HR_EMAIL\",\"password\":\"$HR_PASSWORD\"}")
-
-if echo "$LOGIN_RESP" | grep -q '"success":true\|access_token'; then
-  echo -e "${GREEN}✓ Login OK${NC}"
-else
-  echo -e "${RED}✗ Login failed:${NC}"
-  echo "$LOGIN_RESP" | head -c 400
+# --- 1. Get JWT via Keycloak password grant --------------------------------
+echo -e "${BLUE}[1/4] Getting JWT for $HR_EMAIL via Keycloak ...${NC}"
+TOKEN=$(get_user_token "$HR_EMAIL" "$HR_PASSWORD") || {
+  echo -e "${RED}✗ Failed to get token (see error above)${NC}"
+  echo ""
+  echo "Hints:"
+  echo "  - is Keycloak up at ${KEYCLOAK_URL}?"
+  echo "  - is the user registered in realm ${KEYCLOAK_REALM}?"
+  echo "  - does the client ${KEYCLOAK_CLIENT_ID} have 'Direct Access Grants' enabled?"
   exit 1
-fi
+}
+
+echo -e "${GREEN}✓ Got JWT (len ${#TOKEN})${NC}"
 
 # --- 2. Current subscription ----------------------------------------------
 echo ""
-echo -e "${BLUE}[2/4] Checking current subscription ...${NC}"
-SUB=$(curl -s -b /tmp/billing-test-cookies.txt "$API_GATEWAY/api/billing/subscription")
-echo "$SUB" | python3 -m json.tool 2>/dev/null || echo "$SUB"
+echo -e "${BLUE}[2/4] GET /api/billing/subscription ...${NC}"
+SUB=$(curl -s -H "Authorization: Bearer $TOKEN" "$API_GATEWAY/api/billing/subscription")
+echo "$SUB" | jq . 2>/dev/null || echo "$SUB"
 
 # --- 3. Create checkout session -------------------------------------------
 echo ""
-echo -e "${BLUE}[3/4] Creating checkout session for 'plus' plan ...${NC}"
-CHECKOUT=$(curl -s -b /tmp/billing-test-cookies.txt -X POST "$API_GATEWAY/api/billing/checkout" \
-  -H 'Content-Type: application/json' \
-  -d '{"planType":"plus"}')
+echo -e "${BLUE}[3/4] POST /api/billing/checkout {planType:\"$PLAN\"} ...${NC}"
+CHECKOUT=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -X POST "$API_GATEWAY/api/billing/checkout" \
+  -d "{\"planType\":\"$PLAN\"}")
 
-CHECKOUT_URL=$(echo "$CHECKOUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('checkoutUrl',''))" 2>/dev/null)
+CHECKOUT_URL=$(echo "$CHECKOUT" | jq -r '.checkoutUrl // empty')
 
 if [ -z "$CHECKOUT_URL" ]; then
-  echo -e "${RED}✗ Checkout session creation failed:${NC}"
-  echo "$CHECKOUT"
+  echo -e "${RED}✗ Checkout failed:${NC}"
+  echo "$CHECKOUT" | jq . 2>/dev/null || echo "$CHECKOUT"
   exit 1
 fi
 
@@ -70,18 +94,15 @@ echo "$CHECKOUT_URL"
 echo ""
 echo -e "${YELLOW}>>> Use Stripe test card:${NC}"
 echo "  Number: 4242 4242 4242 4242"
-echo "  Expiry: any future date"
+echo "  Expiry: any future date (e.g. 12/34)"
 echo "  CVC:    any 3 digits"
 echo "  ZIP:    any 5 digits"
 echo ""
 
-# --- 4. Post-payment verification -----------------------------------------
-echo -e "${BLUE}[4/4] After paying in Stripe, verify:${NC}"
-echo "  a) Webhook fired: check \`stripe listen\` terminal for 'checkout.session.completed'"
-echo "  b) DB state:"
-echo "     psql -U postgres -d ai_video_interview_billing -c \"SELECT plan_type, status FROM subscriptions;\""
-echo "  c) UI state:"
-echo "     Open http://localhost:3000/profile/billing — plan should show 'Plus'"
-echo "  d) Run this script again — subscription should show plus/active"
-echo ""
-rm -f /tmp/billing-test-cookies.txt
+# --- 4. Post-payment verification hints -----------------------------------
+echo -e "${BLUE}[4/4] After paying, verify:${NC}"
+echo "  a) Webhook fired — watch 'stripe listen' terminal for 200 response"
+echo "  b) Re-run this script — subscription should switch to $PLAN/active"
+echo "  c) Or query DB directly:"
+echo "     docker exec -it ${POSTGRES_CONTAINER} psql -U postgres -d ai_video_interview_billing \\"
+echo "       -c \"SELECT plan_type, status, cancel_at_period_end FROM subscriptions;\""

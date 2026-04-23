@@ -267,6 +267,41 @@ describe("ProcessStripeWebhookHandler", () => {
     expect(subscriptionRepo.savePaymentEvent).toHaveBeenCalled();
   });
 
+  it("prefers lines[0].period over top-level invoice period", async () => {
+    const subscription = createActiveSubscription(PlanType.plus(), "cus_123");
+    subscriptionRepo.findByStripeCustomerId.mockResolvedValue(subscription);
+    subscriptionRepo.findPaymentEventByStripeId.mockResolvedValue(null);
+
+    // Simulate the real Stripe payload shape for a subscription's first invoice:
+    // top-level period collapses to one instant, line items carry the real
+    // billing window.
+    const instant = 1_700_000_000;
+    const lineStart = instant;
+    const lineEnd = instant + 30 * 24 * 60 * 60;
+
+    stripeService.constructWebhookEvent.mockResolvedValue({
+      id: "evt_inv_lines",
+      type: "invoice.paid",
+      data: {
+        customer: "cus_123",
+        period_start: instant,
+        period_end: instant,
+        lines: {
+          data: [{ period: { start: lineStart, end: lineEnd } }],
+        },
+      },
+    });
+
+    const command = new ProcessStripeWebhookCommand(
+      Buffer.from("raw"),
+      "sig_123",
+    );
+    await handler.execute(command);
+
+    expect(subscription.currentPeriodStart.getTime()).toBe(lineStart * 1000);
+    expect(subscription.currentPeriodEnd.getTime()).toBe(lineEnd * 1000);
+  });
+
   it("should warn when subscription not found for invoice.paid", async () => {
     subscriptionRepo.findPaymentEventByStripeId.mockResolvedValue(null);
     subscriptionRepo.findByStripeCustomerId.mockResolvedValue(null);
