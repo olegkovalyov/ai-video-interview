@@ -94,3 +94,23 @@ export async function getAnalysisStatus(
   );
   return response.data;
 }
+
+/**
+ * Candidate-safe analysis results (Candidate only, own results)
+ * GET /api/analysis/candidate/:invitationId
+ * Excludes HR-only fields (modelUsed, tokens, processingTime, errorMessage)
+ */
+export async function getCandidateAnalysis(
+  invitationId: string,
+): Promise<AnalysisResult | null> {
+  try {
+    const response = await apiGet<{
+      success: boolean;
+      data: AnalysisResult;
+    }>(`/api/analysis/candidate/${invitationId}`);
+    return response.data ?? null;
+  } catch (error: any) {
+    if (error?.statusCode === 404) return null;
+    throw error;
+  }
+}

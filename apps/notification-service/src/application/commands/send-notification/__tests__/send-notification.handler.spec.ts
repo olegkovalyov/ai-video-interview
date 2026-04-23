@@ -52,12 +52,17 @@ describe("SendNotificationHandler", () => {
       commandLog: jest.fn(),
     };
 
+    const realtimeService = {
+      publishToUser: jest.fn().mockResolvedValue(undefined),
+    };
+
     handler = new SendNotificationHandler(
       notificationRepo,
       preferenceRepo,
       emailService,
       outboxService,
       unitOfWork,
+      realtimeService as any,
       logger,
     );
   });

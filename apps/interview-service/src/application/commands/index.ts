@@ -12,6 +12,8 @@ export * from './create-invitation';
 export * from './start-invitation';
 export * from './submit-response';
 export * from './complete-invitation';
+export * from './approve-candidate';
+export * from './reject-candidate';
 
 // Command Handlers array for module registration
 import { CreateTemplateHandler } from './create-template';
@@ -25,6 +27,8 @@ import { CreateInvitationHandler } from './create-invitation';
 import { StartInvitationHandler } from './start-invitation';
 import { SubmitResponseHandler } from './submit-response';
 import { CompleteInvitationHandler } from './complete-invitation';
+import { ApproveCandidateHandler } from './approve-candidate';
+import { RejectCandidateHandler } from './reject-candidate';
 
 export const CommandHandlers = [
   // Template handlers
@@ -40,4 +44,6 @@ export const CommandHandlers = [
   StartInvitationHandler,
   SubmitResponseHandler,
   CompleteInvitationHandler,
+  ApproveCandidateHandler,
+  RejectCandidateHandler,
 ];

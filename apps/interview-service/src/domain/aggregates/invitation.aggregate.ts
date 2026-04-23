@@ -7,6 +7,8 @@ import {
   InvitationStartedEvent,
   ResponseSubmittedEvent,
   InvitationCompletedEvent,
+  CandidateApprovedEvent,
+  CandidateRejectedEvent,
   CompletedReason,
   QuestionData,
   ResponseData,
@@ -18,7 +20,11 @@ import {
   InvalidInvitationStateException,
   DuplicateResponseException,
   InvitationIncompleteException,
+  DecisionAlreadyMadeException,
+  InvitationNotCompletedException,
 } from '../exceptions/invitation.exceptions';
+
+export type CandidateDecision = 'approved' | 'rejected';
 
 export interface CompleteInvitationData {
   userId: string | null;
@@ -48,6 +54,10 @@ export interface InvitationProps {
   completedReason?: CompletedReason;
   responses: Response[];
   totalQuestions: number; // Total questions in template (for progress tracking)
+  decision?: CandidateDecision;
+  decisionAt?: Date;
+  decisionBy?: string; // HR user ID who made the decision
+  decisionNote?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -135,6 +145,22 @@ export class Invitation extends AggregateRoot {
 
   get totalQuestions(): number {
     return this.props.totalQuestions;
+  }
+
+  get decision(): CandidateDecision | undefined {
+    return this.props.decision;
+  }
+
+  get decisionAt(): Date | undefined {
+    return this.props.decisionAt;
+  }
+
+  get decisionBy(): string | undefined {
+    return this.props.decisionBy;
+  }
+
+  get decisionNote(): string | undefined {
+    return this.props.decisionNote;
   }
 
   get createdAt(): Date {
@@ -415,6 +441,81 @@ export class Invitation extends AggregateRoot {
 
     this.props.status = InvitationStatus.expired();
     this.props.updatedAt = new Date();
+  }
+
+  /**
+   * Approve candidate (HR decision)
+   * Business rules:
+   * - Invitation must be completed
+   * - No decision made yet (idempotent if same decision)
+   * - Only HR who invited or admin can decide (enforced in handler)
+   */
+  approve(hrUserId: string, templateTitle: string, note?: string): void {
+    if (!this.status.isCompleted()) {
+      throw new InvitationNotCompletedException(this.id);
+    }
+    if (this.props.decision) {
+      throw new DecisionAlreadyMadeException(this.id, this.props.decision);
+    }
+
+    const decidedAt = new Date();
+    this.props.decision = 'approved';
+    this.props.decisionAt = decidedAt;
+    this.props.decisionBy = hrUserId;
+    this.props.decisionNote = note;
+    this.props.updatedAt = decidedAt;
+
+    this.apply(
+      new CandidateApprovedEvent(
+        this.id,
+        this.candidateId,
+        this.templateId,
+        templateTitle,
+        this.companyName,
+        hrUserId,
+        note || null,
+        decidedAt,
+      ),
+    );
+  }
+
+  /**
+   * Reject candidate (HR decision)
+   * Business rules:
+   * - Invitation must be completed
+   * - No decision made yet
+   * - Note is required for rejection (candidate deserves feedback)
+   */
+  reject(hrUserId: string, templateTitle: string, note: string): void {
+    if (!this.status.isCompleted()) {
+      throw new InvitationNotCompletedException(this.id);
+    }
+    if (this.props.decision) {
+      throw new DecisionAlreadyMadeException(this.id, this.props.decision);
+    }
+    if (!note || !note.trim()) {
+      throw new InvalidInvitationDataException('Rejection note is required');
+    }
+
+    const decidedAt = new Date();
+    this.props.decision = 'rejected';
+    this.props.decisionAt = decidedAt;
+    this.props.decisionBy = hrUserId;
+    this.props.decisionNote = note.trim();
+    this.props.updatedAt = decidedAt;
+
+    this.apply(
+      new CandidateRejectedEvent(
+        this.id,
+        this.candidateId,
+        this.templateId,
+        templateTitle,
+        this.companyName,
+        hrUserId,
+        note.trim(),
+        decidedAt,
+      ),
+    );
   }
 
   /**

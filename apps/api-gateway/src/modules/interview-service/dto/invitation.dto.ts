@@ -149,6 +149,28 @@ export class CompleteInvitationDto {
   reason?: 'manual' | 'auto_timeout' | 'early_finish';
 }
 
+export class ApproveCandidateDto {
+  @ApiPropertyOptional({
+    description: 'Optional message from HR to the candidate',
+    maxLength: 2000,
+    example: 'Great work! We would like to invite you to the next round.',
+  })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class RejectCandidateDto {
+  @ApiProperty({
+    description: 'Feedback message to the candidate (required)',
+    maxLength: 2000,
+    example:
+      'Thank you for your time. We decided to move forward with other candidates.',
+  })
+  @IsString()
+  note: string;
+}
+
 // ════════════════════════════════════════════════════════════════
 // Response DTOs
 // ════════════════════════════════════════════════════════════════

@@ -5,7 +5,10 @@ import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { LoggerService } from '../../core/logging/logger.service';
 import { MetricsService } from '../../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../../core/circuit-breaker/circuit-breaker-registry.service';
-import { CircuitBreaker, CircuitBreakerOptions } from '../../core/circuit-breaker/circuit-breaker';
+import {
+  CircuitBreaker,
+  CircuitBreakerOptions,
+} from '../../core/circuit-breaker/circuit-breaker';
 import { correlationStore } from '../../core/middleware/correlation-id.store';
 
 export interface ProxyRequestOptions {
@@ -24,7 +27,7 @@ export interface ProxyRequestOptions {
 export abstract class BaseServiceProxy {
   protected abstract readonly serviceName: string;
   protected abstract readonly baseUrl: string;
-  
+
   // Circuit Breaker configuration (можно переопределить в наследниках)
   protected circuitBreakerOptions: CircuitBreakerOptions = {
     failureThreshold: 5,
@@ -124,15 +127,34 @@ export abstract class BaseServiceProxy {
       return this.executeRequestDirect(method, url, data, options, startTime);
     }
 
-    // Выполняем через Circuit Breaker
+    // Выполняем через Circuit Breaker.
+    // 4xx ошибки (клиентские) не должны открывать circuit — они означают
+    // ошибку в запросе пользователя, а не недоступность downstream сервиса.
     try {
-      return await this.circuitBreaker.execute(() =>
-        this.executeRequestDirect(method, url, data, options, startTime)
+      return await this.circuitBreaker.execute(
+        () => this.executeRequestDirect(method, url, data, options, startTime),
+        (err) => !BaseServiceProxy.isClientError(err),
       );
     } catch (error) {
       // Circuit Breaker ошибки прокидываем как есть
       throw error;
     }
+  }
+
+  /**
+   * Признак клиентской (4xx) ошибки — не должна считаться failure
+   * на уровне circuit breaker. Обрабатывает как сырую axios error, так
+   * и уже обёрнутый ServiceProxyError.
+   */
+  private static isClientError(error: unknown): boolean {
+    if (!error) return false;
+    const anyErr = error as {
+      response?: { status?: number };
+      statusCode?: number;
+    };
+    const status =
+      (anyErr.response && anyErr.response.status) ?? anyErr.statusCode;
+    return typeof status === 'number' && status >= 400 && status < 500;
   }
 
   /**
@@ -315,7 +337,9 @@ export abstract class BaseServiceProxy {
       if (typeof data === 'string') {
         message = data;
       } else if (data?.message) {
-        message = Array.isArray(data.message) ? data.message.join(', ') : String(data.message);
+        message = Array.isArray(data.message)
+          ? data.message.join(', ')
+          : String(data.message);
       } else if (data?.error && typeof data.error === 'string') {
         message = data.error;
       } else {

@@ -19,6 +19,7 @@ import {
   InvalidInvitationStateException,
   InvitationIncompleteException,
 } from '../../../../domain/exceptions/invitation.exceptions';
+import { QuotaExceededException } from '../../../../domain/exceptions/quota.exceptions';
 
 describe('DomainExceptionFilter', () => {
   let filter: DomainExceptionFilter;
@@ -247,6 +248,24 @@ describe('DomainExceptionFilter', () => {
       expect.objectContaining({
         statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         error: 'Unprocessable Entity',
+      }),
+    );
+  });
+
+  // --- 402 Payment Required ---
+
+  it('should map QuotaExceededException to 402 Payment Required', () => {
+    const exception = new QuotaExceededException('interviews', 'free', 3);
+    const host = createMockHost();
+
+    filter.catch(exception, host);
+
+    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.PAYMENT_REQUIRED);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.PAYMENT_REQUIRED,
+        error: 'Payment Required',
+        message: expect.stringContaining('Quota exceeded'),
       }),
     );
   });

@@ -7,12 +7,17 @@ import type { IInvitationRepository } from '../../../domain/repositories/invitat
 import type { IInterviewTemplateRepository } from '../../../domain/repositories/interview-template.repository.interface';
 import type { IOutboxService } from '../../interfaces/outbox-service.interface';
 import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
+import {
+  IBillingClientToken,
+  type IBillingClient,
+} from '../../interfaces/billing-client.interface';
 import { LoggerService } from '../../../infrastructure/logger/logger.service';
 import { TemplateNotFoundException } from '../../../domain/exceptions/interview-template.exceptions';
 import {
   InvalidInvitationDataException,
   DuplicateInvitationException,
 } from '../../../domain/exceptions/invitation.exceptions';
+import { QuotaExceededException } from '../../../domain/exceptions/quota.exceptions';
 
 @CommandHandler(CreateInvitationCommand)
 export class CreateInvitationHandler
@@ -28,6 +33,8 @@ export class CreateInvitationHandler
     private readonly outboxService: IOutboxService,
     @Inject('IUnitOfWork')
     private readonly unitOfWork: IUnitOfWork,
+    @Inject(IBillingClientToken)
+    private readonly billingClient: IBillingClient,
     private readonly logger: LoggerService,
   ) {}
 
@@ -57,6 +64,27 @@ export class CreateInvitationHandler
       throw new DuplicateInvitationException(
         command.candidateId,
         command.templateId,
+      );
+    }
+
+    // Quota enforcement (billing-service).
+    // companyId currently equals invitedBy (HR user id) until a separate
+    // Company entity is introduced — matches billing-service convention.
+    const quota = await this.billingClient.checkQuota(
+      command.invitedBy,
+      'interviews',
+    );
+    if (!quota.allowed) {
+      this.logger.warn('Invitation blocked by quota', {
+        action: 'CreateInvitation',
+        companyId: command.invitedBy,
+        currentPlan: quota.currentPlan,
+        limit: quota.limit,
+      });
+      throw new QuotaExceededException(
+        'interviews',
+        quota.currentPlan,
+        quota.limit,
       );
     }
 

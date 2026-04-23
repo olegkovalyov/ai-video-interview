@@ -1,18 +1,18 @@
 import { LoggerService } from '../logging/logger.service';
 
 export enum CircuitState {
-  CLOSED = 'CLOSED',       // Нормальная работа
-  OPEN = 'OPEN',           // Сервис недоступен
+  CLOSED = 'CLOSED', // Нормальная работа
+  OPEN = 'OPEN', // Сервис недоступен
   HALF_OPEN = 'HALF_OPEN', // Проверка восстановления
 }
 
 export interface CircuitBreakerOptions {
-  failureThreshold: number;  // Сколько ошибок для открытия
-  successThreshold: number;  // Сколько успехов для закрытия
-  timeout: number;           // Timeout для запросов (ms)
-  resetTimeout: number;      // Через сколько пробовать восстановиться (ms)
-  rollingWindow?: number;    // Окно для подсчёта ошибок (ms)
-  name?: string;             // Имя circuit для логов
+  failureThreshold: number; // Сколько ошибок для открытия
+  successThreshold: number; // Сколько успехов для закрытия
+  timeout: number; // Timeout для запросов (ms)
+  resetTimeout: number; // Через сколько пробовать восстановиться (ms)
+  rollingWindow?: number; // Окно для подсчёта ошибок (ms)
+  name?: string; // Имя circuit для логов
 }
 
 export class CircuitBreakerError extends Error {
@@ -27,9 +27,9 @@ export class CircuitBreakerError extends Error {
 
 /**
  * Circuit Breaker implementation
- * 
+ *
  * Защищает от cascading failures при недоступности downstream сервисов.
- * 
+ *
  * Состояния:
  * - CLOSED: нормальная работа, все запросы проходят
  * - OPEN: сервис недоступен, запросы instantly fail
@@ -61,9 +61,16 @@ export class CircuitBreaker<T = any> {
   }
 
   /**
-   * Выполняет функцию через Circuit Breaker
+   * Выполняет функцию через Circuit Breaker.
+   * @param fn — функция запроса
+   * @param isFailure — необязательный предикат; если возвращает false, ошибка
+   *   пробрасывается, но НЕ учитывается как failure (используется для 4xx —
+   *   клиентских ошибок, которые не должны открывать circuit).
    */
-  async execute(fn: () => Promise<T>): Promise<T> {
+  async execute(
+    fn: () => Promise<T>,
+    isFailure?: (error: unknown) => boolean,
+  ): Promise<T> {
     // Проверяем можем ли выполнять запрос
     this.checkState();
 
@@ -76,8 +83,11 @@ export class CircuitBreaker<T = any> {
 
       return result;
     } catch (error) {
-      // Регистрируем ошибку
-      this.onFailure(error);
+      // Регистрируем ошибку только если это настоящий failure
+      const shouldCount = isFailure ? isFailure(error) : true;
+      if (shouldCount) {
+        this.onFailure(error);
+      }
       throw error;
     }
   }
@@ -117,7 +127,10 @@ export class CircuitBreaker<T = any> {
       fn(),
       new Promise<T>((_, reject) =>
         setTimeout(
-          () => reject(new Error(`Circuit breaker timeout (${this.options.timeout}ms)`)),
+          () =>
+            reject(
+              new Error(`Circuit breaker timeout (${this.options.timeout}ms)`),
+            ),
           this.options.timeout,
         ),
       ),
@@ -250,7 +263,11 @@ export class CircuitBreaker<T = any> {
   /**
    * Логирование
    */
-  private log(level: 'info' | 'warn' | 'error' | 'debug', message: string, meta?: any): void {
+  private log(
+    level: 'info' | 'warn' | 'error' | 'debug',
+    message: string,
+    meta?: any,
+  ): void {
     if (!this.logger) return;
 
     const logData = {

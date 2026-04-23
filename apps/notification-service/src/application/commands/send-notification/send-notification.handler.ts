@@ -9,6 +9,7 @@ import type { IEmailService } from "../../interfaces/email-service.interface";
 import type { IOutboxService } from "../../interfaces/outbox-service.interface";
 import type { IUnitOfWork } from "../../interfaces/unit-of-work.interface";
 import { LoggerService } from "../../../infrastructure/logger/logger.service";
+import { RealtimeService } from "../../../infrastructure/realtime/realtime.service";
 import { TEMPLATE_SUBJECTS } from "../../../config/templates.config";
 
 @CommandHandler(SendNotificationCommand)
@@ -26,6 +27,7 @@ export class SendNotificationHandler
     private readonly outboxService: IOutboxService,
     @Inject("IUnitOfWork")
     private readonly unitOfWork: IUnitOfWork,
+    private readonly realtimeService: RealtimeService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -131,8 +133,14 @@ export class SendNotificationHandler
   }
 
   private async sendInApp(notification: Notification): Promise<void> {
-    // In-app notifications are just saved to DB
-    // The realtime service will push via Redis pub/sub
     notification.markSent();
+
+    // Push to Redis pub/sub → API Gateway SSE → connected clients
+    await this.realtimeService.publishToUser(notification.recipientId, {
+      id: notification.id,
+      template: notification.template,
+      data: notification.data,
+      createdAt: new Date().toISOString(),
+    });
   }
 }

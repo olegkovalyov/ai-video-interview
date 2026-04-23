@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { BaseServiceProxy, ServiceProxyError } from '../../../proxies/base/base-service-proxy';
+import {
+  BaseServiceProxy,
+  ServiceProxyError,
+} from '../../../proxies/base/base-service-proxy';
 import { LoggerService } from '../../../core/logging/logger.service';
 import { MetricsService } from '../../../core/metrics/metrics.service';
 import { CircuitBreakerRegistry } from '../../../core/circuit-breaker/circuit-breaker-registry.service';
@@ -91,8 +94,10 @@ export class InterviewServiceClient extends BaseServiceProxy {
     super(httpService, loggerService, metricsService, circuitBreakerRegistry);
 
     this.baseUrl =
-      this.configService.get<string>('INTERVIEW_SERVICE_URL') || 'http://localhost:8003';
-    this.internalToken = this.configService.get<string>('INTERNAL_SERVICE_TOKEN') || '';
+      this.configService.get<string>('INTERVIEW_SERVICE_URL') ||
+      'http://localhost:8003';
+    this.internalToken =
+      this.configService.get<string>('INTERNAL_SERVICE_TOKEN') || '';
 
     this.initCircuitBreaker();
   }
@@ -170,7 +175,11 @@ export class InterviewServiceClient extends BaseServiceProxy {
   }
 
   /** DELETE /api/templates/:id — Archive template (soft delete) */
-  async deleteTemplate(templateId: string, userId: string, role: string): Promise<void> {
+  async deleteTemplate(
+    templateId: string,
+    userId: string,
+    role: string,
+  ): Promise<void> {
     await this.delete<void>(`/api/templates/${templateId}`, {
       headers: this.userHeaders(userId, role),
     });
@@ -182,9 +191,13 @@ export class InterviewServiceClient extends BaseServiceProxy {
     userId: string,
     role: string,
   ): Promise<{ status: string }> {
-    return this.put<{ status: string }>(`/api/templates/${templateId}/publish`, {}, {
-      headers: this.userHeaders(userId, role),
-    });
+    return this.put<{ status: string }>(
+      `/api/templates/${templateId}/publish`,
+      {},
+      {
+        headers: this.userHeaders(userId, role),
+      },
+    );
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -198,9 +211,13 @@ export class InterviewServiceClient extends BaseServiceProxy {
     userId: string,
     role: string,
   ): Promise<{ id: string }> {
-    return this.post<{ id: string }>(`/api/templates/${templateId}/questions`, dto, {
-      headers: this.userHeaders(userId, role),
-    });
+    return this.post<{ id: string }>(
+      `/api/templates/${templateId}/questions`,
+      dto,
+      {
+        headers: this.userHeaders(userId, role),
+      },
+    );
   }
 
   /** GET /api/templates/:id/questions — Get all questions for template */
@@ -222,9 +239,12 @@ export class InterviewServiceClient extends BaseServiceProxy {
     userId: string,
     role: string,
   ): Promise<void> {
-    await this.delete<void>(`/api/templates/${templateId}/questions/${questionId}`, {
-      headers: this.userHeaders(userId, role),
-    });
+    await this.delete<void>(
+      `/api/templates/${templateId}/questions/${questionId}`,
+      {
+        headers: this.userHeaders(userId, role),
+      },
+    );
   }
 
   /** PATCH /api/templates/:id/questions/reorder — Reorder questions in template */
@@ -234,9 +254,13 @@ export class InterviewServiceClient extends BaseServiceProxy {
     userId: string,
     role: string,
   ): Promise<void> {
-    await this.patch<void>(`/api/templates/${templateId}/questions/reorder`, dto, {
-      headers: this.userHeaders(userId, role),
-    });
+    await this.patch<void>(
+      `/api/templates/${templateId}/questions/reorder`,
+      dto,
+      {
+        headers: this.userHeaders(userId, role),
+      },
+    );
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -281,10 +305,13 @@ export class InterviewServiceClient extends BaseServiceProxy {
     if (query?.page) params.page = query.page;
     if (query?.limit) params.limit = query.limit;
 
-    return this.get<PaginatedInvitationsResponseDto>('/api/invitations/candidate', {
-      headers: this.userHeaders(userId, role),
-      params,
-    });
+    return this.get<PaginatedInvitationsResponseDto>(
+      '/api/invitations/candidate',
+      {
+        headers: this.userHeaders(userId, role),
+        params,
+      },
+    );
   }
 
   /** GET /api/invitations/hr — List invitations created by current HR */
@@ -355,6 +382,34 @@ export class InterviewServiceClient extends BaseServiceProxy {
     return this.post<{ success: boolean }>(
       `/api/invitations/${invitationId}/heartbeat`,
       {},
+      { headers: this.userHeaders(userId, role) },
+    );
+  }
+
+  /** POST /api/invitations/:id/approve — HR approves candidate */
+  async approveCandidate(
+    invitationId: string,
+    note: string | undefined,
+    userId: string,
+    role: string,
+  ): Promise<{ success: boolean }> {
+    return this.post<{ success: boolean }>(
+      `/api/invitations/${invitationId}/approve`,
+      { note },
+      { headers: this.userHeaders(userId, role) },
+    );
+  }
+
+  /** POST /api/invitations/:id/reject — HR rejects candidate */
+  async rejectCandidate(
+    invitationId: string,
+    note: string,
+    userId: string,
+    role: string,
+  ): Promise<{ success: boolean }> {
+    return this.post<{ success: boolean }>(
+      `/api/invitations/${invitationId}/reject`,
+      { note },
       { headers: this.userHeaders(userId, role) },
     );
   }

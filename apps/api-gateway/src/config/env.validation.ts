@@ -24,6 +24,7 @@ export const envValidationSchema = Joi.object({
   INTERVIEW_SERVICE_URL: Joi.string().uri().default('http://localhost:8003'),
   AI_ANALYSIS_SERVICE_URL: Joi.string().uri().default('http://localhost:8005'),
   BILLING_SERVICE_URL: Joi.string().uri().default('http://localhost:8007'),
+  NOTIFICATION_SERVICE_URL: Joi.string().uri().default('http://localhost:8006'),
 
   // Internal auth
   INTERNAL_SERVICE_TOKEN: Joi.string().optional().default(''),

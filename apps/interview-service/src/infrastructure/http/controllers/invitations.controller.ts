@@ -29,6 +29,8 @@ import {
   SubmitResponseDto,
   CompleteInvitationDto,
   ListInvitationsQueryDto,
+  ApproveCandidateDto,
+  RejectCandidateDto,
 } from '../../../application/dto/invitation.request.dto';
 import {
   CreateInvitationResponseDto,
@@ -43,6 +45,8 @@ import {
   StartInvitationCommand,
   SubmitResponseCommand,
   CompleteInvitationCommand,
+  ApproveCandidateCommand,
+  RejectCandidateCommand,
 } from '../../../application/commands';
 import {
   GetInvitationQuery,
@@ -235,6 +239,83 @@ export class InvitationsController {
       invitationId,
       userId,
       dto.reason || 'manual',
+    );
+
+    await this.commandBus.execute(command);
+
+    return { success: true };
+  }
+
+  @Post(':id/approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Approve candidate (HR decision)',
+    description:
+      'HR approves the candidate after interview completion. Triggers candidate.approved event which sends an email and in-app notification.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Invitation ID',
+  })
+  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  @ApiResponse({
+    status: 422,
+    description: 'Invitation not completed or decision already made',
+  })
+  @ApiResponse({ status: 403, description: 'Not the HR who invited or admin' })
+  @ApiResponse({ status: 404, description: 'Invitation not found' })
+  async approve(
+    @Param('id') invitationId: string,
+    @Body() dto: ApproveCandidateDto,
+    @Headers('x-user-id') hrUserId: string,
+    @Headers('x-user-role') hrRole: string,
+  ): Promise<{ success: boolean }> {
+    const command = new ApproveCandidateCommand(
+      invitationId,
+      hrUserId,
+      hrRole,
+      dto.note,
+    );
+
+    await this.commandBus.execute(command);
+
+    return { success: true };
+  }
+
+  @Post(':id/reject')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reject candidate (HR decision)',
+    description:
+      'HR rejects the candidate after interview completion. Note is required for rejection (feedback for the candidate).',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Invitation ID',
+  })
+  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  @ApiResponse({
+    status: 422,
+    description:
+      'Invitation not completed, decision already made, or missing note',
+  })
+  @ApiResponse({ status: 403, description: 'Not the HR who invited or admin' })
+  @ApiResponse({ status: 404, description: 'Invitation not found' })
+  async reject(
+    @Param('id') invitationId: string,
+    @Body() dto: RejectCandidateDto,
+    @Headers('x-user-id') hrUserId: string,
+    @Headers('x-user-role') hrRole: string,
+  ): Promise<{ success: boolean }> {
+    const command = new RejectCandidateCommand(
+      invitationId,
+      hrUserId,
+      hrRole,
+      dto.note,
     );
 
     await this.commandBus.execute(command);

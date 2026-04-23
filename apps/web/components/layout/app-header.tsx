@@ -8,6 +8,7 @@ import { apiPost, apiGet } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import type { User } from "@/lib/types/user";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 interface AppHeaderProps {
   userRoles?: string[];
@@ -77,6 +78,8 @@ export function AppHeader({ userRoles = [] }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        {isAuthenticated && <NotificationBell />}
+
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
             {initials}

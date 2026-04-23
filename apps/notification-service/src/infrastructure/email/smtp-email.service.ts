@@ -50,6 +50,7 @@ export class SmtpEmailService implements IEmailService {
         ...data,
         frontendUrl:
           this.configService.get("FRONTEND_URL") || "http://localhost:3000",
+        year: new Date().getFullYear(),
       });
 
       await this.transporter.sendMail({

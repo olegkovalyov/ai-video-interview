@@ -16,6 +16,9 @@ import {
   Inbox,
   ClipboardList,
   BarChart3,
+  ThumbsUp,
+  ThumbsDown,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -213,16 +216,42 @@ export default function CandidateDashboardPage() {
               {invitations.map((invitation) => (
                 <div
                   key={invitation.id}
-                  className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
+                  className="flex items-start justify-between py-4 first:pt-0 last:pb-0 gap-4"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-3">
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-foreground">
                         {invitation.templateTitle}
                       </p>
                       {getStatusBadge(invitation.status)}
+                      {invitation.decision === "approved" && (
+                        <Badge variant="success">
+                          <ThumbsUp className="mr-1 h-3 w-3" />
+                          Approved
+                        </Badge>
+                      )}
+                      {invitation.decision === "rejected" && (
+                        <Badge variant="error">
+                          <ThumbsDown className="mr-1 h-3 w-3" />
+                          Not selected
+                        </Badge>
+                      )}
+                      {invitation.status === "completed" &&
+                        !invitation.decision &&
+                        invitation.analysisStatus &&
+                        invitation.analysisStatus !== "completed" && (
+                          <Badge variant="info">
+                            <Bot className="mr-1 h-3 w-3 animate-spin" />
+                            Analyzing...
+                          </Badge>
+                        )}
+                      {invitation.status === "completed" &&
+                        !invitation.decision &&
+                        invitation.analysisStatus === "completed" && (
+                          <Badge variant="info">Under review</Badge>
+                        )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                       <span>{invitation.companyName}</span>
                       <span>Invited {formatDate(invitation.createdAt)}</span>
                       {invitation.progress && (
@@ -247,6 +276,22 @@ export default function CandidateDashboardPage() {
                           This invitation has expired
                         </p>
                       )}
+                    {invitation.decision && invitation.decisionNote && (
+                      <div
+                        className={`mt-2 rounded-md border p-3 ${
+                          invitation.decision === "approved"
+                            ? "border-success/30 bg-success/5"
+                            : "border-muted bg-muted/30"
+                        }`}
+                      >
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">
+                          Message from {invitation.companyName}:
+                        </p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">
+                          {invitation.decisionNote}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -284,7 +329,9 @@ export default function CandidateDashboardPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toast.info("Results page coming soon")}
+                        onClick={() =>
+                          router.push(`/candidate/results/${invitation.id}`)
+                        }
                       >
                         View Results
                       </Button>

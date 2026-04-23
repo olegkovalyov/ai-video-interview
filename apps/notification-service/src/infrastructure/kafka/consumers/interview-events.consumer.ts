@@ -35,6 +35,18 @@ export class InterviewEventsConsumer implements OnModuleInit {
             case "invitation.completed":
               await this.handleInvitationCompleted(event as any);
               break;
+            case "candidate.approved":
+              await this.handleCandidateDecision(
+                event as any,
+                "candidate_approved",
+              );
+              break;
+            case "candidate.rejected":
+              await this.handleCandidateDecision(
+                event as any,
+                "candidate_rejected",
+              );
+              break;
             default:
               break;
           }
@@ -129,6 +141,57 @@ export class InterviewEventsConsumer implements OnModuleInit {
           action: "interview_events.completed_notification_failed",
         },
       );
+    }
+  }
+
+  private async handleCandidateDecision(
+    event: any,
+    template: "candidate_approved" | "candidate_rejected",
+  ): Promise<void> {
+    const { payload } = event;
+    if (!payload?.candidateId) return;
+
+    const data = {
+      candidateName: payload.candidateName || "Candidate",
+      templateTitle: payload.templateTitle || "Interview",
+      companyName: payload.companyName || "Company",
+      note: payload.note || "",
+    };
+
+    // Email (if candidate has email)
+    if (payload.candidateEmail) {
+      try {
+        await this.commandBus.execute(
+          new SendNotificationCommand(
+            payload.candidateId,
+            payload.candidateEmail,
+            "email",
+            template,
+            data,
+          ),
+        );
+      } catch (error) {
+        this.logger.error(`Failed to send ${template} email`, error, {
+          action: `interview_events.${template}_email_failed`,
+        });
+      }
+    }
+
+    // In-app (always — pushed via Redis → SSE)
+    try {
+      await this.commandBus.execute(
+        new SendNotificationCommand(
+          payload.candidateId,
+          payload.candidateEmail || "",
+          "in_app",
+          template,
+          data,
+        ),
+      );
+    } catch (error) {
+      this.logger.error(`Failed to send ${template} in-app`, error, {
+        action: `interview_events.${template}_inapp_failed`,
+      });
     }
   }
 }

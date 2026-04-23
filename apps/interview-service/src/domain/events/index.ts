@@ -11,3 +11,5 @@ export * from './invitation-created.event';
 export * from './invitation-started.event';
 export * from './response-submitted.event';
 export * from './invitation-completed.event';
+export * from './candidate-approved.event';
+export * from './candidate-rejected.event';

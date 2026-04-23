@@ -76,7 +76,24 @@ export const analysisKeys = {
     [...analysisKeys.all, "status", invitationId] as const,
 };
 
+export const notificationKeys = {
+  all: ["notifications"] as const,
+  list: (limit?: number, offset?: number) =>
+    [...notificationKeys.all, "list", { limit, offset }] as const,
+  unreadCount: () => [...notificationKeys.all, "unread-count"] as const,
+  preferences: () => [...notificationKeys.all, "preferences"] as const,
+};
+
 export const authKeys = {
   all: ["auth"] as const,
   protected: () => [...authKeys.all, "protected"] as const,
+};
+
+export const billingKeys = {
+  all: ["billing"] as const,
+  subscription: () => [...billingKeys.all, "subscription"] as const,
+  usage: (period?: string) => [...billingKeys.all, "usage", period] as const,
+  plans: () => [...billingKeys.all, "plans"] as const,
+  invoices: (limit?: number) =>
+    [...billingKeys.all, "invoices", { limit }] as const,
 };

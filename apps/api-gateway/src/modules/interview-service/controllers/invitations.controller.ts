@@ -9,19 +9,31 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../core/auth/guards/jwt-auth.guard';
 import {
   CurrentUser,
   CurrentUserData,
   extractPrimaryRole,
 } from '../../../core/auth/decorators/current-user.decorator';
-import { InterviewServiceClient, ListInvitationsQuery } from '../clients/interview-service.client';
+import {
+  InterviewServiceClient,
+  ListInvitationsQuery,
+} from '../clients/interview-service.client';
 import { UserServiceClient } from '../../user-service/clients/user-service.client';
 import {
   CreateInvitationDto,
   SubmitResponseDto,
   CompleteInvitationDto,
+  ApproveCandidateDto,
+  RejectCandidateDto,
   CreateInvitationResponseDto,
   SubmitResponseResponseDto,
   InvitationResponseDto,
@@ -33,7 +45,7 @@ import { ListInvitationsQueryDto } from '../dto/list-invitations-query.dto';
 /**
  * Invitations Controller
  * Proxies interview invitation requests to Interview Service
- * 
+ *
  * All endpoints:
  * - Require JWT authentication (@UseGuards(JwtAuthGuard))
  * - Extract userId and role from JWT payload
@@ -62,10 +74,18 @@ export class InvitationsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create invitation',
-    description: 'HR creates an interview invitation for a candidate. Template must be active (published).',
+    description:
+      'HR creates an interview invitation for a candidate. Template must be active (published).',
   })
-  @ApiResponse({ status: 201, description: 'Invitation created', type: CreateInvitationResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error or duplicate invitation' })
+  @ApiResponse({
+    status: 201,
+    description: 'Invitation created',
+    type: CreateInvitationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or duplicate invitation',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Template not found' })
   async create(
@@ -84,10 +104,15 @@ export class InvitationsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Start interview',
-    description: 'Candidate starts the interview. Sets status to "in_progress".',
+    description:
+      'Candidate starts the interview. Sets status to "in_progress".',
   })
   @ApiParam({ name: 'id', description: 'Invitation ID (UUID)', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Interview started', type: SuccessResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Interview started',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Already started or expired' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
@@ -97,7 +122,11 @@ export class InvitationsController {
     @CurrentUser() user: CurrentUserData,
   ): Promise<{ success: boolean }> {
     const role = extractPrimaryRole(user);
-    return this.interviewService.startInvitation(invitationId, user.userId, role);
+    return this.interviewService.startInvitation(
+      invitationId,
+      user.userId,
+      role,
+    );
   }
 
   /**
@@ -108,11 +137,19 @@ export class InvitationsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Submit response',
-    description: 'Candidate submits an answer to a question. Interview must be in progress.',
+    description:
+      'Candidate submits an answer to a question. Interview must be in progress.',
   })
   @ApiParam({ name: 'id', description: 'Invitation ID (UUID)', format: 'uuid' })
-  @ApiResponse({ status: 201, description: 'Response submitted', type: SubmitResponseResponseDto })
-  @ApiResponse({ status: 400, description: 'Not in progress or duplicate response' })
+  @ApiResponse({
+    status: 201,
+    description: 'Response submitted',
+    type: SubmitResponseResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Not in progress or duplicate response',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
@@ -122,7 +159,12 @@ export class InvitationsController {
     @CurrentUser() user: CurrentUserData,
   ): Promise<{ id: string }> {
     const role = extractPrimaryRole(user);
-    return this.interviewService.submitResponse(invitationId, dto, user.userId, role);
+    return this.interviewService.submitResponse(
+      invitationId,
+      dto,
+      user.userId,
+      role,
+    );
   }
 
   /**
@@ -133,11 +175,19 @@ export class InvitationsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Complete interview',
-    description: 'Candidate completes the interview. All questions must be answered.',
+    description:
+      'Candidate completes the interview. All questions must be answered.',
   })
   @ApiParam({ name: 'id', description: 'Invitation ID (UUID)', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Interview completed', type: SuccessResponseDto })
-  @ApiResponse({ status: 400, description: 'Not in progress or questions not answered' })
+  @ApiResponse({
+    status: 200,
+    description: 'Interview completed',
+    type: SuccessResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Not in progress or questions not answered',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
@@ -147,7 +197,88 @@ export class InvitationsController {
     @CurrentUser() user: CurrentUserData,
   ): Promise<{ success: boolean }> {
     const role = extractPrimaryRole(user);
-    return this.interviewService.completeInvitation(invitationId, dto, user.userId, role);
+    return this.interviewService.completeInvitation(
+      invitationId,
+      dto,
+      user.userId,
+      role,
+    );
+  }
+
+  /**
+   * POST /api/invitations/:id/approve
+   * HR approves candidate after interview completion
+   */
+  @Post(':id/approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Approve candidate',
+    description:
+      'HR approves the candidate. Sends email + in-app notification to candidate.',
+  })
+  @ApiParam({ name: 'id', description: 'Invitation ID (UUID)', format: 'uuid' })
+  @ApiResponse({
+    status: 200,
+    description: 'Candidate approved',
+    type: SuccessResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Not HR or admin' })
+  @ApiResponse({ status: 404, description: 'Invitation not found' })
+  @ApiResponse({
+    status: 422,
+    description: 'Invitation not completed or decision already made',
+  })
+  async approve(
+    @Param('id') invitationId: string,
+    @Body() dto: ApproveCandidateDto,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<{ success: boolean }> {
+    const role = extractPrimaryRole(user);
+    return this.interviewService.approveCandidate(
+      invitationId,
+      dto.note,
+      user.userId,
+      role,
+    );
+  }
+
+  /**
+   * POST /api/invitations/:id/reject
+   * HR rejects candidate after interview completion (note required)
+   */
+  @Post(':id/reject')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reject candidate',
+    description:
+      'HR rejects the candidate. Note is required (feedback for candidate). Sends email + in-app notification.',
+  })
+  @ApiParam({ name: 'id', description: 'Invitation ID (UUID)', format: 'uuid' })
+  @ApiResponse({
+    status: 200,
+    description: 'Candidate rejected',
+    type: SuccessResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Not HR or admin' })
+  @ApiResponse({ status: 404, description: 'Invitation not found' })
+  @ApiResponse({
+    status: 422,
+    description: 'Invitation not completed, decision made, or missing note',
+  })
+  async reject(
+    @Param('id') invitationId: string,
+    @Body() dto: RejectCandidateDto,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<{ success: boolean }> {
+    const role = extractPrimaryRole(user);
+    return this.interviewService.rejectCandidate(
+      invitationId,
+      dto.note,
+      user.userId,
+      role,
+    );
   }
 
   /**
@@ -158,10 +289,15 @@ export class InvitationsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Heartbeat',
-    description: 'Update last activity for non-pausable interviews (allowPause=false). Used to detect if candidate left.',
+    description:
+      'Update last activity for non-pausable interviews (allowPause=false). Used to detect if candidate left.',
   })
   @ApiParam({ name: 'id', description: 'Invitation ID (UUID)', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Activity updated', type: SuccessResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Activity updated',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Not the invited candidate' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
@@ -186,10 +322,31 @@ export class InvitationsController {
     summary: 'List candidate invitations',
     description: 'Get paginated list of invitations for the current candidate.',
   })
-  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'in_progress', 'completed', 'expired'], description: 'Filter by invitation status' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 100)', example: 10 })
-  @ApiResponse({ status: 200, description: 'Paginated list of invitations', type: PaginatedInvitationsResponseDto })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'in_progress', 'completed', 'expired'],
+    description: 'Filter by invitation status',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of invitations',
+    type: PaginatedInvitationsResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listCandidateInvitations(
     @Query() query: ListInvitationsQueryDto,
@@ -201,7 +358,11 @@ export class InvitationsController {
       page: query.page,
       limit: query.limit,
     };
-    return this.interviewService.listCandidateInvitations(user!.userId, role, listQuery);
+    return this.interviewService.listCandidateInvitations(
+      user!.userId,
+      role,
+      listQuery,
+    );
   }
 
   /**
@@ -213,11 +374,37 @@ export class InvitationsController {
     summary: 'List HR invitations',
     description: 'Get paginated list of invitations created by current HR.',
   })
-  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'in_progress', 'completed', 'expired'], description: 'Filter by invitation status' })
-  @ApiQuery({ name: 'templateId', required: false, type: String, description: 'Filter by template UUID' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 100)', example: 10 })
-  @ApiResponse({ status: 200, description: 'Paginated list of invitations', type: PaginatedInvitationsResponseDto })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'in_progress', 'completed', 'expired'],
+    description: 'Filter by invitation status',
+  })
+  @ApiQuery({
+    name: 'templateId',
+    required: false,
+    type: String,
+    description: 'Filter by template UUID',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of invitations',
+    type: PaginatedInvitationsResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listHRInvitations(
     @Query() query: ListInvitationsQueryDto,
@@ -230,14 +417,20 @@ export class InvitationsController {
       page: query.page,
       limit: query.limit,
     };
-    
+
     // Get invitations from interview-service
-    const result = await this.interviewService.listHRInvitations(user!.userId, role, listQuery);
-    
+    const result = await this.interviewService.listHRInvitations(
+      user!.userId,
+      role,
+      listQuery,
+    );
+
     // Enrich with candidate info from user-service
     if (result.items && result.items.length > 0) {
-      const uniqueCandidateIds = [...new Set(result.items.map(item => item.candidateId))];
-      
+      const uniqueCandidateIds = [
+        ...new Set(result.items.map((item) => item.candidateId)),
+      ];
+
       // Fetch user info in parallel
       const usersMap = new Map<string, { fullName: string; email: string }>();
       await Promise.all(
@@ -246,7 +439,9 @@ export class InvitationsController {
             const userInfo = await this.userService.getUserById(candidateId);
             if (userInfo) {
               usersMap.set(candidateId, {
-                fullName: `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() || 'Unknown',
+                fullName:
+                  `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() ||
+                  'Unknown',
                 email: userInfo.email,
               });
             }
@@ -255,15 +450,15 @@ export class InvitationsController {
           }
         }),
       );
-      
+
       // Enrich items with candidate name and email
-      result.items = result.items.map(item => ({
+      result.items = result.items.map((item) => ({
         ...item,
         candidateName: usersMap.get(item.candidateId)?.fullName || undefined,
         candidateEmail: usersMap.get(item.candidateId)?.email || undefined,
       }));
     }
-    
+
     return result;
   }
 
@@ -274,11 +469,23 @@ export class InvitationsController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get invitation',
-    description: 'Get invitation details. Only candidate, inviter, or admin can view. Use includeTemplate=true to get full template with questions for interview.',
+    description:
+      'Get invitation details. Only candidate, inviter, or admin can view. Use includeTemplate=true to get full template with questions for interview.',
   })
   @ApiParam({ name: 'id', description: 'Invitation ID (UUID)', format: 'uuid' })
-  @ApiQuery({ name: 'includeTemplate', required: false, type: Boolean, description: 'Include template with questions (returns InvitationWithTemplateDto)' })
-  @ApiResponse({ status: 200, description: 'Invitation details (InvitationResponseDto or InvitationWithTemplateDto if includeTemplate=true)', type: InvitationResponseDto })
+  @ApiQuery({
+    name: 'includeTemplate',
+    required: false,
+    type: Boolean,
+    description:
+      'Include template with questions (returns InvitationWithTemplateDto)',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Invitation details (InvitationResponseDto or InvitationWithTemplateDto if includeTemplate=true)',
+    type: InvitationResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Not authorized to view' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })

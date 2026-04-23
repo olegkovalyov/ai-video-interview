@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -22,6 +23,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import { DecisionDialog } from "@/features/hr-candidates/components/DecisionDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +95,9 @@ export default function ReviewDetailPage() {
   const params = useParams();
   const router = useRouter();
   const invitationId = params.id as string;
+  const [decisionDialog, setDecisionDialog] = useState<
+    "approve" | "reject" | null
+  >(null);
 
   const {
     data: invitation,
@@ -108,6 +113,10 @@ export default function ReviewDetailPage() {
 
   const listItem = listData?.items?.find((item) => item.id === invitationId);
   const candidateName = listItem?.candidateName || null;
+  const decision = listItem?.decision;
+  const decisionNote = listItem?.decisionNote;
+  const analysisCompleted = analysis?.status === "completed";
+  const canDecide = analysisCompleted && !decision;
 
   const getQuestions = (): Question[] => {
     if (!invitation) return [];
@@ -189,15 +198,82 @@ export default function ReviewDetailPage() {
           </p>
         </div>
 
-        {analysis?.status === "completed" && (
-          <div className="text-right">
+        <div className="flex flex-col items-end gap-3">
+          {analysisCompleted && (
             <Badge variant={rec.variant} className="text-sm px-3 py-1">
               <RecIcon className="w-4 h-4 mr-1" />
-              {rec.label}
+              AI: {rec.label}
             </Badge>
-          </div>
-        )}
+          )}
+
+          {decision && (
+            <Badge
+              variant={decision === "approved" ? "success" : "error"}
+              className="text-sm px-3 py-1"
+            >
+              {decision === "approved" ? (
+                <ThumbsUp className="w-4 h-4 mr-1" />
+              ) : (
+                <ThumbsDown className="w-4 h-4 mr-1" />
+              )}
+              {decision === "approved" ? "Approved" : "Rejected"}
+            </Badge>
+          )}
+
+          {canDecide && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDecisionDialog("reject")}
+                className="border-error/30 text-error hover:bg-error/5 hover:text-error"
+              >
+                <ThumbsDown className="w-4 h-4 mr-2" />
+                Reject
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setDecisionDialog("approve")}
+                className="bg-success hover:bg-success/90"
+              >
+                <ThumbsUp className="w-4 h-4 mr-2" />
+                Approve
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Decision note banner (when decision exists) */}
+      {decision && decisionNote && (
+        <Card
+          className={
+            decision === "approved"
+              ? "border-success/30 bg-success/5"
+              : "border-error/30 bg-error/5"
+          }
+        >
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-muted-foreground mb-1">
+              Your note to the candidate:
+            </p>
+            <p className="text-sm text-foreground whitespace-pre-wrap">
+              {decisionNote}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Decision Dialog */}
+      {decisionDialog && (
+        <DecisionDialog
+          open={!!decisionDialog}
+          onClose={() => setDecisionDialog(null)}
+          invitationId={invitationId}
+          candidateName={candidateName || "Candidate"}
+          type={decisionDialog}
+        />
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
