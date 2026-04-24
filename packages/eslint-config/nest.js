@@ -123,6 +123,13 @@ export default function nestConfig(opts) {
     // Hard limits from root CLAUDE.md
     // Currently WARN during migration — raise to ERROR per-service
     // once the codebase fits within them.
+    //
+    // NOTE: we intentionally do NOT enforce a `max-lines` rule on files.
+    // Rich aggregates with state machines + events legitimately run
+    // 500–800 lines; splitting is artificial and hurts readability.
+    // God-object detection relies on `max-classes-per-file`,
+    // `sonarjs/cognitive-complexity`, and `max-lines-per-function`
+    // instead of a raw line count. Review catches the rest.
     // ──────────────────────────────────────────────────────────────────
     {
       rules: {
@@ -132,10 +139,7 @@ export default function nestConfig(opts) {
         ],
         "max-params": ["warn", 4],
         "max-depth": ["warn", 3],
-        "max-lines": [
-          "warn",
-          { max: 500, skipComments: true, skipBlankLines: true },
-        ],
+        "max-classes-per-file": ["warn", 1],
         complexity: ["warn", 10],
         "sonarjs/cognitive-complexity": ["warn", 10],
       },
@@ -217,27 +221,14 @@ export default function nestConfig(opts) {
         "@typescript-eslint/unbound-method": "off",
         "@typescript-eslint/require-await": "off",
         "max-lines-per-function": "off",
-        "max-lines": "off",
         "max-params": "off",
+        "max-classes-per-file": "off",
         complexity: "off",
         "sonarjs/no-duplicate-string": "off",
         "sonarjs/cognitive-complexity": "off",
         "sonarjs/no-nested-functions": "off",
         "unicorn/consistent-function-scoping": "off",
         "no-console": "off",
-      },
-    },
-
-    // ──────────────────────────────────────────────────────────────────
-    // Aggregates exemption — state machine + invariants legitimately long
-    // ──────────────────────────────────────────────────────────────────
-    {
-      files: ["**/domain/aggregates/*.aggregate.ts"],
-      rules: {
-        "max-lines": [
-          "warn",
-          { max: 800, skipComments: true, skipBlankLines: true },
-        ],
       },
     },
 
@@ -250,7 +241,6 @@ export default function nestConfig(opts) {
     {
       files: ["**/migrations/*.ts"],
       rules: {
-        "max-lines": "off",
         "max-lines-per-function": "off",
         "sonarjs/no-duplicate-string": "off",
         "unicorn/filename-case": "off",

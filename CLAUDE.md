@@ -196,19 +196,22 @@ npm run generate:types       # Generate TS types from OpenAPI specs
 
 ## Hard Limits (monorepo-wide)
 
-These are smell thresholds — not rigid ceilings. Crossing them means "stop and refactor", not "rewrite immediately". Aggregates are a documented exception for file length only (they legitimately need to hold their state machine + invariants).
+These are smell thresholds — not rigid ceilings. Crossing them means "stop and refactor", not "rewrite immediately".
 
 | Metric                  | Soft | Hard | Action on violation                                           |
 | ----------------------- | ---- | ---- | ------------------------------------------------------------- |
 | Function length         | 20   | 30   | Extract helpers; split guard/action/emit in aggregate methods |
 | Function parameters     | 3    | 4    | Introduce Parameter Object / options DTO                      |
 | Cyclomatic complexity   | 5    | 10   | Replace Conditional with Polymorphism, table-driven dispatch  |
+| Cognitive complexity    | 5    | 10   | Decompose Conditional, extract predicates                     |
 | Nesting depth           | 2    | 3    | Guard clauses, early returns                                  |
-| File length             | 300  | 500  | Split by responsibility (aggregates exempt)                   |
 | Class public methods    | 7    | 10   | SRP smell — split service / aggregate                         |
+| Classes per file        | 1    | 1    | One class per file — god-file smell prevention                |
 | NestJS module providers | 10   | 15   | Split into feature sub-modules                                |
 
-Enforced by ESLint where possible (`sonarjs/cognitive-complexity`, `max-lines-per-function`, `max-params`, `max-depth`). Use as a review checklist where not.
+**Note on file length**: we do **NOT** enforce a hard `max-lines` rule on files. Rich aggregates with full state machines + events legitimately reach 500–800 lines, and forced splitting hurts readability. God-object detection relies on the limits above (one class per file, bounded complexity, bounded methods) plus review. If you see a file > 800 lines, pause and check if responsibilities can be split — but don't mechanically chop to hit a number.
+
+Enforced by ESLint where possible (`sonarjs/cognitive-complexity`, `max-lines-per-function`, `max-params`, `max-depth`, `max-classes-per-file`). Use as a review checklist where not.
 
 ## Clean Code Rules
 
