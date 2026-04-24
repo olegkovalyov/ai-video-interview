@@ -1,5 +1,4 @@
 import { OutboxService } from '../outbox.service';
-import type { IOutboxService } from '../../../../application/interfaces/outbox-service.interface';
 import type { ITransactionContext } from '../../../../application/interfaces/transaction-context.interface';
 import {
   OUTBOX_STATUS,

@@ -1,4 +1,4 @@
-import { Skill } from '../entities/skill.entity';
+import type { Skill } from '../entities/skill.entity';
 
 /**
  * Skill Repository Interface (Write operations)

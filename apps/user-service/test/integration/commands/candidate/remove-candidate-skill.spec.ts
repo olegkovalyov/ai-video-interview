@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -51,7 +51,13 @@ describe('RemoveCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('GraphQL', 'graphql-remove-test', null, null, uuidv4());
+      const createSkillCommand = new CreateSkillCommand(
+        'GraphQL',
+        'graphql-remove-test',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const addCommand = new AddCandidateSkillCommand(
@@ -71,7 +77,10 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       expect(beforeRemove.length).toBe(1);
 
       // Act - Remove skill
-      const removeCommand = new RemoveCandidateSkillCommand(candidateId, skillId);
+      const removeCommand = new RemoveCandidateSkillCommand(
+        candidateId,
+        skillId,
+      );
       await commandBus.execute(removeCommand);
 
       // Assert - Skill removed
@@ -97,19 +106,61 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       );
 
       // Create 3 skills (unique names to avoid conflict with seed data)
-      const skill1Command = new CreateSkillCommand('Redis Test Cache', 'redis-remove-test', null, null, uuidv4());
+      const skill1Command = new CreateSkillCommand(
+        'Redis Test Cache',
+        'redis-remove-test',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('RabbitMQ Test Queue', 'rabbitmq-remove-test', null, null, uuidv4());
+      const skill2Command = new CreateSkillCommand(
+        'RabbitMQ Test Queue',
+        'rabbitmq-remove-test',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      const skill3Command = new CreateSkillCommand('Kafka Test Stream', 'kafka-remove-test', null, null, uuidv4());
+      const skill3Command = new CreateSkillCommand(
+        'Kafka Test Stream',
+        'kafka-remove-test',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId: skill3Id } = await commandBus.execute(skill3Command);
 
       // Add all 3 skills
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill1Id, 'Caching', 'intermediate', 2));
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill2Id, 'Message queue', 'beginner', 1));
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill3Id, 'Streaming', 'advanced', 3));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill1Id,
+          'Caching',
+          'intermediate',
+          2,
+        ),
+      );
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill2Id,
+          'Message queue',
+          'beginner',
+          1,
+        ),
+      );
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill3Id,
+          'Streaming',
+          'advanced',
+          3,
+        ),
+      );
 
       // Verify all 3 exist
       const beforeRemove = await dataSource.query(
@@ -119,8 +170,12 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       expect(beforeRemove.length).toBe(3);
 
       // Act - Remove 2 skills
-      await commandBus.execute(new RemoveCandidateSkillCommand(candidateId, skill1Id));
-      await commandBus.execute(new RemoveCandidateSkillCommand(candidateId, skill3Id));
+      await commandBus.execute(
+        new RemoveCandidateSkillCommand(candidateId, skill1Id),
+      );
+      await commandBus.execute(
+        new RemoveCandidateSkillCommand(candidateId, skill3Id),
+      );
 
       // Assert - Only skill2 remains
       const afterRemove = await dataSource.query(
@@ -146,18 +201,50 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       );
 
       // Create and add 2 skills
-      const skill1Command = new CreateSkillCommand('Skill 1', 'skill-1-remove', null, null, uuidv4());
+      const skill1Command = new CreateSkillCommand(
+        'Skill 1',
+        'skill-1-remove',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('Skill 2', 'skill-2-remove', null, null, uuidv4());
+      const skill2Command = new CreateSkillCommand(
+        'Skill 2',
+        'skill-2-remove',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill1Id, null, 'beginner', 0));
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill2Id, null, 'beginner', 0));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill1Id,
+          null,
+          'beginner',
+          0,
+        ),
+      );
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill2Id,
+          null,
+          'beginner',
+          0,
+        ),
+      );
 
       // Act - Remove all skills
-      await commandBus.execute(new RemoveCandidateSkillCommand(candidateId, skill1Id));
-      await commandBus.execute(new RemoveCandidateSkillCommand(candidateId, skill2Id));
+      await commandBus.execute(
+        new RemoveCandidateSkillCommand(candidateId, skill1Id),
+      );
+      await commandBus.execute(
+        new RemoveCandidateSkillCommand(candidateId, skill2Id),
+      );
 
       // Assert - No skills remain
       const afterRemove = await dataSource.query(
@@ -181,7 +268,13 @@ describe('RemoveCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Full Skill', 'full-skill-remove', null, null, uuidv4());
+      const createSkillCommand = new CreateSkillCommand(
+        'Full Skill',
+        'full-skill-remove',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       // Add skill with full metadata
@@ -195,7 +288,10 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       await commandBus.execute(addCommand);
 
       // Act - Remove
-      const removeCommand = new RemoveCandidateSkillCommand(candidateId, skillId);
+      const removeCommand = new RemoveCandidateSkillCommand(
+        candidateId,
+        skillId,
+      );
       await commandBus.execute(removeCommand);
 
       // Assert - Completely removed
@@ -213,7 +309,10 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       const nonExistentCandidateId = uuidv4();
       const skillId = uuidv4();
 
-      const removeCommand = new RemoveCandidateSkillCommand(nonExistentCandidateId, skillId);
+      const removeCommand = new RemoveCandidateSkillCommand(
+        nonExistentCandidateId,
+        skillId,
+      );
 
       // Act & Assert
       await expect(commandBus.execute(removeCommand)).rejects.toThrow();
@@ -234,10 +333,19 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       );
 
       // Create skill but don't add to profile
-      const createSkillCommand = new CreateSkillCommand('Unassigned Skill', 'unassigned-skill', null, null, uuidv4());
+      const createSkillCommand = new CreateSkillCommand(
+        'Unassigned Skill',
+        'unassigned-skill',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const removeCommand = new RemoveCandidateSkillCommand(candidateId, skillId);
+      const removeCommand = new RemoveCandidateSkillCommand(
+        candidateId,
+        skillId,
+      );
 
       // Act & Assert
       await expect(commandBus.execute(removeCommand)).rejects.toThrow();
@@ -257,14 +365,27 @@ describe('RemoveCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand('Temp Skill', 'temp-skill', null, null, uuidv4());
+      const createSkillCommand = new CreateSkillCommand(
+        'Temp Skill',
+        'temp-skill',
+        null,
+        null,
+        uuidv4(),
+      );
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skillId, null, 'beginner', 0));
-      await commandBus.execute(new RemoveCandidateSkillCommand(candidateId, skillId));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(candidateId, skillId, null, 'beginner', 0),
+      );
+      await commandBus.execute(
+        new RemoveCandidateSkillCommand(candidateId, skillId),
+      );
 
       // Act - Try to remove again
-      const removeAgainCommand = new RemoveCandidateSkillCommand(candidateId, skillId);
+      const removeAgainCommand = new RemoveCandidateSkillCommand(
+        candidateId,
+        skillId,
+      );
 
       // Assert
       await expect(commandBus.execute(removeAgainCommand)).rejects.toThrow();

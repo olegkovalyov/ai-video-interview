@@ -21,13 +21,17 @@ export interface UserPermissionsResult {
  * Get User Permissions Query Handler
  */
 @QueryHandler(GetUserPermissionsQuery)
-export class GetUserPermissionsHandler implements IQueryHandler<GetUserPermissionsQuery> {
+export class GetUserPermissionsHandler
+  implements IQueryHandler<GetUserPermissionsQuery>
+{
   constructor(
     @Inject('IUserReadRepository')
     private readonly userReadRepository: IUserReadRepository,
   ) {}
 
-  async execute(query: GetUserPermissionsQuery): Promise<UserPermissionsResult> {
+  async execute(
+    query: GetUserPermissionsQuery,
+  ): Promise<UserPermissionsResult> {
     // 1. Verify user exists
     const user = await this.userReadRepository.findById(query.userId);
     if (!user) {
@@ -36,7 +40,7 @@ export class GetUserPermissionsHandler implements IQueryHandler<GetUserPermissio
 
     // 2. Get user role (new single role system)
     const roleName = user.role;
-    
+
     // 3. Map role to basic permissions
     // NOTE: In new system, we use simple role-based access
     // No complex permission aggregation needed
@@ -44,32 +48,34 @@ export class GetUserPermissionsHandler implements IQueryHandler<GetUserPermissio
 
     return {
       userId: query.userId,
-      roles: [{
-        id: roleName, // Use role name as ID in new system
-        name: roleName,
-        displayName: this.getRoleDisplayName(roleName),
-      }],
+      roles: [
+        {
+          id: roleName, // Use role name as ID in new system
+          name: roleName,
+          displayName: this.getRoleDisplayName(roleName),
+        },
+      ],
       permissions,
     };
   }
 
   private getPermissionsForRole(role: string): string[] {
     const rolePermissions: Record<string, string[]> = {
-      'pending': ['read:own_profile'],
-      'candidate': [
+      pending: ['read:own_profile'],
+      candidate: [
         'read:own_profile',
         'write:own_profile',
         'read:interviews',
         'write:interviews',
       ],
-      'hr': [
+      hr: [
         'read:own_profile',
         'write:own_profile',
         'read:candidates',
         'create:interviews',
         'manage:interviews',
       ],
-      'admin': [
+      admin: [
         'read:users',
         'write:users',
         'delete:users',
@@ -83,10 +89,10 @@ export class GetUserPermissionsHandler implements IQueryHandler<GetUserPermissio
 
   private getRoleDisplayName(role: string): string {
     const displayNames: Record<string, string> = {
-      'pending': 'Pending',
-      'candidate': 'Candidate',
-      'hr': 'HR Manager',
-      'admin': 'Administrator',
+      pending: 'Pending',
+      candidate: 'Candidate',
+      hr: 'HR Manager',
+      admin: 'Administrator',
     };
     return displayNames[role] || role;
   }

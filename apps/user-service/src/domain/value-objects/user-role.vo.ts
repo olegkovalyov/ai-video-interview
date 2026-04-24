@@ -64,7 +64,7 @@ export class UserRole extends ValueObject<{ value: string }> {
    * Validation
    */
   private static isValid(role: string): boolean {
-    return this.VALID_ROLES.includes(role as any);
+    return (this.VALID_ROLES as readonly string[]).includes(role);
   }
 
   /**

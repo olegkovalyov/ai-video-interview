@@ -13,7 +13,7 @@ export class SkillMapper {
    */
   toEntity(skill: Skill): SkillEntity {
     const entity = new SkillEntity();
-    
+
     entity.id = skill.id;
     entity.name = skill.name;
     entity.slug = skill.slug;
@@ -22,7 +22,7 @@ export class SkillMapper {
     entity.isActive = skill.isActive;
     entity.createdAt = skill.createdAt;
     entity.updatedAt = skill.updatedAt;
-    
+
     return entity;
   }
 
@@ -46,6 +46,6 @@ export class SkillMapper {
    * Convert multiple entities to domain models
    */
   toDomainList(entities: SkillEntity[]): Skill[] {
-    return entities.map(entity => this.toDomain(entity));
+    return entities.map((entity) => this.toDomain(entity));
   }
 }

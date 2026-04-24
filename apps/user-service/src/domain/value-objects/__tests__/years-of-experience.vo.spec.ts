@@ -21,21 +21,21 @@ describe('YearsOfExperience Value Object', () => {
     it('should throw error for negative years', () => {
       expect(() => YearsOfExperience.fromNumber(-1)).toThrow(DomainException);
       expect(() => YearsOfExperience.fromNumber(-1)).toThrow(
-        'Years of experience cannot be negative'
+        'Years of experience cannot be negative',
       );
     });
 
     it('should throw error for years exceeding maximum', () => {
       expect(() => YearsOfExperience.fromNumber(51)).toThrow(DomainException);
       expect(() => YearsOfExperience.fromNumber(51)).toThrow(
-        'Years of experience cannot exceed 50'
+        'Years of experience cannot exceed 50',
       );
     });
 
     it('should throw error for non-integer values', () => {
       expect(() => YearsOfExperience.fromNumber(5.5)).toThrow(DomainException);
       expect(() => YearsOfExperience.fromNumber(5.5)).toThrow(
-        'Years of experience must be an integer'
+        'Years of experience must be an integer',
       );
     });
   });

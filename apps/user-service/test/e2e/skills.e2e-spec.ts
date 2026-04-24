@@ -1,12 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 import { TestInternalServiceGuard } from './test-auth.guard';
-import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
+import { createE2EDataSource } from './test-database.setup';
 import {
   TestApplicationModule,
   mockOutboxService,
@@ -58,14 +60,19 @@ describe('Skills API (E2E)', () => {
     await app.init();
 
     // Ensure skill categories exist
-    const categories = await dataSource.query('SELECT id FROM skill_categories LIMIT 1');
+    const categories = await dataSource.query(
+      'SELECT id FROM skill_categories LIMIT 1',
+    );
     if (categories.length === 0) {
       const testCategoryId = uuidv4(); // Use valid UUID v4
-      await dataSource.query(`
+      await dataSource.query(
+        `
         INSERT INTO skill_categories (id, name, slug, sort_order)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (id) DO NOTHING
-      `, [testCategoryId, 'Programming', 'programming', 1]);
+      `,
+        [testCategoryId, 'Programming', 'programming', 1],
+      );
       categoryId = testCategoryId;
     } else {
       categoryId = categories[0].id;
@@ -103,19 +110,19 @@ describe('Skills API (E2E)', () => {
       expect(response.body).toHaveProperty('data');
       expect(Array.isArray(response.body.data)).toBe(true);
       expect(response.body.data.length).toBeGreaterThan(0);
-      
+
       // Verify field existence AND values (not just structure)
       const category = response.body.data[0];
       expect(category).toHaveProperty('id');
       expect(category.id).toBeDefined();
       expect(typeof category.id).toBe('string');
       expect(category.id).not.toBe('');
-      
+
       expect(category).toHaveProperty('name');
       expect(category.name).toBeDefined();
       expect(typeof category.name).toBe('string');
       expect(category.name).not.toBe('');
-      
+
       expect(category).toHaveProperty('slug');
       expect(category.slug).toBeDefined();
       expect(typeof category.slug).toBe('string');
@@ -123,9 +130,7 @@ describe('Skills API (E2E)', () => {
     });
 
     it('should reject without internal token', async () => {
-      await request(app.getHttpServer())
-        .get('/skills/categories')
-        .expect(401);
+      await request(app.getHttpServer()).get('/skills/categories').expect(401);
     });
   });
 
@@ -220,23 +225,23 @@ describe('Skills API (E2E)', () => {
       expect(response.body.pagination).toHaveProperty('total');
       expect(response.body.pagination).toHaveProperty('page');
       expect(response.body.pagination).toHaveProperty('limit');
-      
+
       // Verify actual field values if data exists
       if (response.body.data.length > 0) {
         const skill = response.body.data[0];
-        
+
         expect(skill.id).toBeDefined();
         expect(typeof skill.id).toBe('string');
         expect(skill.id).not.toBe('');
-        
+
         expect(skill.name).toBeDefined();
         expect(typeof skill.name).toBe('string');
         expect(skill.name).not.toBe('');
-        
+
         expect(skill.slug).toBeDefined();
         expect(typeof skill.slug).toBe('string');
         expect(skill.slug).not.toBe('');
-        
+
         expect(skill.categoryName).toBeDefined();
       }
     });
@@ -264,7 +269,7 @@ describe('Skills API (E2E)', () => {
     it('should filter skills by isActive status', async () => {
       // Create an active skill (already created in beforeEach)
       const activeSkillId = createdSkillId;
-      
+
       // Create an inactive skill
       const inactiveSkillData = {
         name: 'Inactive Filter Test Skill',
@@ -272,59 +277,65 @@ describe('Skills API (E2E)', () => {
         categoryId: categoryId,
         description: 'Test skill for isActive filtering',
       };
-      
+
       const createResponse = await request(app.getHttpServer())
         .post('/skills')
         .set('x-internal-token', 'test-token')
         .send(inactiveSkillData)
         .expect(201);
-      
+
       const inactiveSkillId = createResponse.body.data.skillId;
-      
+
       // Deactivate the skill
       await request(app.getHttpServer())
         .post(`/skills/${inactiveSkillId}/deactivate`)
         .set('x-internal-token', 'test-token')
         .expect(200);
-      
+
       // Test filter isActive=true - should return only active skills
       const activeResponse = await request(app.getHttpServer())
         .get('/skills?isActive=true')
         .set('x-internal-token', 'test-token')
         .expect(200);
-      
+
       expect(activeResponse.body.success).toBe(true);
       expect(Array.isArray(activeResponse.body.data)).toBe(true);
-      
+
       // All returned skills should be active
-      activeResponse.body.data.forEach(skill => {
+      activeResponse.body.data.forEach((skill) => {
         expect(skill.isActive).toBe(true);
       });
-      
+
       // Should include our active skill
-      const hasActiveSkill = activeResponse.body.data.some(s => s.id === activeSkillId);
+      const hasActiveSkill = activeResponse.body.data.some(
+        (s) => s.id === activeSkillId,
+      );
       expect(hasActiveSkill).toBe(true);
-      
+
       // Test filter isActive=false - should return only inactive skills
       const inactiveResponse = await request(app.getHttpServer())
         .get('/skills?isActive=false')
         .set('x-internal-token', 'test-token')
         .expect(200);
-      
+
       expect(inactiveResponse.body.success).toBe(true);
       expect(Array.isArray(inactiveResponse.body.data)).toBe(true);
-      
+
       // All returned skills should be inactive
-      inactiveResponse.body.data.forEach(skill => {
+      inactiveResponse.body.data.forEach((skill) => {
         expect(skill.isActive).toBe(false);
       });
-      
+
       // Should include our inactive skill
-      const hasInactiveSkill = inactiveResponse.body.data.some(s => s.id === inactiveSkillId);
+      const hasInactiveSkill = inactiveResponse.body.data.some(
+        (s) => s.id === inactiveSkillId,
+      );
       expect(hasInactiveSkill).toBe(true);
-      
+
       // Should NOT include the active skill in inactive results
-      const hasActiveInInactive = inactiveResponse.body.data.some(s => s.id === activeSkillId);
+      const hasActiveInInactive = inactiveResponse.body.data.some(
+        (s) => s.id === activeSkillId,
+      );
       expect(hasActiveInInactive).toBe(false);
     });
   });
@@ -354,17 +365,17 @@ describe('Skills API (E2E)', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('id', createdSkillId);
-      
+
       // Verify field values (not just existence)
       expect(response.body.data).toHaveProperty('name');
       expect(response.body.data.name).toBe('Gettable Skill');
       expect(typeof response.body.data.name).toBe('string');
       expect(response.body.data.name).not.toBe('');
-      
+
       expect(response.body.data).toHaveProperty('slug');
       expect(typeof response.body.data.slug).toBe('string');
       expect(response.body.data.slug).not.toBe('');
-      
+
       expect(response.body.data).toHaveProperty('categoryName');
       expect(response.body.data.categoryName).toBeDefined();
     });
@@ -484,11 +495,14 @@ describe('Skills API (E2E)', () => {
         .expect(201);
 
       createdSkillId = response.body.data.skillId;
-      
+
       // Deactivate it first so we can test activation
-      await dataSource.query(`
+      await dataSource.query(
+        `
         UPDATE skills SET is_active = false WHERE id = $1
-      `, [createdSkillId]);
+      `,
+        [createdSkillId],
+      );
     });
 
     it('should activate a skill', async () => {
@@ -588,9 +602,15 @@ describe('Skills API (E2E)', () => {
       await request(app.getHttpServer()).get('/skills/categories').expect(401);
       await request(app.getHttpServer()).post('/skills').expect(401);
       await request(app.getHttpServer()).put(`/skills/${uuidv4()}`).expect(401);
-      await request(app.getHttpServer()).delete(`/skills/${uuidv4()}`).expect(401);
-      await request(app.getHttpServer()).post(`/skills/${uuidv4()}/activate`).expect(401);
-      await request(app.getHttpServer()).post(`/skills/${uuidv4()}/deactivate`).expect(401);
+      await request(app.getHttpServer())
+        .delete(`/skills/${uuidv4()}`)
+        .expect(401);
+      await request(app.getHttpServer())
+        .post(`/skills/${uuidv4()}/activate`)
+        .expect(401);
+      await request(app.getHttpServer())
+        .post(`/skills/${uuidv4()}/deactivate`)
+        .expect(401);
     });
   });
 });

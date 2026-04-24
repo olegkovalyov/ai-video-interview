@@ -89,5 +89,5 @@ export class UserEntity {
   version: number;
 
   @Column({ type: 'jsonb', default: {} })
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }

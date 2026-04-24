@@ -1,12 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  setupTestApp,
-  createTestDataSource,
-  cleanDatabase,
-} from '../../setup';
+import { setupTestApp, createTestDataSource, cleanDatabase } from '../../setup';
 import { CreateSkillCommand } from '../../../../src/application/commands/admin/create-skill/create-skill.command';
 
 describe('CreateSkillCommand Integration', () => {
@@ -68,7 +64,9 @@ describe('CreateSkillCommand Integration', () => {
       expect(skills[0].name).toBe('Elixir');
       expect(skills[0].slug).toBe('elixir');
       expect(skills[0].category_id).toBe(categoryId);
-      expect(skills[0].description).toBe('Elixir is a functional programming language');
+      expect(skills[0].description).toBe(
+        'Elixir is a functional programming language',
+      );
       expect(skills[0].is_active).toBe(true);
       expect(skills[0].created_at).toBeDefined();
       expect(skills[0].updated_at).toBeDefined();
@@ -169,7 +167,7 @@ describe('CreateSkillCommand Integration', () => {
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow(
-        'Skill with slug "javascript" already exists'
+        'Skill with slug "javascript" already exists',
       );
     });
 
@@ -200,9 +198,27 @@ describe('CreateSkillCommand Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const command1 = new CreateSkillCommand('Haskell', 'haskell', categoryId, null, adminId);
-      const command2 = new CreateSkillCommand('Scala', 'scala', categoryId, null, adminId);
-      const command3 = new CreateSkillCommand('F#', 'fsharp', categoryId, null, adminId);
+      const command1 = new CreateSkillCommand(
+        'Haskell',
+        'haskell',
+        categoryId,
+        null,
+        adminId,
+      );
+      const command2 = new CreateSkillCommand(
+        'Scala',
+        'scala',
+        categoryId,
+        null,
+        adminId,
+      );
+      const command3 = new CreateSkillCommand(
+        'F#',
+        'fsharp',
+        categoryId,
+        null,
+        adminId,
+      );
 
       // Act
       await commandBus.execute(command1);
@@ -214,7 +230,7 @@ describe('CreateSkillCommand Integration', () => {
         'SELECT * FROM skills WHERE slug = ANY($1) ORDER BY name',
         [['fsharp', 'haskell', 'scala']],
       );
-      
+
       expect(ourSkills.length).toBe(3);
       expect(ourSkills[0].name).toBe('F#');
       expect(ourSkills[1].name).toBe('Haskell');

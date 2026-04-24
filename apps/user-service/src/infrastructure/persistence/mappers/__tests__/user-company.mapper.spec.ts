@@ -10,7 +10,9 @@ describe('UserCompanyMapper', () => {
     mapper = new UserCompanyMapper();
   });
 
-  const createUserCompanyEntity = (overrides: Partial<UserCompanyEntity> = {}): UserCompanyEntity => {
+  const createUserCompanyEntity = (
+    overrides: Partial<UserCompanyEntity> = {},
+  ): UserCompanyEntity => {
     const entity = new UserCompanyEntity();
     entity.id = uuidv4();
     entity.userId = uuidv4();
@@ -22,19 +24,23 @@ describe('UserCompanyMapper', () => {
     return entity;
   };
 
-  const createUserCompanyDomain = (overrides: {
-    id?: string;
-    userId?: string;
-    companyId?: string;
-    position?: string | null;
-    isPrimary?: boolean;
-    joinedAt?: Date;
-  } = {}): UserCompany => {
+  const createUserCompanyDomain = (
+    overrides: {
+      id?: string;
+      userId?: string;
+      companyId?: string;
+      position?: string | null;
+      isPrimary?: boolean;
+      joinedAt?: Date;
+    } = {},
+  ): UserCompany => {
     return UserCompany.reconstitute(
       overrides.id ?? uuidv4(),
       overrides.userId ?? uuidv4(),
       overrides.companyId ?? uuidv4(),
-      overrides.position !== undefined ? overrides.position : 'Senior Developer',
+      overrides.position === undefined
+        ? 'Senior Developer'
+        : overrides.position,
       overrides.isPrimary ?? true,
       overrides.joinedAt ?? new Date('2025-03-15T09:00:00Z'),
     );

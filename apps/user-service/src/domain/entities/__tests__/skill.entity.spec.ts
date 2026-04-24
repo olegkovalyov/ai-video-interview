@@ -67,23 +67,35 @@ describe('Skill Entity', () => {
 
     it('should throw error for empty name', () => {
       expect(() =>
-        Skill.create(validId, '', validSlug, validCategoryId, validDescription)
+        Skill.create(validId, '', validSlug, validCategoryId, validDescription),
       ).toThrow(DomainException);
       expect(() =>
-        Skill.create(validId, '   ', validSlug, validCategoryId, validDescription)
+        Skill.create(
+          validId,
+          '   ',
+          validSlug,
+          validCategoryId,
+          validDescription,
+        ),
       ).toThrow('Skill name cannot be empty');
     });
 
     it('should throw error for name exceeding max length', () => {
       const longName = 'a'.repeat(101);
       expect(() =>
-        Skill.create(validId, longName, validSlug, validCategoryId, validDescription)
+        Skill.create(
+          validId,
+          longName,
+          validSlug,
+          validCategoryId,
+          validDescription,
+        ),
       ).toThrow('Skill name is too long (max 100 characters)');
     });
 
     it('should throw error for empty slug', () => {
       expect(() =>
-        Skill.create(validId, validName, '', validCategoryId, validDescription)
+        Skill.create(validId, validName, '', validCategoryId, validDescription),
       ).toThrow('Skill slug cannot be empty');
     });
   });
@@ -98,11 +110,7 @@ describe('Skill Entity', () => {
         'Old description',
       );
 
-      skill.update(
-        'New Name',
-        'New description',
-        'new-category-id',
-      );
+      skill.update('New Name', 'New description', 'new-category-id');
 
       expect(skill.name).toBe('New Name');
       expect(skill.description).toBe('New description');
@@ -151,7 +159,7 @@ describe('Skill Entity', () => {
       );
 
       expect(() => skill.update('', validDescription, validCategoryId)).toThrow(
-        'Skill name cannot be empty'
+        'Skill name cannot be empty',
       );
     });
 
@@ -164,9 +172,9 @@ describe('Skill Entity', () => {
         validDescription,
       );
 
-      expect(() => skill.update('a'.repeat(101), validDescription, validCategoryId)).toThrow(
-        'Skill name is too long (max 100 characters)'
-      );
+      expect(() =>
+        skill.update('a'.repeat(101), validDescription, validCategoryId),
+      ).toThrow('Skill name is too long (max 100 characters)');
     });
   });
 
@@ -227,7 +235,7 @@ describe('Skill Entity', () => {
 
       skill.deactivate();
       const oldUpdatedAt = skill.updatedAt;
-      
+
       skill.deactivate(); // Already inactive
       expect(skill.updatedAt).toBe(oldUpdatedAt);
     });

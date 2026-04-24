@@ -1,4 +1,10 @@
-import { IsString, IsOptional, MaxLength, MinLength, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  MinLength,
+  IsEnum,
+} from 'class-validator';
 
 export class UpdateCompanyDto {
   @IsString()

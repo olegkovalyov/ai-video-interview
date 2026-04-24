@@ -10,10 +10,10 @@ export abstract class ValueObject<T> {
   }
 
   /**
-   * Check equality by comparing values
+   * Check equality by comparing values.
    */
-  public equals(vo?: ValueObject<T>): boolean {
-    if (vo === null || vo === undefined) {
+  public equals(vo?: ValueObject<T> | null): boolean {
+    if (!vo) {
       return false;
     }
     if (vo.props === undefined) {

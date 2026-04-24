@@ -37,9 +37,9 @@ export class UpdateCandidateSkillHandler
       ? ProficiencyLevel.fromString(command.proficiencyLevel)
       : null;
     const years =
-      command.yearsOfExperience !== null
-        ? YearsOfExperience.fromNumber(command.yearsOfExperience)
-        : null;
+      command.yearsOfExperience === null
+        ? null
+        : YearsOfExperience.fromNumber(command.yearsOfExperience);
 
     // 3. Update skill (throws if not found)
     profile.updateSkill(
@@ -54,7 +54,7 @@ export class UpdateCandidateSkillHandler
 
     // 5. Publish domain events (if any changes)
     const events = profile.getUncommittedEvents();
-    events.forEach((event) => this.eventBus.publish(event));
+    events.forEach((event) => { this.eventBus.publish(event); });
     profile.clearEvents();
 
     this.logger.info('Candidate skill updated successfully', {

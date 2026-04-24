@@ -40,7 +40,7 @@ export class CompanySize extends ValueObject<{ value: string }> {
   }
 
   public static fromString(value: string): CompanySize {
-    if (!CompanySize.VALID_SIZES.includes(value as any)) {
+    if (!(CompanySize.VALID_SIZES as readonly string[]).includes(value)) {
       throw new DomainException(
         `Invalid company size: ${value}. Must be one of: ${CompanySize.VALID_SIZES.join(', ')}`,
       );
@@ -78,16 +78,21 @@ export class CompanySize extends ValueObject<{ value: string }> {
    */
   public getDescription(): string {
     switch (this.value) {
-      case CompanySize.SMALL:
+      case CompanySize.SMALL: {
         return '1-10 employees';
-      case CompanySize.MEDIUM:
+      }
+      case CompanySize.MEDIUM: {
         return '11-50 employees';
-      case CompanySize.LARGE:
+      }
+      case CompanySize.LARGE: {
         return '51-200 employees';
-      case CompanySize.ENTERPRISE:
+      }
+      case CompanySize.ENTERPRISE: {
         return '200+ employees';
-      default:
+      }
+      default: {
         return this.value;
+      }
     }
   }
 }

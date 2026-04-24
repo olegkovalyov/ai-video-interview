@@ -10,7 +10,9 @@ describe('SkillCategoryMapper', () => {
     mapper = new SkillCategoryMapper();
   });
 
-  const createCategoryEntity = (overrides: Partial<SkillCategoryEntity> = {}): SkillCategoryEntity => {
+  const createCategoryEntity = (
+    overrides: Partial<SkillCategoryEntity> = {},
+  ): SkillCategoryEntity => {
     const entity = new SkillCategoryEntity();
     entity.id = uuidv4();
     entity.name = 'Programming Languages';
@@ -23,20 +25,24 @@ describe('SkillCategoryMapper', () => {
     return entity;
   };
 
-  const createCategoryDomain = (overrides: {
-    id?: string;
-    name?: string;
-    slug?: string;
-    description?: string | null;
-    sortOrder?: number;
-    createdAt?: Date;
-    updatedAt?: Date;
-  } = {}): SkillCategory => {
+  const createCategoryDomain = (
+    overrides: {
+      id?: string;
+      name?: string;
+      slug?: string;
+      description?: string | null;
+      sortOrder?: number;
+      createdAt?: Date;
+      updatedAt?: Date;
+    } = {},
+  ): SkillCategory => {
     return SkillCategory.reconstitute(
       overrides.id ?? uuidv4(),
       overrides.name ?? 'Programming Languages',
       overrides.slug ?? 'programming-languages',
-      overrides.description !== undefined ? overrides.description : 'Skills related to programming languages',
+      overrides.description === undefined
+        ? 'Skills related to programming languages'
+        : overrides.description,
       overrides.sortOrder ?? 1,
       overrides.createdAt ?? new Date('2025-01-20T07:00:00Z'),
       overrides.updatedAt ?? new Date('2025-04-10T15:00:00Z'),
@@ -98,7 +104,9 @@ describe('SkillCategoryMapper', () => {
       expect(category.id).toBe(id);
       expect(category.name).toBe('Programming Languages');
       expect(category.slug).toBe('programming-languages');
-      expect(category.description).toBe('Skills related to programming languages');
+      expect(category.description).toBe(
+        'Skills related to programming languages',
+      );
       expect(category.sortOrder).toBe(1);
       expect(category.createdAt).toEqual(new Date('2025-01-20T07:00:00Z'));
       expect(category.updatedAt).toEqual(new Date('2025-04-10T15:00:00Z'));
@@ -124,9 +132,21 @@ describe('SkillCategoryMapper', () => {
   describe('toDomainList()', () => {
     it('should map array of entities to domain models', () => {
       const entities = [
-        createCategoryEntity({ name: 'Languages', slug: 'languages', sortOrder: 1 }),
-        createCategoryEntity({ name: 'Frameworks', slug: 'frameworks', sortOrder: 2 }),
-        createCategoryEntity({ name: 'Databases', slug: 'databases', sortOrder: 3 }),
+        createCategoryEntity({
+          name: 'Languages',
+          slug: 'languages',
+          sortOrder: 1,
+        }),
+        createCategoryEntity({
+          name: 'Frameworks',
+          slug: 'frameworks',
+          sortOrder: 2,
+        }),
+        createCategoryEntity({
+          name: 'Databases',
+          slug: 'databases',
+          sortOrder: 3,
+        }),
       ];
 
       const categories = mapper.toDomainList(entities);

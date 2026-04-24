@@ -1,11 +1,10 @@
-/**
- * SelectRole Command
- * User selects their role (can only be done once!)
- * Admin role can be assigned via internal/admin endpoints
- */
-export class SelectRoleCommand {
+import { Command } from '@nestjs/cqrs';
+
+export class SelectRoleCommand extends Command<void> {
   constructor(
     public readonly userId: string,
     public readonly role: 'candidate' | 'hr' | 'admin',
-  ) {}
+  ) {
+    super();
+  }
 }

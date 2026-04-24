@@ -128,7 +128,9 @@ describe('OutboxSchedulerService', () => {
       const pendingEvents = [{ eventId: 'evt-1', eventType: 'user.created' }];
       mockOutboxRepository.find.mockResolvedValue(pendingEvents);
 
-      mockOutboxQueue.add.mockRejectedValueOnce(new Error('Redis connection lost'));
+      mockOutboxQueue.add.mockRejectedValueOnce(
+        new Error('Redis connection lost'),
+      );
 
       await service.pollPendingEvents();
 
@@ -144,7 +146,9 @@ describe('OutboxSchedulerService', () => {
     });
 
     it('should reset isPolling on error', async () => {
-      mockOutboxRepository.find.mockRejectedValue(new Error('DB connection lost'));
+      mockOutboxRepository.find.mockRejectedValue(
+        new Error('DB connection lost'),
+      );
 
       await service.pollPendingEvents();
 
@@ -287,7 +291,9 @@ describe('OutboxSchedulerService', () => {
       await service.pollStuckEvents();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to process stuck outbox events: DB timeout'),
+        expect.stringContaining(
+          'Failed to process stuck outbox events: DB timeout',
+        ),
         expect.objectContaining({
           category: 'outbox',
           action: 'stuck_error',
@@ -305,10 +311,9 @@ describe('OutboxSchedulerService', () => {
 
       expect(mockOutboxRepository.createQueryBuilder).toHaveBeenCalled();
       expect(mockQueryBuilder.delete).toHaveBeenCalled();
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'status = :status',
-        { status: OUTBOX_STATUS.PUBLISHED },
-      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('status = :status', {
+        status: OUTBOX_STATUS.PUBLISHED,
+      });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'published_at < :date',
         { date: expect.any(Date) },

@@ -7,5 +7,12 @@
  *   repository.save(aggregate, tx)   // pass tx from UnitOfWork callback
  *   outboxService.saveEvent(..., tx)  // same transaction context
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ITransactionContext {}
+
+/**
+ * Opaque brand marker — prevents arbitrary objects from being passed as a
+ * transaction context. The concrete infrastructure implementation
+ * (e.g., TypeORM `EntityManager`) is cast to this type at the boundary.
+ */
+export type ITransactionContext = {
+  readonly __brand: 'TransactionContext';
+};

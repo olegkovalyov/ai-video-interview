@@ -1,9 +1,7 @@
-import { DomainException } from '../exceptions/domain.exception';
-
 /**
  * SkillCategory Entity
- * Represents a category grouping related skills
- * Read-only for MVP (managed via seed data)
+ * Represents a category grouping related skills.
+ * Read-only for MVP (managed via seed data).
  */
 export class SkillCategory {
   private constructor(

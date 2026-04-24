@@ -1,12 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  setupTestApp,
-  createTestDataSource,
-  cleanDatabase,
-} from '../../setup';
+import { setupTestApp, createTestDataSource, cleanDatabase } from '../../setup';
 import { CreateSkillCommand } from '../../../../src/application/commands/admin/create-skill/create-skill.command';
 import { DeactivateSkillCommand } from '../../../../src/application/commands/admin/deactivate-skill/deactivate-skill.command';
 import { ListSkillsQuery } from '../../../../src/application/queries/skills/list-skills/list-skills.query';
@@ -40,13 +36,19 @@ describe('ListSkillsQuery Integration', () => {
   describe('Success Cases', () => {
     it('should list all skills including seeded ones', async () => {
       // Act - Query all skills
-      const query = new ListSkillsQuery(1, 100, undefined, undefined, undefined);
+      const query = new ListSkillsQuery(
+        1,
+        100,
+        undefined,
+        undefined,
+        undefined,
+      );
       const result = await queryBus.execute(query);
 
       // Assert - Should have seeded skills (52 skills from migration)
       expect(result.data.length).toBeGreaterThan(50);
       expect(result.total).toBeGreaterThan(50);
-      
+
       // Verify Read Model structure
       const skill = result.data[0];
       expect(skill).toHaveProperty('id');
@@ -65,7 +67,13 @@ describe('ListSkillsQuery Integration', () => {
       const categoryId = categories[0].id;
 
       // Act - Query skills in this category
-      const query = new ListSkillsQuery(1, 100, categoryId, undefined, undefined);
+      const query = new ListSkillsQuery(
+        1,
+        100,
+        categoryId,
+        undefined,
+        undefined,
+      );
       const result = await queryBus.execute(query);
 
       // Assert - All skills should be from this category
@@ -86,11 +94,17 @@ describe('ListSkillsQuery Integration', () => {
         adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
-      
+
       await commandBus.execute(new DeactivateSkillCommand(skillId, uuidv4()));
 
       // Act - Query only active skills
-      const activeQuery = new ListSkillsQuery(1, 100, undefined, true, undefined);
+      const activeQuery = new ListSkillsQuery(
+        1,
+        100,
+        undefined,
+        true,
+        undefined,
+      );
       const activeResult = await queryBus.execute(activeQuery);
 
       // Assert - Should not contain inactive skill
@@ -98,21 +112,53 @@ describe('ListSkillsQuery Integration', () => {
       expect(hasInactive).toBe(false);
 
       // Act - Query only inactive skills
-      const inactiveQuery = new ListSkillsQuery(1, 100, undefined, false, undefined);
+      const inactiveQuery = new ListSkillsQuery(
+        1,
+        100,
+        undefined,
+        false,
+        undefined,
+      );
       const inactiveResult = await queryBus.execute(inactiveQuery);
 
       // Assert - Should contain our inactive skill
-      const foundInactive = inactiveResult.data.find((s: any) => s.id === skillId);
+      const foundInactive = inactiveResult.data.find(
+        (s: any) => s.id === skillId,
+      );
       expect(foundInactive).toBeDefined();
-      expect(foundInactive.isActive).toBe(false);
+      expect(foundInactive?.isActive).toBe(false);
     });
 
     it('should search skills by name', async () => {
       // Arrange - Create skills with specific names
       const adminId = uuidv4();
-      await commandBus.execute(new CreateSkillCommand('TypeScript Pro', 'typescript-pro', null, null, adminId));
-      await commandBus.execute(new CreateSkillCommand('JavaScript Advanced', 'javascript-advanced', null, null, adminId));
-      await commandBus.execute(new CreateSkillCommand('Python Expert', 'python-expert', null, null, adminId));
+      await commandBus.execute(
+        new CreateSkillCommand(
+          'TypeScript Pro',
+          'typescript-pro',
+          null,
+          null,
+          adminId,
+        ),
+      );
+      await commandBus.execute(
+        new CreateSkillCommand(
+          'JavaScript Advanced',
+          'javascript-advanced',
+          null,
+          null,
+          adminId,
+        ),
+      );
+      await commandBus.execute(
+        new CreateSkillCommand(
+          'Python Expert',
+          'python-expert',
+          null,
+          null,
+          adminId,
+        ),
+      );
 
       // Act - Search for "Script"
       const query = new ListSkillsQuery(1, 100, undefined, undefined, 'Script');
@@ -127,7 +173,13 @@ describe('ListSkillsQuery Integration', () => {
 
     it('should paginate results', async () => {
       // Act - Get first page (limit 5)
-      const page1Query = new ListSkillsQuery(1, 5, undefined, undefined, undefined);
+      const page1Query = new ListSkillsQuery(
+        1,
+        5,
+        undefined,
+        undefined,
+        undefined,
+      );
       const page1 = await queryBus.execute(page1Query);
 
       // Assert page 1
@@ -135,7 +187,13 @@ describe('ListSkillsQuery Integration', () => {
       expect(page1.total).toBeGreaterThan(5);
 
       // Act - Get second page (page 2, limit 5)
-      const page2Query = new ListSkillsQuery(2, 5, undefined, undefined, undefined);
+      const page2Query = new ListSkillsQuery(
+        2,
+        5,
+        undefined,
+        undefined,
+        undefined,
+      );
       const page2 = await queryBus.execute(page2Query);
 
       // Assert page 2
@@ -144,8 +202,8 @@ describe('ListSkillsQuery Integration', () => {
 
       // Assert pages are different
       const page1Ids = page1.data.map((s: any) => s.id);
-      const page2Ids = page2.data.map((s: any) => s.id);
-      const intersection = page1Ids.filter((id: string) => page2Ids.includes(id));
+      const page2Ids = new Set(page2.data.map((s: any) => s.id));
+      const intersection = page1Ids.filter((id: string) => page2Ids.has(id));
       expect(intersection.length).toBe(0); // No overlap
     });
 
@@ -170,7 +228,13 @@ describe('ListSkillsQuery Integration', () => {
 
     it('should return empty array when no skills match', async () => {
       // Act - Search for non-existent skill
-      const query = new ListSkillsQuery(1, 100, undefined, undefined, 'NonExistentSkillXYZ123');
+      const query = new ListSkillsQuery(
+        1,
+        100,
+        undefined,
+        undefined,
+        'NonExistentSkillXYZ123',
+      );
       const result = await queryBus.execute(query);
 
       // Assert
@@ -184,16 +248,24 @@ describe('ListSkillsQuery Integration', () => {
       const result = await queryBus.execute(query);
 
       // Assert - Read Models should have category info
-      const skillWithCategory = result.data.find((s: any) => s.categoryId !== null);
+      const skillWithCategory = result.data.find(
+        (s: any) => s.categoryId !== null,
+      );
       expect(skillWithCategory).toBeDefined();
       expect(skillWithCategory).toHaveProperty('categoryId');
       expect(skillWithCategory).toHaveProperty('categoryName');
-      expect(skillWithCategory.categoryName).toBeTruthy();
+      expect(skillWithCategory?.categoryName).toBeTruthy();
     });
 
     it('should handle large offset gracefully', async () => {
       // Act - Offset beyond total
-      const query = new ListSkillsQuery(1000, 10, undefined, undefined, undefined);
+      const query = new ListSkillsQuery(
+        1000,
+        10,
+        undefined,
+        undefined,
+        undefined,
+      );
       const result = await queryBus.execute(query);
 
       // Assert - Empty result but valid response
@@ -205,7 +277,13 @@ describe('ListSkillsQuery Integration', () => {
   describe('Edge Cases', () => {
     it('should handle null/undefined filters as "no filter"', async () => {
       // Act - All filters undefined
-      const query = new ListSkillsQuery(1, 100, undefined, undefined, undefined);
+      const query = new ListSkillsQuery(
+        1,
+        100,
+        undefined,
+        undefined,
+        undefined,
+      );
       const result = await queryBus.execute(query);
 
       // Assert - Returns all skills
@@ -216,7 +294,13 @@ describe('ListSkillsQuery Integration', () => {
     it('should return empty array for non-existent category', async () => {
       // Act
       const nonExistentCategoryId = uuidv4();
-      const query = new ListSkillsQuery(1, 100, nonExistentCategoryId, undefined, undefined);
+      const query = new ListSkillsQuery(
+        1,
+        100,
+        nonExistentCategoryId,
+        undefined,
+        undefined,
+      );
       const result = await queryBus.execute(query);
 
       // Assert
@@ -237,14 +321,34 @@ describe('ListSkillsQuery Integration', () => {
     it('should be case-insensitive for search', async () => {
       // Arrange
       const adminId = uuidv4();
-      await commandBus.execute(new CreateSkillCommand('CamelCase Skill', 'camelcase-skill', null, null, adminId));
+      await commandBus.execute(
+        new CreateSkillCommand(
+          'CamelCase Skill',
+          'camelcase-skill',
+          null,
+          null,
+          adminId,
+        ),
+      );
 
       // Act - Search lowercase
-      const lowerQuery = new ListSkillsQuery(1, 100, undefined, undefined, 'camelcase');
+      const lowerQuery = new ListSkillsQuery(
+        1,
+        100,
+        undefined,
+        undefined,
+        'camelcase',
+      );
       const lowerResult = await queryBus.execute(lowerQuery);
 
       // Act - Search uppercase
-      const upperQuery = new ListSkillsQuery(1, 100, undefined, undefined, 'CAMELCASE');
+      const upperQuery = new ListSkillsQuery(
+        1,
+        100,
+        undefined,
+        undefined,
+        'CAMELCASE',
+      );
       const upperResult = await queryBus.execute(upperQuery);
 
       // Assert - Both find the skill

@@ -24,7 +24,7 @@ export class GetUserStatsHandler implements IQueryHandler<GetUserStatsQuery> {
     private readonly userReadRepository: IUserReadRepository,
   ) {}
 
-  async execute(query: GetUserStatsQuery): Promise<UserStatsResult> {
+  async execute(_query: GetUserStatsQuery): Promise<UserStatsResult> {
     const [total, byStatus] = await Promise.all([
       this.userReadRepository.count(),
       this.userReadRepository.countByStatus(),

@@ -14,26 +14,25 @@ import { LoggerModule } from '../logger/logger.module';
  * Consumers: Auth events for last_login_at updates
  */
 @Module({
-  imports: [
-    ConfigModule,
-    TypeOrmModule.forFeature([UserEntity]),
-    LoggerModule,
-  ],
+  imports: [ConfigModule, TypeOrmModule.forFeature([UserEntity]), LoggerModule],
   providers: [
     AuthLoginConsumer,
     {
       provide: 'KAFKA_CONFIG',
       useFactory: (configService: ConfigService) => ({
-        clientId: configService.get('KAFKA_CLIENT_ID', 'user-service'),
-        brokers: configService.get('KAFKA_BROKERS', 'localhost:9092').split(','),
-        ssl: configService.get('KAFKA_SSL', 'false') === 'true',
-        sasl: configService.get('KAFKA_SASL_ENABLED', 'false') === 'true'
-          ? {
-              mechanism: 'plain',
-              username: configService.get('KAFKA_SASL_USERNAME'),
-              password: configService.get('KAFKA_SASL_PASSWORD'),
-            }
-          : undefined,
+        clientId: configService.get<string>('KAFKA_CLIENT_ID', 'user-service'),
+        brokers: configService
+          .get<string>('KAFKA_BROKERS', 'localhost:9092')
+          .split(','),
+        ssl: configService.get<string>('KAFKA_SSL', 'false') === 'true',
+        sasl:
+          configService.get<string>('KAFKA_SASL_ENABLED', 'false') === 'true'
+            ? {
+                mechanism: 'plain' as const,
+                username: configService.get<string>('KAFKA_SASL_USERNAME'),
+                password: configService.get<string>('KAFKA_SASL_PASSWORD'),
+              }
+            : undefined,
       }),
       inject: [ConfigService],
     },

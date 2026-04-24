@@ -64,7 +64,7 @@ export class ExperienceLevel extends ValueObject<{ value: string }> {
    * Validation
    */
   private static isValid(level: string): boolean {
-    return this.VALID_LEVELS.includes(level as any);
+    return (this.VALID_LEVELS as readonly string[]).includes(level);
   }
 
   /**

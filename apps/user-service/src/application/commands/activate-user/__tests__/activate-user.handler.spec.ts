@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
 import { ActivateUserHandler } from '../activate-user.handler';
 import { ActivateUserCommand } from '../activate-user.command';
@@ -28,8 +29,20 @@ describe('ActivateUserHandler', () => {
       externalAuthId,
       Email.create(emailValue),
       FullName.create('John', 'Doe'),
-      { value: 'suspended', isActive: () => false, isSuspended: () => true, isDeleted: () => false } as any,
-      { value: 'candidate', isPending: () => false, isCandidate: () => true, isHR: () => false, isAdmin: () => false, toString: () => 'candidate' } as any,
+      {
+        value: 'suspended',
+        isActive: () => false,
+        isSuspended: () => true,
+        isDeleted: () => false,
+      } as any,
+      {
+        value: 'candidate',
+        isPending: () => false,
+        isCandidate: () => true,
+        isHR: () => false,
+        isAdmin: () => false,
+        toString: () => 'candidate',
+      } as any,
       undefined, // avatarUrl
       undefined, // bio
       undefined, // phone

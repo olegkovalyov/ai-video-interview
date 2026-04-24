@@ -1,4 +1,4 @@
-import { CandidateProfile } from '../aggregates/candidate-profile.aggregate';
+import type { CandidateProfile } from '../aggregates/candidate-profile.aggregate';
 import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 /**

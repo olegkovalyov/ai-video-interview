@@ -24,6 +24,22 @@
         "postgresql://postgres:postgres@localhost:5432/ai_video_interview_analysis"
       ]
     },
+    "postgres-billing": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5432/ai_video_interview_billing"
+      ]
+    },
+    "postgres-notification": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5432/ai_video_interview_notification"
+      ]
+    },
     "context7": {
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp@latest"]

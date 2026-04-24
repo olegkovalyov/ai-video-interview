@@ -1,10 +1,13 @@
 import { AggregateRoot } from '../base/base.aggregate-root';
-import { Email } from '../value-objects/email.vo';
-import { FullName } from '../value-objects/full-name.vo';
+import type { Email } from '../value-objects/email.vo';
+import type { FullName } from '../value-objects/full-name.vo';
 import { UserStatus } from '../value-objects/user-status.vo';
 import { UserRole } from '../value-objects/user-role.vo';
 import { UserCreatedEvent } from '../events/user-created.event';
-import { UserUpdatedEvent, type UserProfileChanges } from '../events/user-updated.event';
+import {
+  UserUpdatedEvent,
+  type UserProfileChanges,
+} from '../events/user-updated.event';
 import { UserSuspendedEvent } from '../events/user-suspended.event';
 import { UserActivatedEvent } from '../events/user-activated.event';
 import { UserDeletedEvent } from '../events/user-deleted.event';
@@ -330,7 +333,7 @@ export class User extends AggregateRoot {
     // Can only select role if currently pending
     if (!this._role.isPending()) {
       throw new InvalidUserOperationException(
-        'Role has already been selected and cannot be changed'
+        'Role has already been selected and cannot be changed',
       );
     }
 

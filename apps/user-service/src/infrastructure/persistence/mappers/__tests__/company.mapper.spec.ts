@@ -12,7 +12,9 @@ describe('CompanyMapper', () => {
     mapper = new CompanyMapper(new UserCompanyMapper());
   });
 
-  const createCompanyEntity = (overrides: Partial<CompanyEntity> = {}): CompanyEntity => {
+  const createCompanyEntity = (
+    overrides: Partial<CompanyEntity> = {},
+  ): CompanyEntity => {
     const entity = new CompanyEntity();
     entity.id = uuidv4();
     entity.name = 'Acme Corp';
@@ -30,26 +32,32 @@ describe('CompanyMapper', () => {
     return entity;
   };
 
-  const createCompanyDomain = (overrides: {
-    id?: string;
-    name?: string;
-    description?: string | null;
-    website?: string | null;
-    logoUrl?: string | null;
-    industry?: string | null;
-    size?: CompanySize | null;
-    location?: string | null;
-    isActive?: boolean;
-    createdBy?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
-  } = {}): Company => {
+  const createCompanyDomain = (
+    overrides: {
+      id?: string;
+      name?: string;
+      description?: string | null;
+      website?: string | null;
+      logoUrl?: string | null;
+      industry?: string | null;
+      size?: CompanySize | null;
+      location?: string | null;
+      isActive?: boolean;
+      createdBy?: string;
+      createdAt?: Date;
+      updatedAt?: Date;
+    } = {},
+  ): Company => {
     return Company.reconstitute(
       overrides.id ?? uuidv4(),
       overrides.name ?? 'Acme Corp',
-      'description' in overrides ? overrides.description! : 'A leading technology company',
+      'description' in overrides
+        ? overrides.description!
+        : 'A leading technology company',
       'website' in overrides ? overrides.website! : 'https://acme.com',
-      'logoUrl' in overrides ? overrides.logoUrl! : 'https://cdn.example.com/acme-logo.png',
+      'logoUrl' in overrides
+        ? overrides.logoUrl!
+        : 'https://cdn.example.com/acme-logo.png',
       'industry' in overrides ? overrides.industry! : 'Technology',
       'size' in overrides ? overrides.size! : CompanySize.large(),
       'location' in overrides ? overrides.location! : 'San Francisco, CA',
@@ -194,7 +202,10 @@ describe('CompanyMapper', () => {
     });
 
     it('should map all CompanySize entity values to domain value objects', () => {
-      const entitySizes: Array<{ entitySize: CompanyEntity['size']; check: (s: CompanySize) => boolean }> = [
+      const entitySizes: Array<{
+        entitySize: CompanyEntity['size'];
+        check: (s: CompanySize) => boolean;
+      }> = [
         { entitySize: '1-10', check: (s) => s.isSmall() },
         { entitySize: '11-50', check: (s) => s.isMedium() },
         { entitySize: '51-200', check: (s) => s.isLarge() },

@@ -1,6 +1,5 @@
 import { Company } from '../company.aggregate';
 import { CompanySize } from '../../value-objects/company-size.vo';
-import { DomainException } from '../../exceptions/domain.exception';
 import { CompanyCreatedEvent } from '../../events/company-created.event';
 import { CompanyUpdatedEvent } from '../../events/company-updated.event';
 import { CompanyDeactivatedEvent } from '../../events/company-deactivated.event';
@@ -135,7 +134,7 @@ describe('Company Aggregate', () => {
       const events = company.getUncommittedEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(CompanyCreatedEvent);
-      
+
       const event = events[0] as CompanyCreatedEvent;
       expect(event.companyId).toBe(validId);
       expect(event.name).toBe(validName);
@@ -156,7 +155,7 @@ describe('Company Aggregate', () => {
           validCreatedBy,
           validUserCompanyId,
           validPosition,
-        )
+        ),
       ).toThrow('Company name cannot be empty');
     });
 
@@ -175,7 +174,7 @@ describe('Company Aggregate', () => {
           validCreatedBy,
           validUserCompanyId,
           validPosition,
-        )
+        ),
       ).toThrow('Company name is too long (max 255 characters)');
     });
 
@@ -193,7 +192,7 @@ describe('Company Aggregate', () => {
           '',
           validUserCompanyId,
           validPosition,
-        )
+        ),
       ).toThrow('Creator ID cannot be empty');
     });
   });
@@ -265,7 +264,7 @@ describe('Company Aggregate', () => {
       const events = company.getUncommittedEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(CompanyUpdatedEvent);
-      
+
       const event = events[0] as CompanyUpdatedEvent;
       expect(event.changes).toHaveProperty('name', 'Updated Name');
     });
@@ -318,7 +317,15 @@ describe('Company Aggregate', () => {
       );
 
       expect(() =>
-        company.update('', validDescription, validWebsite, validLogoUrl, validIndustry, validSize, validLocation)
+        company.update(
+          '',
+          validDescription,
+          validWebsite,
+          validLogoUrl,
+          validIndustry,
+          validSize,
+          validLocation,
+        ),
       ).toThrow('Company name cannot be empty');
     });
   });
@@ -364,7 +371,12 @@ describe('Company Aggregate', () => {
       );
 
       expect(() =>
-        company.addUser('uc-duplicate', validCreatedBy, 'Another Position', false)
+        company.addUser(
+          'uc-duplicate',
+          validCreatedBy,
+          'Another Position',
+          false,
+        ),
       ).toThrow('User already associated with this company');
     });
 
@@ -410,7 +422,7 @@ describe('Company Aggregate', () => {
       );
 
       expect(() => company.removeUser(validCreatedBy)).toThrow(
-        'Cannot remove company creator'
+        'Cannot remove company creator',
       );
     });
 
@@ -429,7 +441,9 @@ describe('Company Aggregate', () => {
         validPosition,
       );
 
-      expect(() => company.removeUser('non-existent')).toThrow('User not found in company');
+      expect(() => company.removeUser('non-existent')).toThrow(
+        'User not found in company',
+      );
     });
   });
 
@@ -469,9 +483,9 @@ describe('Company Aggregate', () => {
         validPosition,
       );
 
-      expect(() => company.updateUserPosition('non-existent', 'Position')).toThrow(
-        'User not found in company'
-      );
+      expect(() =>
+        company.updateUserPosition('non-existent', 'Position'),
+      ).toThrow('User not found in company');
     });
   });
 
@@ -511,7 +525,9 @@ describe('Company Aggregate', () => {
         validPosition,
       );
 
-      expect(() => company.setUserPrimary('non-existent')).toThrow('User not found in company');
+      expect(() => company.setUserPrimary('non-existent')).toThrow(
+        'User not found in company',
+      );
     });
   });
 

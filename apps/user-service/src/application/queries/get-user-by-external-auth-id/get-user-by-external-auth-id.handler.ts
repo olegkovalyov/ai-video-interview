@@ -10,14 +10,18 @@ import { UserNotFoundException } from '../../../domain/exceptions/user.exception
  * Returns Read Model (plain object) - no domain entity
  */
 @QueryHandler(GetUserByExternalAuthIdQuery)
-export class GetUserByExternalAuthIdHandler implements IQueryHandler<GetUserByExternalAuthIdQuery> {
+export class GetUserByExternalAuthIdHandler
+  implements IQueryHandler<GetUserByExternalAuthIdQuery>
+{
   constructor(
     @Inject('IUserReadRepository')
     private readonly userReadRepository: IUserReadRepository,
   ) {}
 
   async execute(query: GetUserByExternalAuthIdQuery): Promise<UserReadModel> {
-    const user = await this.userReadRepository.findByExternalAuthId(query.externalAuthId);
+    const user = await this.userReadRepository.findByExternalAuthId(
+      query.externalAuthId,
+    );
 
     if (!user) {
       throw new UserNotFoundException(query.externalAuthId);

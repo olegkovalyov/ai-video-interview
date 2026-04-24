@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -135,7 +135,7 @@ describe('SelectRoleCommand Integration', () => {
       const userEntity = await dataSource
         .getRepository(UserEntity)
         .findOne({ where: { id: userId } });
-      
+
       expect(userEntity!.role).toBe('hr');
     });
   });

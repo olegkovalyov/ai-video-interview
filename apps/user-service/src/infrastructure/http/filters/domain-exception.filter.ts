@@ -1,11 +1,6 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
-import { Response } from 'express';
+import { Catch, HttpStatus, Logger } from '@nestjs/common';
+import type { ExceptionFilter, ArgumentsHost } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 import {
   UserNotFoundException,
@@ -49,7 +44,7 @@ export class DomainExceptionFilter implements ExceptionFilter {
   catch(exception: DomainException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest();
+    const request = ctx.getRequest<Request>();
 
     const { status, error } = this.mapExceptionToHttp(exception);
 

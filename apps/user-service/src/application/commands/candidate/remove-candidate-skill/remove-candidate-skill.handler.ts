@@ -38,7 +38,7 @@ export class RemoveCandidateSkillHandler
 
     // 4. Publish domain events
     const events = profile.getUncommittedEvents();
-    events.forEach((event) => this.eventBus.publish(event));
+    events.forEach((event) => { this.eventBus.publish(event); });
     profile.clearEvents();
 
     this.logger.info('Candidate skill removed successfully', {

@@ -7,7 +7,8 @@ describe('CandidateSkill Entity', () => {
   const validId = 'skill-123';
   const validCandidateId = 'candidate-456';
   const validSkillId = 'react-789';
-  const validDescription = 'Experienced React developer with 5 years of building SPAs';
+  const validDescription =
+    'Experienced React developer with 5 years of building SPAs';
   const validProficiency = ProficiencyLevel.advanced();
   const validYears = YearsOfExperience.fromNumber(5);
 
@@ -67,7 +68,7 @@ describe('CandidateSkill Entity', () => {
           validDescription,
           validProficiency,
           validYears,
-        )
+        ),
       ).toThrow(DomainException);
       expect(() =>
         CandidateSkill.create(
@@ -77,7 +78,7 @@ describe('CandidateSkill Entity', () => {
           validDescription,
           validProficiency,
           validYears,
-        )
+        ),
       ).toThrow('Candidate ID cannot be empty');
     });
 
@@ -90,7 +91,7 @@ describe('CandidateSkill Entity', () => {
           validDescription,
           validProficiency,
           validYears,
-        )
+        ),
       ).toThrow(DomainException);
     });
 
@@ -104,7 +105,7 @@ describe('CandidateSkill Entity', () => {
           longDescription,
           validProficiency,
           validYears,
-        )
+        ),
       ).toThrow('Skill description is too long (max 1000 characters)');
     });
   });
@@ -160,7 +161,7 @@ describe('CandidateSkill Entity', () => {
       );
 
       expect(() => skill.updateDescription('a'.repeat(1001))).toThrow(
-        'Skill description is too long (max 1000 characters)'
+        'Skill description is too long (max 1000 characters)',
       );
     });
   });

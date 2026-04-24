@@ -1,30 +1,23 @@
-import { createParamDecorator, ExecutionContext, Logger } from '@nestjs/common';
-
-const logger = new Logger('CurrentUserDecorator');
+import type { ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, UnauthorizedException } from '@nestjs/common';
+import type { AuthenticatedRequest } from '../types/authenticated-request';
 
 /**
- * Current User Decorator
- * Extracts user ID from JWT payload in request
- * 
- * ВАЖНО: Сначала пытается взять userId (наш внутренний ID),
- * затем sub (для обратной совместимости со старыми токенами)
+ * Resolves the current user's internal ID from the request context.
+ *
+ * Prefers `userId` (our internal UUID) over `sub` (Keycloak subject) — older
+ * tokens carry only `sub`, so we keep it as fallback. Throws if neither is
+ * present: routes that reach this decorator must be authenticated.
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): string => {
-    const request = ctx.switchToHttp().getRequest();
-    
-    const userId = request.user?.userId;
-    const sub = request.user?.sub;
-    const email = request.user?.email;
-    
-    logger.log(`🎯 [User Service] CurrentUser decorator - userId=${userId}, sub=${sub}, email=${email}`);
-    
-    // ИСПРАВЛЕНО: userId должен быть первым, а не sub!
-    // sub содержит keycloakId (externalAuthId), а не наш внутренний userId
-    const result = request.user?.userId || request.user?.sub;
-    
-    logger.log(`🎯 [User Service] CurrentUser returning: ${result}`);
-    
-    return result;
+  (_data: unknown, ctx: ExecutionContext): string => {
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
+    const resolved = request.user?.userId ?? request.user?.sub;
+
+    if (!resolved) {
+      throw new UnauthorizedException('User identity missing from request');
+    }
+
+    return resolved;
   },
 );

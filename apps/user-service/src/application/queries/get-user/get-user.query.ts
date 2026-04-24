@@ -1,7 +1,8 @@
-/**
- * Get User Query
- * Query to retrieve user by ID
- */
-export class GetUserQuery {
-  constructor(public readonly userId: string) {}
+import { Query } from '@nestjs/cqrs';
+import type { UserReadModel } from '../../../domain/read-models/user.read-model';
+
+export class GetUserQuery extends Query<UserReadModel> {
+  constructor(public readonly userId: string) {
+    super();
+  }
 }

@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -55,39 +55,63 @@ describe('GetCandidateSkillsQuery Integration', () => {
 
       // Create skills
       const adminId = uuidv4();
-      const skill1Command = new CreateSkillCommand('Node.js Test', 'nodejs-test', null, null, adminId);
+      const skill1Command = new CreateSkillCommand(
+        'Node.js Test',
+        'nodejs-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('React Test', 'react-test', null, null, adminId);
+      const skill2Command = new CreateSkillCommand(
+        'React Test',
+        'react-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      const skill3Command = new CreateSkillCommand('TypeScript Test', 'typescript-test', null, null, adminId);
+      const skill3Command = new CreateSkillCommand(
+        'TypeScript Test',
+        'typescript-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill3Id } = await commandBus.execute(skill3Command);
 
       // Add skills
-      await commandBus.execute(new AddCandidateSkillCommand(
-        candidateId,
-        skill1Id,
-        'Backend development',
-        'advanced',
-        5,
-      ));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill1Id,
+          'Backend development',
+          'advanced',
+          5,
+        ),
+      );
 
-      await commandBus.execute(new AddCandidateSkillCommand(
-        candidateId,
-        skill2Id,
-        'Frontend development',
-        'intermediate',
-        3,
-      ));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill2Id,
+          'Frontend development',
+          'intermediate',
+          3,
+        ),
+      );
 
-      await commandBus.execute(new AddCandidateSkillCommand(
-        candidateId,
-        skill3Id,
-        'Type-safe development',
-        'expert',
-        7,
-      ));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill3Id,
+          'Type-safe development',
+          'expert',
+          7,
+        ),
+      );
 
       // Act
       const query = new GetCandidateSkillsQuery(candidateId, candidateId);
@@ -96,11 +120,11 @@ describe('GetCandidateSkillsQuery Integration', () => {
       // Assert - Returns grouped by category
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
-      
+
       // Get all skills from all categories
-      const allSkills = result.flatMap(group => group.skills);
+      const allSkills = result.flatMap((group) => group.skills);
       expect(allSkills.length).toBe(3);
-      
+
       // Verify skill structure (ReadModel)
       const skill = allSkills[0];
       expect(skill).toHaveProperty('skillId');
@@ -138,25 +162,29 @@ describe('GetCandidateSkillsQuery Integration', () => {
       const { skillId } = await commandBus.execute(skillCommand);
 
       // Add skill with details
-      await commandBus.execute(new AddCandidateSkillCommand(
-        candidateId,
-        skillId,
-        'Building SPAs with Vue.js and Vuex',
-        'advanced',
-        4,
-      ));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skillId,
+          'Building SPAs with Vue.js and Vuex',
+          'advanced',
+          4,
+        ),
+      );
 
       // Act
       const query = new GetCandidateSkillsQuery(candidateId, candidateId);
       const result = await queryBus.execute(query);
 
       // Assert
-      const allSkills = result.flatMap(group => group.skills);
+      const allSkills = result.flatMap((group) => group.skills);
       expect(allSkills.length).toBe(1);
       const candidateSkill = allSkills[0];
-      
+
       expect(candidateSkill.skillId).toBe(skillId);
-      expect(candidateSkill.description).toBe('Building SPAs with Vue.js and Vuex');
+      expect(candidateSkill.description).toBe(
+        'Building SPAs with Vue.js and Vuex',
+      );
       expect(candidateSkill.proficiencyLevel).toBe('advanced');
       expect(candidateSkill.yearsOfExperience).toBe(4);
     });
@@ -177,28 +205,64 @@ describe('GetCandidateSkillsQuery Integration', () => {
 
       // Create multiple skills with different proficiency
       const adminId = uuidv4();
-      const skill1Command = new CreateSkillCommand('Skill Expert Test', 'skill-expert-test', null, null, adminId);
+      const skill1Command = new CreateSkillCommand(
+        'Skill Expert Test',
+        'skill-expert-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('Skill Beginner Test', 'skill-beginner-test', null, null, adminId);
+      const skill2Command = new CreateSkillCommand(
+        'Skill Beginner Test',
+        'skill-beginner-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      const skill3Command = new CreateSkillCommand('Skill Advanced Test', 'skill-advanced-test', null, null, adminId);
+      const skill3Command = new CreateSkillCommand(
+        'Skill Advanced Test',
+        'skill-advanced-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill3Id } = await commandBus.execute(skill3Command);
 
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill1Id, null, 'expert', 10));
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill2Id, null, 'beginner', 1));
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill3Id, null, 'advanced', 5));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(candidateId, skill1Id, null, 'expert', 10),
+      );
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill2Id,
+          null,
+          'beginner',
+          1,
+        ),
+      );
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill3Id,
+          null,
+          'advanced',
+          5,
+        ),
+      );
 
       // Act
       const query = new GetCandidateSkillsQuery(candidateId, candidateId);
       const result = await queryBus.execute(query);
 
       // Assert - Should return all 3 skills
-      const allSkills = result.flatMap(group => group.skills);
+      const allSkills = result.flatMap((group) => group.skills);
       expect(allSkills.length).toBe(3);
-      
-      const proficiencies = allSkills.map(s => s.proficiencyLevel);
+
+      const proficiencies = allSkills.map((s) => s.proficiencyLevel);
       expect(proficiencies).toContain('beginner');
       expect(proficiencies).toContain('advanced');
       expect(proficiencies).toContain('expert');
@@ -242,25 +306,53 @@ describe('GetCandidateSkillsQuery Integration', () => {
 
       // Create and add skills with delay
       const adminId = uuidv4();
-      const skill1Command = new CreateSkillCommand('First Skill Test', 'first-skill-test', null, null, adminId);
+      const skill1Command = new CreateSkillCommand(
+        'First Skill Test',
+        'first-skill-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill1Id, 'First', 'beginner', 1));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill1Id,
+          'First',
+          'beginner',
+          1,
+        ),
+      );
 
       // Small delay
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const skill2Command = new CreateSkillCommand('Second Skill Test', 'second-skill-test', null, null, adminId);
+      const skill2Command = new CreateSkillCommand(
+        'Second Skill Test',
+        'second-skill-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      await commandBus.execute(new AddCandidateSkillCommand(candidateId, skill2Id, 'Second', 'intermediate', 2));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill2Id,
+          'Second',
+          'intermediate',
+          2,
+        ),
+      );
 
       // Act
       const query = new GetCandidateSkillsQuery(candidateId, candidateId);
       const result = await queryBus.execute(query);
 
       // Assert - Should return 2 skills
-      const allSkills = result.flatMap(group => group.skills);
+      const allSkills = result.flatMap((group) => group.skills);
       expect(allSkills.length).toBe(2);
     });
   });
@@ -272,7 +364,12 @@ describe('GetCandidateSkillsQuery Integration', () => {
       const adminId = uuidv4();
 
       // Act
-      const query = new GetCandidateSkillsQuery(nonExistentId, adminId, false, true);
+      const query = new GetCandidateSkillsQuery(
+        nonExistentId,
+        adminId,
+        false,
+        true,
+      );
       const result = await queryBus.execute(query);
 
       // Assert
@@ -302,9 +399,23 @@ describe('GetCandidateSkillsQuery Integration', () => {
 
       // Add skill to candidate2
       const adminId = uuidv4();
-      const skillCommand = new CreateSkillCommand('Private Skill Test', 'private-skill-test', null, null, adminId);
+      const skillCommand = new CreateSkillCommand(
+        'Private Skill Test',
+        'private-skill-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId } = await commandBus.execute(skillCommand);
-      await commandBus.execute(new AddCandidateSkillCommand(candidate2Id, skillId, null, 'intermediate', 3));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidate2Id,
+          skillId,
+          null,
+          'intermediate',
+          3,
+        ),
+      );
 
       // Act - Candidate1 trying to view Candidate2 skills
       const query = new GetCandidateSkillsQuery(candidate2Id, candidate1Id);

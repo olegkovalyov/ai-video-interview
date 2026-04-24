@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
 import { DeleteUserHandler } from '../delete-user.handler';
 import { DeleteUserCommand } from '../delete-user.command';
@@ -29,8 +30,20 @@ describe('DeleteUserHandler', () => {
       externalAuthId,
       Email.create(emailValue),
       FullName.create('John', 'Doe'),
-      { value: 'active', isActive: () => true, isSuspended: () => false, isDeleted: () => false } as any,
-      { value: 'candidate', isPending: () => false, isCandidate: () => true, isHR: () => false, isAdmin: () => false, toString: () => 'candidate' } as any,
+      {
+        value: 'active',
+        isActive: () => true,
+        isSuspended: () => false,
+        isDeleted: () => false,
+      } as any,
+      {
+        value: 'candidate',
+        isPending: () => false,
+        isCandidate: () => true,
+        isHR: () => false,
+        isAdmin: () => false,
+        toString: () => 'candidate',
+      } as any,
       undefined, // avatarUrl
       undefined, // bio
       undefined, // phone

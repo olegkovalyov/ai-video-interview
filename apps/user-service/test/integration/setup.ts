@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { UserEntity } from '../../src/infrastructure/persistence/entities/user.entity';
@@ -17,7 +18,7 @@ import { DatabaseModule } from '../../src/infrastructure/persistence/database.mo
 /**
  * Create PostgreSQL test database connection
  * Uses REAL MIGRATIONS for production-like testing
- * 
+ *
  * Strategy:
  * - beforeAll: DROP all tables + Run migrations
  * - afterEach: TRUNCATE tables (keep schema)
@@ -26,7 +27,7 @@ export async function createTestDataSource(): Promise<DataSource> {
   const dataSource = new DataSource({
     type: 'postgres',
     host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+    port: Number.parseInt(process.env.DATABASE_PORT || '5432', 10),
     username: process.env.DATABASE_USER || 'postgres',
     password: process.env.DATABASE_PASSWORD || 'postgres',
     database: 'ai_video_interview_user_test', // ← Test database
@@ -46,14 +47,14 @@ export async function createTestDataSource(): Promise<DataSource> {
   });
 
   await dataSource.initialize();
-  
+
   // DROP all tables + Create extensions + Run migrations
   await dropAllTables(dataSource);
   await createExtensions(dataSource);
   await dataSource.runMigrations();
-  
+
   console.log('✅ Test database initialized with migrations');
-  
+
   return dataSource;
 }
 
@@ -128,7 +129,7 @@ export async function cleanDatabase(dataSource: DataSource): Promise<void> {
       outbox
     RESTART IDENTITY CASCADE;
   `);
-  
+
   // Delete test-created skills (not seeded ones)
   // Seeded skills are preserved by checking created_at > migration date
   // or by explicit patterns. This approach deletes test skills with specific patterns.
@@ -169,7 +170,7 @@ export async function cleanDatabase(dataSource: DataSource): Promise<void> {
        OR name LIKE '%Test Stream%'
        OR (name IN ('Skill 1', 'Skill 2', 'Full Skill', 'Temp Skill', 'Unassigned Skill'));
   `);
-  
+
   // Note: skill_categories are NOT truncated - they are reference data from seed
 }
 
@@ -207,9 +208,8 @@ export async function seedUser(
   user.role = (data.role || 'candidate') as any;
   user.createdAt = new Date();
   user.updatedAt = new Date();
-  
+
   await userRepo.save(user);
 
   return userId;
 }
-

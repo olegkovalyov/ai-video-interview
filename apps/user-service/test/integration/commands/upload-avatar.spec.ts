@@ -1,7 +1,8 @@
-// @ts-nocheck — File mock type mismatch (pre-existing)
-import { INestApplication } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/ban-ts-comment -- TODO(#upload-avatar-test-types): remove @ts-nocheck once the File mock is typed against `Express.Multer.File` — it was introduced to unblock the test and hides a pre-existing type mismatch in the mock setup. */
+// @ts-nocheck
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,

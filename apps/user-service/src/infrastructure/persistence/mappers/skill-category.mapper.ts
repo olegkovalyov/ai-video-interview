@@ -13,7 +13,7 @@ export class SkillCategoryMapper {
    */
   toEntity(category: SkillCategory): SkillCategoryEntity {
     const entity = new SkillCategoryEntity();
-    
+
     entity.id = category.id;
     entity.name = category.name;
     entity.slug = category.slug;
@@ -21,7 +21,7 @@ export class SkillCategoryMapper {
     entity.sortOrder = category.sortOrder;
     entity.createdAt = category.createdAt;
     entity.updatedAt = category.updatedAt;
-    
+
     return entity;
   }
 
@@ -44,6 +44,6 @@ export class SkillCategoryMapper {
    * Convert multiple entities to domain models
    */
   toDomainList(entities: SkillCategoryEntity[]): SkillCategory[] {
-    return entities.map(entity => this.toDomain(entity));
+    return entities.map((entity) => this.toDomain(entity));
   }
 }

@@ -1,0 +1,114 @@
+/* tokens.css — design system for the AI Interview redesign
+ * Indigo primary (6366f1 family), shadcn-flavored neutrals, Tailwind 4-style vars.
+ */
+
+:root {
+  /* Primary — indigo */
+  --p-50:  #eef2ff;
+  --p-100: #e0e7ff;
+  --p-200: #c7d2fe;
+  --p-300: #a5b4fc;
+  --p-400: #818cf8;
+  --p-500: #6366f1;
+  --p-600: #4f46e5;
+  --p-700: #4338ca;
+  --p-800: #3730a3;
+  --p-900: #312e81;
+  --p-950: #1e1b4b;
+
+  /* Accent — violet (gradient partner) */
+  --a-400: #a78bfa;
+  --a-500: #8b5cf6;
+  --a-600: #7c3aed;
+
+  /* Neutrals — warm-ish gray (slate with a hint of indigo) */
+  --n-0:   #ffffff;
+  --n-25:  #fcfcfd;
+  --n-50:  #f8fafc;
+  --n-100: #f1f5f9;
+  --n-150: #e7ecf2;
+  --n-200: #e2e8f0;
+  --n-300: #cbd5e1;
+  --n-400: #94a3b8;
+  --n-500: #64748b;
+  --n-600: #475569;
+  --n-700: #334155;
+  --n-800: #1e293b;
+  --n-900: #0f172a;
+  --n-950: #020617;
+
+  /* Semantic */
+  --success-50:  #ecfdf5;
+  --success-100: #d1fae5;
+  --success-500: #10b981;
+  --success-600: #059669;
+  --success-700: #047857;
+
+  --warning-50:  #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+
+  --error-50:   #fef2f2;
+  --error-100:  #fee2e2;
+  --error-500:  #ef4444;
+  --error-600:  #dc2626;
+  --error-700:  #b91c1c;
+
+  --info-50:    #eff6ff;
+  --info-100:   #dbeafe;
+  --info-500:   #3b82f6;
+  --info-600:   #2563eb;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --r-full: 9999px;
+
+  /* Shadows — quieter than default shadcn */
+  --sh-xs: 0 1px 2px rgba(15,23,42,.04);
+  --sh-sm: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+  --sh-md: 0 2px 4px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.06);
+  --sh-lg: 0 4px 8px rgba(15,23,42,.04), 0 12px 32px rgba(15,23,42,.08);
+  --sh-xl: 0 8px 16px rgba(15,23,42,.06), 0 24px 48px rgba(15,23,42,.10);
+  --sh-focus: 0 0 0 3px rgba(99,102,241,.2);
+
+  /* Type */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "IBM Plex Mono", Menlo, monospace;
+  --font-display: "Fraunces-alternative-not-used", var(--font-sans);
+
+  /* Spacing scale (4px) */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px;
+
+  /* Focus ring */
+  --ring: 0 0 0 2px var(--n-0), 0 0 0 4px var(--p-500);
+}
+
+/* Base typography reset scoped to mocks */
+.app {
+  font-family: var(--font-sans);
+  color: var(--n-900);
+  background: var(--n-50);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02","cv03","cv04","cv11","ss01";
+  font-size: 14px;
+  line-height: 1.5;
+}
+.app *, .app *::before, .app *::after { box-sizing: border-box; }
+.app h1, .app h2, .app h3, .app h4, .app p, .app ul, .app ol {
+  margin: 0;
+}
+.app button { font-family: inherit; }
+.app ul { padding: 0; list-style: none; }
+
+/* Helpers */
+.tnum { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); }

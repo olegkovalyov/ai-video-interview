@@ -28,6 +28,7 @@ ai-video-interview/
 ## Service Routing Guide
 
 When a task involves:
+
 - **Authentication, OIDC, JWT, Keycloak, proxying, circuit breaker, metrics endpoints** → work in `apps/api-gateway/`
 - **Users, roles, companies, skills, avatars, MinIO uploads** → work in `apps/user-service/`
 - **Interview templates, questions, invitations, candidate responses** → work in `apps/interview-service/`
@@ -39,43 +40,47 @@ When a task involves:
 
 ## Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Runtime | Node.js | >=18 |
-| Language | TypeScript | 5.8.3 |
-| Monorepo | Turborepo | 2.5 |
-| Package Manager | npm | 10.9.2 |
-| Backend Framework | NestJS | 11.x |
-| Frontend Framework | Next.js (App Router) | 15.x |
-| React | React | 19.x |
-| ORM | TypeORM | 0.3.x |
-| Database | PostgreSQL | 15 |
-| Cache/Queue | Redis 7 / BullMQ | -- |
-| Messaging | Kafka (KRaft, no Zookeeper) | 7.4 |
-| Auth | Keycloak (OIDC) | latest |
-| Object Storage | MinIO (S3-compatible) | latest |
-| LLM | Groq API (Llama 3.3 / GPT-OSS) | -- |
-| CSS | Tailwind CSS | 4.x |
-| UI Components | shadcn/ui + Radix UI | -- |
-| Testing | Jest | 30.x |
-| Tracing | OpenTelemetry + Jaeger | -- |
-| Metrics | Prometheus + Grafana | -- |
-| Logging | Winston + Loki | -- |
+| Layer              | Technology                     | Version |
+| ------------------ | ------------------------------ | ------- |
+| Runtime            | Node.js                        | >=18    |
+| Language           | TypeScript                     | 5.8.3   |
+| Monorepo           | Turborepo                      | 2.5     |
+| Package Manager    | npm                            | 10.9.2  |
+| Backend Framework  | NestJS                         | 11.x    |
+| Frontend Framework | Next.js (App Router)           | 15.x    |
+| React              | React                          | 19.x    |
+| ORM                | TypeORM                        | 0.3.x   |
+| Database           | PostgreSQL                     | 15      |
+| Cache/Queue        | Redis 7 / BullMQ               | --      |
+| Messaging          | Kafka (KRaft, no Zookeeper)    | 7.4     |
+| Auth               | Keycloak (OIDC)                | latest  |
+| Object Storage     | MinIO (S3-compatible)          | latest  |
+| LLM                | Groq API (Llama 3.3 / GPT-OSS) | --      |
+| CSS                | Tailwind CSS                   | 4.x     |
+| UI Components      | shadcn/ui + Radix UI           | --      |
+| Testing            | Jest                           | 30.x    |
+| Tracing            | OpenTelemetry + Jaeger         | --      |
+| Metrics            | Prometheus + Grafana           | --      |
+| Logging            | Winston + Loki                 | --      |
 
 ## Architecture Patterns
 
 ### DDD (Domain-Driven Design)
+
 All backend services (except API Gateway) follow strict DDD with three layers:
+
 - **Domain Layer** (`src/domain/`) — Aggregates, entities, value objects, domain events, repository interfaces, exceptions. ZERO framework dependencies.
 - **Application Layer** (`src/application/`) — Commands, queries, handlers (CQRS), DTOs, ports. Depends only on domain.
 - **Infrastructure Layer** (`src/infrastructure/`) — TypeORM repositories, Kafka consumers/producers, HTTP controllers, persistence entities, mappers. Implements domain interfaces.
 
 ### CQRS via @nestjs/cqrs
+
 - Commands: imperative names (`CreateUserCommand` + `CreateUserHandler`)
 - Queries: interrogative names (`GetUserQuery` + `GetUserHandler`)
 - Each command/query lives in its own directory with `.command.ts`/`.query.ts` and `.handler.ts`
 
 ### Event-Driven Architecture (Kafka)
+
 - **Domain Events** — Internal to a service, published via NestJS EventBus
 - **Integration Events** — Cross-service, published via Kafka through Outbox pattern
 - **Command Events** — Instructions from API Gateway to services via Kafka
@@ -83,6 +88,7 @@ All backend services (except API Gateway) follow strict DDD with three layers:
 - Event contracts defined in `packages/shared/src/events/`
 
 ### Kafka Topics
+
 - `user-commands` / `user-commands-dlq` — Commands TO User Service
 - `user-events` — User domain integration events
 - `interview-events` — Interview domain integration events
@@ -92,28 +98,28 @@ All backend services (except API Gateway) follow strict DDD with three layers:
 
 ## Naming Conventions
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Files | kebab-case | `create-user.command.ts` |
-| Classes | PascalCase | `CreateUserHandler` |
-| Aggregates | `*.aggregate.ts` | `user.aggregate.ts` |
-| Value Objects | `*.vo.ts` | `email.vo.ts` |
-| Domain Events | `*-created.event.ts` | `user-created.event.ts` |
-| Repository Interfaces | `I` prefix | `IUserRepository` |
-| Kafka Integration Events | past-tense dotted | `user.created`, `analysis.completed` |
-| Kafka Command Events | present-tense dotted | `user.create`, `user.update` |
-| Kafka Topics | kebab-case | `user-events`, `interview-events` |
-| TypeORM Entities | `*.entity.ts` (infrastructure) | `user.entity.ts` |
-| Migrations | timestamp prefix | `1730900000000-InitialSchema.ts` |
+| Element                  | Convention                     | Example                              |
+| ------------------------ | ------------------------------ | ------------------------------------ |
+| Files                    | kebab-case                     | `create-user.command.ts`             |
+| Classes                  | PascalCase                     | `CreateUserHandler`                  |
+| Aggregates               | `*.aggregate.ts`               | `user.aggregate.ts`                  |
+| Value Objects            | `*.vo.ts`                      | `email.vo.ts`                        |
+| Domain Events            | `*-created.event.ts`           | `user-created.event.ts`              |
+| Repository Interfaces    | `I` prefix                     | `IUserRepository`                    |
+| Kafka Integration Events | past-tense dotted              | `user.created`, `analysis.completed` |
+| Kafka Command Events     | present-tense dotted           | `user.create`, `user.update`         |
+| Kafka Topics             | kebab-case                     | `user-events`, `interview-events`    |
+| TypeORM Entities         | `*.entity.ts` (infrastructure) | `user.entity.ts`                     |
+| Migrations               | timestamp prefix               | `1730900000000-InitialSchema.ts`     |
 
 ## Databases (Separate per Service)
 
-| Database | Service | Port |
-|----------|---------|------|
-| `ai_video_interview_user` | User Service | 5432 |
-| `ai_video_interview_interview` | Interview Service | 5432 |
-| `ai_video_interview_analysis` | AI Analysis Service | 5432 |
-| `keycloak` | Keycloak (separate PostgreSQL) | 5433 |
+| Database                       | Service                        | Port |
+| ------------------------------ | ------------------------------ | ---- |
+| `ai_video_interview_user`      | User Service                   | 5432 |
+| `ai_video_interview_interview` | Interview Service              | 5432 |
+| `ai_video_interview_analysis`  | AI Analysis Service            | 5432 |
+| `keycloak`                     | Keycloak (separate PostgreSQL) | 5433 |
 
 Each service has its own TypeORM config at `src/infrastructure/persistence/typeorm.config.ts`.
 Migrations stored in `src/infrastructure/persistence/migrations/`.
@@ -182,9 +188,107 @@ npm run generate:types       # Generate TS types from OpenAPI specs
 ## Git Workflow
 
 - Branch from `develop` for features
-- Main branch is `master` (production)
+- Main branch is `main` (production)
 - Commit format: `feat(service-name): description`, `fix(service-name): description`, `docs: description`
 - Use conventional commits with scope matching service name
+
+---
+
+## Hard Limits (monorepo-wide)
+
+These are smell thresholds — not rigid ceilings. Crossing them means "stop and refactor", not "rewrite immediately".
+
+| Metric                  | Soft | Hard | Action on violation                                           |
+| ----------------------- | ---- | ---- | ------------------------------------------------------------- |
+| Function length         | 20   | 30   | Extract helpers; split guard/action/emit in aggregate methods |
+| Function parameters     | 3    | 4    | Introduce Parameter Object / options DTO                      |
+| Cyclomatic complexity   | 5    | 10   | Replace Conditional with Polymorphism, table-driven dispatch  |
+| Cognitive complexity    | 5    | 10   | Decompose Conditional, extract predicates                     |
+| Nesting depth           | 2    | 3    | Guard clauses, early returns                                  |
+| Class public methods    | 7    | 10   | SRP smell — split service / aggregate                         |
+| Classes per file        | 1    | 1    | One class per file — god-file smell prevention                |
+| NestJS module providers | 10   | 15   | Split into feature sub-modules                                |
+
+**Note on file length**: we do **NOT** enforce a hard `max-lines` rule on files. Rich aggregates with full state machines + events legitimately reach 500–800 lines, and forced splitting hurts readability. God-object detection relies on the limits above (one class per file, bounded complexity, bounded methods) plus review. If you see a file > 800 lines, pause and check if responsibilities can be split — but don't mechanically chop to hit a number.
+
+Enforced by ESLint where possible (`sonarjs/cognitive-complexity`, `max-lines-per-function`, `max-params`, `max-depth`, `max-classes-per-file`). Use as a review checklist where not.
+
+## Clean Code Rules
+
+Based on Robert C. Martin's _Clean Code_, adapted for our stack. Full rationale in the [clean-code skill](.claude/skills/clean-code/SKILL.md).
+
+1. **No `any` in TypeScript** — use `unknown` + narrowing. Exceptions require a `// eslint-disable-next-line` with an issue link.
+2. **No `console.log`** anywhere — always `LoggerService`. See [observability skill](.claude/skills/observability/SKILL.md).
+3. **No commented-out code** — delete, git remembers.
+4. **No magic numbers/strings** — extract `const` with intention-revealing name (`MAX_QUESTIONS_PER_TEMPLATE`, `FREE_PLAN_INVITATIONS_PER_MONTH`).
+5. **Names reveal intent** — classes are nouns, methods are verbs, booleans are `is*` / `can*` / `has*`.
+6. **One level of abstraction per function** — don't mix "parse email" and "save to DB".
+7. **Command-Query Separation** — a method either changes state OR returns info, not both.
+8. **No flag arguments** (`doX(silent: true)`) — split into two functions.
+9. **Errors via exceptions, not return codes** — domain errors extend `DomainException`.
+10. **Fail fast via guard clauses** — validate at the top, main logic stays unindented.
+11. **Comments explain _why_, never _what_** — well-named code removes the need for what-comments.
+12. **Boy Scout rule** — leave every file you touch slightly cleaner.
+
+## Testing Targets (monorepo-wide)
+
+Full patterns in [testing-pyramid skill](.claude/skills/testing-pyramid/SKILL.md).
+
+| Layer                                                      | Target                                     | Hard floor | Tools                       |
+| ---------------------------------------------------------- | ------------------------------------------ | ---------- | --------------------------- |
+| Domain (aggregates, VOs, events)                           | 90% lines, 100% branches on state machines | 85%        | Jest, no mocks              |
+| Application (handlers, DTOs, ports)                        | 80% lines                                  | 70%        | Jest + `jest-mock-extended` |
+| Infrastructure (repos, mappers, adapters)                  | 60% lines (via integration)                | 50%        | Jest + testcontainers       |
+| Overall service                                            | 80%                                        | 70%        | Jest + coverage             |
+| Critical paths (payments, invitation completion, analysis) | 100% line + branch                         | 95%        | All of the above            |
+
+- **Test pyramid**: many fast unit tests, fewer integration, ~10 e2e total.
+- **Test builders** for aggregates — never literal construction in tests.
+- **Mock only external boundaries** (Stripe, Groq, SMTP, Kafka producer). Never mock domain classes.
+- **Property-based tests** (`fast-check`) for invariants on VOs and scoring.
+- **Mutation testing** (`stryker`) nightly on domain layer, target > 80%.
+
+## Installed Skills
+
+Available in `.claude/skills/` (symlinks to `.agents/skills/`). Activate automatically when relevant, or reference explicitly. Full content curated in-repo — never auto-updated from upstream.
+
+| Skill                                                          | When to use                                                       | Source                         |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------ |
+| [nestjs-best-practices](.claude/skills/nestjs-best-practices/) | NestJS 11 patterns, DI, guards, filters, interceptors             | community (Kadajett, MIT)      |
+| [postgres](.claude/skills/postgres/)                           | PostgreSQL MVCC, indexes, vacuum, replication                     | community (PlanetScale)        |
+| [typeorm](.claude/skills/typeorm/)                             | Data Mapper, migrations, transactions                             | community                      |
+| [kafka-engineer](.claude/skills/kafka-engineer/)               | Topic design, producers, consumers, DLQ                           | community                      |
+| [building-with-llms](.claude/skills/building-with-llms/)       | Prompting, evaluation, LLM architecture                           | community                      |
+| [clean-code](.claude/skills/clean-code/)                       | Names, functions, comments, SOLID — writing/reviewing/refactoring | adapted from ratacat           |
+| [refactoring](.claude/skills/refactoring/)                     | Fowler catalog, code smells, 2-phase workflow                     | adapted from finereli + Fowler |
+| [design-patterns](.claude/skills/design-patterns/)             | GoF + GRASP + PoEAA pattern selection — condensed reference       | adapted from ratacat           |
+| [typescript-advanced](.claude/skills/typescript-advanced/)     | Generics, discriminated unions, branded types, `satisfies`        | original                       |
+| [observability](.claude/skills/observability/)                 | Structured logging, OTel spans/metrics/logs, correlation          | adapted from dash0hq           |
+| [testing-pyramid](.claude/skills/testing-pyramid/)             | Test layers, coverage targets, test doubles, property-based       | original                       |
+
+## Skill Routing — when to consult which skill
+
+This table is always in context. When you see a signal in the user's prompt or in the current file, load the matching skill via the Skill tool (or reference it inline).
+
+| Signal                                                                                | Primary skill                          | Secondary                                         |
+| ------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------- |
+| Editing `*.aggregate.ts`, `*.vo.ts`, `*.event.ts` in `domain/`                        | `clean-code`                           | `design-patterns`, `typescript-advanced`          |
+| Editing `*.handler.ts`, `*.service.ts` in `application/`                              | `clean-code`                           | `testing-pyramid`, `design-patterns`              |
+| Editing `*.controller.ts`, `*.mapper.ts`, `*.repository.ts` in `infrastructure/`      | `clean-code`                           | `nestjs-best-practices`, `typeorm`                |
+| Writing/editing `*.spec.ts`, `*.test.ts`, `**/__tests__/**`                           | `testing-pyramid`                      | `clean-code`                                      |
+| User says "refactor", "clean up", "too long", "too complex", "split this", "extract"  | `refactoring`                          | `clean-code`                                      |
+| User says "type-safe", "generic", "branded type", "discriminated union", "remove any" | `typescript-advanced`                  | `clean-code`                                      |
+| User says "which pattern", "how should I structure", "GoF", "Strategy", "Adapter"     | `design-patterns`                      | —                                                 |
+| Writing log/span/metric — `logger.*`, `tracer.startActiveSpan`, `meter.*`             | `observability`                        | —                                                 |
+| New Kafka consumer, cron job, outbox worker                                           | `observability`                        | `kafka-engineer`, `design-patterns` (Saga/Outbox) |
+| Migration file `src/infrastructure/persistence/migrations/*.ts` or SQL query          | `postgres`                             | `typeorm`                                         |
+| New NestJS module, guard, filter, interceptor, pipe                                   | `nestjs-best-practices`                | `design-patterns`                                 |
+| React component / hook / form in `apps/web/`                                          | (use `apps/web/CLAUDE.md`)             | `typescript-advanced`                             |
+| Stripe adapter / webhook handler                                                      | (use `apps/billing-service/CLAUDE.md`) | `design-patterns` (Adapter)                       |
+| LLM prompt / scoring / Groq integration                                               | `building-with-llms`                   | `typescript-advanced`                             |
+| Kafka topic design, partition keys, DLQ                                               | `kafka-engineer`                       | `observability`                                   |
+
+**Agents vs Skills**: Skills are reference knowledge (load when relevant). Agents are specialized reviewers you invoke explicitly (`code-quality-reviewer`, `refactoring-advisor`, `test-coverage-reviewer`, `observability-reviewer`, `postgres-query-reviewer`, `pattern-advisor`, `ddd-checker`, `security-reviewer`).
 
 ---
 

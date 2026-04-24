@@ -6,14 +6,14 @@ import { UserCompanyEntity } from '../entities/user-company.entity';
 export class UserCompanyMapper {
   toEntity(userCompany: UserCompany): UserCompanyEntity {
     const entity = new UserCompanyEntity();
-    
+
     entity.id = userCompany.id;
     entity.userId = userCompany.userId;
     entity.companyId = userCompany.companyId;
     entity.position = userCompany.position;
     entity.isPrimary = userCompany.isPrimary;
     entity.joinedAt = userCompany.joinedAt;
-    
+
     return entity;
   }
 
@@ -29,6 +29,6 @@ export class UserCompanyMapper {
   }
 
   toDomainList(entities: UserCompanyEntity[]): UserCompany[] {
-    return entities.map(entity => this.toDomain(entity));
+    return entities.map((entity) => this.toDomain(entity));
   }
 }

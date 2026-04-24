@@ -50,7 +50,7 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
     });
 
     // 4. After commit: publish domain events (internal)
-    user.getUncommittedEvents().forEach(event => {
+    user.getUncommittedEvents().forEach((event) => {
       this.eventBus.publish(event);
     });
 

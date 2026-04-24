@@ -33,12 +33,35 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
 
     // 2. Update profile
     if (command.firstName !== undefined || command.lastName !== undefined) {
-      const firstName = command.firstName !== undefined ? command.firstName : user.fullName.firstName;
-      const lastName = command.lastName !== undefined ? command.lastName : user.fullName.lastName;
+      const firstName =
+        command.firstName === undefined
+          ? user.fullName.firstName
+          : command.firstName;
+      const lastName =
+        command.lastName === undefined
+          ? user.fullName.lastName
+          : command.lastName;
       const fullName = FullName.create(firstName, lastName);
-      user.updateProfile(fullName, command.bio, command.phone, command.timezone, command.language);
-    } else if (command.bio !== undefined || command.phone !== undefined || command.timezone !== undefined || command.language !== undefined) {
-      user.updateProfile(user.fullName, command.bio, command.phone, command.timezone, command.language);
+      user.updateProfile(
+        fullName,
+        command.bio,
+        command.phone,
+        command.timezone,
+        command.language,
+      );
+    } else if (
+      command.bio !== undefined ||
+      command.phone !== undefined ||
+      command.timezone !== undefined ||
+      command.language !== undefined
+    ) {
+      user.updateProfile(
+        user.fullName,
+        command.bio,
+        command.phone,
+        command.timezone,
+        command.language,
+      );
     }
 
     // 3. Atomic save: aggregate + outbox in same transaction
@@ -61,7 +84,7 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
     });
 
     // 4. After commit: publish domain events (internal)
-    user.getUncommittedEvents().forEach(event => {
+    user.getUncommittedEvents().forEach((event) => {
       this.eventBus.publish(event);
     });
     user.clearEvents();

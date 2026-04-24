@@ -16,7 +16,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
 
 // Guards
 import { InternalServiceGuard } from '../guards/internal-service.guard';
@@ -32,8 +39,12 @@ import { ListCompaniesQuery } from '../../../application/queries/companies/list-
 import { GetCompanyQuery } from '../../../application/queries/companies/get-company.query';
 
 // DTOs
-import { CreateCompanyDto, UpdateCompanyDto, ListCompaniesDto } from '../dto/companies.dto';
-import { CompanyResponseDto, CompanyListResponseDto, CompanySuccessResponseDto } from '../dto/companies.response.dto';
+import {
+  CreateCompanyDto,
+  UpdateCompanyDto,
+  ListCompaniesDto,
+} from '../dto/companies.dto';
+import { CompanySuccessResponseDto } from '../dto/companies.response.dto';
 
 // Mappers
 import { CompanyResponseMapper } from '../mappers/company.response.mapper';
@@ -48,12 +59,14 @@ import {
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
 
+import { errorCode, errorMessage } from '../utils/error-message.util';
+
 /**
  * Companies Controller
- * 
+ *
  * HR Companies Management API
  * Protected by InternalServiceGuard (x-internal-token)
- * 
+ *
  * Endpoints:
  * - POST   /companies              - Create new company
  * - GET    /companies              - List companies with filters
@@ -80,13 +93,27 @@ export class CompaniesController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create new company' })
   @ApiBody({ type: CreateCompanyDto })
-  @ApiResponse({ status: 201, type: CompanySuccessResponseDto, description: 'Company created successfully' })
-  @ApiResponse({ status: 400, type: ValidationErrorSchema, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 409, type: ConflictErrorSchema, description: 'Company already exists' })
-  async createCompany(
-    @Body() dto: CreateCompanyDto,
-  ) {
+  @ApiResponse({
+    status: 201,
+    type: CompanySuccessResponseDto,
+    description: 'Company created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: ValidationErrorSchema,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 409,
+    type: ConflictErrorSchema,
+    description: 'Company already exists',
+  })
+  async createCompany(@Body() dto: CreateCompanyDto) {
     try {
       const command = new CreateCompanyCommand(
         dto.name,
@@ -108,7 +135,10 @@ export class CompaniesController {
       };
     } catch (error) {
       // Database unique constraint violation
-      if (error.code === '23505' || error.message.includes('duplicate key')) {
+      if (
+        errorCode(error) === '23505' ||
+        errorMessage(error).includes('duplicate key')
+      ) {
         throw new ConflictException({
           success: false,
           error: 'Company with this name already exists',
@@ -116,25 +146,25 @@ export class CompaniesController {
         });
       }
 
-      if (error.message.includes('already exists')) {
+      if (errorMessage(error).includes('already exists')) {
         throw new ConflictException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_ALREADY_EXISTS',
         });
       }
 
-      if (error.message.includes('Invalid company size')) {
+      if (errorMessage(error).includes('Invalid company size')) {
         throw new BadRequestException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'INVALID_COMPANY_SIZE',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -142,11 +172,31 @@ export class CompaniesController {
   @Put(':id')
   @ApiOperation({ summary: 'Update company' })
   @ApiBody({ type: UpdateCompanyDto })
-  @ApiResponse({ status: 200, type: CompanySuccessResponseDto, description: 'Company updated successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 403, type: ForbiddenErrorSchema, description: 'Forbidden - not authorized to update this company' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Company not found' })
+  @ApiResponse({
+    status: 200,
+    type: CompanySuccessResponseDto,
+    description: 'Company updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 403,
+    type: ForbiddenErrorSchema,
+    description: 'Forbidden - not authorized to update this company',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Company not found',
+  })
   async updateCompany(
     @Param('id') companyId: string,
     @Body() dto: UpdateCompanyDto,
@@ -171,33 +221,33 @@ export class CompaniesController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_NOT_FOUND',
         });
       }
 
-      if (error.message.includes('not authorized')) {
+      if (errorMessage(error).includes('not authorized')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
-      if (error.message.includes('Invalid company size')) {
+      if (errorMessage(error).includes('Invalid company size')) {
         throw new BadRequestException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'INVALID_COMPANY_SIZE',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -206,9 +256,21 @@ export class CompaniesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete company' })
   @ApiResponse({ status: 204, description: 'Company deleted successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 403, type: ForbiddenErrorSchema, description: 'Forbidden - not authorized to delete this company' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Company not found' })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 403,
+    type: ForbiddenErrorSchema,
+    description: 'Forbidden - not authorized to delete this company',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Company not found',
+  })
   async deleteCompany(
     @Param('id') companyId: string,
     @Query('userId') userId: string,
@@ -217,25 +279,25 @@ export class CompaniesController {
       const command = new DeleteCompanyCommand(companyId, userId);
       await this.commandBus.execute(command);
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_NOT_FOUND',
         });
       }
 
-      if (error.message.includes('not authorized')) {
+      if (errorMessage(error).includes('not authorized')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -246,18 +308,58 @@ export class CompaniesController {
 
   @Get()
   @ApiOperation({ summary: 'List companies with filters' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by company name' })
-  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
-  @ApiQuery({ name: 'createdBy', required: false, type: String, description: 'Filter by creator user ID' })
-  @ApiQuery({ name: 'currentUserId', required: false, type: String, description: 'Current user ID for permissions' })
-  @ApiQuery({ name: 'isAdmin', required: false, type: Boolean, description: 'Is admin flag (default: false)' })
-  @ApiResponse({ status: 200, description: 'Companies list retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  async listCompanies(
-    @Query() query: ListCompaniesDto,
-  ) {
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by company name',
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Filter by active status',
+  })
+  @ApiQuery({
+    name: 'createdBy',
+    required: false,
+    type: String,
+    description: 'Filter by creator user ID',
+  })
+  @ApiQuery({
+    name: 'currentUserId',
+    required: false,
+    type: String,
+    description: 'Current user ID for permissions',
+  })
+  @ApiQuery({
+    name: 'isAdmin',
+    required: false,
+    type: Boolean,
+    description: 'Is admin flag (default: false)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Companies list retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  async listCompanies(@Query() query: ListCompaniesDto) {
     const listQuery = new ListCompaniesQuery(
       query.page || 1,
       query.limit || 20,
@@ -284,14 +386,33 @@ export class CompaniesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get company by ID' })
-  @ApiResponse({ status: 200, type: CompanySuccessResponseDto, description: 'Company retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 403, type: ForbiddenErrorSchema, description: 'Forbidden - not authorized to view this company' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Company not found' })
+  @ApiResponse({
+    status: 200,
+    type: CompanySuccessResponseDto,
+    description: 'Company retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 403,
+    type: ForbiddenErrorSchema,
+    description: 'Forbidden - not authorized to view this company',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Company not found',
+  })
   async getCompany(
     @Param('id') companyId: string,
-    @Query('userId') userId?: string,
-    @Query('isAdmin') isAdmin?: boolean,
+    // TODO(#authorization): the `userId` + `isAdmin` query params were added
+    // for per-user access control but have never been wired to GetCompanyQuery.
+    // Remove them once the authorization policy is implemented in the query handler.
+    @Query('userId') _userId?: string,
+    @Query('isAdmin') _isAdmin?: boolean,
   ) {
     try {
       const query = new GetCompanyQuery(companyId);
@@ -302,25 +423,25 @@ export class CompaniesController {
         data: CompanyResponseMapper.toCompanyDto(result),
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_NOT_FOUND',
         });
       }
 
-      if (error.message.includes('not authorized')) {
+      if (errorMessage(error).includes('not authorized')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }

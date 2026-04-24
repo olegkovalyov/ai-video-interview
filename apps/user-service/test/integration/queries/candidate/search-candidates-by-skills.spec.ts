@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -32,7 +32,12 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
 
     await dataSource.query(
       `INSERT INTO skills (id, name, slug, is_active) VALUES ($1, $2, $3, $4)`,
-      [skillId1, `TypeScript-${uniqueSuffix}`, `typescript-${uniqueSuffix}`, true],
+      [
+        skillId1,
+        `TypeScript-${uniqueSuffix}`,
+        `typescript-${uniqueSuffix}`,
+        true,
+      ],
     );
     await dataSource.query(
       `INSERT INTO skills (id, name, slug, is_active) VALUES ($1, $2, $3, $4)`,

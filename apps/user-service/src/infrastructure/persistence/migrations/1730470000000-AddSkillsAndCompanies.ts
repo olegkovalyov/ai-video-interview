@@ -1,4 +1,5 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
+import { Table, TableIndex, TableForeignKey } from 'typeorm';
 
 /**
  * Skills & Companies Migration
@@ -396,7 +397,8 @@ export class AddSkillsAndCompanies1730470000000 implements MigrationInterface {
             name: 'description',
             type: 'text',
             isNullable: true,
-            comment: 'Candidate personal description of their experience with this skill',
+            comment:
+              'Candidate personal description of their experience with this skill',
           },
           {
             name: 'proficiency_level',
@@ -486,13 +488,19 @@ export class AddSkillsAndCompanies1730470000000 implements MigrationInterface {
     // ============================================
 
     // Drop skills column from candidate_profiles
-    await queryRunner.query(`ALTER TABLE candidate_profiles DROP COLUMN IF EXISTS skills`);
+    await queryRunner.query(
+      `ALTER TABLE candidate_profiles DROP COLUMN IF EXISTS skills`,
+    );
 
     // Drop company_name from hr_profiles
-    await queryRunner.query(`ALTER TABLE hr_profiles DROP COLUMN IF EXISTS company_name`);
+    await queryRunner.query(
+      `ALTER TABLE hr_profiles DROP COLUMN IF EXISTS company_name`,
+    );
 
     // Drop position from hr_profiles (if exists)
-    await queryRunner.query(`ALTER TABLE hr_profiles DROP COLUMN IF EXISTS position`);
+    await queryRunner.query(
+      `ALTER TABLE hr_profiles DROP COLUMN IF EXISTS position`,
+    );
 
     // ============================================
     // 7. SEED DATA - IT CATEGORIES & SKILLS
@@ -646,7 +654,6 @@ export class AddSkillsAndCompanies1730470000000 implements MigrationInterface {
         RAISE NOTICE '✅ Seeded 8 categories and 52 IT skills';
       END $$;
     `);
-
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -669,6 +676,5 @@ export class AddSkillsAndCompanies1730470000000 implements MigrationInterface {
       ADD COLUMN company_name VARCHAR(255),
       ADD COLUMN position VARCHAR(255)
     `);
-
   }
 }

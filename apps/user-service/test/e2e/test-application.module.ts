@@ -56,7 +56,6 @@ import { SearchCandidatesBySkillsHandler } from '../../src/application/queries/c
 
 // Services
 import { LoggerService } from '../../src/infrastructure/logger/logger.service';
-import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 
 // Mock services for testing
 export const mockKafkaService = {

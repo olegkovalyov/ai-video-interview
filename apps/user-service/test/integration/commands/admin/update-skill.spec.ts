@@ -1,12 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  setupTestApp,
-  createTestDataSource,
-  cleanDatabase,
-} from '../../setup';
+import { setupTestApp, createTestDataSource, cleanDatabase } from '../../setup';
 import { CreateSkillCommand } from '../../../../src/application/commands/admin/create-skill/create-skill.command';
 import { UpdateSkillCommand } from '../../../../src/application/commands/admin/update-skill/update-skill.command';
 
@@ -82,7 +78,6 @@ describe('UpdateSkillCommand Integration', () => {
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act
-      const updateAdminId = uuidv4();
       const updateCommand = new UpdateSkillCommand(
         skillId,
         'Test Skill',
@@ -229,7 +224,6 @@ describe('UpdateSkillCommand Integration', () => {
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act - Remove description
-      const updateAdminId = uuidv4();
       const updateCommand = new UpdateSkillCommand(
         skillId,
         'Test Skill',
@@ -294,10 +288,22 @@ describe('UpdateSkillCommand Integration', () => {
     it('should throw error when updating to duplicate name', async () => {
       // Arrange - Create two skills
       const adminId = uuidv4();
-      const command1 = new CreateSkillCommand('Skill 1', 'skill-1', null, null, adminId);
+      const command1 = new CreateSkillCommand(
+        'Skill 1',
+        'skill-1',
+        null,
+        null,
+        adminId,
+      );
       await commandBus.execute(command1);
 
-      const command2 = new CreateSkillCommand('Skill 2', 'skill-2', null, null, adminId);
+      const command2 = new CreateSkillCommand(
+        'Skill 2',
+        'skill-2',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill2Id } = await commandBus.execute(command2);
 
       // Act - Try to update skill2 to have same name as skill1

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 /**
  * Company TypeORM Entity
@@ -24,7 +31,7 @@ export class CompanyEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   industry: string | null;
 
-  @Column({ 
+  @Column({
     type: 'enum',
     enum: ['1-10', '11-50', '51-200', '200+'],
     nullable: true,

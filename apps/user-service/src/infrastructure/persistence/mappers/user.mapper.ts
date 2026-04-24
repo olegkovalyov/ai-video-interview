@@ -18,14 +18,14 @@ export class UserMapper {
    */
   toEntity(user: User): UserEntity {
     const entity = new UserEntity();
-    
+
     entity.id = user.id;
     entity.externalAuthId = user.externalAuthId;
     entity.email = user.email.value;
     entity.firstName = user.fullName.firstName;
     entity.lastName = user.fullName.lastName;
     entity.status = user.status.value;
-    entity.role = user.role.toString() as any;
+    entity.role = user.role.toString() as UserEntity['role'];
     entity.emailVerified = user.emailVerified;
     entity.avatarUrl = user.avatarUrl || null;
     entity.bio = user.bio || null;
@@ -35,7 +35,7 @@ export class UserMapper {
     entity.createdAt = user.createdAt;
     entity.updatedAt = user.updatedAt;
     entity.lastLoginAt = user.lastLoginAt || null;
-    
+
     return entity;
   }
 
@@ -71,6 +71,6 @@ export class UserMapper {
    * Convert multiple entities to domain models
    */
   toDomainList(entities: UserEntity[]): User[] {
-    return entities.map(entity => this.toDomain(entity));
+    return entities.map((entity) => this.toDomain(entity));
   }
 }

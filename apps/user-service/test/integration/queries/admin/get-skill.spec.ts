@@ -1,12 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  setupTestApp,
-  createTestDataSource,
-  cleanDatabase,
-} from '../../setup';
+import { setupTestApp, createTestDataSource, cleanDatabase } from '../../setup';
 import { CreateSkillCommand } from '../../../../src/application/commands/admin/create-skill/create-skill.command';
 import { DeactivateSkillCommand } from '../../../../src/application/commands/admin/deactivate-skill/deactivate-skill.command';
 import { GetSkillQuery } from '../../../../src/application/queries/skills/get-skill/get-skill.query';
@@ -94,7 +90,7 @@ describe('GetSkillQuery Integration', () => {
         adminId,
       );
       const { skillId } = await commandBus.execute(createCommand);
-      
+
       await commandBus.execute(new DeactivateSkillCommand(skillId, uuidv4()));
 
       // Act

@@ -1,6 +1,6 @@
 import { DomainException } from '../exceptions/domain.exception';
-import { ProficiencyLevel } from '../value-objects/proficiency-level.vo';
-import { YearsOfExperience } from '../value-objects/years-of-experience.vo';
+import type { ProficiencyLevel } from '../value-objects/proficiency-level.vo';
+import type { YearsOfExperience } from '../value-objects/years-of-experience.vo';
 
 /**
  * CandidateSkill Entity
@@ -44,7 +44,9 @@ export class CandidateSkill {
 
     // Validate description length
     if (description && description.length > 1000) {
-      throw new DomainException('Skill description is too long (max 1000 characters)');
+      throw new DomainException(
+        'Skill description is too long (max 1000 characters)',
+      );
     }
 
     return new CandidateSkill(
@@ -93,7 +95,9 @@ export class CandidateSkill {
    */
   public updateDescription(description: string): void {
     if (description.length > 1000) {
-      throw new DomainException('Skill description is too long (max 1000 characters)');
+      throw new DomainException(
+        'Skill description is too long (max 1000 characters)',
+      );
     }
 
     this._description = description.trim() || null;
@@ -125,7 +129,9 @@ export class CandidateSkill {
     yearsOfExperience: YearsOfExperience | null,
   ): void {
     if (description && description.length > 1000) {
-      throw new DomainException('Skill description is too long (max 1000 characters)');
+      throw new DomainException(
+        'Skill description is too long (max 1000 characters)',
+      );
     }
 
     this._description = description?.trim() || null;

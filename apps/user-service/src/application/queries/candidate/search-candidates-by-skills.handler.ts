@@ -1,7 +1,7 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { SearchCandidatesBySkillsQuery } from './search-candidates-by-skills.query';
-import type { 
+import type {
   ICandidateProfileReadRepository,
   CandidateSearchFilters,
   PaginatedResult,
@@ -13,13 +13,17 @@ import type { CandidateSearchResultReadModel } from '../../../domain/read-models
  * Returns Read Models (plain objects) with match scores
  */
 @QueryHandler(SearchCandidatesBySkillsQuery)
-export class SearchCandidatesBySkillsHandler implements IQueryHandler<SearchCandidatesBySkillsQuery> {
+export class SearchCandidatesBySkillsHandler
+  implements IQueryHandler<SearchCandidatesBySkillsQuery>
+{
   constructor(
     @Inject('ICandidateProfileReadRepository')
     private readonly profileReadRepository: ICandidateProfileReadRepository,
   ) {}
 
-  async execute(query: SearchCandidatesBySkillsQuery): Promise<PaginatedResult<CandidateSearchResultReadModel>> {
+  async execute(
+    query: SearchCandidatesBySkillsQuery,
+  ): Promise<PaginatedResult<CandidateSearchResultReadModel>> {
     const filters: CandidateSearchFilters = {
       skillIds: query.skillIds,
       minProficiency: query.minProficiency,
@@ -27,6 +31,10 @@ export class SearchCandidatesBySkillsHandler implements IQueryHandler<SearchCand
       experienceLevel: query.experienceLevel,
     };
 
-    return this.profileReadRepository.searchBySkills(filters, query.page, query.limit);
+    return this.profileReadRepository.searchBySkills(
+      filters,
+      query.page,
+      query.limit,
+    );
   }
 }

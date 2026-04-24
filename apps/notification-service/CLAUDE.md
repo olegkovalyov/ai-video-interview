@@ -179,3 +179,97 @@ npm run migration:run      # Run pending migrations
 - **Domain layer**: Test notification state transitions, value object validation, webhook failure counting
 - **Application layer**: Test command handlers with mocked repos and email service, verify correct events emitted
 - **Integration**: Test full notification flow with test database and Mailpit
+
+---
+
+## Skills & Best Practices
+
+### Notification Channel Adapter Pattern
+
+- **Port per channel**: `IEmailService`, `IRealtimeService`, `IWebhookDeliveryService` — each channel is a port in application layer. Adapters (`SmtpEmailService`, `RedisRealtimeService`, `AxiosWebhookDeliveryService`) live in infrastructure. Enables swapping SMTP provider (Mailpit dev → SES prod → SendGrid) without touching domain or handlers.
+- **Channel selection at send time**: `SendNotificationHandler` reads `NotificationPreference` for recipient, fans out to enabled channels. Each channel emits its own `notification.sent` event — allows per-channel delivery tracking.
+- **Per-channel retry policy**: email retries 3 times (BullMQ exponential backoff 2s base). Webhooks retry 5 times with longer delays (webhooks may be slow). In-app has no retry (real-time is best-effort).
+
+### Email Template Patterns
+
+- **Handlebars compilation is cached**: templates compiled once at startup in `TemplateRendererService`; runtime just calls the compiled function. Never re-read + compile per email — expensive.
+- **Layout + partial pattern**: `templates/layouts/base.hbs` wraps every email. Partials (`templates/partials/button.hbs`, `footer.hbs`) reused across templates. Changes to branding = edit layout + partials, never individual templates.
+- **Subject from config**: `templates.config.ts` maps template name → subject. Keeps template files focused on body; enables i18n subjects later.
+- **i18n-ready from day one**: template names don't encode language (`invitation.hbs`, not `invitation_en.hbs`). Locale selection via directory prefix (`templates/en/invitation.hbs`, `templates/ru/invitation.hbs`) when we add Russian/other locales.
+- **Preview header**: every email has a preview line (80 chars) as first visible text — shown in inbox list. Don't waste it on "Hi,".
+- **Plain text fallback**: generate text version from HTML automatically via `html-to-text`. Mail clients that don't render HTML still show readable content.
+- **Unsubscribe link mandatory**: every email must include unsubscribe link. Legal requirement (CAN-SPAM, GDPR). Link lands on `/notifications/unsubscribe?token=...`.
+
+### Webhook Delivery Patterns
+
+- **Signed payloads**: webhook HTTP requests include `X-Signature` header = HMAC-SHA256 of body with per-endpoint secret. Consumers verify — prevents spoofed webhooks.
+- **At-most-once for specific events, at-least-once for others**: configurable per endpoint. By default, retry-with-dedup (endpoint must be idempotent). For sensitive events (billing), at-most-once with no retry.
+- **Timeout is strict**: webhook receiver has 5 seconds. Slow receivers don't get special treatment — we log & move on.
+- **Auto-disable flaky endpoints**: after 50 consecutive failures, endpoint auto-disabled (status → `disabled`). User must manually re-enable. Prevents us from hammering a dead URL forever.
+- **Circuit breaker per endpoint**: wrap delivery with our circuit breaker utility — 3-state gate prevents cascading failures when a recipient goes down.
+
+### Real-time (In-App) Notifications
+
+- **Redis pub/sub for fanout**: `RealtimeService.publish()` puts message on `notifications:{userId}` channel. Web service subscribes per connected user via Socket.IO. Low latency (<50ms), no persistence — for ephemeral UX (toast, badge update).
+- **Persistent table for history**: parallel write to `notification` table so `/notifications` page shows history. Separation of concerns: pub/sub = delivery; table = history.
+- **Unread badge via count**: `GET /notifications/unread-count` = `SELECT COUNT(*) FROM notification WHERE userId = ? AND readAt IS NULL`. Simple, cheap, cacheable.
+- **Mark-read is bulk-friendly**: `PATCH /notifications/read` accepts array of IDs. Frontend batches — don't make N requests for N notifications.
+
+### Scheduling Patterns
+
+- **BullMQ delayed jobs for one-time schedules**: invitation reminder 24h before expiry = enqueue job with `delay: 24 * 60 * 60 * 1000` when invitation is created. Cancel job if invitation completes early.
+- **Cron jobs for recurring**: weekly digest = BullMQ repeatable job with `{ cron: '0 9 * * 1' }` (Monday 9am). One job definition, one consumer.
+- **Idempotent by design**: every scheduled job includes a business-key `jobId` (e.g., `jobId: 'digest-${userId}-${isoWeek}'`). Preventing duplicate enqueue across process restarts.
+- **Time zone awareness**: schedule in user's timezone for digest. Store `User.timezone` and compute per-user cron expression (or use a single UTC cron + filter per-user).
+
+### Kafka Consumer Patterns (Notification Specific)
+
+- **Consumer per event category**: `UserEventsConsumer`, `InterviewEventsConsumer`, `AnalysisEventsConsumer`, `BillingEventsConsumer`. One consumer group per service (`notification-service`). Each consumer delegates to `SendNotificationCommand` with template name mapped from event type.
+- **Graceful degradation**: if email backend is down, webhook delivery still runs. Don't fail the Kafka consumer entirely on one channel failure.
+- **Heartbeat during long processing**: rendering + sending can take seconds for complex templates. Call `heartbeat()` every 1s to avoid consumer eviction.
+- **Dead letter for template errors**: if template rendering fails (missing field, syntax error), send to DLQ with `template_name`, `payload`, `error_stacktrace`. Template errors are bugs, not transient — fix template, replay from DLQ.
+
+### Outbox (Notification Specific)
+
+- **Publish `notification.sent` / `notification.failed`**: downstream analytics tracks delivery rates per template. Include `notificationId`, `channel`, `template`, `recipientId`, `outcome` in payload.
+- **Same Outbox pattern as user-service**: see [user-service/CLAUDE.md → Outbox Pattern Best Practices](../user-service/CLAUDE.md#outbox-pattern-best-practices).
+
+### Security (Notification Specific)
+
+- **Never include secrets in email bodies**: password reset links use short-lived (15 min) tokens, not passwords. Tokens are single-use.
+- **Subject line PII minimization**: "New invitation from Acme" is safer than "John, you're invited to Acme by hrmanager@acme.com". Assume subjects are logged server-side.
+- **Webhook payload scrubbing**: when retrying a webhook, don't log the full payload (may contain PII). Log `endpoint_id`, `event_type`, `delivery_attempt`, `http_status`.
+- **Prevent email bombing**: rate-limit per recipient — max 10 emails/hour per user via Redis counter. Protects users from accidental mass-notify bugs.
+
+### PostgreSQL & Indexing (Notification Specific)
+
+- Composite index on `(user_id, read_at, created_at DESC)` for the "unread inbox" query.
+- Partial index on `notification(status)` where status = `'failed'` for retry scans.
+- `notification.payload` as JSONB with GIN index if we start filtering by payload fields.
+- Archive old notifications: partition `notification` table by month, drop partitions > 90 days old. Keeps read queries fast.
+
+### Observability (Notification Specific)
+
+- **Business metrics**:
+  - `notification.sent_total{channel, template}` — counter per channel + template.
+  - `notification.failed_total{channel, reason}` — counter with failure reason.
+  - `notification.delivery_duration_seconds{channel}` — histogram.
+  - `webhook.delivery.http_status{endpoint_id}` — counter (careful with cardinality if thousands of endpoints).
+- **Log template rendering failures as `error` with full context**: template name, recipient, payload fields available. Don't swallow — these are template bugs.
+- **Trace every notification end-to-end**: span kind `CONSUMER` (Kafka) → `INTERNAL` (render) → `CLIENT` (SMTP) → emit log record on success. Full trace tells us where delivery slowed or failed.
+
+### Testing (Notification Specific)
+
+- **Use Mailpit in dev/test**: no real SMTP provider; captures all outbound emails. Assert on Mailpit's API in integration tests: `GET http://localhost:8025/api/v1/messages`.
+- **Template rendering golden files**: for every template, store rendered output (HTML + text) as fixture. Diff on CI catches template regressions.
+- **Webhook delivery tests use a local echo server**: spin up simple express server in tests that records received calls. Assert request body + signature.
+- **Schedule tests use fake timers**: `jest.useFakeTimers()` to fast-forward 24 hours and assert reminder job fires.
+
+### Related Skills
+
+See [.claude/skills/](../../.claude/skills/) for:
+
+- `clean-code` — function size, naming, comments.
+- `design-patterns` — Adapter (channels), Template Method (email rendering), Chain of Responsibility (preference filtering).
+- `testing-pyramid` — Mailpit integration, template golden files.
+- `observability` — RED metrics, trace correlation across async delivery.

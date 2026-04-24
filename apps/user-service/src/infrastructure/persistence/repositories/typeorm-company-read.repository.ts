@@ -36,7 +36,9 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
     return entity ? this.toReadModel(entity) : null;
   }
 
-  async findByIdWithUsers(id: string): Promise<CompanyWithUsersReadModel | null> {
+  async findByIdWithUsers(
+    id: string,
+  ): Promise<CompanyWithUsersReadModel | null> {
     const entity = await this.repository.findOne({ where: { id } });
     if (!entity) return null;
 
@@ -50,7 +52,9 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
     };
   }
 
-  async findByIdWithDetails(id: string): Promise<CompanyDetailReadModel | null> {
+  async findByIdWithDetails(
+    id: string,
+  ): Promise<CompanyDetailReadModel | null> {
     const entity = await this.repository
       .createQueryBuilder('company')
       .leftJoinAndSelect('company.creator', 'creator')
@@ -101,7 +105,7 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
       order: { name: 'ASC' },
     });
 
-    const companies = entities.map(entity => this.toReadModel(entity));
+    const companies = entities.map((entity) => this.toReadModel(entity));
 
     return {
       data: companies,
@@ -118,9 +122,9 @@ export class TypeOrmCompanyReadRepository implements ICompanyReadRepository {
       relations: ['company'],
     });
 
-    return userCompanyEntities
-      .filter(uc => uc.company)
-      .map(uc => this.toReadModel(uc.company!));
+    return userCompanyEntities.flatMap((uc) =>
+      uc.company ? [this.toReadModel(uc.company)] : [],
+    );
   }
 
   async count(filters?: CompanyListFilters): Promise<number> {

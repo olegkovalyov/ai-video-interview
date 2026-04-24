@@ -1,5 +1,5 @@
 import { AggregateRoot } from '../base/base.aggregate-root';
-import { CompanySize } from '../value-objects/company-size.vo';
+import type { CompanySize } from '../value-objects/company-size.vo';
 import { UserCompany } from '../entities/user-company.entity';
 import { DomainException } from '../exceptions/domain.exception';
 import { CompanyCreatedEvent } from '../events/company-created.event';
@@ -157,29 +157,34 @@ export class Company extends AggregateRoot {
 
     const changes: CompanyChanges = {};
 
-    if (name.trim() !== this._name) {
-      this._name = name.trim();
+    const trimmedName = name.trim();
+    if (trimmedName !== this._name) {
+      this._name = trimmedName;
       changes.name = this._name;
     }
 
-    if (description?.trim() !== this._description) {
-      this._description = description?.trim() || null;
-      changes.description = this._description;
+    const nextDescription = Company.normalizeNullableField(description);
+    if (nextDescription !== this._description) {
+      this._description = nextDescription;
+      changes.description = nextDescription;
     }
 
-    if (website?.trim() !== this._website) {
-      this._website = website?.trim() || null;
-      changes.website = this._website;
+    const nextWebsite = Company.normalizeNullableField(website);
+    if (nextWebsite !== this._website) {
+      this._website = nextWebsite;
+      changes.website = nextWebsite;
     }
 
-    if (logoUrl?.trim() !== this._logoUrl) {
-      this._logoUrl = logoUrl?.trim() || null;
-      changes.logoUrl = this._logoUrl;
+    const nextLogoUrl = Company.normalizeNullableField(logoUrl);
+    if (nextLogoUrl !== this._logoUrl) {
+      this._logoUrl = nextLogoUrl;
+      changes.logoUrl = nextLogoUrl;
     }
 
-    if (industry?.trim() !== this._industry) {
-      this._industry = industry?.trim() || null;
-      changes.industry = this._industry;
+    const nextIndustry = Company.normalizeNullableField(industry);
+    if (nextIndustry !== this._industry) {
+      this._industry = nextIndustry;
+      changes.industry = nextIndustry;
     }
 
     // Handle size change (including setting to null)
@@ -193,9 +198,10 @@ export class Company extends AggregateRoot {
       changes.size = size.value;
     }
 
-    if (location?.trim() !== this._location) {
-      this._location = location?.trim() || null;
-      changes.location = this._location;
+    const nextLocation = Company.normalizeNullableField(location);
+    if (nextLocation !== this._location) {
+      this._location = nextLocation;
+      changes.location = nextLocation;
     }
 
     if (Object.keys(changes).length > 0) {
@@ -203,6 +209,16 @@ export class Company extends AggregateRoot {
 
       this.apply(new CompanyUpdatedEvent(this._id, changes));
     }
+  }
+
+  /**
+   * Normalize a nullable text field: trim whitespace, treat empty as null.
+   * Keeps `update()` type-safe (no undefined-vs-null mismatch on optional chaining).
+   */
+  private static normalizeNullableField(value: string | null): string | null {
+    if (value === null) return null;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
   }
 
   /**

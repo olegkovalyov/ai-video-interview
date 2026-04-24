@@ -26,7 +26,9 @@ describe('CandidateProfile Aggregate (Updated)', () => {
 
     it('should throw error for empty user ID', () => {
       expect(() => CandidateProfile.create('')).toThrow(DomainException);
-      expect(() => CandidateProfile.create('   ')).toThrow('User ID cannot be empty');
+      expect(() => CandidateProfile.create('   ')).toThrow(
+        'User ID cannot be empty',
+      );
     });
   });
 
@@ -97,7 +99,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
       const events = profile.getUncommittedEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(CandidateSkillAddedEvent);
-      
+
       const event = events[0] as CandidateSkillAddedEvent;
       expect(event.candidateId).toBe(validUserId);
       expect(event.skillId).toBe(validSkillId);
@@ -123,7 +125,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
           'Another description',
           ProficiencyLevel.advanced(),
           YearsOfExperience.fromNumber(5),
-        )
+        ),
       ).toThrow(DomainException);
       expect(() =>
         profile.addSkill(
@@ -132,7 +134,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
           'Another description',
           ProficiencyLevel.advanced(),
           YearsOfExperience.fromNumber(5),
-        )
+        ),
       ).toThrow('Skill already added to profile');
     });
 
@@ -182,7 +184,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
         YearsOfExperience.fromNumber(5),
       );
 
-      const skill = profile.skills.find(s => s.skillId === validSkillId);
+      const skill = profile.skills.find((s) => s.skillId === validSkillId);
       expect(skill?.description).toBe('Updated description');
       expect(skill?.proficiencyLevel!.value).toBe('advanced');
       expect(skill?.yearsOfExperience!.value).toBe(5);
@@ -211,7 +213,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
       const events = profile.getUncommittedEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(CandidateSkillUpdatedEvent);
-      
+
       const event = events[0] as CandidateSkillUpdatedEvent;
       expect(event.skillId).toBe(validSkillId);
       expect(event.changes).toEqual({
@@ -255,7 +257,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
           'Description',
           ProficiencyLevel.advanced(),
           YearsOfExperience.fromNumber(5),
-        )
+        ),
       ).toThrow(DomainException);
       expect(() =>
         profile.updateSkill(
@@ -263,7 +265,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
           'Description',
           ProficiencyLevel.advanced(),
           YearsOfExperience.fromNumber(5),
-        )
+        ),
       ).toThrow('Skill not found in profile');
     });
   });
@@ -305,7 +307,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
       const events = profile.getUncommittedEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(CandidateSkillRemovedEvent);
-      
+
       const event = events[0] as CandidateSkillRemovedEvent;
       expect(event.candidateId).toBe(validUserId);
       expect(event.skillId).toBe(validSkillId);
@@ -314,25 +316,51 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should throw error when removing non-existent skill', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      expect(() => profile.removeSkill('non-existent')).toThrow(DomainException);
-      expect(() => profile.removeSkill('non-existent')).toThrow('Skill not found in profile');
+      expect(() => profile.removeSkill('non-existent')).toThrow(
+        DomainException,
+      );
+      expect(() => profile.removeSkill('non-existent')).toThrow(
+        'Skill not found in profile',
+      );
     });
 
     it('should remove only specified skill', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill('react', 'cs-1', 'React', ProficiencyLevel.advanced(), YearsOfExperience.fromNumber(5));
-      profile.addSkill('nodejs', 'cs-2', 'Node', ProficiencyLevel.intermediate(), YearsOfExperience.fromNumber(3));
-      profile.addSkill('postgres', 'cs-3', 'PostgreSQL', ProficiencyLevel.beginner(), YearsOfExperience.fromNumber(1));
+      profile.addSkill(
+        'react',
+        'cs-1',
+        'React',
+        ProficiencyLevel.advanced(),
+        YearsOfExperience.fromNumber(5),
+      );
+      profile.addSkill(
+        'nodejs',
+        'cs-2',
+        'Node',
+        ProficiencyLevel.intermediate(),
+        YearsOfExperience.fromNumber(3),
+      );
+      profile.addSkill(
+        'postgres',
+        'cs-3',
+        'PostgreSQL',
+        ProficiencyLevel.beginner(),
+        YearsOfExperience.fromNumber(1),
+      );
 
       expect(profile.skills).toHaveLength(3);
 
       profile.removeSkill('nodejs');
 
       expect(profile.skills).toHaveLength(2);
-      expect(profile.skills.find(s => s.skillId === 'react')).toBeDefined();
-      expect(profile.skills.find(s => s.skillId === 'postgres')).toBeDefined();
-      expect(profile.skills.find(s => s.skillId === 'nodejs')).toBeUndefined();
+      expect(profile.skills.find((s) => s.skillId === 'react')).toBeDefined();
+      expect(
+        profile.skills.find((s) => s.skillId === 'postgres'),
+      ).toBeDefined();
+      expect(
+        profile.skills.find((s) => s.skillId === 'nodejs'),
+      ).toBeUndefined();
     });
   });
 
@@ -396,7 +424,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
 
       const skills = profile.skills;
       expect(skills).toHaveLength(1);
-      
+
       // Should be readonly - TypeScript will prevent modification
       // but at runtime it's the actual array reference
       expect(Array.isArray(skills)).toBe(true);

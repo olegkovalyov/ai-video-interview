@@ -23,7 +23,7 @@ export class TestInternalServiceGuard implements CanActivate {
     if (token && !this.validTokens.includes(token)) {
       throw new UnauthorizedException('Invalid internal token');
     }
-    
+
     // Require token for proper testing
     if (!token) {
       throw new UnauthorizedException('Missing internal token');

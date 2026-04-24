@@ -1,12 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  setupTestApp,
-  createTestDataSource,
-  cleanDatabase,
-} from '../../setup';
+import { setupTestApp, createTestDataSource, cleanDatabase } from '../../setup';
 import { CreateSkillCommand } from '../../../../src/application/commands/admin/create-skill/create-skill.command';
 import { ActivateSkillCommand } from '../../../../src/application/commands/admin/activate-skill/activate-skill.command';
 import { DeactivateSkillCommand } from '../../../../src/application/commands/admin/deactivate-skill/deactivate-skill.command';
@@ -105,7 +101,10 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
       // Arrange
       const nonExistentId = uuidv4();
       const adminId = uuidv4();
-      const deactivateCommand = new DeactivateSkillCommand(nonExistentId, adminId);
+      const deactivateCommand = new DeactivateSkillCommand(
+        nonExistentId,
+        adminId,
+      );
 
       // Act & Assert
       await expect(commandBus.execute(deactivateCommand)).rejects.toThrow();
@@ -114,13 +113,31 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
     it('should deactivate multiple skills', async () => {
       // Arrange - Create 3 skills
       const adminId = uuidv4();
-      const command1 = new CreateSkillCommand('Skill 1', 'skill-1', null, null, adminId);
+      const command1 = new CreateSkillCommand(
+        'Skill 1',
+        'skill-1',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: id1 } = await commandBus.execute(command1);
 
-      const command2 = new CreateSkillCommand('Skill 2', 'skill-2', null, null, adminId);
+      const command2 = new CreateSkillCommand(
+        'Skill 2',
+        'skill-2',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: id2 } = await commandBus.execute(command2);
 
-      const command3 = new CreateSkillCommand('Skill 3', 'skill-3', null, null, adminId);
+      const command3 = new CreateSkillCommand(
+        'Skill 3',
+        'skill-3',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: id3 } = await commandBus.execute(command3);
 
       // Act - Deactivate all 3

@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsUUID, IsEnum, IsInt, Min, Max, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsUUID,
+  IsEnum,
+  IsInt,
+  Min,
+  Max,
+  MaxLength,
+} from 'class-validator';
 
 export class AddCandidateSkillDto {
   @IsUUID()

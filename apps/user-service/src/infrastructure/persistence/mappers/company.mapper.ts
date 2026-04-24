@@ -11,20 +11,20 @@ export class CompanyMapper {
 
   toEntity(company: Company): CompanyEntity {
     const entity = new CompanyEntity();
-    
+
     entity.id = company.id;
     entity.name = company.name;
     entity.description = company.description;
     entity.website = company.website;
     entity.logoUrl = company.logoUrl;
     entity.industry = company.industry;
-    entity.size = company.size?.value as any || null;
+    entity.size = (company.size?.value as CompanyEntity['size']) ?? null;
     entity.location = company.location;
     entity.isActive = company.isActive;
     entity.createdBy = company.createdBy;
     entity.createdAt = company.createdAt;
     entity.updatedAt = company.updatedAt;
-    
+
     return entity;
   }
 
@@ -52,6 +52,6 @@ export class CompanyMapper {
   }
 
   toDomainList(entities: CompanyEntity[]): Company[] {
-    return entities.map(entity => this.toDomain(entity));
+    return entities.map((entity) => this.toDomain(entity));
   }
 }

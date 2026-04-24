@@ -20,7 +20,8 @@ export interface CandidateProfileReadModel {
  * Candidate Profile with User Info
  * Denormalized view with user information
  */
-export interface CandidateProfileWithUserReadModel extends CandidateProfileReadModel {
+export interface CandidateProfileWithUserReadModel
+  extends CandidateProfileReadModel {
   // User info
   fullName: string;
   firstName: string;

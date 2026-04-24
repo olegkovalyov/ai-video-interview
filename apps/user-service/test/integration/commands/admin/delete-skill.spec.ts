@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -158,13 +158,31 @@ describe('DeleteSkillCommand Integration', () => {
     it('should delete multiple skills in sequence', async () => {
       // Arrange - Create 3 skills
       const adminId = uuidv4();
-      const command1 = new CreateSkillCommand('Skill 1', 'skill-1', null, null, adminId);
+      const command1 = new CreateSkillCommand(
+        'Skill 1',
+        'skill-1',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: id1 } = await commandBus.execute(command1);
 
-      const command2 = new CreateSkillCommand('Skill 2', 'skill-2', null, null, adminId);
+      const command2 = new CreateSkillCommand(
+        'Skill 2',
+        'skill-2',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: id2 } = await commandBus.execute(command2);
 
-      const command3 = new CreateSkillCommand('Skill 3', 'skill-3', null, null, adminId);
+      const command3 = new CreateSkillCommand(
+        'Skill 3',
+        'skill-3',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: id3 } = await commandBus.execute(command3);
 
       // Act - Delete all 3

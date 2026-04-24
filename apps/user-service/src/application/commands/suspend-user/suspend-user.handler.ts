@@ -49,7 +49,7 @@ export class SuspendUserHandler implements ICommandHandler<SuspendUserCommand> {
     });
 
     // 4. After commit: publish domain events (internal)
-    user.getUncommittedEvents().forEach(event => {
+    user.getUncommittedEvents().forEach((event) => {
       this.eventBus.publish(event);
     });
     user.clearEvents();

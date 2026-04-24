@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -171,17 +171,11 @@ describe('SuspendUserCommand Integration', () => {
         status: 'deleted',
       });
 
-      const command = new SuspendUserCommand(
-        userId,
-        'Reason',
-        'admin-123',
-      );
+      const command = new SuspendUserCommand(userId, 'Reason', 'admin-123');
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow();
-      await expect(commandBus.execute(command)).rejects.toThrow(
-        'is deleted',
-      );
+      await expect(commandBus.execute(command)).rejects.toThrow('is deleted');
     });
   });
 

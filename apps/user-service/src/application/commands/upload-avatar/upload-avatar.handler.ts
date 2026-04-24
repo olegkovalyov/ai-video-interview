@@ -18,7 +18,9 @@ export interface IStorageService {
  * Upload Avatar Command Handler
  */
 @CommandHandler(UploadAvatarCommand)
-export class UploadAvatarHandler implements ICommandHandler<UploadAvatarCommand> {
+export class UploadAvatarHandler
+  implements ICommandHandler<UploadAvatarCommand>
+{
   constructor(
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
@@ -61,7 +63,7 @@ export class UploadAvatarHandler implements ICommandHandler<UploadAvatarCommand>
     await this.userRepository.save(user);
 
     // 6. Publish events
-    user.getUncommittedEvents().forEach(event => {
+    user.getUncommittedEvents().forEach((event) => {
       this.eventBus.publish(event);
     });
     user.clearEvents();

@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
 import { UpdateCompanyHandler } from '../update-company.handler';
 import { UpdateCompanyCommand } from '../update-company.command';
@@ -123,7 +124,9 @@ describe('UpdateCompanyHandler', () => {
       );
 
       // Assert - schedulePublishing called after UoW commit
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
 
       // Assert - Domain events published via EventBus
       expect(mockEventBus.publish).toHaveBeenCalled();
@@ -160,7 +163,9 @@ describe('UpdateCompanyHandler', () => {
         'company-id-1',
         {}, // tx context
       );
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
     });
 
     it('should set optional fields to null', async () => {
@@ -185,7 +190,9 @@ describe('UpdateCompanyHandler', () => {
 
       // Assert - save was called (fields changed to null)
       expect(mockCompanyRepository.save).toHaveBeenCalledTimes(1);
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
     });
 
     it('should include updatedAt in outbox event payload', async () => {
@@ -234,7 +241,9 @@ describe('UpdateCompanyHandler', () => {
       );
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(CompanyNotFoundException);
+      await expect(handler.execute(command)).rejects.toThrow(
+        CompanyNotFoundException,
+      );
 
       // Assert - No saves attempted
       expect(mockUnitOfWork.execute).not.toHaveBeenCalled();
@@ -260,7 +269,9 @@ describe('UpdateCompanyHandler', () => {
       );
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(CompanyAccessDeniedException);
+      await expect(handler.execute(command)).rejects.toThrow(
+        CompanyAccessDeniedException,
+      );
 
       // Assert - No saves attempted
       expect(mockUnitOfWork.execute).not.toHaveBeenCalled();
@@ -299,10 +310,7 @@ describe('UpdateCompanyHandler', () => {
       await handler.execute(command);
 
       // Assert
-      expect(executionOrder).toEqual([
-        'company.save',
-        'outbox.saveEvent',
-      ]);
+      expect(executionOrder).toEqual(['company.save', 'outbox.saveEvent']);
     });
 
     it('should not call schedulePublishing if UoW fails', async () => {
@@ -324,7 +332,9 @@ describe('UpdateCompanyHandler', () => {
       );
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Transaction failed');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Transaction failed',
+      );
       expect(mockOutboxService.schedulePublishing).not.toHaveBeenCalled();
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });

@@ -10,7 +10,9 @@ describe('SkillMapper', () => {
     mapper = new SkillMapper();
   });
 
-  const createSkillEntity = (overrides: Partial<SkillEntity> = {}): SkillEntity => {
+  const createSkillEntity = (
+    overrides: Partial<SkillEntity> = {},
+  ): SkillEntity => {
     const entity = new SkillEntity();
     entity.id = uuidv4();
     entity.name = 'TypeScript';
@@ -24,22 +26,26 @@ describe('SkillMapper', () => {
     return entity;
   };
 
-  const createSkillDomain = (overrides: {
-    id?: string;
-    name?: string;
-    slug?: string;
-    categoryId?: string | null;
-    description?: string | null;
-    isActive?: boolean;
-    createdAt?: Date;
-    updatedAt?: Date;
-  } = {}): Skill => {
+  const createSkillDomain = (
+    overrides: {
+      id?: string;
+      name?: string;
+      slug?: string;
+      categoryId?: string | null;
+      description?: string | null;
+      isActive?: boolean;
+      createdAt?: Date;
+      updatedAt?: Date;
+    } = {},
+  ): Skill => {
     return Skill.reconstitute(
       overrides.id ?? uuidv4(),
       overrides.name ?? 'TypeScript',
       overrides.slug ?? 'typescript',
-      overrides.categoryId !== undefined ? overrides.categoryId : uuidv4(),
-      overrides.description !== undefined ? overrides.description : 'A typed superset of JavaScript',
+      overrides.categoryId === undefined ? uuidv4() : overrides.categoryId,
+      overrides.description === undefined
+        ? 'A typed superset of JavaScript'
+        : overrides.description,
       overrides.isActive ?? true,
       overrides.createdAt ?? new Date('2025-02-10T08:00:00Z'),
       overrides.updatedAt ?? new Date('2025-05-20T11:00:00Z'),

@@ -7,10 +7,16 @@ export class ErrorResponseSchema {
   @ApiProperty({ example: false, description: 'Indicates the request failed' })
   success: boolean;
 
-  @ApiProperty({ example: 'Error message', description: 'Human-readable error message' })
+  @ApiProperty({
+    example: 'Error message',
+    description: 'Human-readable error message',
+  })
   error: string;
 
-  @ApiProperty({ example: 'ERROR_CODE', description: 'Machine-readable error code' })
+  @ApiProperty({
+    example: 'ERROR_CODE',
+    description: 'Machine-readable error code',
+  })
   code: string;
 
   @ApiProperty({ example: 'Additional error details', required: false })
@@ -30,7 +36,10 @@ export class BadRequestErrorSchema {
   @ApiProperty({ example: 'VALIDATION_ERROR' })
   code: string;
 
-  @ApiProperty({ example: 'firstName must be at least 2 characters long', required: false })
+  @ApiProperty({
+    example: 'firstName must be at least 2 characters long',
+    required: false,
+  })
   details?: string;
 }
 
@@ -89,7 +98,10 @@ export class ConflictErrorSchema {
   @ApiProperty({ example: 'USER_ALREADY_EXISTS' })
   code: string;
 
-  @ApiProperty({ example: 'User with email user@example.com already exists', required: false })
+  @ApiProperty({
+    example: 'User with email user@example.com already exists',
+    required: false,
+  })
   details?: string;
 }
 

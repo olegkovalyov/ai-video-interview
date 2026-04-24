@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
 import { SelectRoleHandler } from '../select-role.handler';
 import { SelectRoleCommand } from '../select-role.command';
@@ -57,7 +58,10 @@ describe('SelectRoleHandler', () => {
       providers: [
         SelectRoleHandler,
         { provide: 'IUserRepository', useValue: mockUserRepository },
-        { provide: 'ICandidateProfileRepository', useValue: mockCandidateProfileRepository },
+        {
+          provide: 'ICandidateProfileRepository',
+          useValue: mockCandidateProfileRepository,
+        },
         { provide: EventBus, useValue: mockEventBus },
         { provide: 'IOutboxService', useValue: mockOutboxService },
         { provide: 'IUnitOfWork', useValue: mockUnitOfWork },
@@ -74,7 +78,12 @@ describe('SelectRoleHandler', () => {
       'ext-auth-id-1',
       Email.create('test@example.com'),
       FullName.create('John', 'Doe'),
-      { value: 'active', isActive: () => true, isSuspended: () => false, isDeleted: () => false } as any,
+      {
+        value: 'active',
+        isActive: () => true,
+        isSuspended: () => false,
+        isDeleted: () => false,
+      } as any,
       UserRole.pending(),
       undefined,
       undefined,
@@ -127,7 +136,9 @@ describe('SelectRoleHandler', () => {
       );
 
       // Assert - schedulePublishing called after UoW commit
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
 
       // Assert - Domain events published via EventBus
       expect(mockEventBus.publish).toHaveBeenCalled();
@@ -164,7 +175,9 @@ describe('SelectRoleHandler', () => {
       );
 
       // Assert - schedulePublishing called
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
     });
 
     it('should select admin role without creating candidate profile', async () => {
@@ -192,7 +205,9 @@ describe('SelectRoleHandler', () => {
       );
 
       // Assert - schedulePublishing called
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
     });
 
     it('should include correct fields in outbox event payload', async () => {
@@ -225,7 +240,9 @@ describe('SelectRoleHandler', () => {
       const command = new SelectRoleCommand('non-existent-id', 'candidate');
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(UserNotFoundException);
+      await expect(handler.execute(command)).rejects.toThrow(
+        UserNotFoundException,
+      );
 
       // Assert - No saves attempted
       expect(mockUnitOfWork.execute).not.toHaveBeenCalled();
@@ -241,7 +258,9 @@ describe('SelectRoleHandler', () => {
       const command = new SelectRoleCommand('user-id-1', 'invalid' as any);
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Invalid role: invalid');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Invalid role: invalid',
+      );
     });
 
     it('should throw when role already selected (not pending)', async () => {
@@ -251,7 +270,12 @@ describe('SelectRoleHandler', () => {
         'ext-auth-id-1',
         Email.create('test@example.com'),
         FullName.create('John', 'Doe'),
-        { value: 'active', isActive: () => true, isSuspended: () => false, isDeleted: () => false } as any,
+        {
+          value: 'active',
+          isActive: () => true,
+          isSuspended: () => false,
+          isDeleted: () => false,
+        } as any,
         UserRole.candidate(), // Already candidate
         undefined,
         undefined,
@@ -307,7 +331,9 @@ describe('SelectRoleHandler', () => {
       ]);
 
       // Assert - schedulePublishing called after UoW commit
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
     });
 
     it('should not call schedulePublishing if UoW fails', async () => {
@@ -319,7 +345,9 @@ describe('SelectRoleHandler', () => {
       const command = new SelectRoleCommand('user-id-1', 'candidate');
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Transaction failed');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Transaction failed',
+      );
       expect(mockOutboxService.schedulePublishing).not.toHaveBeenCalled();
     });
   });

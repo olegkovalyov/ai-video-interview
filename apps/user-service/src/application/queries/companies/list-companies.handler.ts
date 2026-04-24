@@ -1,7 +1,11 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ListCompaniesQuery } from './list-companies.query';
-import type { ICompanyReadRepository, PaginatedResult, CompanyListFilters } from '../../../domain/repositories/company-read.repository.interface';
+import type {
+  ICompanyReadRepository,
+  PaginatedResult,
+  CompanyListFilters,
+} from '../../../domain/repositories/company-read.repository.interface';
 import type { CompanyReadModel } from '../../../domain/read-models/company.read-model';
 
 /**
@@ -15,13 +19,17 @@ export class ListCompaniesHandler implements IQueryHandler<ListCompaniesQuery> {
     private readonly companyReadRepository: ICompanyReadRepository,
   ) {}
 
-  async execute(query: ListCompaniesQuery): Promise<PaginatedResult<CompanyReadModel>> {
+  async execute(
+    query: ListCompaniesQuery,
+  ): Promise<PaginatedResult<CompanyReadModel>> {
     // HR видит только свои компании (из user_companies)
     if (!query.isAdmin && query.currentUserId) {
-      const userCompanies = await this.companyReadRepository.listByUserId(query.currentUserId);
-      
-      // TODO: Apply pagination and filters to user companies
-      // For MVP, return all user's companies
+      const userCompanies = await this.companyReadRepository.listByUserId(
+        query.currentUserId,
+      );
+
+      // TODO(#pagination): Apply pagination and filters to the per-user company list.
+      // For MVP, return all companies the user has access to.
       return {
         data: userCompanies,
         total: userCompanies.length,

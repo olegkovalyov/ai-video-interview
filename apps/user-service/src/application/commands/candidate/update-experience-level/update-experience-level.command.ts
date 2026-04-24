@@ -1,6 +1,10 @@
-export class UpdateCandidateExperienceLevelCommand {
+import { Command } from '@nestjs/cqrs';
+
+export class UpdateCandidateExperienceLevelCommand extends Command<void> {
   constructor(
     public readonly candidateId: string,
-    public readonly experienceLevel: string, // junior | mid | senior | lead
-  ) {}
+    public readonly experienceLevel: string,
+  ) {
+    super();
+  }
 }

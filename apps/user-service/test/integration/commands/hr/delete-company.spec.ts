@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -135,13 +135,43 @@ describe('DeleteCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const command1 = new CreateCompanyCommand('Company 1', null, null, null, null, null, null, null, hrUserId);
+      const command1 = new CreateCompanyCommand(
+        'Company 1',
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        hrUserId,
+      );
       const { companyId: id1 } = await commandBus.execute(command1);
 
-      const command2 = new CreateCompanyCommand('Company 2', null, null, null, null, null, null, null, hrUserId);
+      const command2 = new CreateCompanyCommand(
+        'Company 2',
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        hrUserId,
+      );
       const { companyId: id2 } = await commandBus.execute(command2);
 
-      const command3 = new CreateCompanyCommand('Company 3', null, null, null, null, null, null, null, hrUserId);
+      const command3 = new CreateCompanyCommand(
+        'Company 3',
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        hrUserId,
+      );
       const { companyId: id3 } = await commandBus.execute(command3);
 
       // Act - Delete all 3

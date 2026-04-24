@@ -1,7 +1,10 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ListUsersQuery } from './list-users.query';
-import type { IUserReadRepository, PaginatedResult } from '../../../domain/repositories/user-read.repository.interface';
+import type {
+  IUserReadRepository,
+  PaginatedResult,
+} from '../../../domain/repositories/user-read.repository.interface';
 import type { UserReadModel } from '../../../domain/read-models/user.read-model';
 
 /**
@@ -15,11 +18,9 @@ export class ListUsersHandler implements IQueryHandler<ListUsersQuery> {
     private readonly userReadRepository: IUserReadRepository,
   ) {}
 
-  async execute(query: ListUsersQuery): Promise<PaginatedResult<UserReadModel>> {
-    return this.userReadRepository.list(
-      query.page,
-      query.limit,
-      query.filters,
-    );
+  async execute(
+    query: ListUsersQuery,
+  ): Promise<PaginatedResult<UserReadModel>> {
+    return this.userReadRepository.list(query.page, query.limit, query.filters);
   }
 }

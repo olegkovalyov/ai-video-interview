@@ -18,6 +18,8 @@ export const COMPANY_EVENT_TYPES = {
   DELETED: 'company.deleted',
 } as const;
 
-export type UserEventType = (typeof USER_EVENT_TYPES)[keyof typeof USER_EVENT_TYPES];
-export type CompanyEventType = (typeof COMPANY_EVENT_TYPES)[keyof typeof COMPANY_EVENT_TYPES];
+export type UserEventType =
+  (typeof USER_EVENT_TYPES)[keyof typeof USER_EVENT_TYPES];
+export type CompanyEventType =
+  (typeof COMPANY_EVENT_TYPES)[keyof typeof COMPANY_EVENT_TYPES];
 export type IntegrationEventType = UserEventType | CompanyEventType;

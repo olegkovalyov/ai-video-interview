@@ -1,4 +1,5 @@
-import { ArgumentsHost, HttpStatus, Logger } from '@nestjs/common';
+import type { ArgumentsHost } from '@nestjs/common';
+import { HttpStatus, Logger } from '@nestjs/common';
 
 // Suppress Logger.warn output from filter (tested behavior, not debug info)
 jest.spyOn(Logger.prototype, 'warn').mockImplementation();

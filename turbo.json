@@ -10,6 +10,10 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "lint:deadcode": {
+      "cache": true,
+      "inputs": ["$TURBO_DEFAULT$", "knip.json"]
+    },
     "check-types": {
       "dependsOn": ["^check-types"]
     },
@@ -25,7 +29,15 @@
     "start:dev": {
       "cache": false,
       "persistent": true,
-      "env": ["PORT", "NODE_ENV", "LOG_LEVEL", "INTERVIEW_SERVICE_PORT", "DATABASE_URL", "KAFKA_BROKERS", "REDIS_HOST"]
+      "env": [
+        "PORT",
+        "NODE_ENV",
+        "LOG_LEVEL",
+        "INTERVIEW_SERVICE_PORT",
+        "DATABASE_URL",
+        "KAFKA_BROKERS",
+        "REDIS_HOST"
+      ]
     },
     "test": {
       "dependsOn": ["^build"],

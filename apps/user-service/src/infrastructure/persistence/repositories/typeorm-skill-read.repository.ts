@@ -33,7 +33,9 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     return entity ? this.toReadModel(entity) : null;
   }
 
-  async findByIdWithCategory(id: string): Promise<SkillWithCategoryReadModel | null> {
+  async findByIdWithCategory(
+    id: string,
+  ): Promise<SkillWithCategoryReadModel | null> {
     const entity = await this.repository.findOne({
       where: { id },
       relations: ['category'],
@@ -76,7 +78,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     });
 
     return {
-      data: entities.map(entity => this.toReadModel(entity)),
+      data: entities.map((entity) => this.toReadModel(entity)),
       total,
       page,
       limit,
@@ -92,19 +94,25 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     // Handle zero limit edge case
     if (limit === 0) {
       let countQuery = this.repository.createQueryBuilder('skill');
-      
+
       if (filters?.categoryId) {
-        countQuery = countQuery.andWhere('skill.categoryId = :categoryId', { categoryId: filters.categoryId });
+        countQuery = countQuery.andWhere('skill.categoryId = :categoryId', {
+          categoryId: filters.categoryId,
+        });
       }
       if (filters?.isActive !== undefined) {
-        countQuery = countQuery.andWhere('skill.isActive = :isActive', { isActive: filters.isActive });
+        countQuery = countQuery.andWhere('skill.isActive = :isActive', {
+          isActive: filters.isActive,
+        });
       }
       if (filters?.search) {
-        countQuery = countQuery.andWhere('skill.name ILIKE :search', { search: `%${filters.search}%` });
+        countQuery = countQuery.andWhere('skill.name ILIKE :search', {
+          search: `%${filters.search}%`,
+        });
       }
-      
+
       const total = await countQuery.getCount();
-      
+
       return {
         data: [],
         total,
@@ -113,22 +121,28 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
         totalPages: 0,
       };
     }
-    
+
     let query = this.repository
       .createQueryBuilder('skill')
       .leftJoinAndSelect('skill.category', 'category');
 
     // Apply filters
     if (filters?.categoryId) {
-      query = query.andWhere('skill.categoryId = :categoryId', { categoryId: filters.categoryId });
+      query = query.andWhere('skill.categoryId = :categoryId', {
+        categoryId: filters.categoryId,
+      });
     }
 
     if (filters?.isActive !== undefined) {
-      query = query.andWhere('skill.isActive = :isActive', { isActive: filters.isActive });
+      query = query.andWhere('skill.isActive = :isActive', {
+        isActive: filters.isActive,
+      });
     }
 
     if (filters?.search) {
-      query = query.andWhere('skill.name ILIKE :search', { search: `%${filters.search}%` });
+      query = query.andWhere('skill.name ILIKE :search', {
+        search: `%${filters.search}%`,
+      });
     }
 
     // Apply pagination and ordering
@@ -139,7 +153,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
 
     const [entities, total] = await query.getManyAndCount();
 
-    const data = entities.map(entity => this.toReadModelWithCategory(entity));
+    const data = entities.map((entity) => this.toReadModelWithCategory(entity));
 
     return {
       data,
@@ -154,7 +168,7 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     const entities = await this.categoryRepository.find({
       order: { sortOrder: 'ASC', name: 'ASC' },
     });
-    return entities.map(entity => this.toCategoryReadModel(entity));
+    return entities.map((entity) => this.toCategoryReadModel(entity));
   }
 
   async findCategoryById(id: string): Promise<SkillCategoryReadModel | null> {
@@ -204,7 +218,9 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
    * Map SkillEntity with CategoryEntity to SkillWithCategoryReadModel
    * Denormalizes category data for easier consumption
    */
-  private toReadModelWithCategory(entity: SkillEntity): SkillWithCategoryReadModel {
+  private toReadModelWithCategory(
+    entity: SkillEntity,
+  ): SkillWithCategoryReadModel {
     return {
       id: entity.id,
       name: entity.name,
@@ -215,14 +231,18 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
       isActive: entity.isActive,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
-      category: entity.category ? this.toCategoryReadModel(entity.category) : null,
+      category: entity.category
+        ? this.toCategoryReadModel(entity.category)
+        : null,
     };
   }
 
   /**
    * Map SkillCategoryEntity to SkillCategoryReadModel (plain object)
    */
-  private toCategoryReadModel(entity: SkillCategoryEntity): SkillCategoryReadModel {
+  private toCategoryReadModel(
+    entity: SkillCategoryEntity,
+  ): SkillCategoryReadModel {
     return {
       id: entity.id,
       name: entity.name,

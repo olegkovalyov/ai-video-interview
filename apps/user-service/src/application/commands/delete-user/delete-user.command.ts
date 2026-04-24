@@ -1,10 +1,10 @@
-/**
- * Delete User Command
- * Represents the intent to soft-delete a user account
- */
-export class DeleteUserCommand {
+import { Command } from '@nestjs/cqrs';
+
+export class DeleteUserCommand extends Command<void> {
   constructor(
     public readonly userId: string,
     public readonly deletedBy: string,
-  ) {}
+  ) {
+    super();
+  }
 }

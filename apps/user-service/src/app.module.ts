@@ -53,10 +53,10 @@ export class AppModule implements OnModuleDestroy {
       service: 'user-service',
       action: 'shutdown',
     });
-    await sdk.shutdown().catch((error) => {
+    await sdk.shutdown().catch((error: unknown) => {
       this.logger.error('Error shutting down OpenTelemetry', {
         service: 'user-service',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     });
   }

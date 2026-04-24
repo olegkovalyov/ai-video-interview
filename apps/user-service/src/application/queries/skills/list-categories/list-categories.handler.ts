@@ -9,13 +9,17 @@ import type { SkillCategoryReadModel } from '../../../../domain/read-models/skil
  * Returns Read Models (plain objects)
  */
 @QueryHandler(ListSkillCategoriesQuery)
-export class ListSkillCategoriesHandler implements IQueryHandler<ListSkillCategoriesQuery> {
+export class ListSkillCategoriesHandler
+  implements IQueryHandler<ListSkillCategoriesQuery>
+{
   constructor(
     @Inject('ISkillReadRepository')
     private readonly skillReadRepository: ISkillReadRepository,
   ) {}
 
-  async execute(query: ListSkillCategoriesQuery): Promise<SkillCategoryReadModel[]> {
+  async execute(
+    _query: ListSkillCategoriesQuery,
+  ): Promise<SkillCategoryReadModel[]> {
     return this.skillReadRepository.listCategories();
   }
 }

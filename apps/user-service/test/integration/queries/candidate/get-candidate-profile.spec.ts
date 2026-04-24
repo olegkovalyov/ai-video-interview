@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -82,28 +82,44 @@ describe('GetCandidateProfileQuery Integration', () => {
 
       // Create skills
       const adminId = uuidv4();
-      const skill1Command = new CreateSkillCommand('Node.js Test', 'nodejs-test', null, null, adminId);
+      const skill1Command = new CreateSkillCommand(
+        'Node.js Test',
+        'nodejs-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand('React Test', 'react-test', null, null, adminId);
+      const skill2Command = new CreateSkillCommand(
+        'React Test',
+        'react-test',
+        null,
+        null,
+        adminId,
+      );
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
       // Add skills to candidate
-      await commandBus.execute(new AddCandidateSkillCommand(
-        candidateId,
-        skill1Id,
-        'Backend development',
-        'advanced',
-        5,
-      ));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill1Id,
+          'Backend development',
+          'advanced',
+          5,
+        ),
+      );
 
-      await commandBus.execute(new AddCandidateSkillCommand(
-        candidateId,
-        skill2Id,
-        'Frontend development',
-        'intermediate',
-        3,
-      ));
+      await commandBus.execute(
+        new AddCandidateSkillCommand(
+          candidateId,
+          skill2Id,
+          'Frontend development',
+          'intermediate',
+          3,
+        ),
+      );
 
       // Act
       const query = new GetCandidateProfileQuery(candidateId, candidateId);
@@ -200,7 +216,12 @@ describe('GetCandidateProfileQuery Integration', () => {
       const adminId = uuidv4();
 
       // Act - Admin trying to view non-existent profile
-      const query = new GetCandidateProfileQuery(nonExistentId, adminId, false, true);
+      const query = new GetCandidateProfileQuery(
+        nonExistentId,
+        adminId,
+        false,
+        true,
+      );
 
       // Assert
       await expect(queryBus.execute(query)).rejects.toThrow('not found');

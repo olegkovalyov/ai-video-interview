@@ -15,7 +15,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
 
 // Guards
 import { InternalServiceGuard } from '../guards/internal-service.guard';
@@ -34,12 +41,15 @@ import { GetSkillQuery } from '../../../application/queries/skills/get-skill/get
 import { ListSkillCategoriesQuery } from '../../../application/queries/skills/list-categories/list-categories.query';
 
 // DTOs
-import { CreateSkillDto, UpdateSkillDto, ListSkillsDto } from '../dto/skills.dto';
-import { 
-  SkillResponseDto, 
-  SkillCategoriesResponseDto, 
+import {
+  CreateSkillDto,
+  UpdateSkillDto,
+  ListSkillsDto,
+} from '../dto/skills.dto';
+import {
+  SkillCategoriesResponseDto,
   SkillListResponseDto,
-  SkillSuccessResponseDto
+  SkillSuccessResponseDto,
 } from '../dto/skills.response.dto';
 
 // Pipes
@@ -54,12 +64,14 @@ import {
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
 
+import { errorMessage } from '../utils/error-message.util';
+
 /**
  * Skills Controller
- * 
+ *
  * Admin Skills Management API
  * Protected by InternalServiceGuard (x-internal-token)
- * 
+ *
  * Endpoints:
  * - POST   /skills                  - Create new skill
  * - GET    /skills                  - List skills with filters
@@ -87,13 +99,27 @@ export class SkillsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create new skill' })
   @ApiBody({ type: CreateSkillDto })
-  @ApiResponse({ status: 201, type: SkillSuccessResponseDto, description: 'Skill created successfully' })
-  @ApiResponse({ status: 400, type: ValidationErrorSchema, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 409, type: ConflictErrorSchema, description: 'Skill already exists' })
-  async createSkill(
-    @Body() dto: CreateSkillDto,
-  ) {
+  @ApiResponse({
+    status: 201,
+    type: SkillSuccessResponseDto,
+    description: 'Skill created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: ValidationErrorSchema,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 409,
+    type: ConflictErrorSchema,
+    description: 'Skill already exists',
+  })
+  async createSkill(@Body() dto: CreateSkillDto) {
     try {
       const command = new CreateSkillCommand(
         dto.name,
@@ -110,17 +136,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('already exists')) {
+      if (errorMessage(error).includes('already exists')) {
         throw new ConflictException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_ALREADY_EXISTS',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -128,14 +154,27 @@ export class SkillsController {
   @Put(':id')
   @ApiOperation({ summary: 'Update skill' })
   @ApiBody({ type: UpdateSkillDto })
-  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill updated successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
-  async updateSkill(
-    @Param('id') skillId: string,
-    @Body() dto: UpdateSkillDto,
-  ) {
+  @ApiResponse({
+    status: 200,
+    type: SkillSuccessResponseDto,
+    description: 'Skill updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Skill not found',
+  })
+  async updateSkill(@Param('id') skillId: string, @Body() dto: UpdateSkillDto) {
     try {
       const command = new UpdateSkillCommand(
         skillId,
@@ -152,17 +191,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -171,8 +210,16 @@ export class SkillsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete skill' })
   @ApiResponse({ status: 204, description: 'Skill deleted successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Skill not found',
+  })
   async deleteSkill(
     @Param('id') skillId: string,
     @Query('adminId') adminId?: string,
@@ -181,30 +228,43 @@ export class SkillsController {
       const command = new DeleteSkillCommand(skillId, adminId || 'system');
       await this.commandBus.execute(command);
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
 
   @Post(':id/activate')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Activate skill',
-    description: 'Activates a deactivated skill, making it visible and available for candidates to add to their profiles.'
+    description:
+      'Activates a deactivated skill, making it visible and available for candidates to add to their profiles.',
   })
-  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill activated successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
+  @ApiResponse({
+    status: 200,
+    type: SkillSuccessResponseDto,
+    description: 'Skill activated successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Skill not found',
+  })
   async activateSkill(
     @Param('id') skillId: string,
     @Query('adminId') adminId?: string,
@@ -222,30 +282,43 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
 
   @Post(':id/deactivate')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Deactivate skill',
-    description: 'Deactivates an active skill, hiding it from candidates and preventing new additions to profiles. Existing candidate skills remain intact.'
+    description:
+      'Deactivates an active skill, hiding it from candidates and preventing new additions to profiles. Existing candidate skills remain intact.',
   })
-  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill deactivated successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
+  @ApiResponse({
+    status: 200,
+    type: SkillSuccessResponseDto,
+    description: 'Skill deactivated successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Skill not found',
+  })
   async deactivateSkill(
     @Param('id') skillId: string,
     @Query('adminId') adminId?: string,
@@ -263,17 +336,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -284,13 +357,46 @@ export class SkillsController {
 
   @Get()
   @ApiOperation({ summary: 'List skills with filters' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by skill name' })
-  @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
-  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
-  @ApiResponse({ status: 200, type: SkillListResponseDto, description: 'Skills list retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by skill name',
+  })
+  @ApiQuery({
+    name: 'categoryId',
+    required: false,
+    type: String,
+    description: 'Filter by category ID',
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: Boolean,
+    description: 'Filter by active status',
+  })
+  @ApiResponse({
+    status: 200,
+    type: SkillListResponseDto,
+    description: 'Skills list retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
   async listSkills(
     @Query() query: Omit<ListSkillsDto, 'isActive'>,
     @Query('isActive', new ParseBoolPipe()) isActive?: boolean,
@@ -320,8 +426,16 @@ export class SkillsController {
 
   @Get('categories')
   @ApiOperation({ summary: 'List all skill categories' })
-  @ApiResponse({ status: 200, type: SkillCategoriesResponseDto, description: 'Categories retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
+  @ApiResponse({
+    status: 200,
+    type: SkillCategoriesResponseDto,
+    description: 'Categories retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
   async listCategories() {
     const query = new ListSkillCategoriesQuery();
     const result = await this.queryBus.execute(query);
@@ -334,9 +448,21 @@ export class SkillsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get skill by ID' })
-  @ApiResponse({ status: 200, type: SkillSuccessResponseDto, description: 'Skill retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Skill not found' })
+  @ApiResponse({
+    status: 200,
+    type: SkillSuccessResponseDto,
+    description: 'Skill retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Skill not found',
+  })
   async getSkill(@Param('id') skillId: string) {
     try {
       const query = new GetSkillQuery(skillId);
@@ -348,17 +474,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }

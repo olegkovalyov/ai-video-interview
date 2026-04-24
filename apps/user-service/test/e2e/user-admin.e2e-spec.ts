@@ -1,5 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -58,13 +60,16 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
 
       // Suspend user
       const response = await request(app.getHttpServer())
@@ -95,13 +100,16 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
 
       // Try to suspend without reason
       await request(app.getHttpServer())
@@ -115,13 +123,16 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
 
       // Try to suspend with empty reason
       await request(app.getHttpServer())
@@ -137,13 +148,16 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
 
       // Suspend user
       await request(app.getHttpServer())
@@ -170,13 +184,16 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create and suspend user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
 
       await request(app.getHttpServer())
         .post(`/users/${userId}/suspend`)
@@ -208,13 +225,16 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create active user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
 
       // Try to activate already active user
       const response = await request(app.getHttpServer())
@@ -229,13 +249,16 @@ describe('User Admin API (E2E)', () => {
       const userId = uuidv4();
 
       // Create user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email: 'test@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
 
       // Suspend
       await request(app.getHttpServer())
@@ -275,13 +298,16 @@ describe('User Admin API (E2E)', () => {
       const lastName = 'Data';
 
       // Create user
-      await request(app.getHttpServer()).post('/users').set('x-internal-token', 'test-token').send({
-        userId,
-        externalAuthId: 'auth-123',
-        email,
-        firstName,
-        lastName,
-      });
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('x-internal-token', 'test-token')
+        .send({
+          userId,
+          externalAuthId: 'auth-123',
+          email,
+          firstName,
+          lastName,
+        });
 
       // Suspend
       await request(app.getHttpServer())

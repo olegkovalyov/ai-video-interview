@@ -177,7 +177,9 @@ describe('User Aggregate', () => {
         const newName = FullName.create('Jane', 'Smith');
         user.updateProfile(newName);
 
-        expect(user.updatedAt.getTime()).toBeGreaterThanOrEqual(oldUpdatedAt.getTime());
+        expect(user.updatedAt.getTime()).toBeGreaterThanOrEqual(
+          oldUpdatedAt.getTime(),
+        );
       });
 
       it('should throw error if user is deleted', () => {
@@ -193,7 +195,9 @@ describe('User Aggregate', () => {
         user.suspend('Violation', 'admin-123');
 
         const newName = FullName.create('Jane', 'Smith');
-        expect(() => user.updateProfile(newName)).toThrow(UserSuspendedException);
+        expect(() => user.updateProfile(newName)).toThrow(
+          UserSuspendedException,
+        );
       });
     });
 
@@ -301,7 +305,9 @@ describe('User Aggregate', () => {
         const events = user.getUncommittedEvents();
         expect(events).toHaveLength(1);
         expect(events[0]).toBeInstanceOf(UserSuspendedEvent);
-        expect((events[0] as UserSuspendedEvent).reason).toBe('Terms violation');
+        expect((events[0] as UserSuspendedEvent).reason).toBe(
+          'Terms violation',
+        );
         expect((events[0] as UserSuspendedEvent).suspendedBy).toBe('admin-123');
       });
 
@@ -318,7 +324,9 @@ describe('User Aggregate', () => {
         const user = User.create(userId, externalAuthId, email, fullName);
         user.delete('admin-123');
 
-        expect(() => user.suspend('Reason', 'admin-456')).toThrow(UserDeletedException);
+        expect(() => user.suspend('Reason', 'admin-456')).toThrow(
+          UserDeletedException,
+        );
       });
     });
 
@@ -431,18 +439,18 @@ describe('User Aggregate', () => {
         const user = User.create(userId, externalAuthId, email, fullName);
         user.delete('admin-123');
 
-        expect(() => user.uploadAvatar('https://example.com/avatar.jpg')).toThrow(
-          UserDeletedException,
-        );
+        expect(() =>
+          user.uploadAvatar('https://example.com/avatar.jpg'),
+        ).toThrow(UserDeletedException);
       });
 
       it('should throw error if user is suspended', () => {
         const user = User.create(userId, externalAuthId, email, fullName);
         user.suspend('Reason', 'admin-123');
 
-        expect(() => user.uploadAvatar('https://example.com/avatar.jpg')).toThrow(
-          UserSuspendedException,
-        );
+        expect(() =>
+          user.uploadAvatar('https://example.com/avatar.jpg'),
+        ).toThrow(UserSuspendedException);
       });
     });
 
@@ -531,21 +539,29 @@ describe('User Aggregate', () => {
         const user = User.create(userId, externalAuthId, email, fullName);
         user.selectRole(UserRole.candidate());
 
-        expect(() => user.selectRole(UserRole.hr())).toThrow(InvalidUserOperationException);
-        expect(() => user.selectRole(UserRole.hr())).toThrow('Role has already been selected');
+        expect(() => user.selectRole(UserRole.hr())).toThrow(
+          InvalidUserOperationException,
+        );
+        expect(() => user.selectRole(UserRole.hr())).toThrow(
+          'Role has already been selected',
+        );
       });
 
       it('should throw error if trying to select pending role', () => {
         const user = User.create(userId, externalAuthId, email, fullName);
 
-        expect(() => user.selectRole(UserRole.pending())).toThrow(DomainException);
+        expect(() => user.selectRole(UserRole.pending())).toThrow(
+          DomainException,
+        );
       });
 
       it('should throw error if user is deleted', () => {
         const user = User.create(userId, externalAuthId, email, fullName);
         user.delete('admin-123');
 
-        expect(() => user.selectRole(UserRole.candidate())).toThrow(UserDeletedException);
+        expect(() => user.selectRole(UserRole.candidate())).toThrow(
+          UserDeletedException,
+        );
       });
     });
   });

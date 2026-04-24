@@ -26,7 +26,10 @@ export class ListUsersDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ example: 'active', enum: ['active', 'suspended', 'deleted'] })
+  @ApiPropertyOptional({
+    example: 'active',
+    enum: ['active', 'suspended', 'deleted'],
+  })
   @IsOptional()
   @IsEnum(['active', 'suspended', 'deleted'])
   status?: string;

@@ -72,9 +72,9 @@ export class AddCandidateSkillHandler
       ? ProficiencyLevel.fromString(command.proficiencyLevel)
       : null;
     const years =
-      command.yearsOfExperience !== null
-        ? YearsOfExperience.fromNumber(command.yearsOfExperience)
-        : null;
+      command.yearsOfExperience === null
+        ? null
+        : YearsOfExperience.fromNumber(command.yearsOfExperience);
 
     // 5. Add skill to profile
     const candidateSkillId = uuid();
@@ -91,7 +91,7 @@ export class AddCandidateSkillHandler
 
     // 7. Publish domain events
     const events = profile.getUncommittedEvents();
-    events.forEach((event) => this.eventBus.publish(event));
+    events.forEach((event) => { this.eventBus.publish(event); });
     profile.clearEvents();
 
     this.logger.info('Skill added to candidate profile successfully', {

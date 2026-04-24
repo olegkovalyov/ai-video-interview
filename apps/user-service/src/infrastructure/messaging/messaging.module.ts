@@ -27,7 +27,7 @@ import { BULL_QUEUE } from '../constants';
       useFactory: (configService: ConfigService) => ({
         connection: {
           host: configService.get('REDIS_HOST', 'localhost'),
-          port: parseInt(configService.get('REDIS_PORT', '6379'), 10),
+          port: Number.parseInt(configService.get('REDIS_PORT', '6379'), 10),
           ...(configService.get('REDIS_PASSWORD')
             ? { password: configService.get('REDIS_PASSWORD') }
             : {}),
