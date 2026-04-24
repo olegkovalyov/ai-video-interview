@@ -10,3 +10,19 @@ export function errorMessage(error: unknown): string {
   if (typeof error === 'string') return error;
   return 'Unknown error';
 }
+
+/** Safe `.stack` accessor — returns undefined for non-Error throws. */
+export function errorStack(error: unknown): string | undefined {
+  return error instanceof Error ? error.stack : undefined;
+}
+
+/**
+ * Safe `.code` accessor for errno-style errors (e.g., fs/minio client errors
+ * carrying `code: 'NotFound'`). Returns undefined when absent or when the
+ * thrown value is not an object.
+ */
+export function errorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
+}

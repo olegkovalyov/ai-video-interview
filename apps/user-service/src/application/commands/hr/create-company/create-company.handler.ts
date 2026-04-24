@@ -77,7 +77,7 @@ export class CreateCompanyHandler
 
     // 4. After commit: publish domain events (internal)
     const events = company.getUncommittedEvents();
-    events.forEach((event) => this.eventBus.publish(event));
+    events.forEach((event) => { this.eventBus.publish(event); });
     company.clearEvents();
 
     // 5. Schedule BullMQ job for Kafka publishing

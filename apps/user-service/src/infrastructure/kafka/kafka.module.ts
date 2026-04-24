@@ -20,17 +20,17 @@ import { LoggerModule } from '../logger/logger.module';
     {
       provide: 'KAFKA_CONFIG',
       useFactory: (configService: ConfigService) => ({
-        clientId: configService.get('KAFKA_CLIENT_ID', 'user-service'),
+        clientId: configService.get<string>('KAFKA_CLIENT_ID', 'user-service'),
         brokers: configService
-          .get('KAFKA_BROKERS', 'localhost:9092')
+          .get<string>('KAFKA_BROKERS', 'localhost:9092')
           .split(','),
-        ssl: configService.get('KAFKA_SSL', 'false') === 'true',
+        ssl: configService.get<string>('KAFKA_SSL', 'false') === 'true',
         sasl:
-          configService.get('KAFKA_SASL_ENABLED', 'false') === 'true'
+          configService.get<string>('KAFKA_SASL_ENABLED', 'false') === 'true'
             ? {
-                mechanism: 'plain',
-                username: configService.get('KAFKA_SASL_USERNAME'),
-                password: configService.get('KAFKA_SASL_PASSWORD'),
+                mechanism: 'plain' as const,
+                username: configService.get<string>('KAFKA_SASL_USERNAME'),
+                password: configService.get<string>('KAFKA_SASL_PASSWORD'),
               }
             : undefined,
       }),

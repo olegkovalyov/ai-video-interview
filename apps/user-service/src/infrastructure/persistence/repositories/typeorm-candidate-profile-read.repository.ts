@@ -21,6 +21,30 @@ import { CandidateSkillMapper } from '../mappers/candidate-skill.mapper';
 // Proficiency levels in order for comparison
 const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
 
+// Raw row shapes returned by dataSource.query (snake_case column names).
+// Kept local — these are private to this repository and should not leak.
+interface CandidateProfileRow {
+  user_id: string;
+  experience_level: string | null;
+  is_profile_complete: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface CandidateIdRow {
+  candidate_id: string;
+}
+
+interface CountRow {
+  total: string;
+}
+
+interface TopSkillRow {
+  skill_id: string;
+  skill_name: string;
+  count: string;
+}
+
 @Injectable()
 export class TypeOrmCandidateProfileReadRepository
   implements ICandidateProfileReadRepository
@@ -39,22 +63,20 @@ export class TypeOrmCandidateProfileReadRepository
   async findByUserId(
     userId: string,
   ): Promise<CandidateProfileReadModel | null> {
-    const profileData = await this.dataSource.query(
-      `SELECT 
-        user_id, 
-        experience_level, 
+    const profileData = await this.dataSource.query<CandidateProfileRow[]>(
+      `SELECT
+        user_id,
+        experience_level,
         is_profile_complete,
-        created_at, 
+        created_at,
         updated_at
        FROM candidate_profiles WHERE user_id = $1`,
       [userId],
     );
 
-    if (profileData.length === 0) return null;
-
     const row = profileData[0];
+    if (!row) return null;
 
-    // Return ReadModel with ONLY real database columns
     return {
       userId: row.user_id,
       experienceLevel: row.experience_level,
@@ -179,8 +201,7 @@ export class TypeOrmCandidateProfileReadRepository
 
     params.push(filters.skillIds?.length ?? 0, limit, (page - 1) * limit);
 
-    // Get matching candidates
-    const results = await this.dataSource.query(
+    const results = await this.dataSource.query<CandidateIdRow[]>(
       `
       SELECT cs.candidate_id
       FROM candidate_skills cs
@@ -192,9 +213,8 @@ export class TypeOrmCandidateProfileReadRepository
       params,
     );
 
-    // Count total
     const countParams = params.slice(0, -2); // Remove limit/offset
-    const countResult = await this.dataSource.query(
+    const countResult = await this.dataSource.query<CountRow[]>(
       `
       SELECT COUNT(*) as total FROM (
         SELECT cs.candidate_id
@@ -208,15 +228,8 @@ export class TypeOrmCandidateProfileReadRepository
     );
 
     return {
-      candidateIds: results.map(
-        (r: {
-          candidate_id: string;
-          skill_id?: string;
-          skill_name?: string;
-          count?: string;
-        }) => r.candidate_id,
-      ),
-      total: Number.parseInt(countResult[0]?.total || '0', 10),
+      candidateIds: results.map((r) => r.candidate_id),
+      total: Number.parseInt(countResult[0]?.total ?? '0', 10),
     };
   }
 
@@ -278,8 +291,7 @@ export class TypeOrmCandidateProfileReadRepository
     const offsetParam = paramIndex++;
     params.push(limit, (page - 1) * limit);
 
-    // Get candidates
-    const results = await this.dataSource.query(
+    const results = await this.dataSource.query<CandidateIdRow[]>(
       `
       SELECT u.id as candidate_id, u.created_at
       FROM users u
@@ -292,9 +304,8 @@ export class TypeOrmCandidateProfileReadRepository
       params,
     );
 
-    // Count total
     const countParams = params.slice(0, -2); // Remove limit/offset
-    const countResult = await this.dataSource.query(
+    const countResult = await this.dataSource.query<CountRow[]>(
       `
       SELECT COUNT(DISTINCT u.id) as total
       FROM users u
@@ -305,15 +316,8 @@ export class TypeOrmCandidateProfileReadRepository
     );
 
     return {
-      candidateIds: results.map(
-        (r: {
-          candidate_id: string;
-          skill_id?: string;
-          skill_name?: string;
-          count?: string;
-        }) => r.candidate_id,
-      ),
-      total: Number.parseInt(countResult[0]?.total || '0', 10),
+      candidateIds: results.map((r) => r.candidate_id),
+      total: Number.parseInt(countResult[0]?.total ?? '0', 10),
     };
   }
 
@@ -428,9 +432,9 @@ export class TypeOrmCandidateProfileReadRepository
       count: number;
     }[]
   > {
-    const results = await this.dataSource.query(
+    const results = await this.dataSource.query<TopSkillRow[]>(
       `
-      SELECT 
+      SELECT
         cs.skill_id,
         s.name as skill_name,
         COUNT(*) as count
@@ -443,17 +447,10 @@ export class TypeOrmCandidateProfileReadRepository
       [limit],
     );
 
-    return results.map(
-      (r: {
-        candidate_id: string;
-        skill_id?: string;
-        skill_name?: string;
-        count?: string;
-      }) => ({
-        skillId: r.skill_id,
-        skillName: r.skill_name,
-        count: Number.parseInt(r.count ?? '0', 10),
-      }),
-    );
+    return results.map((r) => ({
+      skillId: r.skill_id,
+      skillName: r.skill_name,
+      count: Number.parseInt(r.count ?? '0', 10),
+    }));
   }
 }

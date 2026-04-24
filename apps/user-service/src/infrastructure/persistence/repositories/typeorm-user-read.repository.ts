@@ -141,14 +141,19 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
   }
 
   async countByStatus(): Promise<Record<string, number>> {
+    interface StatusCountRow {
+      status: string;
+      count: string;
+    }
+
     const result = await this.repository
       .createQueryBuilder('user')
       .select('user.status', 'status')
       .addSelect('COUNT(*)', 'count')
       .groupBy('user.status')
-      .getRawMany();
+      .getRawMany<StatusCountRow>();
 
-    return result.reduce((acc, row) => {
+    return result.reduce<Record<string, number>>((acc, row) => {
       acc[row.status] = Number.parseInt(row.count, 10);
       return acc;
     }, {});

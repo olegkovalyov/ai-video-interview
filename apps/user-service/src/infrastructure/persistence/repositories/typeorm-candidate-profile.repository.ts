@@ -64,35 +64,38 @@ export class TypeOrmCandidateProfileRepository
   }
 
   async findByUserId(userId: string): Promise<CandidateProfile | null> {
-    // Load experience_level from candidate_profiles
-    const profileData = await this.dataSource.query(
-      `SELECT experience_level, created_at, updated_at 
-       FROM candidate_profiles 
+    interface ProfileRow {
+      experience_level: string | null;
+      created_at: Date;
+      updated_at: Date;
+    }
+
+    const profileData = await this.dataSource.query<ProfileRow[]>(
+      `SELECT experience_level, created_at, updated_at
+       FROM candidate_profiles
        WHERE user_id = $1`,
       [userId],
     );
 
-    if (profileData.length === 0) return null;
+    const row = profileData[0];
+    if (!row) return null;
 
-    const { experience_level, created_at, updated_at } = profileData[0];
-
-    // Load skills
     const skillEntities = await this.skillRepository.find({
       where: { candidateId: userId },
     });
 
     const skills = this.skillMapper.toDomainList(skillEntities);
 
-    const experienceLevel = experience_level
-      ? ExperienceLevel.fromString(experience_level)
+    const experienceLevel = row.experience_level
+      ? ExperienceLevel.fromString(row.experience_level)
       : null;
 
     return CandidateProfile.reconstitute(
       userId,
       experienceLevel,
       skills,
-      created_at,
-      updated_at,
+      row.created_at,
+      row.updated_at,
     );
   }
 

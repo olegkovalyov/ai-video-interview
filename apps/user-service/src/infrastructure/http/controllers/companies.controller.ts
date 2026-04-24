@@ -59,7 +59,7 @@ import {
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
 
-import { errorMessage } from '../utils/error-message.util';
+import { errorCode, errorMessage } from '../utils/error-message.util';
 
 /**
  * Companies Controller
@@ -136,7 +136,7 @@ export class CompaniesController {
     } catch (error) {
       // Database unique constraint violation
       if (
-        error.code === '23505' ||
+        errorCode(error) === '23505' ||
         errorMessage(error).includes('duplicate key')
       ) {
         throw new ConflictException({

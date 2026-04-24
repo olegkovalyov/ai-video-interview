@@ -1,7 +1,5 @@
 import type { CandidateProfileWithUser } from '../../../domain/repositories/candidate-profile-read.repository.interface';
-import type { CandidateSkill } from '../../../domain/entities/candidate-skill.entity';
 import type {
-  CandidateSkillReadModel,
   CandidateSearchResultReadModel,
   SkillsByCategoryReadModel,
 } from '../../../domain/read-models/candidate-profile.read-model';
@@ -12,11 +10,38 @@ import type {
   CandidateSearchResultItemDto,
 } from '../dto/candidates.response.dto';
 
-type SkillLike = CandidateSkillReadModel | CandidateSkill;
+/**
+ * Minimal shape the mapper needs to emit a skill DTO. Loose enough to accept
+ * both the full CandidateSkillReadModel and lightweight matched-skill entries
+ * from the search read model; all fields except `skillId` are optional.
+ */
+interface SkillDtoInput {
+  skillId: string;
+  skillName?: string | null;
+  description?: string | null;
+  proficiencyLevel?: string | null;
+  yearsOfExperience?: number | null;
+  createdAt?: Date;
+  addedAt?: Date;
+}
 
 /**
- * Mapper for converting Candidate domain data to HTTP response DTOs
- * Used ONLY in controllers for API responses
+ * Minimal shape for search-result input — `matchedSkills` is optional because
+ * not every upstream query fills it in (simple-list mode).
+ */
+interface SearchResultInput {
+  userId: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+  experienceLevel: string | null;
+  matchScore: number;
+  matchedSkills?: SkillDtoInput[];
+}
+
+/**
+ * Mapper for converting Candidate domain data to HTTP response DTOs.
+ * Used ONLY in controllers for API responses.
  */
 export const CandidateResponseMapper = {
   toProfileDto(data: CandidateProfileWithUser): CandidateProfileResponseDto {
@@ -31,19 +56,16 @@ export const CandidateResponseMapper = {
     };
   },
 
-  toSkillDto(skill: SkillLike): CandidateSkillResponseDto {
-    const skillRecord = skill as Record<string, unknown>;
+  toSkillDto(skill: SkillDtoInput): CandidateSkillResponseDto {
     return {
       skillId: skill.skillId,
-      skillName: (skillRecord.skillName as string | undefined) ?? null,
+      skillName: skill.skillName ?? null,
       description: skill.description ?? null,
-      proficiencyLevel:
-        (skillRecord.proficiencyLevel as string | undefined) ?? null,
-      yearsOfExperience:
-        (skillRecord.yearsOfExperience as number | undefined) ?? null,
-      addedAt:
-        (skillRecord.createdAt as Date | undefined) ??
-        (skillRecord.addedAt as Date),
+      proficiencyLevel: skill.proficiencyLevel ?? null,
+      yearsOfExperience: skill.yearsOfExperience ?? null,
+      // `createdAt` wins when both exist — read models expose it; older callers
+      // with `addedAt` still work as a fallback.
+      addedAt: skill.createdAt ?? skill.addedAt ?? new Date(0),
     };
   },
 
@@ -53,27 +75,31 @@ export const CandidateResponseMapper = {
     return data.map((category) => ({
       categoryId: category.categoryId,
       categoryName: category.categoryName,
-      skills: category.skills.map((skill) => this.toSkillDto(skill)),
+      skills: category.skills.map((skill) =>
+        CandidateResponseMapper.toSkillDto(skill),
+      ),
     }));
   },
 
-  toSearchResultDto(
-    result: CandidateSearchResultReadModel,
-  ): CandidateSearchResultItemDto {
+  toSearchResultDto(result: SearchResultInput): CandidateSearchResultItemDto {
     return {
       userId: result.userId,
       fullName: result.fullName,
       email: result.email,
       experienceLevel: result.experienceLevel,
       matchedSkills:
-        result.matchedSkills?.map((skill) => this.toSkillDto(skill)) ?? [],
+        result.matchedSkills?.map((skill) =>
+          CandidateResponseMapper.toSkillDto(skill),
+        ) ?? [],
       matchScore: result.matchScore,
     };
   },
 
   toSearchResultsDto(
-    results: CandidateSearchResultReadModel[],
+    results: SearchResultInput[],
   ): CandidateSearchResultItemDto[] {
-    return results.map((result) => this.toSearchResultDto(result));
+    return results.map((result) =>
+      CandidateResponseMapper.toSearchResultDto(result),
+    );
   },
 };

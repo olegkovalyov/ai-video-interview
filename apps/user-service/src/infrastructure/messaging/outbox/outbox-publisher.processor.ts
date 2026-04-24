@@ -7,6 +7,7 @@ import { KafkaService, KAFKA_TOPICS, injectTraceContext } from '@repo/shared';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 import { LoggerService } from '../../logger/logger.service';
 import { OUTBOX_STATUS, BULL_QUEUE, OUTBOX_CONFIG } from '../../constants';
+import { errorMessage } from '../../http/utils/error-message.util';
 
 /**
  * OUTBOX Publisher Processor (BullMQ Worker)
@@ -77,19 +78,20 @@ export class OutboxPublisherProcessor extends WorkerHost {
       );
     } catch (error) {
       // 5. Handle failure
+      const message = errorMessage(error);
       outbox.status = OUTBOX_STATUS.FAILED;
-      outbox.errorMessage = error.message;
+      outbox.errorMessage = message;
       outbox.retryCount += 1;
       await this.outboxRepository.save(outbox);
 
       this.logger.error(
-        `Failed to publish outbox event ${eventId}: ${error.message}`,
+        `Failed to publish outbox event ${eventId}: ${message}`,
         {
           category: 'outbox',
           action: 'publish_failed',
           eventId,
           retryCount: outbox.retryCount,
-          error: error.message,
+          error: message,
         },
       );
 

@@ -36,9 +36,10 @@ export const prettyConsoleFormat = format.printf((info) => {
     debug: colorize('[DEBUG]', 'blue'),
   };
 
+  const rawLevel = String(info.level);
   const level =
-    levelColors[info.level] ||
-    colorize(`[${info.level.toUpperCase()}]`, 'white');
+    levelColors[rawLevel as keyof typeof levelColors] ||
+    colorize(`[${rawLevel.toUpperCase()}]`, 'white');
 
   // Категория (если есть)
   let category = '';

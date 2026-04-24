@@ -55,6 +55,7 @@ import {
 
 // Mappers
 import { CandidateResponseMapper } from '../mappers/candidate.response.mapper';
+import { DomainException } from '../../../domain/exceptions/domain.exception';
 
 // Error Schemas
 import {
@@ -363,7 +364,7 @@ export class CandidatesController {
 
       if (
         errorMessage(error).includes('already') ||
-        error.name === 'ConflictException'
+        error instanceof ConflictException
       ) {
         throw new ConflictException({
           success: false,
@@ -548,7 +549,7 @@ export class CandidatesController {
 
       if (
         errorMessage(error).includes('Invalid experience level') ||
-        error.name === 'DomainException'
+        error instanceof DomainException
       ) {
         throw new BadRequestException({
           success: false,

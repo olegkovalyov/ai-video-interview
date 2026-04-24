@@ -12,6 +12,7 @@ import {
   BULL_JOB,
   OUTBOX_CONFIG,
 } from '../../constants';
+import { errorMessage } from '../../http/utils/error-message.util';
 
 /**
  * OUTBOX Scheduler Service
@@ -81,26 +82,26 @@ export class OutboxSchedulerService {
               },
             );
           } catch (error) {
-            if (error.message?.includes('job already exists')) {
+            if (errorMessage(error)?.includes('job already exists')) {
               continue;
             }
             this.logger.error(
-              `Failed to queue outbox event ${event.eventId}: ${error.message}`,
+              `Failed to queue outbox event ${event.eventId}: ${errorMessage(error)}`,
               {
                 category: 'outbox',
                 action: 'queue_failed',
                 eventId: event.eventId,
-                error: error.message,
+                error: errorMessage(error),
               },
             );
           }
         }
       }
     } catch (error) {
-      this.logger.error(`Outbox polling failed: ${error.message}`, {
+      this.logger.error(`Outbox polling failed: ${errorMessage(error)}`, {
         category: 'outbox',
         action: 'poll_error',
-        error: error.message,
+        error: errorMessage(error),
       });
     } finally {
       this.isPolling = false;
@@ -149,11 +150,11 @@ export class OutboxSchedulerService {
       }
     } catch (error) {
       this.logger.error(
-        `Failed to process stuck outbox events: ${error.message}`,
+        `Failed to process stuck outbox events: ${errorMessage(error)}`,
         {
           category: 'outbox',
           action: 'stuck_error',
-          error: error.message,
+          error: errorMessage(error),
         },
       );
     }
@@ -187,10 +188,10 @@ export class OutboxSchedulerService {
         });
       }
     } catch (error) {
-      this.logger.error(`Outbox cleanup failed: ${error.message}`, {
+      this.logger.error(`Outbox cleanup failed: ${errorMessage(error)}`, {
         category: 'outbox',
         action: 'cleanup_error',
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }

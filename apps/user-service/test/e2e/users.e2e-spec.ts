@@ -449,7 +449,6 @@ describe('Users API (E2E)', () => {
   describe('POST /users/:userId/avatar', () => {
     // TODO(#e2e-multipart): multipart/form-data handling in supertest is not
     // yet wired to our Nest file-upload pipeline. See test/e2e/SOLUTIONS.md.
-    // eslint-disable-next-line sonarjs/no-skipped-tests -- awaits fix per TODO above
     it.skip('should upload avatar', async () => {
       const userId = uuidv4();
 
@@ -472,7 +471,6 @@ describe('Users API (E2E)', () => {
       expect(mockStorageService.uploadFile).toHaveBeenCalled();
     });
 
-    // eslint-disable-next-line sonarjs/no-skipped-tests -- same TODO(#e2e-multipart)
     it.skip('should return 404 for non-existent user', async () => {
       const nonExistentId = uuidv4();
 

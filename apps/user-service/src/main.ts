@@ -2,6 +2,7 @@ import './infrastructure/tracing/tracing'; // Must be first — initializes Open
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { LoggerService } from './infrastructure/logger/logger.service';
 import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exception.filter';
@@ -62,7 +63,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  app.use('/api/docs-json', (req, res) => {
+  app.use('/api/docs-json', (_req: Request, res: Response) => {
     res.json(document);
   });
 

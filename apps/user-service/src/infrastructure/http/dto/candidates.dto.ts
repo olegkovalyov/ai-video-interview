@@ -32,11 +32,11 @@ export class SearchCandidatesDto {
     type: [String],
   })
   @IsOptional()
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     // Convert single value to array
     if (!value) return undefined;
-    if (Array.isArray(value)) return value;
-    return [value];
+    if (Array.isArray(value)) return value as string[];
+    return [value as string];
   })
   @IsArray()
   @IsUUID('4', { each: true })

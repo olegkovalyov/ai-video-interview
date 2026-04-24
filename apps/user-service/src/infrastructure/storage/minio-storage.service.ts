@@ -3,6 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import * as Minio from 'minio';
 import { IStorageService } from '../../application/commands/upload-avatar/upload-avatar.handler';
+import {
+  errorCode,
+  errorMessage,
+  errorStack,
+} from '../http/utils/error-message.util';
 
 /**
  * MinIO Storage Service Implementation
@@ -65,10 +70,10 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       return url;
     } catch (error) {
       this.logger.error(
-        `❌ Failed to upload file: ${error.message}`,
-        error.stack,
+        `❌ Failed to upload file: ${errorMessage(error)}`,
+        errorStack(error),
       );
-      throw new Error(`File upload failed: ${error.message}`);
+      throw new Error(`File upload failed: ${errorMessage(error)}`);
     }
   }
 
@@ -84,10 +89,10 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       this.logger.log(`🗑️ Deleted file: ${filepath}`);
     } catch (error) {
       this.logger.error(
-        `❌ Failed to delete file: ${error.message}`,
-        error.stack,
+        `❌ Failed to delete file: ${errorMessage(error)}`,
+        errorStack(error),
       );
-      throw new Error(`File deletion failed: ${error.message}`);
+      throw new Error(`File deletion failed: ${errorMessage(error)}`);
     }
   }
 
@@ -109,8 +114,8 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       return url;
     } catch (error) {
       this.logger.error(
-        `❌ Failed to generate presigned URL: ${error.message}`,
-        error.stack,
+        `❌ Failed to generate presigned URL: ${errorMessage(error)}`,
+        errorStack(error),
       );
       throw error;
     }
@@ -124,7 +129,7 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       await this.minioClient.statObject(bucket, filepath);
       return true;
     } catch (error) {
-      if (error.code === 'NotFound') {
+      if (errorCode(error) === 'NotFound') {
         return false;
       }
       throw error;
@@ -165,7 +170,7 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
       }
     } catch (error) {
       this.logger.warn(
-        `MinIO bucket check skipped (service may be unavailable): ${error.message}`,
+        `MinIO bucket check skipped (service may be unavailable): ${errorMessage(error)}`,
       );
     }
   }
@@ -187,9 +192,13 @@ export class MinioStorageService implements IStorageService, OnModuleInit {
    * Get public URL for uploaded file
    */
   private getPublicUrl(bucket: string, filepath: string): string {
-    const endpoint = this.configService.get('MINIO_ENDPOINT', 'localhost');
-    const port = this.configService.get('MINIO_PORT', '9000');
-    const useSSL = this.configService.get('MINIO_USE_SSL', 'false') === 'true';
+    const endpoint = this.configService.get<string>(
+      'MINIO_ENDPOINT',
+      'localhost',
+    );
+    const port = this.configService.get<string>('MINIO_PORT', '9000');
+    const useSSL =
+      this.configService.get<string>('MINIO_USE_SSL', 'false') === 'true';
 
     const protocol = useSSL ? 'https' : 'http';
     const portSuffix =

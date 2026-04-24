@@ -33,7 +33,8 @@ export class TypeOrmUnitOfWork implements IUnitOfWork {
       this.logger.debug('Transaction committed');
       return result;
     } catch (error) {
-      this.logger.warn(`Transaction rolled back: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Transaction rolled back: ${message}`);
       throw error;
     }
   }
