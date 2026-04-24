@@ -126,7 +126,7 @@ describe('ListSkillsQuery Integration', () => {
         (s: any) => s.id === skillId,
       );
       expect(foundInactive).toBeDefined();
-      expect(foundInactive.isActive).toBe(false);
+      expect(foundInactive?.isActive).toBe(false);
     });
 
     it('should search skills by name', async () => {
@@ -254,7 +254,7 @@ describe('ListSkillsQuery Integration', () => {
       expect(skillWithCategory).toBeDefined();
       expect(skillWithCategory).toHaveProperty('categoryId');
       expect(skillWithCategory).toHaveProperty('categoryName');
-      expect(skillWithCategory.categoryName).toBeTruthy();
+      expect(skillWithCategory?.categoryName).toBeTruthy();
     });
 
     it('should handle large offset gracefully', async () => {

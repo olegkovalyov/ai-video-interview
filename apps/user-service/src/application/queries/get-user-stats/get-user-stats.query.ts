@@ -1,7 +1,4 @@
-/**
- * Get User Stats Query
- * Query to retrieve user statistics
- */
-export class GetUserStatsQuery {
-  constructor() {}
-}
+import { Query } from '@nestjs/cqrs';
+import type { UserStatsResult } from './get-user-stats.handler';
+
+export class GetUserStatsQuery extends Query<UserStatsResult> {}

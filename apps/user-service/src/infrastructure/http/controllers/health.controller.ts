@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { KafkaService } from '@repo/shared';
+import { errorMessage } from '../utils/error-message.util';
 
 /**
  * Health Controller
@@ -49,7 +50,7 @@ export class HealthController {
       return {
         status: 'not ready',
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: errorMessage(error),
       };
     }
   }
@@ -83,7 +84,7 @@ export class HealthController {
     } catch (error) {
       return {
         status: 'unhealthy',
-        error: error.message,
+        error: errorMessage(error),
         timestamp: new Date().toISOString(),
       };
     }

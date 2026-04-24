@@ -1,7 +1,12 @@
-export class ListUserCompaniesQuery {
+import { Query } from '@nestjs/cqrs';
+import type { CompanyReadModel } from '../../../domain/read-models/company.read-model';
+
+export class ListUserCompaniesQuery extends Query<CompanyReadModel[]> {
   constructor(
     public readonly userId: string,
     public readonly currentUserId?: string,
     public readonly isAdmin?: boolean,
-  ) {}
+  ) {
+    super();
+  }
 }

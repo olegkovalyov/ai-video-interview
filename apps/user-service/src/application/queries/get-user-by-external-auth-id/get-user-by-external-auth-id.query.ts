@@ -1,7 +1,8 @@
-/**
- * Get User By External Auth ID Query
- * Query to retrieve user by external auth provider ID (for API Gateway integration)
- */
-export class GetUserByExternalAuthIdQuery {
-  constructor(public readonly externalAuthId: string) {}
+import { Query } from '@nestjs/cqrs';
+import type { UserReadModel } from '../../../domain/read-models/user.read-model';
+
+export class GetUserByExternalAuthIdQuery extends Query<UserReadModel> {
+  constructor(public readonly externalAuthId: string) {
+    super();
+  }
 }

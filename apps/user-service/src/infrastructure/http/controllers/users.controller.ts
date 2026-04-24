@@ -79,6 +79,8 @@ import {
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
 
+import { errorMessage } from '../utils/error-message.util';
+
 /**
  * Users Controller V2
  *
@@ -360,14 +362,14 @@ export class UsersController {
           success: false,
           error: 'User already exists',
           code: 'USER_ALREADY_EXISTS',
-          details: error.message,
+          details: errorMessage(error),
         });
       }
 
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to create user',
-        details: error.message,
+        details: errorMessage(error),
       });
     }
   }
@@ -437,7 +439,7 @@ export class UsersController {
       if (error instanceof DomainException) {
         throw new BadRequestException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'VALIDATION_ERROR',
         });
       }
@@ -445,7 +447,7 @@ export class UsersController {
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to update user',
-        details: error.message,
+        details: errorMessage(error),
       });
     }
   }
@@ -492,7 +494,7 @@ export class UsersController {
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to delete user',
-        details: error.message,
+        details: errorMessage(error),
       });
     }
   }
@@ -567,6 +569,14 @@ export class UsersController {
       // Query updated user (returns Read Model)
       const user = await this.queryBus.execute(new GetUserQuery(userId));
 
+      if (!user.avatarUrl) {
+        throw new InternalServerErrorException({
+          success: false,
+          error: 'Avatar upload succeeded but avatarUrl is missing',
+          code: 'AVATAR_URL_MISSING',
+        });
+      }
+
       return { avatarUrl: user.avatarUrl };
     } catch (error) {
       if (error instanceof UserNotFoundException) {
@@ -580,7 +590,7 @@ export class UsersController {
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to upload avatar',
-        details: error.message,
+        details: errorMessage(error),
       });
     }
   }
@@ -639,7 +649,7 @@ export class UsersController {
       if (error instanceof DomainException) {
         throw new BadRequestException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'VALIDATION_ERROR',
         });
       }
@@ -647,7 +657,7 @@ export class UsersController {
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to assign role',
-        details: error.message,
+        details: errorMessage(error),
       });
     }
   }
@@ -690,14 +700,14 @@ export class UsersController {
       if (error instanceof UserNotFoundException) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'USER_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -737,17 +747,17 @@ export class UsersController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('permission')) {
+      if (errorMessage(error).includes('permission')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -797,7 +807,7 @@ export class UsersController {
       throw new InternalServerErrorException({
         success: false,
         error: 'Failed to delete avatar',
-        details: error.message,
+        details: errorMessage(error),
       });
     }
   }

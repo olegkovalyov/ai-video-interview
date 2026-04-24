@@ -1,8 +1,6 @@
-/**
- * Command: Create Company
- * HR creates a new company in the system
- */
-export class CreateCompanyCommand {
+import { Command } from '@nestjs/cqrs';
+
+export class CreateCompanyCommand extends Command<{ companyId: string }> {
   constructor(
     public readonly name: string,
     public readonly description: string | null,
@@ -11,7 +9,9 @@ export class CreateCompanyCommand {
     public readonly industry: string | null,
     public readonly size: string | null,
     public readonly location: string | null,
-    public readonly position: string | null, // Creator's position
-    public readonly createdBy: string, // HR userId
-  ) {}
+    public readonly position: string | null,
+    public readonly createdBy: string,
+  ) {
+    super();
+  }
 }

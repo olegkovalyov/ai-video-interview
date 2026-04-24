@@ -153,9 +153,7 @@ export class LoggerService implements NestLoggerService {
       this.logger.error(
         String(message),
         this.enrichWithCorrelationId({
-          ...(typeof secondParam === 'string'
-            ? { context: secondParam }
-            : secondParam),
+          ...LoggerService.toLogContext(secondParam),
           error: {
             name: firstParam.name,
             message: firstParam.message,
@@ -171,7 +169,7 @@ export class LoggerService implements NestLoggerService {
       typeof firstParam === 'string' && firstParam.includes('\n');
     const stack = hasStack ? firstParam : undefined;
     const contextIndex = hasStack ? 1 : 0;
-    const context =
+    const rawContext =
       optionalParams.length > contextIndex
         ? optionalParams[contextIndex]
         : undefined;
@@ -179,10 +177,20 @@ export class LoggerService implements NestLoggerService {
     this.logger.error(
       String(message),
       this.enrichWithCorrelationId({
-        ...(typeof context === 'string' ? { context } : context),
+        ...LoggerService.toLogContext(rawContext),
         stack: stack,
       }),
     );
+  }
+
+  /**
+   * NestJS passes the "context" argument as a string (the emitting class name)
+   * or as a structured log context object. Narrow to a spreadable object shape.
+   */
+  private static toLogContext(value: unknown): LogContext {
+    if (typeof value === 'string') return { context: value };
+    if (value && typeof value === 'object') return value as LogContext;
+    return {};
   }
 
   warn(message: unknown, ...optionalParams: unknown[]) {

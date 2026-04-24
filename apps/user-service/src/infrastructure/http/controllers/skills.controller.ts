@@ -64,6 +64,8 @@ import {
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
 
+import { errorMessage } from '../utils/error-message.util';
+
 /**
  * Skills Controller
  *
@@ -134,17 +136,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('already exists')) {
+      if (errorMessage(error).includes('already exists')) {
         throw new ConflictException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_ALREADY_EXISTS',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -189,17 +191,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -226,17 +228,17 @@ export class SkillsController {
       const command = new DeleteSkillCommand(skillId, adminId || 'system');
       await this.commandBus.execute(command);
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -280,17 +282,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -334,17 +336,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -472,17 +474,17 @@ export class SkillsController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }

@@ -63,6 +63,8 @@ import {
   NotFoundErrorSchema,
 } from '../schemas/error.schemas';
 
+import { errorMessage } from '../utils/error-message.util';
+
 /**
  * Candidates Controller
  *
@@ -174,7 +176,7 @@ export class CandidatesController {
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -224,25 +226,25 @@ export class CandidatesController {
         data: CandidateResponseMapper.toProfileDto(result),
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'PROFILE_NOT_FOUND',
         });
       }
 
-      if (error.message.includes('permission')) {
+      if (errorMessage(error).includes('permission')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -287,17 +289,17 @@ export class CandidatesController {
         data: CandidateResponseMapper.toSkillsByCategoryDto(result),
       };
     } catch (error) {
-      if (error.message.includes('permission')) {
+      if (errorMessage(error).includes('permission')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -351,28 +353,28 @@ export class CandidatesController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'NOT_FOUND',
         });
       }
 
       if (
-        error.message.includes('already') ||
+        errorMessage(error).includes('already') ||
         error.name === 'ConflictException'
       ) {
         throw new ConflictException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'SKILL_ALREADY_ADDED',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -434,17 +436,17 @@ export class CandidatesController {
         message: 'Skill updated successfully',
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -474,17 +476,17 @@ export class CandidatesController {
       const command = new RemoveCandidateSkillCommand(candidateId, skillId);
       await this.commandBus.execute(command);
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'NOT_FOUND',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -536,28 +538,28 @@ export class CandidatesController {
         data: CandidateResponseMapper.toProfileDto(result),
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'PROFILE_NOT_FOUND',
         });
       }
 
       if (
-        error.message.includes('Invalid experience level') ||
+        errorMessage(error).includes('Invalid experience level') ||
         error.name === 'DomainException'
       ) {
         throw new BadRequestException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'INVALID_EXPERIENCE_LEVEL',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }

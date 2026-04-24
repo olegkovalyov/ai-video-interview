@@ -1,4 +1,6 @@
-export class UpdateCompanyCommand {
+import { Command } from '@nestjs/cqrs';
+
+export class UpdateCompanyCommand extends Command<void> {
   constructor(
     public readonly companyId: string,
     public readonly name: string,
@@ -8,6 +10,8 @@ export class UpdateCompanyCommand {
     public readonly industry: string | null,
     public readonly size: string | null,
     public readonly location: string | null,
-    public readonly userId: string, // HR who is updating
-  ) {}
+    public readonly userId: string,
+  ) {
+    super();
+  }
 }

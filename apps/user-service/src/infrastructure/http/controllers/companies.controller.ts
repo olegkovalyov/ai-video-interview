@@ -59,6 +59,8 @@ import {
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
 
+import { errorMessage } from '../utils/error-message.util';
+
 /**
  * Companies Controller
  *
@@ -133,7 +135,10 @@ export class CompaniesController {
       };
     } catch (error) {
       // Database unique constraint violation
-      if (error.code === '23505' || error.message.includes('duplicate key')) {
+      if (
+        error.code === '23505' ||
+        errorMessage(error).includes('duplicate key')
+      ) {
         throw new ConflictException({
           success: false,
           error: 'Company with this name already exists',
@@ -141,25 +146,25 @@ export class CompaniesController {
         });
       }
 
-      if (error.message.includes('already exists')) {
+      if (errorMessage(error).includes('already exists')) {
         throw new ConflictException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_ALREADY_EXISTS',
         });
       }
 
-      if (error.message.includes('Invalid company size')) {
+      if (errorMessage(error).includes('Invalid company size')) {
         throw new BadRequestException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'INVALID_COMPANY_SIZE',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -216,33 +221,33 @@ export class CompaniesController {
         data: result,
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_NOT_FOUND',
         });
       }
 
-      if (error.message.includes('not authorized')) {
+      if (errorMessage(error).includes('not authorized')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
-      if (error.message.includes('Invalid company size')) {
+      if (errorMessage(error).includes('Invalid company size')) {
         throw new BadRequestException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'INVALID_COMPANY_SIZE',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -274,25 +279,25 @@ export class CompaniesController {
       const command = new DeleteCompanyCommand(companyId, userId);
       await this.commandBus.execute(command);
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_NOT_FOUND',
         });
       }
 
-      if (error.message.includes('not authorized')) {
+      if (errorMessage(error).includes('not authorized')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
@@ -418,25 +423,25 @@ export class CompaniesController {
         data: CompanyResponseMapper.toCompanyDto(result),
       };
     } catch (error) {
-      if (error.message.includes('not found')) {
+      if (errorMessage(error).includes('not found')) {
         throw new NotFoundException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'COMPANY_NOT_FOUND',
         });
       }
 
-      if (error.message.includes('not authorized')) {
+      if (errorMessage(error).includes('not authorized')) {
         throw new ForbiddenException({
           success: false,
-          error: error.message,
+          error: errorMessage(error),
           code: 'FORBIDDEN',
         });
       }
 
       throw new BadRequestException({
         success: false,
-        error: error.message,
+        error: errorMessage(error),
       });
     }
   }
