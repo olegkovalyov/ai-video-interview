@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IRoleRepository, Role } from '../../../domain/repositories/role.repository.interface';
+import {
+  IRoleRepository,
+  Role,
+} from '../../../domain/repositories/role.repository.interface';
 import { RoleEntity } from '../entities/role.entity';
 import { UserEntity } from '../entities/user.entity';
 
@@ -29,30 +32,44 @@ export class TypeOrmRoleRepository implements IRoleRepository {
 
   async findAll(): Promise<Role[]> {
     const entities = await this.roleRepository.find();
-    return entities.map(entity => this.toDomain(entity));
+    return entities.map((entity) => this.toDomain(entity));
   }
 
-  async findByUserId(userId: string): Promise<Role[]> {
-    // NOTE: New role system uses a single 'role' string field on user
-    // This method returns empty array as users don't have multiple roles anymore
-    // Kept for backwards compatibility with old code
+  /**
+   * @deprecated Users have a single `role` field in the new system; they don't have multiple roles.
+   *   Read `User.role` directly instead. Kept only for interface compatibility during migration.
+   */
+  async findByUserId(_userId: string): Promise<Role[]> {
     return [];
   }
 
-  async assignToUser(userId: string, roleId: string, assignedBy: string): Promise<void> {
-    // NOTE: Old role system method - not used in new system
-    // Role assignment now done via User.selectRole() domain method
-    throw new Error('assignToUser is deprecated. Use User.selectRole() instead.');
+  /**
+   * @deprecated Role assignment is now done through the `User.selectRole()` domain method.
+   *   This legacy method throws to prevent accidental use.
+   */
+  async assignToUser(
+    _userId: string,
+    _roleId: string,
+    _assignedBy: string,
+  ): Promise<void> {
+    throw new Error(
+      'assignToUser is deprecated. Use User.selectRole() instead.',
+    );
   }
 
-  async removeFromUser(userId: string, roleId: string): Promise<void> {
-    // NOTE: Roles are immutable in new system - cannot be removed
-    throw new Error('removeFromUser is deprecated. Roles are immutable in new system.');
+  /**
+   * @deprecated Roles are immutable once selected; they cannot be removed.
+   */
+  async removeFromUser(_userId: string, _roleId: string): Promise<void> {
+    throw new Error(
+      'removeFromUser is deprecated. Roles are immutable in new system.',
+    );
   }
 
-  async userHasRole(userId: string, roleId: string): Promise<boolean> {
-    // NOTE: Old role system method - not used in new system
-    // Use user.role property directly instead
+  /**
+   * @deprecated Use `user.role` property directly.
+   */
+  async userHasRole(_userId: string, _roleId: string): Promise<boolean> {
     return false;
   }
 

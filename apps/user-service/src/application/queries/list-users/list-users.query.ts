@@ -1,4 +1,4 @@
-import { UserListFilters } from '../../../domain/repositories/user-read.repository.interface';
+import type { UserListFilters } from '../../../domain/repositories/user-read.repository.interface';
 
 /**
  * List Users Query

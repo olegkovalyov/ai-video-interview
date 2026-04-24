@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsEnum, IsInt, Min, Max, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  Min,
+  Max,
+  MaxLength,
+} from 'class-validator';
 
 export class UpdateCandidateSkillDto {
   @IsOptional()

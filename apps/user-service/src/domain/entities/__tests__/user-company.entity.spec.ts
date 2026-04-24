@@ -52,26 +52,32 @@ describe('UserCompany Entity', () => {
 
     it('should throw error for empty user ID', () => {
       expect(() =>
-        UserCompany.create(validId, '', validCompanyId, validPosition, false)
+        UserCompany.create(validId, '', validCompanyId, validPosition, false),
       ).toThrow(DomainException);
       expect(() =>
-        UserCompany.create(validId, '', validCompanyId, validPosition, false)
+        UserCompany.create(validId, '', validCompanyId, validPosition, false),
       ).toThrow('User ID cannot be empty');
     });
 
     it('should throw error for empty company ID', () => {
       expect(() =>
-        UserCompany.create(validId, validUserId, '', validPosition, false)
+        UserCompany.create(validId, validUserId, '', validPosition, false),
       ).toThrow(DomainException);
       expect(() =>
-        UserCompany.create(validId, validUserId, '', validPosition, false)
+        UserCompany.create(validId, validUserId, '', validPosition, false),
       ).toThrow('Company ID cannot be empty');
     });
 
     it('should throw error for position exceeding max length', () => {
       const longPosition = 'a'.repeat(101);
       expect(() =>
-        UserCompany.create(validId, validUserId, validCompanyId, longPosition, false)
+        UserCompany.create(
+          validId,
+          validUserId,
+          validCompanyId,
+          longPosition,
+          false,
+        ),
       ).toThrow('Position is too long (max 100 characters)');
     });
   });
@@ -113,7 +119,9 @@ describe('UserCompany Entity', () => {
       );
 
       expect(() => uc.updatePosition('')).toThrow('Position cannot be empty');
-      expect(() => uc.updatePosition('   ')).toThrow('Position cannot be empty');
+      expect(() => uc.updatePosition('   ')).toThrow(
+        'Position cannot be empty',
+      );
     });
 
     it('should throw error for position exceeding max length', () => {
@@ -126,7 +134,7 @@ describe('UserCompany Entity', () => {
       );
 
       expect(() => uc.updatePosition('a'.repeat(101))).toThrow(
-        'Position is too long (max 100 characters)'
+        'Position is too long (max 100 characters)',
       );
     });
   });
@@ -142,7 +150,7 @@ describe('UserCompany Entity', () => {
       );
 
       expect(uc.isPrimary).toBe(false);
-      
+
       uc.setAsPrimary();
       expect(uc.isPrimary).toBe(true);
     });
@@ -157,7 +165,7 @@ describe('UserCompany Entity', () => {
       );
 
       expect(uc.isPrimary).toBe(true);
-      
+
       uc.unsetAsPrimary();
       expect(uc.isPrimary).toBe(false);
     });

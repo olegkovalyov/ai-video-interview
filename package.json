@@ -10,6 +10,8 @@
     "dev:web": "turbo run dev --filter='./apps/web'",
     "dev:all": "concurrently \"npm run dev:services\" \"npm run dev:web\"",
     "lint": "turbo run lint",
+    "lint:deadcode": "knip --production",
+    "lint:deadcode:all": "knip",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "test": "turbo run test",
@@ -43,6 +45,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
+    "knip": "^5.38.0",
     "openapi-typescript": "^7.10.1",
     "prettier": "^3.6.2",
     "turbo": "^2.5.5",

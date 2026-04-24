@@ -26,16 +26,23 @@ export class FullName extends ValueObject<FullNameProps> {
     const trimmedFirstName = firstName.trim();
     const trimmedLastName = lastName.trim();
 
-    if (trimmedFirstName.length < this.MIN_NAME_LENGTH || trimmedLastName.length < this.MIN_NAME_LENGTH) {
+    if (
+      trimmedFirstName.length < this.MIN_NAME_LENGTH ||
+      trimmedLastName.length < this.MIN_NAME_LENGTH
+    ) {
       throw new DomainException('Names cannot be empty');
     }
 
     if (trimmedFirstName.length > this.MAX_NAME_LENGTH) {
-      throw new DomainException(`First name is too long (max ${this.MAX_NAME_LENGTH} characters)`);
+      throw new DomainException(
+        `First name is too long (max ${this.MAX_NAME_LENGTH} characters)`,
+      );
     }
 
     if (trimmedLastName.length > this.MAX_NAME_LENGTH) {
-      throw new DomainException(`Last name is too long (max ${this.MAX_NAME_LENGTH} characters)`);
+      throw new DomainException(
+        `Last name is too long (max ${this.MAX_NAME_LENGTH} characters)`,
+      );
     }
 
     return new FullName({

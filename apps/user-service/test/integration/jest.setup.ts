@@ -4,7 +4,7 @@
  */
 
 // Increase timeout for all tests (DB operations can be slow)
-jest.setTimeout(30000);
+jest.setTimeout(30_000);
 
 // Suppress console output during tests (optional)
 // global.console = {

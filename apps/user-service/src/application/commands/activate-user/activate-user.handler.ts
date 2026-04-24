@@ -12,7 +12,9 @@ import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
  * Activate User Command Handler
  */
 @CommandHandler(ActivateUserCommand)
-export class ActivateUserHandler implements ICommandHandler<ActivateUserCommand> {
+export class ActivateUserHandler
+  implements ICommandHandler<ActivateUserCommand>
+{
   constructor(
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
@@ -49,7 +51,7 @@ export class ActivateUserHandler implements ICommandHandler<ActivateUserCommand>
     });
 
     // 4. After commit: publish domain events (internal)
-    user.getUncommittedEvents().forEach(event => {
+    user.getUncommittedEvents().forEach((event) => {
       this.eventBus.publish(event);
     });
     user.clearEvents();

@@ -1,12 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  setupTestApp,
-  createTestDataSource,
-  cleanDatabase,
-} from '../setup';
+import { setupTestApp, createTestDataSource, cleanDatabase } from '../setup';
 import { CreateUserCommand } from '../../../src/application/commands/create-user/create-user.command';
 import { UserEntity } from '../../../src/infrastructure/persistence/entities/user.entity';
 

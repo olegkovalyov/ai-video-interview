@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -126,10 +126,7 @@ describe('DeleteUserCommand Integration', () => {
         status: 'active',
       });
 
-      const command = new DeleteUserCommand(
-        userId,
-        'system-automated-cleanup',
-      );
+      const command = new DeleteUserCommand(userId, 'system-automated-cleanup');
 
       // Act
       await commandBus.execute(command);
@@ -295,9 +292,7 @@ describe('DeleteUserCommand Integration', () => {
       });
 
       // Act
-      await commandBus.execute(
-        new DeleteUserCommand(activeUserId, 'admin-1'),
-      );
+      await commandBus.execute(new DeleteUserCommand(activeUserId, 'admin-1'));
       await commandBus.execute(
         new DeleteUserCommand(suspendedUserId, 'admin-2'),
       );
@@ -325,16 +320,14 @@ describe('DeleteUserCommand Integration', () => {
         status: 'active',
       });
 
-      const user2Id = await seedUser(dataSource, {
+      await seedUser(dataSource, {
         email: 'user2@example.com',
         firstName: 'User',
         lastName: 'Two',
         status: 'active',
       });
 
-      const countBefore = await dataSource
-        .getRepository(UserEntity)
-        .count();
+      const countBefore = await dataSource.getRepository(UserEntity).count();
       expect(countBefore).toBe(2);
 
       // Act

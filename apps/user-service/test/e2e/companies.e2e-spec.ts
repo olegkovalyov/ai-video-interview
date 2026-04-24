@@ -1,12 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { InternalServiceGuard } from '../../src/infrastructure/http/guards/internal-service.guard';
 import { DomainExceptionFilter } from '../../src/infrastructure/http/filters/domain-exception.filter';
 import { TestInternalServiceGuard } from './test-auth.guard';
-import { createE2EDataSource, cleanE2EDatabase } from './test-database.setup';
+import { createE2EDataSource } from './test-database.setup';
 import {
   TestApplicationModule,
   mockOutboxService,
@@ -60,10 +62,13 @@ describe('Companies API (E2E)', () => {
     // Create HR user for tests
     hrUserId = uuidv4();
     const hrEmail = `hr-${Date.now()}@test.com`;
-    await dataSource.query(`
+    await dataSource.query(
+      `
       INSERT INTO users (id, external_auth_id, email, first_name, last_name, role, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [hrUserId, uuidv4(), hrEmail, 'HR', 'User', 'hr', 'active']);
+    `,
+      [hrUserId, uuidv4(), hrEmail, 'HR', 'User', 'hr', 'active'],
+    );
   });
 
   beforeEach(() => {
@@ -365,9 +370,15 @@ describe('Companies API (E2E)', () => {
     it('should reject all endpoints without internal token', async () => {
       await request(app.getHttpServer()).get('/companies').expect(401);
       await request(app.getHttpServer()).post('/companies').expect(401);
-      await request(app.getHttpServer()).get(`/companies/${uuidv4()}`).expect(401);
-      await request(app.getHttpServer()).put(`/companies/${uuidv4()}`).expect(401);
-      await request(app.getHttpServer()).delete(`/companies/${uuidv4()}`).expect(401);
+      await request(app.getHttpServer())
+        .get(`/companies/${uuidv4()}`)
+        .expect(401);
+      await request(app.getHttpServer())
+        .put(`/companies/${uuidv4()}`)
+        .expect(401);
+      await request(app.getHttpServer())
+        .delete(`/companies/${uuidv4()}`)
+        .expect(401);
     });
   });
 });

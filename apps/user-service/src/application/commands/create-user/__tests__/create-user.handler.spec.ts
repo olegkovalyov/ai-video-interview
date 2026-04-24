@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
 import { CreateUserHandler } from '../create-user.handler';
 import { CreateUserCommand } from '../create-user.command';

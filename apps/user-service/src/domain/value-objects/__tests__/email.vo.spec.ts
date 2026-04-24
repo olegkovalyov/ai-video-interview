@@ -52,7 +52,9 @@ describe('Email Value Object', () => {
 
     it('should throw error for email without @', () => {
       expect(() => Email.create('testexample.com')).toThrow(DomainException);
-      expect(() => Email.create('testexample.com')).toThrow('Invalid email format');
+      expect(() => Email.create('testexample.com')).toThrow(
+        'Invalid email format',
+      );
     });
 
     it('should throw error for email without domain', () => {
@@ -62,17 +64,25 @@ describe('Email Value Object', () => {
 
     it('should throw error for email without local part', () => {
       expect(() => Email.create('@example.com')).toThrow(DomainException);
-      expect(() => Email.create('@example.com')).toThrow('Invalid email format');
+      expect(() => Email.create('@example.com')).toThrow(
+        'Invalid email format',
+      );
     });
 
     it('should throw error for email with spaces', () => {
-      expect(() => Email.create('test user@example.com')).toThrow(DomainException);
-      expect(() => Email.create('test user@example.com')).toThrow('Invalid email format');
+      expect(() => Email.create('test user@example.com')).toThrow(
+        DomainException,
+      );
+      expect(() => Email.create('test user@example.com')).toThrow(
+        'Invalid email format',
+      );
     });
 
     it('should throw error for email without TLD', () => {
       expect(() => Email.create('test@example')).toThrow(DomainException);
-      expect(() => Email.create('test@example')).toThrow('Invalid email format');
+      expect(() => Email.create('test@example')).toThrow(
+        'Invalid email format',
+      );
     });
 
     it('should throw error for email with multiple @', () => {

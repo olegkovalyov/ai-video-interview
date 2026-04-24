@@ -51,12 +51,16 @@ describe('FullName Value Object', () => {
   describe('Creation - Invalid Cases', () => {
     it('should throw error for empty first name', () => {
       expect(() => FullName.create('', 'Doe')).toThrow(DomainException);
-      expect(() => FullName.create('', 'Doe')).toThrow('First name and last name are required');
+      expect(() => FullName.create('', 'Doe')).toThrow(
+        'First name and last name are required',
+      );
     });
 
     it('should throw error for empty last name', () => {
       expect(() => FullName.create('John', '')).toThrow(DomainException);
-      expect(() => FullName.create('John', '')).toThrow('First name and last name are required');
+      expect(() => FullName.create('John', '')).toThrow(
+        'First name and last name are required',
+      );
     });
 
     it('should throw error when both names are empty', () => {
@@ -65,24 +69,32 @@ describe('FullName Value Object', () => {
 
     it('should throw error for whitespace-only first name', () => {
       expect(() => FullName.create('   ', 'Doe')).toThrow(DomainException);
-      expect(() => FullName.create('   ', 'Doe')).toThrow('Names cannot be empty');
+      expect(() => FullName.create('   ', 'Doe')).toThrow(
+        'Names cannot be empty',
+      );
     });
 
     it('should throw error for whitespace-only last name', () => {
       expect(() => FullName.create('John', '   ')).toThrow(DomainException);
-      expect(() => FullName.create('John', '   ')).toThrow('Names cannot be empty');
+      expect(() => FullName.create('John', '   ')).toThrow(
+        'Names cannot be empty',
+      );
     });
 
     it('should throw error for first name longer than 50 characters', () => {
       const longName = 'a'.repeat(51);
       expect(() => FullName.create(longName, 'Doe')).toThrow(DomainException);
-      expect(() => FullName.create(longName, 'Doe')).toThrow('First name is too long');
+      expect(() => FullName.create(longName, 'Doe')).toThrow(
+        'First name is too long',
+      );
     });
 
     it('should throw error for last name longer than 50 characters', () => {
       const longName = 'a'.repeat(51);
       expect(() => FullName.create('John', longName)).toThrow(DomainException);
-      expect(() => FullName.create('John', longName)).toThrow('Last name is too long');
+      expect(() => FullName.create('John', longName)).toThrow(
+        'Last name is too long',
+      );
     });
   });
 

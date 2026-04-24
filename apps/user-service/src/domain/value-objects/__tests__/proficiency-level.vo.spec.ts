@@ -38,9 +38,11 @@ describe('ProficiencyLevel Value Object', () => {
     });
 
     it('should throw error for invalid level', () => {
-      expect(() => ProficiencyLevel.fromString('invalid')).toThrow(DomainException);
       expect(() => ProficiencyLevel.fromString('invalid')).toThrow(
-        'Invalid proficiency level: invalid'
+        DomainException,
+      );
+      expect(() => ProficiencyLevel.fromString('invalid')).toThrow(
+        'Invalid proficiency level: invalid',
       );
     });
   });

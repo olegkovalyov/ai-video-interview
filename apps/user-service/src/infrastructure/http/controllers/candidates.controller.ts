@@ -16,7 +16,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiQuery, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
 
 // Guards
 import { InternalServiceGuard } from '../guards/internal-service.guard';
@@ -34,13 +41,16 @@ import { GetCandidateProfileQuery } from '../../../application/queries/candidate
 import { GetCandidateSkillsQuery } from '../../../application/queries/candidate/get-candidate-skills.query';
 
 // DTOs
-import { SearchCandidatesDto, AddCandidateSkillDto, UpdateCandidateSkillDto, UpdateExperienceLevelDto } from '../dto/candidates.dto';
-import { 
-  CandidateProfileResponseDto, 
-  SkillsByCategoryResponseDto,
+import {
+  SearchCandidatesDto,
+  AddCandidateSkillDto,
+  UpdateCandidateSkillDto,
+  UpdateExperienceLevelDto,
+} from '../dto/candidates.dto';
+import {
   CandidateSearchResultsResponseDto,
   CandidateProfileSuccessResponseDto,
-  CandidateSkillsSuccessResponseDto 
+  CandidateSkillsSuccessResponseDto,
 } from '../dto/candidates.response.dto';
 
 // Mappers
@@ -50,17 +60,15 @@ import { CandidateResponseMapper } from '../mappers/candidate.response.mapper';
 import {
   BadRequestErrorSchema,
   UnauthorizedErrorSchema,
-  ForbiddenErrorSchema,
   NotFoundErrorSchema,
-  ConflictErrorSchema,
 } from '../schemas/error.schemas';
 
 /**
  * Candidates Controller
- * 
+ *
  * Candidate Profile & Skills Management API
  * Protected by InternalServiceGuard (x-internal-token)
- * 
+ *
  * Endpoints:
  * - GET    /candidates/search                      - Search candidates by skills (HR)
  * - GET    /candidates/:userId/profile             - Get candidate profile
@@ -85,35 +93,69 @@ export class CandidatesController {
   // ============================================
 
   @Get('search')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Search candidates by skills (HR)',
-    description: 'Search candidates with filters: skills, proficiency, experience level. Returns paginated results with match scores.'
+    description:
+      'Search candidates with filters: skills, proficiency, experience level. Returns paginated results with match scores.',
   })
-  @ApiQuery({ name: 'skillIds', required: false, type: [String], description: 'Array of skill IDs to search for' })
-  @ApiQuery({ name: 'minProficiency', required: false, enum: ['beginner', 'intermediate', 'advanced', 'expert'], description: 'Minimum proficiency level' })
-  @ApiQuery({ name: 'minYears', required: false, type: Number, description: 'Minimum years of experience' })
-  @ApiQuery({ name: 'experienceLevel', required: false, enum: ['junior', 'mid', 'senior', 'lead'], description: 'Candidate experience level' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiQuery({
+    name: 'skillIds',
+    required: false,
+    type: [String],
+    description: 'Array of skill IDs to search for',
+  })
+  @ApiQuery({
+    name: 'minProficiency',
+    required: false,
+    enum: ['beginner', 'intermediate', 'advanced', 'expert'],
+    description: 'Minimum proficiency level',
+  })
+  @ApiQuery({
+    name: 'minYears',
+    required: false,
+    type: Number,
+    description: 'Minimum years of experience',
+  })
+  @ApiQuery({
+    name: 'experienceLevel',
+    required: false,
+    enum: ['junior', 'mid', 'senior', 'lead'],
+    description: 'Candidate experience level',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiResponse({
+    status: 200,
     type: CandidateSearchResultsResponseDto,
-    description: 'Search results with pagination'
+    description: 'Search results with pagination',
   })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  async searchCandidates(
-    @Query() query: SearchCandidatesDto,
-  ) {
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  async searchCandidates(@Query() query: SearchCandidatesDto) {
     try {
-      const result = await this.queryBus.execute(new SearchCandidatesBySkillsQuery(
-        query.skillIds || [],
-        query.minProficiency,
-        query.minYears ? Number(query.minYears) : undefined,
-        query.experienceLevel,
-        query.page || 1,
-        query.limit || 20,
-      ));
+      const result = await this.queryBus.execute(
+        new SearchCandidatesBySkillsQuery(
+          query.skillIds || [],
+          query.minProficiency,
+          query.minYears ? Number(query.minYears) : undefined,
+          query.experienceLevel,
+          query.page || 1,
+          query.limit || 20,
+        ),
+      );
 
       return {
         success: true,
@@ -142,13 +184,24 @@ export class CandidatesController {
   // ============================================
 
   @Get(':userId/profile')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get candidate profile',
-    description: 'Get candidate profile with user info. Access control: own profile, HR, or Admin.'
+    description:
+      'Get candidate profile with user info. Access control: own profile, HR, or Admin.',
   })
-  @ApiResponse({ status: 200, type: CandidateProfileSuccessResponseDto, description: 'Profile retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 403, description: 'Forbidden - not authorized to view this profile' })
+  @ApiResponse({
+    status: 200,
+    type: CandidateProfileSuccessResponseDto,
+    description: 'Profile retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - not authorized to view this profile',
+  })
   @ApiResponse({ status: 404, description: 'Profile not found' })
   async getCandidateProfile(
     @Param('userId') userId: string,
@@ -195,17 +248,24 @@ export class CandidatesController {
   }
 
   @Get(':userId/skills')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get candidate skills grouped by category',
-    description: 'Returns all candidate skills organized by skill categories. Access control: own skills, HR, or Admin.'
+    description:
+      'Returns all candidate skills organized by skill categories. Access control: own skills, HR, or Admin.',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     type: CandidateSkillsSuccessResponseDto,
-    description: 'Skills retrieved successfully'
+    description: 'Skills retrieved successfully',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 403, description: 'Forbidden - not authorized to view these skills' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - not authorized to view these skills',
+  })
   async getCandidateSkills(
     @Param('userId') candidateId: string,
     @Query('currentUserId') currentUserId?: string,
@@ -248,15 +308,28 @@ export class CandidatesController {
 
   @Post(':userId/skills')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Add skill to candidate',
-    description: 'Add a new skill to candidate profile with proficiency level and years of experience.'
+    description:
+      'Add a new skill to candidate profile with proficiency level and years of experience.',
   })
   @ApiBody({ type: AddCandidateSkillDto })
   @ApiResponse({ status: 201, description: 'Skill added successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid input data or skill already exists' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User or skill not found' })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid input data or skill already exists',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User or skill not found',
+  })
   @ApiResponse({ status: 409, description: 'Skill already added to candidate' })
   async addCandidateSkill(
     @Param('userId') candidateId: string,
@@ -286,7 +359,10 @@ export class CandidatesController {
         });
       }
 
-      if (error.message.includes('already') || error.name === 'ConflictException') {
+      if (
+        error.message.includes('already') ||
+        error.name === 'ConflictException'
+      ) {
         throw new ConflictException({
           success: false,
           error: error.message,
@@ -302,15 +378,28 @@ export class CandidatesController {
   }
 
   @Put(':userId/skills/:skillId')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update candidate skill',
-    description: 'Update skill description, proficiency level, or years of experience.'
+    description:
+      'Update skill description, proficiency level, or years of experience.',
   })
   @ApiBody({ type: UpdateCandidateSkillDto })
   @ApiResponse({ status: 200, description: 'Skill updated successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid input data' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User or candidate skill not found' })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User or candidate skill not found',
+  })
   async updateCandidateSkill(
     @Param('userId') candidateId: string,
     @Param('skillId') skillId: string,
@@ -318,7 +407,11 @@ export class CandidatesController {
   ) {
     try {
       // Validate that at least one field is provided
-      if (!dto.description && !dto.proficiencyLevel && dto.yearsOfExperience === undefined) {
+      if (
+        !dto.description &&
+        !dto.proficiencyLevel &&
+        dto.yearsOfExperience === undefined
+      ) {
         throw new BadRequestException({
           success: false,
           error: 'At least one field must be provided for update',
@@ -331,7 +424,7 @@ export class CandidatesController {
         skillId,
         dto.description || null,
         dto.proficiencyLevel || 'beginner',
-        dto.yearsOfExperience !== undefined ? dto.yearsOfExperience : 0,
+        dto.yearsOfExperience === undefined ? 0 : dto.yearsOfExperience,
       );
 
       await this.commandBus.execute(command);
@@ -358,13 +451,21 @@ export class CandidatesController {
 
   @Delete(':userId/skills/:skillId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Remove skill from candidate',
-    description: 'Remove a skill from candidate profile.'
+    description: 'Remove a skill from candidate profile.',
   })
   @ApiResponse({ status: 204, description: 'Skill removed successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User or candidate skill not found' })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User or candidate skill not found',
+  })
   async removeCandidateSkill(
     @Param('userId') candidateId: string,
     @Param('skillId') skillId: string,
@@ -389,21 +490,41 @@ export class CandidatesController {
   }
 
   @Put(':userId/experience-level')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update candidate experience level',
-    description: 'Updates the overall experience level of a candidate (junior, mid, senior, lead).'
+    description:
+      'Updates the overall experience level of a candidate (junior, mid, senior, lead).',
   })
   @ApiBody({ type: UpdateExperienceLevelDto })
-  @ApiResponse({ status: 200, type: CandidateProfileSuccessResponseDto, description: 'Experience level updated successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid experience level' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'Candidate profile not found' })
+  @ApiResponse({
+    status: 200,
+    type: CandidateProfileSuccessResponseDto,
+    description: 'Experience level updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid experience level',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'Candidate profile not found',
+  })
   async updateExperienceLevel(
     @Param('userId') userId: string,
     @Body() dto: UpdateExperienceLevelDto,
   ) {
     try {
-      const command = new UpdateCandidateExperienceLevelCommand(userId, dto.experienceLevel);
+      const command = new UpdateCandidateExperienceLevelCommand(
+        userId,
+        dto.experienceLevel,
+      );
       await this.commandBus.execute(command);
 
       // Get updated profile to return (pass userId as currentUserId to bypass permission check)
@@ -423,7 +544,10 @@ export class CandidatesController {
         });
       }
 
-      if (error.message.includes('Invalid experience level') || error.name === 'DomainException') {
+      if (
+        error.message.includes('Invalid experience level') ||
+        error.name === 'DomainException'
+      ) {
         throw new BadRequestException({
           success: false,
           error: error.message,

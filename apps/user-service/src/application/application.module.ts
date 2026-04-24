@@ -65,24 +65,24 @@ const CommandHandlers = [
   DeleteUserHandler,
   UploadAvatarHandler,
   SelectRoleHandler,
-  
+
   // Admin Skills Commands
   CreateSkillHandler,
   UpdateSkillHandler,
   DeleteSkillHandler,
   ActivateSkillHandler,
   DeactivateSkillHandler,
-  
+
   // HR Companies Commands
   CreateCompanyHandler,
   UpdateCompanyHandler,
   DeleteCompanyHandler,
-  
+
   // Candidate Skills Commands
   AddCandidateSkillHandler,
   UpdateCandidateSkillHandler,
   RemoveCandidateSkillHandler,
-  
+
   // Candidate Profile Commands
   UpdateCandidateExperienceLevelHandler,
 ];
@@ -94,17 +94,17 @@ const QueryHandlers = [
   ListUsersHandler,
   GetUserPermissionsHandler,
   GetUserStatsHandler,
-  
+
   // Skills Queries
   ListSkillsHandler,
   GetSkillHandler,
   ListSkillCategoriesHandler,
-  
+
   // Companies Queries
   ListCompaniesHandler,
   GetCompanyHandler,
   ListUserCompaniesHandler,
-  
+
   // Candidate Queries
   GetCandidateSkillsHandler,
   SearchCandidatesBySkillsHandler,
@@ -120,7 +120,7 @@ const QueryHandlers = [
     MessagingModule, // Provides OutboxService for Command Handlers
   ],
   providers: [
-    ...CommandHandlers, 
+    ...CommandHandlers,
     ...QueryHandlers,
     // Domain Events use internal EventBus (NestJS)
     // Integration Events published directly from Command Handlers via OutboxService

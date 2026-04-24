@@ -39,7 +39,11 @@ export interface IRoleRepository {
   /**
    * Assign role to user
    */
-  assignToUser(userId: string, roleId: string, assignedBy: string): Promise<void>;
+  assignToUser(
+    userId: string,
+    roleId: string,
+    assignedBy: string,
+  ): Promise<void>;
 
   /**
    * Remove role from user

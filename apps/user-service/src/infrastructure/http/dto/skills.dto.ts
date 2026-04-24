@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsUUID, IsOptional, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 
 /**
  * DTO for creating a new skill
@@ -9,7 +17,10 @@ export class CreateSkillDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'Skill slug (URL-friendly)', example: 'typescript' })
+  @ApiProperty({
+    description: 'Skill slug (URL-friendly)',
+    example: 'typescript',
+  })
   @IsString()
   slug: string;
 
@@ -18,12 +29,18 @@ export class CreateSkillDto {
   @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional({ description: 'Skill description', example: 'JavaScript superset with static typing' })
+  @ApiPropertyOptional({
+    description: 'Skill description',
+    example: 'JavaScript superset with static typing',
+  })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ description: 'Admin ID performing the action', example: 'uuid' })
+  @ApiPropertyOptional({
+    description: 'Admin ID performing the action',
+    example: 'uuid',
+  })
   @IsOptional()
   @IsUUID()
   adminId?: string;
@@ -38,7 +55,10 @@ export class UpdateSkillDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Skill description', example: 'JavaScript superset with static typing' })
+  @ApiPropertyOptional({
+    description: 'Skill description',
+    example: 'JavaScript superset with static typing',
+  })
   @IsOptional()
   @IsString()
   description?: string;
@@ -48,7 +68,10 @@ export class UpdateSkillDto {
   @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional({ description: 'Admin ID performing the action', example: 'uuid' })
+  @ApiPropertyOptional({
+    description: 'Admin ID performing the action',
+    example: 'uuid',
+  })
   @IsOptional()
   @IsUUID()
   adminId?: string;
@@ -58,13 +81,24 @@ export class UpdateSkillDto {
  * DTO for listing skills with filters
  */
 export class ListSkillsDto {
-  @ApiPropertyOptional({ description: 'Page number', example: 1, default: 1, minimum: 1 })
+  @ApiPropertyOptional({
+    description: 'Page number',
+    example: 1,
+    default: 1,
+    minimum: 1,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ description: 'Items per page', example: 20, default: 20, minimum: 1, maximum: 100 })
+  @ApiPropertyOptional({
+    description: 'Items per page',
+    example: 20,
+    default: 20,
+    minimum: 1,
+    maximum: 100,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -76,12 +110,19 @@ export class ListSkillsDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by category ID', example: 'uuid' })
+  @ApiPropertyOptional({
+    description: 'Filter by category ID',
+    example: 'uuid',
+  })
   @IsOptional()
   @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by active status', example: true, type: Boolean })
+  @ApiPropertyOptional({
+    description: 'Filter by active status',
+    example: true,
+    type: Boolean,
+  })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

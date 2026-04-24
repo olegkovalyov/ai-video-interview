@@ -2,7 +2,10 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { DeleteCompanyCommand } from './delete-company.command';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
-import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../../domain/exceptions/company.exceptions';
+import {
+  CompanyNotFoundException,
+  CompanyAccessDeniedException,
+} from '../../../../domain/exceptions/company.exceptions';
 import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
 import type { IOutboxService } from '../../../interfaces/outbox-service.interface';
 import type { IUnitOfWork } from '../../../interfaces/unit-of-work.interface';
@@ -14,7 +17,9 @@ import { LoggerService } from '../../../../infrastructure/logger/logger.service'
  * Only company creator can delete
  */
 @CommandHandler(DeleteCompanyCommand)
-export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyCommand> {
+export class DeleteCompanyHandler
+  implements ICommandHandler<DeleteCompanyCommand>
+{
   constructor(
     @Inject('ICompanyRepository')
     private readonly companyRepository: ICompanyRepository,
@@ -39,7 +44,9 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
 
     // 2. Check permissions - only creator can delete
     if (company.createdBy !== command.userId) {
-      throw new CompanyAccessDeniedException('Only company creator can delete the company');
+      throw new CompanyAccessDeniedException(
+        'Only company creator can delete the company',
+      );
     }
 
     // 3. Atomic: outbox save + hard delete in same transaction
@@ -61,6 +68,8 @@ export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyComman
     // 4. Schedule BullMQ job for Kafka publishing
     await this.outboxService.schedulePublishing([eventId]);
 
-    this.logger.warn('Company deleted permanently', { companyId: command.companyId });
+    this.logger.warn('Company deleted permanently', {
+      companyId: command.companyId,
+    });
   }
 }

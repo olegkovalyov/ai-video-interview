@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { SkillCategoryEntity } from './skill-category.entity';
 
 /**

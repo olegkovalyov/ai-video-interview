@@ -32,7 +32,9 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     return entity ? this.toReadModel(entity) : null;
   }
 
-  async findByIdWithProfile(id: string): Promise<UserWithProfileReadModel | null> {
+  async findByIdWithProfile(
+    id: string,
+  ): Promise<UserWithProfileReadModel | null> {
     const entity = await this.repository.findOne({
       where: { id },
     });
@@ -42,7 +44,9 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     return { ...baseModel };
   }
 
-  async findByExternalAuthId(externalAuthId: string): Promise<UserReadModel | null> {
+  async findByExternalAuthId(
+    externalAuthId: string,
+  ): Promise<UserReadModel | null> {
     const entity = await this.repository.findOne({
       where: { externalAuthId },
     });
@@ -72,7 +76,9 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     }
 
     if (filters?.status) {
-      queryBuilder.andWhere('user.status = :status', { status: filters.status });
+      queryBuilder.andWhere('user.status = :status', {
+        status: filters.status,
+      });
     }
 
     if (filters?.role) {
@@ -86,7 +92,7 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     // Execute query
     const [entities, total] = await queryBuilder.getManyAndCount();
 
-    const users = entities.map(entity => this.toReadModel(entity));
+    const users = entities.map((entity) => this.toReadModel(entity));
     const totalPages = Math.ceil(total / limit);
 
     return {
@@ -126,7 +132,9 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     }
 
     if (filters?.status) {
-      queryBuilder.andWhere('user.status = :status', { status: filters.status });
+      queryBuilder.andWhere('user.status = :status', {
+        status: filters.status,
+      });
     }
 
     return queryBuilder.getCount();
@@ -141,7 +149,7 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
       .getRawMany();
 
     return result.reduce((acc, row) => {
-      acc[row.status] = parseInt(row.count, 10);
+      acc[row.status] = Number.parseInt(row.count, 10);
       return acc;
     }, {});
   }

@@ -1,12 +1,15 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ExecutionContext } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { InternalServiceGuard } from '../internal-service.guard';
 
 describe('InternalServiceGuard', () => {
   let guard: InternalServiceGuard;
   let mockConfigService: { get: jest.Mock };
 
-  function createMockContext(headers: Record<string, string> = {}): ExecutionContext {
+  function createMockContext(
+    headers: Record<string, string> = {},
+  ): ExecutionContext {
     const mockRequest = { headers };
     return {
       switchToHttp: () => ({
@@ -19,7 +22,9 @@ describe('InternalServiceGuard', () => {
     mockConfigService = {
       get: jest.fn().mockReturnValue('valid-token'),
     };
-    guard = new InternalServiceGuard(mockConfigService as unknown as ConfigService);
+    guard = new InternalServiceGuard(
+      mockConfigService as unknown as ConfigService,
+    );
   });
 
   it('should allow request with valid internal token', () => {
@@ -34,14 +39,18 @@ describe('InternalServiceGuard', () => {
     const context = createMockContext({});
 
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
-    expect(() => guard.canActivate(context)).toThrow('Invalid internal service token');
+    expect(() => guard.canActivate(context)).toThrow(
+      'Invalid internal service token',
+    );
   });
 
   it('should throw UnauthorizedException when token is invalid', () => {
     const context = createMockContext({ 'x-internal-token': 'wrong-token' });
 
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
-    expect(() => guard.canActivate(context)).toThrow('Invalid internal service token');
+    expect(() => guard.canActivate(context)).toThrow(
+      'Invalid internal service token',
+    );
   });
 
   it('should use INTERNAL_SERVICE_TOKEN from ConfigService', () => {
@@ -59,7 +68,9 @@ describe('InternalServiceGuard', () => {
       defaultConfigService as unknown as ConfigService,
     );
 
-    const context = createMockContext({ 'x-internal-token': 'internal-secret' });
+    const context = createMockContext({
+      'x-internal-token': 'internal-secret',
+    });
 
     const result = defaultGuard.canActivate(context);
 

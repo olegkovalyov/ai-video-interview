@@ -1,11 +1,14 @@
 import { AggregateRoot } from '../base/base.aggregate-root';
-import { ExperienceLevel } from '../value-objects/experience-level.vo';
-import { ProficiencyLevel } from '../value-objects/proficiency-level.vo';
-import { YearsOfExperience } from '../value-objects/years-of-experience.vo';
+import type { ExperienceLevel } from '../value-objects/experience-level.vo';
+import type { ProficiencyLevel } from '../value-objects/proficiency-level.vo';
+import type { YearsOfExperience } from '../value-objects/years-of-experience.vo';
 import { CandidateSkill } from '../entities/candidate-skill.entity';
 import { DomainException } from '../exceptions/domain.exception';
 import { CandidateSkillAddedEvent } from '../events/candidate-skill-added.event';
-import { CandidateSkillUpdatedEvent, type CandidateSkillChanges } from '../events/candidate-skill-updated.event';
+import {
+  CandidateSkillUpdatedEvent,
+  type CandidateSkillChanges,
+} from '../events/candidate-skill-updated.event';
 import { CandidateSkillRemovedEvent } from '../events/candidate-skill-removed.event';
 
 /**
@@ -81,7 +84,7 @@ export class CandidateProfile extends AggregateRoot {
     yearsOfExperience: YearsOfExperience | null,
   ): void {
     // Check if skill already exists
-    const exists = this._skills.some(s => s.skillId === skillId);
+    const exists = this._skills.some((s) => s.skillId === skillId);
     if (exists) {
       throw new DomainException('Skill already added to profile');
     }
@@ -119,46 +122,50 @@ export class CandidateProfile extends AggregateRoot {
     proficiencyLevel: ProficiencyLevel | null,
     yearsOfExperience: YearsOfExperience | null,
   ): void {
-    const skill = this._skills.find(s => s.skillId === skillId);
-    
+    const skill = this._skills.find((s) => s.skillId === skillId);
+
     if (!skill) {
       throw new DomainException('Skill not found in profile');
     }
 
     const changes: CandidateSkillChanges = {};
-    
+
     if (description !== skill.description) {
       skill.updateDescription(description || '');
       changes.description = description;
     }
-    
+
     // Handle nullable proficiency
     if (proficiencyLevel === null && skill.proficiencyLevel !== null) {
       skill.updateProficiency(null);
       changes.proficiencyLevel = null;
-    } else if (proficiencyLevel && (!skill.proficiencyLevel || !proficiencyLevel.equals(skill.proficiencyLevel))) {
+    } else if (
+      proficiencyLevel &&
+      (!skill.proficiencyLevel ||
+        !proficiencyLevel.equals(skill.proficiencyLevel))
+    ) {
       skill.updateProficiency(proficiencyLevel);
       changes.proficiencyLevel = proficiencyLevel.value;
     }
-    
+
     // Handle nullable years
     if (yearsOfExperience === null && skill.yearsOfExperience !== null) {
       skill.updateYears(null);
       changes.yearsOfExperience = null;
-    } else if (yearsOfExperience && (!skill.yearsOfExperience || !yearsOfExperience.equals(skill.yearsOfExperience))) {
+    } else if (
+      yearsOfExperience &&
+      (!skill.yearsOfExperience ||
+        !yearsOfExperience.equals(skill.yearsOfExperience))
+    ) {
       skill.updateYears(yearsOfExperience);
       changes.yearsOfExperience = yearsOfExperience.value;
     }
 
     if (Object.keys(changes).length > 0) {
       this._updatedAt = new Date();
-      
+
       this.apply(
-        new CandidateSkillUpdatedEvent(
-          this._userId,
-          skillId,
-          changes,
-        ),
+        new CandidateSkillUpdatedEvent(this._userId, skillId, changes),
       );
     }
   }
@@ -167,8 +174,8 @@ export class CandidateProfile extends AggregateRoot {
    * Remove skill from profile
    */
   public removeSkill(skillId: string): void {
-    const index = this._skills.findIndex(s => s.skillId === skillId);
-    
+    const index = this._skills.findIndex((s) => s.skillId === skillId);
+
     if (index === -1) {
       throw new DomainException('Skill not found in profile');
     }
@@ -177,12 +184,7 @@ export class CandidateProfile extends AggregateRoot {
     this._updatedAt = new Date();
 
     // Publish domain event
-    this.apply(
-      new CandidateSkillRemovedEvent(
-        this._userId,
-        skillId,
-      ),
-    );
+    this.apply(new CandidateSkillRemovedEvent(this._userId, skillId));
   }
 
   /**

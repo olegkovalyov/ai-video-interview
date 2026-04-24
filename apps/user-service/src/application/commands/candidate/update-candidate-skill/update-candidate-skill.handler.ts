@@ -37,9 +37,9 @@ export class UpdateCandidateSkillHandler
       ? ProficiencyLevel.fromString(command.proficiencyLevel)
       : null;
     const years =
-      command.yearsOfExperience !== null
-        ? YearsOfExperience.fromNumber(command.yearsOfExperience)
-        : null;
+      command.yearsOfExperience === null
+        ? null
+        : YearsOfExperience.fromNumber(command.yearsOfExperience);
 
     // 3. Update skill (throws if not found)
     profile.updateSkill(

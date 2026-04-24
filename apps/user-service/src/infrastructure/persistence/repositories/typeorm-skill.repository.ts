@@ -41,7 +41,9 @@ export class TypeOrmSkillRepository implements ISkillRepository {
   }
 
   async categoryExists(categoryId: string): Promise<boolean> {
-    const count = await this.categoryRepository.count({ where: { id: categoryId } });
+    const count = await this.categoryRepository.count({
+      where: { id: categoryId },
+    });
     return count > 0;
   }
 }

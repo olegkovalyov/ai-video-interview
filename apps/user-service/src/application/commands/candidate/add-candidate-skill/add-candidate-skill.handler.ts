@@ -72,9 +72,9 @@ export class AddCandidateSkillHandler
       ? ProficiencyLevel.fromString(command.proficiencyLevel)
       : null;
     const years =
-      command.yearsOfExperience !== null
-        ? YearsOfExperience.fromNumber(command.yearsOfExperience)
-        : null;
+      command.yearsOfExperience === null
+        ? null
+        : YearsOfExperience.fromNumber(command.yearsOfExperience);
 
     // 5. Add skill to profile
     const candidateSkillId = uuid();

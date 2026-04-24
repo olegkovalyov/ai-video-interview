@@ -1,4 +1,4 @@
-import { Company } from '../aggregates/company.aggregate';
+import type { Company } from '../aggregates/company.aggregate';
 import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 /**

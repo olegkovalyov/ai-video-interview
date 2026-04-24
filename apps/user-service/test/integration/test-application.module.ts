@@ -77,7 +77,9 @@ export const mockLoggerService = {
 };
 
 export const mockStorageService = {
-  uploadFile: jest.fn().mockResolvedValue('https://storage.example.com/avatars/test-avatar.jpg'),
+  uploadFile: jest
+    .fn()
+    .mockResolvedValue('https://storage.example.com/avatars/test-avatar.jpg'),
   deleteFile: jest.fn().mockResolvedValue(undefined),
 };
 
@@ -103,19 +105,19 @@ export const mockStorageService = {
     ActivateUserHandler,
     SelectRoleHandler,
     UploadAvatarHandler,
-    
+
     // Admin Skills Commands
     CreateSkillHandler,
     UpdateSkillHandler,
     DeleteSkillHandler,
     ActivateSkillHandler,
     DeactivateSkillHandler,
-    
+
     // HR Companies Commands
     CreateCompanyHandler,
     UpdateCompanyHandler,
     DeleteCompanyHandler,
-    
+
     // Candidate Skills Commands
     AddCandidateSkillHandler,
     UpdateCandidateSkillHandler,
@@ -126,16 +128,16 @@ export const mockStorageService = {
     GetUserByExternalAuthIdHandler,
     ListUsersHandler,
     GetUserStatsHandler,
-    
+
     // Admin Queries
     ListSkillsHandler,
     GetSkillHandler,
     ListSkillCategoriesHandler,
-    
+
     // HR Queries
     ListCompaniesHandler,
     GetCompanyHandler,
-    
+
     // Candidate Queries
     GetCandidateProfileHandler,
     GetCandidateSkillsHandler,

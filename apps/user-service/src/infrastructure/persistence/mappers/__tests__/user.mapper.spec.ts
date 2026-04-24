@@ -14,7 +14,9 @@ describe('UserMapper', () => {
     mapper = new UserMapper();
   });
 
-  const createUserEntity = (overrides: Partial<UserEntity> = {}): UserEntity => {
+  const createUserEntity = (
+    overrides: Partial<UserEntity> = {},
+  ): UserEntity => {
     const entity = new UserEntity();
     entity.id = uuidv4();
     entity.externalAuthId = uuidv4();
@@ -36,29 +38,34 @@ describe('UserMapper', () => {
     return entity;
   };
 
-  const createUserDomain = (overrides: {
-    id?: string;
-    externalAuthId?: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    status?: UserStatus;
-    role?: UserRole;
-    avatarUrl?: string;
-    bio?: string;
-    phone?: string;
-    timezone?: string;
-    language?: string;
-    emailVerified?: boolean;
-    createdAt?: Date;
-    updatedAt?: Date;
-    lastLoginAt?: Date;
-  } = {}): User => {
+  const createUserDomain = (
+    overrides: {
+      id?: string;
+      externalAuthId?: string;
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      status?: UserStatus;
+      role?: UserRole;
+      avatarUrl?: string;
+      bio?: string;
+      phone?: string;
+      timezone?: string;
+      language?: string;
+      emailVerified?: boolean;
+      createdAt?: Date;
+      updatedAt?: Date;
+      lastLoginAt?: Date;
+    } = {},
+  ): User => {
     return User.reconstitute(
       overrides.id ?? uuidv4(),
       overrides.externalAuthId ?? uuidv4(),
       Email.create(overrides.email ?? 'john.doe@example.com'),
-      FullName.create(overrides.firstName ?? 'John', overrides.lastName ?? 'Doe'),
+      FullName.create(
+        overrides.firstName ?? 'John',
+        overrides.lastName ?? 'Doe',
+      ),
       overrides.status ?? UserStatus.active(),
       overrides.role ?? UserRole.candidate(),
       overrides.avatarUrl ?? 'https://cdn.example.com/avatar.png',
@@ -137,7 +144,6 @@ describe('UserMapper', () => {
         false,
         new Date(),
         new Date(),
-        undefined, // lastLoginAt
       );
 
       const entity = mapper.toEntity(user);
@@ -224,7 +230,10 @@ describe('UserMapper', () => {
     });
 
     it('should correctly map all role types from entity', () => {
-      const roleMappings: Array<{ entityRole: UserEntity['role']; check: (u: User) => boolean }> = [
+      const roleMappings: Array<{
+        entityRole: UserEntity['role'];
+        check: (u: User) => boolean;
+      }> = [
         { entityRole: 'pending', check: (u) => u.isPendingRole },
         { entityRole: 'candidate', check: (u) => u.isCandidateRole },
         { entityRole: 'hr', check: (u) => u.isHRRole },
@@ -242,9 +251,21 @@ describe('UserMapper', () => {
   describe('toDomainList()', () => {
     it('should map array of entities to domain models', () => {
       const entities = [
-        createUserEntity({ email: 'user1@example.com', firstName: 'User', lastName: 'One' }),
-        createUserEntity({ email: 'user2@example.com', firstName: 'User', lastName: 'Two' }),
-        createUserEntity({ email: 'user3@example.com', firstName: 'User', lastName: 'Three' }),
+        createUserEntity({
+          email: 'user1@example.com',
+          firstName: 'User',
+          lastName: 'One',
+        }),
+        createUserEntity({
+          email: 'user2@example.com',
+          firstName: 'User',
+          lastName: 'Two',
+        }),
+        createUserEntity({
+          email: 'user3@example.com',
+          firstName: 'User',
+          lastName: 'Three',
+        }),
       ];
 
       const users = mapper.toDomainList(entities);
@@ -326,7 +347,6 @@ describe('UserMapper', () => {
         false,
         new Date('2025-01-01T00:00:00Z'),
         new Date('2025-01-01T00:00:00Z'),
-        undefined,
       );
 
       const entity = mapper.toEntity(original);

@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -11,7 +16,10 @@ export class InternalServiceGuard implements CanActivate {
   private readonly internalToken: string;
 
   constructor(private configService: ConfigService) {
-    this.internalToken = this.configService.get('INTERNAL_SERVICE_TOKEN', 'internal-secret');
+    this.internalToken = this.configService.get(
+      'INTERNAL_SERVICE_TOKEN',
+      'internal-secret',
+    );
   }
 
   canActivate(context: ExecutionContext): boolean {

@@ -7,24 +7,33 @@ export class SkillCategoryResponseDto {
   @ApiProperty({ example: 'uuid', description: 'Category ID' })
   id: string;
 
-  @ApiProperty({ example: 'Frontend Development', description: 'Category name' })
+  @ApiProperty({
+    example: 'Frontend Development',
+    description: 'Category name',
+  })
   name: string;
 
-  @ApiProperty({ example: 'frontend-development', description: 'Category slug' })
+  @ApiProperty({
+    example: 'frontend-development',
+    description: 'Category slug',
+  })
   slug: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     type: String,
-    example: 'Technologies and frameworks for building user interfaces', 
+    example: 'Technologies and frameworks for building user interfaces',
     nullable: true,
-    description: 'Category description' 
+    description: 'Category description',
   })
   description: string | null;
 
   @ApiProperty({ example: true, description: 'Whether the category is active' })
   isActive: boolean;
 
-  @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Creation date' })
+  @ApiProperty({
+    example: '2024-01-01T00:00:00.000Z',
+    description: 'Creation date',
+  })
   createdAt: Date;
 }
 
@@ -41,27 +50,43 @@ export class SkillResponseDto {
   @ApiProperty({ example: 'typescript', description: 'Skill slug' })
   slug: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     type: String,
-    example: 'JavaScript superset with static typing', 
+    example: 'JavaScript superset with static typing',
     nullable: true,
-    description: 'Skill description' 
+    description: 'Skill description',
   })
   description: string | null;
 
-  @ApiPropertyOptional({ type: String, example: 'uuid', nullable: true, description: 'Category ID' })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'uuid',
+    nullable: true,
+    description: 'Category ID',
+  })
   categoryId: string | null;
 
-  @ApiPropertyOptional({ type: String, example: 'Frontend Development', nullable: true, description: 'Category name' })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Frontend Development',
+    nullable: true,
+    description: 'Category name',
+  })
   categoryName: string | null;
 
   @ApiProperty({ example: true, description: 'Whether the skill is active' })
   isActive: boolean;
 
-  @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Creation date' })
+  @ApiProperty({
+    example: '2024-01-01T00:00:00.000Z',
+    description: 'Creation date',
+  })
   createdAt: Date;
 
-  @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Last update date' })
+  @ApiProperty({
+    example: '2024-01-01T00:00:00.000Z',
+    description: 'Last update date',
+  })
   updatedAt: Date;
 }
 
@@ -78,10 +103,20 @@ export class SkillListItemResponseDto {
   @ApiProperty({ example: 'typescript', description: 'Skill slug' })
   slug: string;
 
-  @ApiPropertyOptional({ type: String, example: 'uuid', nullable: true, description: 'Category ID' })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'uuid',
+    nullable: true,
+    description: 'Category ID',
+  })
   categoryId: string | null;
 
-  @ApiPropertyOptional({ type: String, example: 'Frontend Development', nullable: true, description: 'Category name' })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Frontend Development',
+    nullable: true,
+    description: 'Category name',
+  })
   categoryName: string | null;
 
   @ApiProperty({ example: true, description: 'Whether the skill is active' })
@@ -112,9 +147,9 @@ export class SkillListResponseDto {
   @ApiProperty({ example: true, description: 'Success status' })
   success: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     type: [SkillListItemResponseDto],
-    description: 'List of skills' 
+    description: 'List of skills',
   })
   data: SkillListItemResponseDto[];
 
@@ -129,9 +164,9 @@ export class SkillCategoriesResponseDto {
   @ApiProperty({ example: true, description: 'Success status' })
   success: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     type: [SkillCategoryResponseDto],
-    description: 'List of skill categories' 
+    description: 'List of skill categories',
   })
   data: SkillCategoryResponseDto[];
 }

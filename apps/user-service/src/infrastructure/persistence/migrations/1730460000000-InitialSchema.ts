@@ -1,4 +1,5 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
+import { Table, TableIndex, TableForeignKey } from 'typeorm';
 
 /**
  * Initial Schema Migration
@@ -94,7 +95,8 @@ export class InitialSchema1730460000000 implements MigrationInterface {
             length: '50',
             default: "'pending'",
             isNullable: false,
-            comment: 'User role: pending, candidate, hr, admin (immutable after selection)',
+            comment:
+              'User role: pending, candidate, hr, admin (immutable after selection)',
           },
           {
             name: 'status',
@@ -400,7 +402,6 @@ export class InitialSchema1730460000000 implements MigrationInterface {
         columnNames: ['aggregate_id'],
       }),
     );
-
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -409,6 +410,5 @@ export class InitialSchema1730460000000 implements MigrationInterface {
     await queryRunner.dropTable('hr_profiles', true);
     await queryRunner.dropTable('candidate_profiles', true);
     await queryRunner.dropTable('users', true);
-
   }
 }

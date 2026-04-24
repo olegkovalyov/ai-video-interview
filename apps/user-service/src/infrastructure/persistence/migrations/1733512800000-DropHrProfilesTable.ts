@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
  * Drop hr_profiles table - it was never used in code
@@ -10,7 +10,6 @@ export class DropHrProfilesTable1733512800000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Drop hr_profiles table (it has no data and no code using it)
     await queryRunner.query(`DROP TABLE IF EXISTS hr_profiles CASCADE`);
-    
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -26,6 +25,5 @@ export class DropHrProfilesTable1733512800000 implements MigrationInterface {
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
   }
 }

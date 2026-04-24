@@ -5,7 +5,10 @@ import {
   CallHandler,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { correlationStore, CORRELATION_ID_HEADER } from './correlation-id.store';
+import {
+  correlationStore,
+  CORRELATION_ID_HEADER,
+} from './correlation-id.store';
 
 /**
  * Interceptor that extracts x-correlation-id from incoming HTTP requests
@@ -16,13 +19,13 @@ import { correlationStore, CORRELATION_ID_HEADER } from './correlation-id.store'
  */
 @Injectable()
 export class CorrelationIdInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const correlationId =
       request?.headers?.[CORRELATION_ID_HEADER] || 'unknown';
 
     if (request) {
-      (request as any).correlationId = correlationId;
+      request.correlationId = correlationId;
     }
 
     return new Observable((subscriber) => {

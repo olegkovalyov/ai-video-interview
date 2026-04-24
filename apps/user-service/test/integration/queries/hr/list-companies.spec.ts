@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -48,44 +48,58 @@ describe('ListCompaniesQuery Integration', () => {
       });
 
       // Create 3 companies
-      await commandBus.execute(new CreateCompanyCommand(
-        'Tech Corp',
-        'Leading tech company',
-        'https://techcorp.com',
-        null,
-        'Technology',
-        '51-200',
-        'San Francisco, CA',
-        null,
-        hrId,
-      ));
+      await commandBus.execute(
+        new CreateCompanyCommand(
+          'Tech Corp',
+          'Leading tech company',
+          'https://techcorp.com',
+          null,
+          'Technology',
+          '51-200',
+          'San Francisco, CA',
+          null,
+          hrId,
+        ),
+      );
 
-      await commandBus.execute(new CreateCompanyCommand(
-        'Finance Inc',
-        'Financial services',
-        'https://finance.com',
-        null,
-        'Finance',
-        '200+',
-        'New York, NY',
-        null,
-        hrId,
-      ));
+      await commandBus.execute(
+        new CreateCompanyCommand(
+          'Finance Inc',
+          'Financial services',
+          'https://finance.com',
+          null,
+          'Finance',
+          '200+',
+          'New York, NY',
+          null,
+          hrId,
+        ),
+      );
 
-      await commandBus.execute(new CreateCompanyCommand(
-        'Health Plus',
-        'Healthcare provider',
-        'https://health.com',
-        null,
-        'Healthcare',
-        '11-50',
-        'Boston, MA',
-        null,
-        hrId,
-      ));
+      await commandBus.execute(
+        new CreateCompanyCommand(
+          'Health Plus',
+          'Healthcare provider',
+          'https://health.com',
+          null,
+          'Healthcare',
+          '11-50',
+          'Boston, MA',
+          null,
+          hrId,
+        ),
+      );
 
       // Act
-      const query = new ListCompaniesQuery(1, 10, undefined, undefined, undefined, hrId, false);
+      const query = new ListCompaniesQuery(
+        1,
+        10,
+        undefined,
+        undefined,
+        undefined,
+        hrId,
+        false,
+      );
       const result = await queryBus.execute(query);
 
       // Assert
@@ -117,51 +131,64 @@ describe('ListCompaniesQuery Integration', () => {
       });
 
       // Create companies
-      await commandBus.execute(new CreateCompanyCommand(
-        'Tech Corp 1',
-        null,
-        null,
-        null,
-        'Technology',
-        null,
-        null,
-        null,
-        hrId,
-      ));
+      await commandBus.execute(
+        new CreateCompanyCommand(
+          'Tech Corp 1',
+          null,
+          null,
+          null,
+          'Technology',
+          null,
+          null,
+          null,
+          hrId,
+        ),
+      );
 
-      await commandBus.execute(new CreateCompanyCommand(
-        'Tech Corp 2',
-        null,
-        null,
-        null,
-        'Technology',
-        null,
-        null,
-        null,
-        hrId,
-      ));
+      await commandBus.execute(
+        new CreateCompanyCommand(
+          'Tech Corp 2',
+          null,
+          null,
+          null,
+          'Technology',
+          null,
+          null,
+          null,
+          hrId,
+        ),
+      );
 
-      await commandBus.execute(new CreateCompanyCommand(
-        'Finance Corp',
-        null,
-        null,
-        null,
-        'Finance',
-        null,
-        null,
-        null,
-        hrId,
-      ));
+      await commandBus.execute(
+        new CreateCompanyCommand(
+          'Finance Corp',
+          null,
+          null,
+          null,
+          'Finance',
+          null,
+          null,
+          null,
+          hrId,
+        ),
+      );
 
       // Act
-      const query = new ListCompaniesQuery(1, 10, undefined, undefined, undefined, hrId, false);
+      const query = new ListCompaniesQuery(
+        1,
+        10,
+        undefined,
+        undefined,
+        undefined,
+        hrId,
+        false,
+      );
       const result = await queryBus.execute(query);
 
       // Assert - Should return all HR's companies
       expect(result.data.length).toBe(3);
       expect(result.total).toBe(3);
     });
-
 
     it('should return all companies for HR user (no pagination in MVP)', async () => {
       // Arrange - Create multiple companies
@@ -174,21 +201,31 @@ describe('ListCompaniesQuery Integration', () => {
 
       // Create 5 companies
       for (let i = 1; i <= 5; i++) {
-        await commandBus.execute(new CreateCompanyCommand(
-          `Company ${i}`,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          hrId,
-        ));
+        await commandBus.execute(
+          new CreateCompanyCommand(
+            `Company ${i}`,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            hrId,
+          ),
+        );
       }
 
       // Act
-      const query = new ListCompaniesQuery(1, 10, undefined, undefined, undefined, hrId, false);
+      const query = new ListCompaniesQuery(
+        1,
+        10,
+        undefined,
+        undefined,
+        undefined,
+        hrId,
+        false,
+      );
       const result = await queryBus.execute(query);
 
       // Assert - Returns all companies (pagination not implemented for HR in MVP)
@@ -206,7 +243,15 @@ describe('ListCompaniesQuery Integration', () => {
       });
 
       // Act
-      const query = new ListCompaniesQuery(1, 10, undefined, undefined, undefined, hrId, false);
+      const query = new ListCompaniesQuery(
+        1,
+        10,
+        undefined,
+        undefined,
+        undefined,
+        hrId,
+        false,
+      );
       const result = await queryBus.execute(query);
 
       // Assert
@@ -223,20 +268,30 @@ describe('ListCompaniesQuery Integration', () => {
         role: 'hr',
       });
 
-      await commandBus.execute(new CreateCompanyCommand(
-        'Tech Solutions Inc',
-        'Software development company',
-        'https://techsolutions.com',
-        null,
-        'Technology',
-        '51-200',
-        'San Francisco, CA',
-        'CTO',
-        hrId,
-      ));
+      await commandBus.execute(
+        new CreateCompanyCommand(
+          'Tech Solutions Inc',
+          'Software development company',
+          'https://techsolutions.com',
+          null,
+          'Technology',
+          '51-200',
+          'San Francisco, CA',
+          'CTO',
+          hrId,
+        ),
+      );
 
       // Act
-      const query = new ListCompaniesQuery(1, 10, undefined, undefined, undefined, hrId, false);
+      const query = new ListCompaniesQuery(
+        1,
+        10,
+        undefined,
+        undefined,
+        undefined,
+        hrId,
+        false,
+      );
       const result = await queryBus.execute(query);
 
       // Assert - Verify full metadata
@@ -259,7 +314,15 @@ describe('ListCompaniesQuery Integration', () => {
       const nonExistentUserId = uuidv4();
 
       // Act
-      const query = new ListCompaniesQuery(1, 10, undefined, undefined, undefined, nonExistentUserId, false);
+      const query = new ListCompaniesQuery(
+        1,
+        10,
+        undefined,
+        undefined,
+        undefined,
+        nonExistentUserId,
+        false,
+      );
       const result = await queryBus.execute(query);
 
       // Assert

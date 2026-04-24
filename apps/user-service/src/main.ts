@@ -90,7 +90,8 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  // Logger not yet available at this point — fallback to stderr
-  process.stderr.write(`Failed to start User Service: ${error}\n`);
+  // Logger not yet available at this point — fallback to stderr.
+  process.stderr.write(`Failed to start User Service: ${String(error)}\n`);
+  // eslint-disable-next-line unicorn/no-process-exit -- service bootstrap is the CLI entry point; exiting with a non-zero code is the correct signal for orchestrators (Docker, K8s) to restart.
   process.exit(1);
 });

@@ -21,17 +21,17 @@ export class UserPermissionsResponseDto {
   @ApiProperty({ description: 'User ID', example: 'uuid' })
   userId: string;
 
-  @ApiProperty({ 
-    description: 'User roles', 
+  @ApiProperty({
+    description: 'User roles',
     type: [RoleDto],
-    example: [{ id: 'candidate', name: 'candidate', displayName: 'Candidate' }]
+    example: [{ id: 'candidate', name: 'candidate', displayName: 'Candidate' }],
   })
   roles: RoleDto[];
 
-  @ApiProperty({ 
-    description: 'User permissions', 
+  @ApiProperty({
+    description: 'User permissions',
     example: ['read:own_profile', 'write:own_profile'],
-    type: [String]
+    type: [String],
   })
   permissions: string[];
 }
@@ -43,6 +43,9 @@ export class UserPermissionsSuccessResponseDto {
   @ApiProperty({ description: 'Success flag', example: true })
   success: boolean;
 
-  @ApiProperty({ description: 'User permissions data', type: UserPermissionsResponseDto })
+  @ApiProperty({
+    description: 'User permissions data',
+    type: UserPermissionsResponseDto,
+  })
   data: UserPermissionsResponseDto;
 }

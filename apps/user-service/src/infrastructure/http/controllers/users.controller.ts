@@ -23,7 +23,15 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiResponse, ApiSecurity, ApiConsumes, ApiQuery, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiConsumes,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
 
 // Commands
 import { CreateUserCommand } from '../../../application/commands/create-user/create-user.command';
@@ -54,7 +62,10 @@ import { CompanyListResponseDto } from '../dto/companies.response.dto';
 // Guards & Exceptions
 import { InternalServiceGuard } from '../guards/internal-service.guard';
 import { Public } from '../decorators/public.decorator';
-import { UserAlreadyExistsException, UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
+import {
+  UserAlreadyExistsException,
+  UserNotFoundException,
+} from '../../../domain/exceptions/user.exceptions';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 
 // Error Schemas
@@ -99,30 +110,67 @@ export class UsersController {
    */
   @Get()
   @ApiOperation({ summary: 'List users with pagination and filters' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 100)' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by email, first name, or last name' })
-  @ApiQuery({ name: 'role', required: false, enum: ['candidate', 'hr', 'admin'], description: 'Filter by user role' })
-  @ApiQuery({ name: 'status', required: false, enum: ['active', 'suspended'], description: 'Filter by user status' })
-  @ApiResponse({ status: 200, type: UserListResponseDto, description: 'Users list retrieved successfully' })
-  @ApiResponse({ status: 400, type: ValidationErrorSchema, description: 'Invalid query parameters' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by email, first name, or last name',
+  })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: ['candidate', 'hr', 'admin'],
+    description: 'Filter by user role',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'suspended'],
+    description: 'Filter by user status',
+  })
+  @ApiResponse({
+    status: 200,
+    type: UserListResponseDto,
+    description: 'Users list retrieved successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: ValidationErrorSchema,
+    description: 'Invalid query parameters',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async listUsers(@Query() dto: ListUsersDto): Promise<UserListResponseDto> {
-    const query = new ListUsersQuery(
-      dto.page || 1,
-      dto.limit || 10,
-      {
-        search: dto.search,
-        role: dto.role,
-        status: dto.status,
-      },
-    );
+    const query = new ListUsersQuery(dto.page || 1, dto.limit || 10, {
+      search: dto.search,
+      role: dto.role,
+      status: dto.status,
+    });
 
     const result = await this.queryBus.execute(query);
 
     return {
-      data: result.data.map(user => UserResponseDto.fromDomain(user)),
+      data: result.data.map((user) => UserResponseDto.fromDomain(user)),
       pagination: {
         total: result.total,
         page: result.page,
@@ -138,9 +186,21 @@ export class UsersController {
    */
   @Get('stats')
   @ApiOperation({ summary: 'Get user statistics' })
-  @ApiResponse({ status: 200, type: UserStatsResponseDto, description: 'User statistics retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 200,
+    type: UserStatsResponseDto,
+    description: 'User statistics retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async getUserStats(): Promise<UserStatsResponseDto> {
     const result = await this.queryBus.execute(new GetUserStatsQuery());
     return result;
@@ -152,10 +212,26 @@ export class UsersController {
    */
   @Get(':userId')
   @ApiOperation({ summary: 'Get user by ID' })
-  @ApiResponse({ status: 200, type: UserResponseDto, description: 'User retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 200,
+    type: UserResponseDto,
+    description: 'User retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async getUser(@Param('userId') userId: string): Promise<UserResponseDto> {
     try {
       const user = await this.queryBus.execute(new GetUserQuery(userId));
@@ -178,10 +254,26 @@ export class UsersController {
    */
   @Get('by-external-auth/:externalAuthId')
   @ApiOperation({ summary: 'Get user by external auth ID' })
-  @ApiResponse({ status: 200, type: UserResponseDto, description: 'User retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 200,
+    type: UserResponseDto,
+    description: 'User retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async getUserByExternalAuth(
     @Param('externalAuthId') externalAuthId: string,
   ): Promise<UserResponseDto> {
@@ -215,10 +307,26 @@ export class UsersController {
   @ApiOperation({ summary: 'Create user (Saga operation)' })
   @ApiBody({ type: CreateUserInternalDto })
   @ApiResponse({ status: 201, description: 'User created successfully' })
-  @ApiResponse({ status: 400, type: ValidationErrorSchema, description: 'Invalid request body' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 409, type: ConflictErrorSchema, description: 'User already exists' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 400,
+    type: ValidationErrorSchema,
+    description: 'Invalid request body',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 409,
+    type: ConflictErrorSchema,
+    description: 'User already exists',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async createUser(@Body() dto: CreateUserInternalDto) {
     try {
       // Execute command (creates the user)
@@ -271,11 +379,31 @@ export class UsersController {
   @Put(':userId')
   @ApiOperation({ summary: 'Update user profile' })
   @ApiBody({ type: UpdateUserInternalDto })
-  @ApiResponse({ status: 200, type: UserResponseDto, description: 'User updated successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid request body' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 200,
+    type: UserResponseDto,
+    description: 'User updated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid request body',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async updateUser(
     @Param('userId') userId: string,
     @Body() dto: UpdateUserInternalDto,
@@ -329,9 +457,21 @@ export class UsersController {
   @Delete(':userId')
   @ApiOperation({ summary: 'Delete user (Saga operation)' })
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async deleteUser(@Param('userId') userId: string) {
     try {
       await this.commandBus.execute(new DeleteUserCommand(userId, 'system'));
@@ -381,11 +521,31 @@ export class UsersController {
     },
   })
   @ApiResponse({ status: 200, description: 'Avatar uploaded successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid file format or size' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
-  @ApiResponse({ status: 413, type: BadRequestErrorSchema, description: 'File too large (max 5MB)' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid file format or size',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 413,
+    type: BadRequestErrorSchema,
+    description: 'File too large (max 5MB)',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(
     @Param('userId') userId: string,
@@ -434,10 +594,26 @@ export class UsersController {
   @ApiOperation({ summary: 'Assign role to user' })
   @ApiBody({ type: SelectRoleDto })
   @ApiResponse({ status: 200, description: 'Role assigned successfully' })
-  @ApiResponse({ status: 400, type: BadRequestErrorSchema, description: 'Invalid role or role already assigned' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 400,
+    type: BadRequestErrorSchema,
+    description: 'Invalid role or role already assigned',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async assignRole(
     @Param('userId') userId: string,
     @Body() dto: SelectRoleDto,
@@ -481,13 +657,26 @@ export class UsersController {
    * Delete user avatar
    */
   @Get(':userId/permissions')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get user permissions',
-    description: 'Retrieves user roles and permissions based on their assigned role.'
+    description:
+      'Retrieves user roles and permissions based on their assigned role.',
   })
-  @ApiResponse({ status: 200, type: UserPermissionsSuccessResponseDto, description: 'User permissions retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
+  @ApiResponse({
+    status: 200,
+    type: UserPermissionsSuccessResponseDto,
+    description: 'User permissions retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
   async getUserPermissions(@Param('userId') userId: string) {
     try {
       const query = new GetUserPermissionsQuery(userId);
@@ -514,13 +703,26 @@ export class UsersController {
   }
 
   @Get(':userId/companies')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get user companies',
-    description: 'Retrieves all companies associated with a user. Only accessible by the user themselves or administrators.'
+    description:
+      'Retrieves all companies associated with a user. Only accessible by the user themselves or administrators.',
   })
-  @ApiResponse({ status: 200, type: CompanyListResponseDto, description: 'User companies retrieved successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 403, type: ForbiddenErrorSchema, description: 'Forbidden - not authorized to view these companies' })
+  @ApiResponse({
+    status: 200,
+    type: CompanyListResponseDto,
+    description: 'User companies retrieved successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 403,
+    type: ForbiddenErrorSchema,
+    description: 'Forbidden - not authorized to view these companies',
+  })
   async getUserCompanies(
     @Param('userId') userId: string,
     @Query('currentUserId') currentUserId?: string,
@@ -554,14 +756,34 @@ export class UsersController {
   @HttpCode(204)
   @ApiOperation({ summary: 'Delete user avatar' })
   @ApiResponse({ status: 204, description: 'Avatar deleted successfully' })
-  @ApiResponse({ status: 401, type: UnauthorizedErrorSchema, description: 'Unauthorized - invalid or missing internal token' })
-  @ApiResponse({ status: 404, type: NotFoundErrorSchema, description: 'User not found' })
-  @ApiResponse({ status: 500, type: InternalServerErrorSchema, description: 'Internal server error' })
+  @ApiResponse({
+    status: 401,
+    type: UnauthorizedErrorSchema,
+    description: 'Unauthorized - invalid or missing internal token',
+  })
+  @ApiResponse({
+    status: 404,
+    type: NotFoundErrorSchema,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 500,
+    type: InternalServerErrorSchema,
+    description: 'Internal server error',
+  })
   async deleteAvatar(@Param('userId') userId: string): Promise<void> {
     try {
       // Delete avatar by setting avatarUrl to undefined
       await this.commandBus.execute(
-        new UpdateUserCommand(userId, undefined, undefined, undefined, undefined, undefined, undefined),
+        new UpdateUserCommand(
+          userId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+        ),
       );
     } catch (error) {
       if (error instanceof UserNotFoundException) {

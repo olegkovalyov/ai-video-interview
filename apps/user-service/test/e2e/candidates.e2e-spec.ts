@@ -1,5 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -60,43 +62,63 @@ describe('Candidates API (E2E)', () => {
 
     // Create candidate user
     candidateUserId = uuidv4();
-    await dataSource.query(`
+    await dataSource.query(
+      `
       INSERT INTO users (id, external_auth_id, email, first_name, last_name, role, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [candidateUserId, uuidv4(), 'candidate@test.com', 'John', 'Doe', 'candidate', 'active']);
+    `,
+      [
+        candidateUserId,
+        uuidv4(),
+        'candidate@test.com',
+        'John',
+        'Doe',
+        'candidate',
+        'active',
+      ],
+    );
 
     // Create candidate profile
-    await dataSource.query(`
+    await dataSource.query(
+      `
       INSERT INTO candidate_profiles (user_id, experience_level)
       VALUES ($1, $2)
-    `, [candidateUserId, 'mid']);
+    `,
+      [candidateUserId, 'mid'],
+    );
 
     // Get or create test skills
     const skillResult = await dataSource.query(`
       SELECT id FROM skills WHERE name = 'TypeScript' LIMIT 1
     `);
-    
+
     if (skillResult.length > 0) {
       skillId = skillResult[0].id;
     } else {
       const newSkillId = uuidv4();
-      await dataSource.query(`
+      await dataSource.query(
+        `
         INSERT INTO skills (id, name, slug) VALUES ($1, $2, $3)
-      `, [newSkillId, 'TypeScript', 'typescript']);
+      `,
+        [newSkillId, 'TypeScript', 'typescript'],
+      );
       skillId = newSkillId;
     }
 
     const secondSkillResult = await dataSource.query(`
       SELECT id FROM skills WHERE name = 'React' LIMIT 1
     `);
-    
+
     if (secondSkillResult.length > 0) {
       secondSkillId = secondSkillResult[0].id;
     } else {
       const newSkillId = uuidv4();
-      await dataSource.query(`
+      await dataSource.query(
+        `
         INSERT INTO skills (id, name, slug) VALUES ($1, $2, $3)
-      `, [newSkillId, 'React', 'react']);
+      `,
+        [newSkillId, 'React', 'react'],
+      );
       secondSkillId = newSkillId;
     }
   });
@@ -107,7 +129,10 @@ describe('Candidates API (E2E)', () => {
 
   afterEach(async () => {
     // Clean only candidate_skills, keep users and skills
-    await dataSource.query(`DELETE FROM candidate_skills WHERE candidate_id = $1`, [candidateUserId]);
+    await dataSource.query(
+      `DELETE FROM candidate_skills WHERE candidate_id = $1`,
+      [candidateUserId],
+    );
   });
 
   afterAll(async () => {
@@ -123,7 +148,9 @@ describe('Candidates API (E2E)', () => {
   describe('GET /candidates/:userId/profile', () => {
     it('should get candidate profile', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/candidates/${candidateUserId}/profile?currentUserId=${candidateUserId}`)
+        .get(
+          `/candidates/${candidateUserId}/profile?currentUserId=${candidateUserId}`,
+        )
         .set('x-internal-token', 'test-token')
         .expect(200);
 
@@ -229,7 +256,9 @@ describe('Candidates API (E2E)', () => {
 
     it('should get candidate skills grouped by category', async () => {
       const response = await request(app.getHttpServer())
-        .get(`/candidates/${candidateUserId}/skills?currentUserId=${candidateUserId}`)
+        .get(
+          `/candidates/${candidateUserId}/skills?currentUserId=${candidateUserId}`,
+        )
         .set('x-internal-token', 'test-token')
         .expect(200);
 
@@ -243,20 +272,36 @@ describe('Candidates API (E2E)', () => {
 
     it('should return empty array for candidate without skills', async () => {
       const newCandidateId = uuidv4();
-      
+
       // Create new candidate
-      await dataSource.query(`
+      await dataSource.query(
+        `
         INSERT INTO users (id, external_auth_id, email, first_name, last_name, role, status)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [newCandidateId, uuidv4(), 'newcandidate@test.com', 'Jane', 'Smith', 'candidate', 'active']);
+      `,
+        [
+          newCandidateId,
+          uuidv4(),
+          'newcandidate@test.com',
+          'Jane',
+          'Smith',
+          'candidate',
+          'active',
+        ],
+      );
 
-      await dataSource.query(`
+      await dataSource.query(
+        `
         INSERT INTO candidate_profiles (user_id)
         VALUES ($1)
-      `, [newCandidateId]);
+      `,
+        [newCandidateId],
+      );
 
       const response = await request(app.getHttpServer())
-        .get(`/candidates/${newCandidateId}/skills?currentUserId=${newCandidateId}`)
+        .get(
+          `/candidates/${newCandidateId}/skills?currentUserId=${newCandidateId}`,
+        )
         .set('x-internal-token', 'test-token')
         .expect(200);
 
@@ -355,7 +400,9 @@ describe('Candidates API (E2E)', () => {
 
       // Verify skill is removed
       const response = await request(app.getHttpServer())
-        .get(`/candidates/${candidateUserId}/skills?currentUserId=${candidateUserId}`)
+        .get(
+          `/candidates/${candidateUserId}/skills?currentUserId=${candidateUserId}`,
+        )
         .set('x-internal-token', 'test-token')
         .expect(200);
 
@@ -443,7 +490,9 @@ describe('Candidates API (E2E)', () => {
       // Candidate has skillId at 'advanced' level
       // minProficiency=intermediate should include advanced and expert
       const response = await request(app.getHttpServer())
-        .get(`/candidates/search?skillIds=${skillId}&minProficiency=intermediate`)
+        .get(
+          `/candidates/search?skillIds=${skillId}&minProficiency=intermediate`,
+        )
         .set('x-internal-token', 'test-token')
         .expect(200);
 
@@ -455,7 +504,9 @@ describe('Candidates API (E2E)', () => {
       // Candidate has secondSkillId at 'intermediate' level
       // minProficiency=expert should NOT include intermediate
       const response = await request(app.getHttpServer())
-        .get(`/candidates/search?skillIds=${secondSkillId}&minProficiency=expert`)
+        .get(
+          `/candidates/search?skillIds=${secondSkillId}&minProficiency=expert`,
+        )
         .set('x-internal-token', 'test-token')
         .expect(200);
 
@@ -573,27 +624,25 @@ describe('Candidates API (E2E)', () => {
       await request(app.getHttpServer())
         .get(`/candidates/${candidateUserId}/profile`)
         .expect(401);
-      
+
       await request(app.getHttpServer())
         .get(`/candidates/${candidateUserId}/skills`)
         .expect(401);
-      
+
       await request(app.getHttpServer())
         .post(`/candidates/${candidateUserId}/skills`)
         .expect(401);
-      
+
       await request(app.getHttpServer())
         .put(`/candidates/${candidateUserId}/skills/${skillId}`)
         .expect(401);
-      
+
       await request(app.getHttpServer())
         .delete(`/candidates/${candidateUserId}/skills/${skillId}`)
         .expect(401);
-      
-      await request(app.getHttpServer())
-        .get('/candidates/search')
-        .expect(401);
-      
+
+      await request(app.getHttpServer()).get('/candidates/search').expect(401);
+
       await request(app.getHttpServer())
         .put(`/candidates/${candidateUserId}/experience-level`)
         .expect(401);

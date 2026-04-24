@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
 import { CreateCompanyHandler } from '../create-company.handler';
 import { CreateCompanyCommand } from '../create-company.command';
@@ -48,9 +49,11 @@ describe('CreateCompanyHandler', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    // Re-mock uuid for each test
-    const uuidMock = require('uuid');
-    uuidMock.v4
+    // Re-mock uuid for each test (jest rewires the module, so we grab the mocked version).
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- inline `typeof import(...)` is required as a generic arg here; `import type` can't be used in value position.
+    type UuidModule = typeof import('uuid');
+    const uuidMock = jest.requireMock<UuidModule>('uuid');
+    (uuidMock.v4 as jest.Mock)
       .mockReset()
       .mockReturnValueOnce('mock-company-id')
       .mockReturnValueOnce('mock-user-company-id');
@@ -117,7 +120,9 @@ describe('CreateCompanyHandler', () => {
       );
 
       // Assert - schedulePublishing called after UoW commit
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
 
       // Assert - Domain events published via EventBus
       expect(mockEventBus.publish).toHaveBeenCalled();
@@ -153,7 +158,9 @@ describe('CreateCompanyHandler', () => {
         'mock-company-id',
         {}, // tx context
       );
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
     });
 
     it('should include createdAt in outbox event payload', async () => {
@@ -235,10 +242,7 @@ describe('CreateCompanyHandler', () => {
       await handler.execute(command);
 
       // Assert - Operations happen in order inside UoW
-      expect(executionOrder).toEqual([
-        'company.save',
-        'outbox.saveEvent',
-      ]);
+      expect(executionOrder).toEqual(['company.save', 'outbox.saveEvent']);
     });
 
     it('should not call schedulePublishing if UoW fails', async () => {
@@ -258,7 +262,9 @@ describe('CreateCompanyHandler', () => {
       );
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Transaction failed');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Transaction failed',
+      );
       expect(mockOutboxService.schedulePublishing).not.toHaveBeenCalled();
     });
 
@@ -279,7 +285,9 @@ describe('CreateCompanyHandler', () => {
       );
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Transaction failed');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Transaction failed',
+      );
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
   });

@@ -44,14 +44,27 @@ export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
 
     // 2. Select role (domain validates that role is pending)
     let userRole: UserRole;
-    if (role === 'candidate') {
-      userRole = UserRole.candidate();
-    } else if (role === 'hr') {
-      userRole = UserRole.hr();
-    } else if (role === 'admin') {
-      userRole = UserRole.admin();
-    } else {
-      throw new Error(`Invalid role: ${role}`);
+    switch (role) {
+      case 'candidate': {
+        userRole = UserRole.candidate();
+
+        break;
+      }
+      case 'hr': {
+        userRole = UserRole.hr();
+
+        break;
+      }
+      case 'admin': {
+        userRole = UserRole.admin();
+
+        break;
+      }
+      default: {
+        // `role` has been narrowed to `never` here — this branch exists
+        // only as a defensive guard for values outside the union at runtime.
+        throw new Error(`Invalid role: ${String(role)}`);
+      }
     }
 
     user.selectRole(userRole);

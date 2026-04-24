@@ -1,10 +1,13 @@
-import { MigrationInterface, QueryRunner, TableIndex } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
+import { TableIndex } from 'typeorm';
 
 /**
  * Add unique constraint on company name
  * Prevents duplicate company names from being created
  */
-export class AddCompanyNameUniqueConstraint1730480000000 implements MigrationInterface {
+export class AddCompanyNameUniqueConstraint1730480000000
+  implements MigrationInterface
+{
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createIndex(
       'companies',

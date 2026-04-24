@@ -16,10 +16,10 @@ export abstract class Entity<T> {
   }
 
   /**
-   * Entities are equal if they have the same id
+   * Entities are equal if they have the same id.
    */
-  public equals(entity?: Entity<T>): boolean {
-    if (entity === null || entity === undefined) {
+  public equals(entity?: Entity<T> | null): boolean {
+    if (!entity) {
       return false;
     }
 

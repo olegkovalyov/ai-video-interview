@@ -21,11 +21,9 @@ export class TypeOrmUserRepository implements IUserRepository {
 
   async save(user: User, tx?: ITransactionContext): Promise<void> {
     const entity = this.mapper.toEntity(user);
-    if (tx) {
-      await (tx as unknown as EntityManager).save(UserEntity, entity);
-    } else {
-      await this.repository.save(entity);
-    }
+    await (tx
+      ? (tx as unknown as EntityManager).save(UserEntity, entity)
+      : this.repository.save(entity));
   }
 
   async findById(id: string): Promise<User | null> {
@@ -50,10 +48,8 @@ export class TypeOrmUserRepository implements IUserRepository {
   }
 
   async delete(id: string, tx?: ITransactionContext): Promise<void> {
-    if (tx) {
-      await (tx as unknown as EntityManager).delete(UserEntity, id);
-    } else {
-      await this.repository.delete(id);
-    }
+    await (tx
+      ? (tx as unknown as EntityManager).delete(UserEntity, id)
+      : this.repository.delete(id));
   }
 }

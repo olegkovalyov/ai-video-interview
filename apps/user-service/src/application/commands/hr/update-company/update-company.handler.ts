@@ -3,7 +3,10 @@ import { Inject } from '@nestjs/common';
 import { UpdateCompanyCommand } from './update-company.command';
 import { CompanySize } from '../../../../domain/value-objects/company-size.vo';
 import type { ICompanyRepository } from '../../../../domain/repositories/company.repository.interface';
-import { CompanyNotFoundException, CompanyAccessDeniedException } from '../../../../domain/exceptions/company.exceptions';
+import {
+  CompanyNotFoundException,
+  CompanyAccessDeniedException,
+} from '../../../../domain/exceptions/company.exceptions';
 import { COMPANY_EVENT_TYPES } from '../../../../domain/constants';
 import type { IOutboxService } from '../../../interfaces/outbox-service.interface';
 import type { IUnitOfWork } from '../../../interfaces/unit-of-work.interface';
@@ -14,7 +17,9 @@ import { LoggerService } from '../../../../infrastructure/logger/logger.service'
  * Only company creator can update
  */
 @CommandHandler(UpdateCompanyCommand)
-export class UpdateCompanyHandler implements ICommandHandler<UpdateCompanyCommand> {
+export class UpdateCompanyHandler
+  implements ICommandHandler<UpdateCompanyCommand>
+{
   constructor(
     @Inject('ICompanyRepository')
     private readonly companyRepository: ICompanyRepository,
@@ -37,7 +42,9 @@ export class UpdateCompanyHandler implements ICommandHandler<UpdateCompanyComman
 
     // 2. Check permissions - only creator can update
     if (company.createdBy !== command.userId) {
-      throw new CompanyAccessDeniedException('Only company creator can update company information');
+      throw new CompanyAccessDeniedException(
+        'Only company creator can update company information',
+      );
     }
 
     // 3. Parse company size (null/empty means remove size)
@@ -79,6 +86,8 @@ export class UpdateCompanyHandler implements ICommandHandler<UpdateCompanyComman
     // 7. Schedule BullMQ job for Kafka publishing
     await this.outboxService.schedulePublishing([eventId]);
 
-    this.logger.info('Company updated successfully', { companyId: command.companyId });
+    this.logger.info('Company updated successfully', {
+      companyId: command.companyId,
+    });
   }
 }

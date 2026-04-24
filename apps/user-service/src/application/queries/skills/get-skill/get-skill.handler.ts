@@ -16,8 +16,10 @@ export class GetSkillHandler implements IQueryHandler<GetSkillQuery> {
   ) {}
 
   async execute(query: GetSkillQuery): Promise<SkillWithCategoryReadModel> {
-    const result = await this.skillReadRepository.findByIdWithCategory(query.skillId);
-    
+    const result = await this.skillReadRepository.findByIdWithCategory(
+      query.skillId,
+    );
+
     if (!result) {
       throw new NotFoundException(`Skill with ID "${query.skillId}" not found`);
     }

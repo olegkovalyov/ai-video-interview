@@ -41,7 +41,9 @@ export class ProficiencyLevel extends ValueObject<{ value: string }> {
 
   public static fromString(value: string): ProficiencyLevel {
     const normalized = value.toLowerCase();
-    if (!ProficiencyLevel.VALID_LEVELS.includes(normalized as any)) {
+    if (
+      !(ProficiencyLevel.VALID_LEVELS as readonly string[]).includes(normalized)
+    ) {
       throw new DomainException(
         `Invalid proficiency level: ${value}. Must be one of: ${ProficiencyLevel.VALID_LEVELS.join(', ')}`,
       );

@@ -12,7 +12,9 @@ describe('CandidateSkillMapper', () => {
     mapper = new CandidateSkillMapper();
   });
 
-  const createCandidateSkillEntity = (overrides: Partial<CandidateSkillEntity> = {}): CandidateSkillEntity => {
+  const createCandidateSkillEntity = (
+    overrides: Partial<CandidateSkillEntity> = {},
+  ): CandidateSkillEntity => {
     const entity = new CandidateSkillEntity();
     entity.id = uuidv4();
     entity.candidateId = uuidv4();
@@ -26,23 +28,31 @@ describe('CandidateSkillMapper', () => {
     return entity;
   };
 
-  const createCandidateSkillDomain = (overrides: {
-    id?: string;
-    candidateId?: string;
-    skillId?: string;
-    description?: string | null;
-    proficiencyLevel?: ProficiencyLevel | null;
-    yearsOfExperience?: YearsOfExperience | null;
-    createdAt?: Date;
-    updatedAt?: Date;
-  } = {}): CandidateSkill => {
+  const createCandidateSkillDomain = (
+    overrides: {
+      id?: string;
+      candidateId?: string;
+      skillId?: string;
+      description?: string | null;
+      proficiencyLevel?: ProficiencyLevel | null;
+      yearsOfExperience?: YearsOfExperience | null;
+      createdAt?: Date;
+      updatedAt?: Date;
+    } = {},
+  ): CandidateSkill => {
     return CandidateSkill.reconstitute(
       overrides.id ?? uuidv4(),
       overrides.candidateId ?? uuidv4(),
       overrides.skillId ?? uuidv4(),
-      overrides.description !== undefined ? overrides.description : 'Experienced with TypeScript in production projects',
-      overrides.proficiencyLevel !== undefined ? overrides.proficiencyLevel : ProficiencyLevel.advanced(),
-      overrides.yearsOfExperience !== undefined ? overrides.yearsOfExperience : YearsOfExperience.fromNumber(5),
+      overrides.description === undefined
+        ? 'Experienced with TypeScript in production projects'
+        : overrides.description,
+      overrides.proficiencyLevel === undefined
+        ? ProficiencyLevel.advanced()
+        : overrides.proficiencyLevel,
+      overrides.yearsOfExperience === undefined
+        ? YearsOfExperience.fromNumber(5)
+        : overrides.yearsOfExperience,
       overrides.createdAt ?? new Date('2025-04-01T10:00:00Z'),
       overrides.updatedAt ?? new Date('2025-06-01T12:00:00Z'),
     );
@@ -138,7 +148,9 @@ describe('CandidateSkillMapper', () => {
       expect(skill.id).toBe(id);
       expect(skill.candidateId).toBe(candidateId);
       expect(skill.skillId).toBe(skillId);
-      expect(skill.description).toBe('Experienced with TypeScript in production projects');
+      expect(skill.description).toBe(
+        'Experienced with TypeScript in production projects',
+      );
       expect(skill.proficiencyLevel).not.toBeNull();
       expect(skill.proficiencyLevel!.value).toBe('advanced');
       expect(skill.proficiencyLevel!.isAdvanced()).toBe(true);
@@ -210,9 +222,18 @@ describe('CandidateSkillMapper', () => {
   describe('toDomainList()', () => {
     it('should map array of entities to domain models', () => {
       const entities = [
-        createCandidateSkillEntity({ description: 'Skill A', proficiencyLevel: 'beginner' }),
-        createCandidateSkillEntity({ description: 'Skill B', proficiencyLevel: 'intermediate' }),
-        createCandidateSkillEntity({ description: 'Skill C', proficiencyLevel: 'expert' }),
+        createCandidateSkillEntity({
+          description: 'Skill A',
+          proficiencyLevel: 'beginner',
+        }),
+        createCandidateSkillEntity({
+          description: 'Skill B',
+          proficiencyLevel: 'intermediate',
+        }),
+        createCandidateSkillEntity({
+          description: 'Skill C',
+          proficiencyLevel: 'expert',
+        }),
       ];
 
       const skills = mapper.toDomainList(entities);
@@ -258,8 +279,12 @@ describe('CandidateSkillMapper', () => {
       expect(restored.candidateId).toBe(original.candidateId);
       expect(restored.skillId).toBe(original.skillId);
       expect(restored.description).toBe(original.description);
-      expect(restored.proficiencyLevel!.value).toBe(original.proficiencyLevel!.value);
-      expect(restored.yearsOfExperience!.value).toBe(original.yearsOfExperience!.value);
+      expect(restored.proficiencyLevel!.value).toBe(
+        original.proficiencyLevel!.value,
+      );
+      expect(restored.yearsOfExperience!.value).toBe(
+        original.yearsOfExperience!.value,
+      );
       expect(restored.createdAt).toEqual(original.createdAt);
       expect(restored.updatedAt).toEqual(original.updatedAt);
     });

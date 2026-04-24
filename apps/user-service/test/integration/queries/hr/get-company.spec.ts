@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   setupTestApp,
@@ -206,6 +206,5 @@ describe('GetCompanyQuery Integration', () => {
       // Assert
       await expect(queryBus.execute(query)).rejects.toThrow('not found');
     });
-
   });
 });

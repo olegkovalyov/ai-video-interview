@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 import type { OutboxStatus } from '../../constants';
 import { OUTBOX_STATUS } from '../../constants';
 

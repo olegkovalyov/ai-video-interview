@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
 import { UpdateUserHandler } from '../update-user.handler';
 import { UpdateUserCommand } from '../update-user.command';
@@ -28,8 +29,20 @@ describe('UpdateUserHandler', () => {
       externalAuthId,
       Email.create(emailValue),
       FullName.create('John', 'Doe'),
-      { value: 'active', isActive: () => true, isSuspended: () => false, isDeleted: () => false } as any,
-      { value: 'candidate', isPending: () => false, isCandidate: () => true, isHR: () => false, isAdmin: () => false, toString: () => 'candidate' } as any,
+      {
+        value: 'active',
+        isActive: () => true,
+        isSuspended: () => false,
+        isDeleted: () => false,
+      } as any,
+      {
+        value: 'candidate',
+        isPending: () => false,
+        isCandidate: () => true,
+        isHR: () => false,
+        isAdmin: () => false,
+        toString: () => 'candidate',
+      } as any,
       undefined, // avatarUrl
       'Original bio', // bio
       '+1234567890', // phone
@@ -82,11 +95,7 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand(
-        userId,
-        'Jane',
-        'Smith',
-      );
+      const command = new UpdateUserCommand(userId, 'Jane', 'Smith');
 
       const result = await handler.execute(command);
 

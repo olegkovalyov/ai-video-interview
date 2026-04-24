@@ -6,8 +6,10 @@ import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
  * Returns undefined for missing/empty values
  */
 @Injectable()
-export class ParseBoolPipe implements PipeTransform<string | boolean | undefined, boolean | undefined> {
-  transform(value: string | boolean | undefined): boolean | undefined {
+export class ParseBoolPipe
+  implements PipeTransform<string | boolean | undefined, boolean | undefined>
+{
+  transform(value: string | boolean | undefined | null): boolean | undefined {
     if (value === undefined || value === null || value === '') {
       return undefined;
     }
@@ -18,16 +20,18 @@ export class ParseBoolPipe implements PipeTransform<string | boolean | undefined
 
     if (typeof value === 'string') {
       const lowerValue = value.toLowerCase().trim();
-      
+
       if (lowerValue === 'true' || lowerValue === '1') {
         return true;
       }
-      
+
       if (lowerValue === 'false' || lowerValue === '0') {
         return false;
       }
-      
-      throw new BadRequestException(`Invalid boolean value: "${value}". Expected: true, false, 1, or 0`);
+
+      throw new BadRequestException(
+        `Invalid boolean value: "${value}". Expected: true, false, 1, or 0`,
+      );
     }
 
     throw new BadRequestException(`Cannot convert ${typeof value} to boolean`);

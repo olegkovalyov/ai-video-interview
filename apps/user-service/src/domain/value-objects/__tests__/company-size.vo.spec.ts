@@ -35,7 +35,7 @@ describe('CompanySize Value Object', () => {
     it('should throw error for invalid size', () => {
       expect(() => CompanySize.fromString('invalid')).toThrow(DomainException);
       expect(() => CompanySize.fromString('invalid')).toThrow(
-        'Invalid company size: invalid'
+        'Invalid company size: invalid',
       );
     });
   });

@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { TypeOrmUnitOfWork } from '../typeorm-unit-of-work';
 import type { ITransactionContext } from '../../../../application/interfaces/transaction-context.interface';
@@ -15,7 +16,10 @@ describe('TypeOrmUnitOfWork', () => {
   const mockDataSource = {
     transaction: jest
       .fn()
-      .mockImplementation(async (work: Function) => work(mockEntityManager)),
+      .mockImplementation(
+        async (work: (manager: typeof mockEntityManager) => unknown) =>
+          work(mockEntityManager),
+      ),
   };
 
   beforeEach(async () => {

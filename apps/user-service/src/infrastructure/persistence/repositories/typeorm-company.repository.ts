@@ -22,7 +22,7 @@ export class TypeOrmCompanyRepository implements ICompanyRepository {
 
   async save(company: Company, tx?: ITransactionContext): Promise<void> {
     const companyEntity = this.mapper.toEntity(company);
-    const userCompanyEntities = company.users.map(uc =>
+    const userCompanyEntities = company.users.map((uc) =>
       this.userCompanyMapper.toEntity(uc),
     );
 
@@ -53,17 +53,16 @@ export class TypeOrmCompanyRepository implements ICompanyRepository {
       where: { companyId: id },
     });
 
-    const userCompanies = this.userCompanyMapper.toDomainList(userCompanyEntities);
+    const userCompanies =
+      this.userCompanyMapper.toDomainList(userCompanyEntities);
 
     return this.mapper.toDomain(entity, userCompanies);
   }
 
   async delete(id: string, tx?: ITransactionContext): Promise<void> {
-    if (tx) {
-      await (tx as unknown as EntityManager).delete(CompanyEntity, id);
-    } else {
-      await this.repository.delete(id);
-    }
+    await (tx
+      ? (tx as unknown as EntityManager).delete(CompanyEntity, id)
+      : this.repository.delete(id));
   }
 
   async isUserInCompany(companyId: string, userId: string): Promise<boolean> {

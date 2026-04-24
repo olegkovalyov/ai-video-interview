@@ -1,0 +1,97 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/**/*.{ts,sh}"],
+      "ignoreDependencies": ["@types/node"]
+    },
+    "apps/api-gateway": {
+      "entry": ["src/main.ts", "src/**/*.ts"],
+      "project": ["src/**/*.ts"],
+      "ignore": ["**/*.spec.ts", "**/__tests__/**"]
+    },
+    "apps/user-service": {
+      "entry": ["src/main.ts", "src/**/*.ts"],
+      "project": ["src/**/*.ts"],
+      "ignore": ["**/*.spec.ts", "**/__tests__/**"]
+    },
+    "apps/interview-service": {
+      "entry": ["src/main.ts", "src/**/*.ts"],
+      "project": ["src/**/*.ts"],
+      "ignore": ["**/*.spec.ts", "**/__tests__/**"]
+    },
+    "apps/ai-analysis-service": {
+      "entry": ["src/main.ts", "src/**/*.ts"],
+      "project": ["src/**/*.ts"],
+      "ignore": ["**/*.spec.ts", "**/__tests__/**"]
+    },
+    "apps/billing-service": {
+      "entry": ["src/main.ts", "src/**/*.ts"],
+      "project": ["src/**/*.ts"],
+      "ignore": ["**/*.spec.ts", "**/__tests__/**"]
+    },
+    "apps/notification-service": {
+      "entry": ["src/main.ts", "src/**/*.ts"],
+      "project": ["src/**/*.ts"],
+      "ignore": ["**/*.spec.ts", "**/__tests__/**"]
+    },
+    "apps/web": {
+      "entry": [
+        "next.config.{js,ts}",
+        "app/**/{page,layout,loading,error,not-found,template,default,route}.{ts,tsx}",
+        "middleware.ts",
+        "components/**/*.{ts,tsx}",
+        "features/**/*.{ts,tsx}",
+        "lib/**/*.{ts,tsx}",
+        "hooks/**/*.{ts,tsx}"
+      ],
+      "project": ["**/*.{ts,tsx}"],
+      "ignore": ["**/*.test.{ts,tsx}", "**/__tests__/**"],
+      "next": true
+    },
+    "packages/shared": {
+      "entry": ["src/index.ts", "src/**/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/ui": {
+      "entry": ["src/**/index.ts", "src/**/*.tsx"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/eslint-config": {
+      "entry": ["base.js", "nest.js", "next.js", "react-internal.js"],
+      "project": ["*.js"]
+    },
+    "packages/typescript-config": {
+      "entry": ["*.json"],
+      "project": ["*.json"]
+    }
+  },
+  "ignore": [
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/coverage/**",
+    "**/*.generated.ts",
+    "**/migrations/**",
+    "docs/**",
+    "infra/**"
+  ],
+  "ignoreBinaries": ["docker-compose", "pscale", "stripe", "nest"],
+  "ignoreDependencies": [
+    "reflect-metadata",
+    "rxjs",
+    "tailwindcss-animate",
+    "@tailwindcss/cli"
+  ],
+  "rules": {
+    "files": "warn",
+    "exports": "warn",
+    "types": "warn",
+    "nsExports": "warn",
+    "nsTypes": "warn",
+    "duplicates": "warn",
+    "unlisted": "warn",
+    "dependencies": "warn",
+    "devDependencies": "warn"
+  }
+}

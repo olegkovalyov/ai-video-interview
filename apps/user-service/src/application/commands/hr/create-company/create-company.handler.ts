@@ -15,7 +15,9 @@ import { v4 as uuid } from 'uuid';
  * HR creates a new company
  */
 @CommandHandler(CreateCompanyCommand)
-export class CreateCompanyHandler implements ICommandHandler<CreateCompanyCommand> {
+export class CreateCompanyHandler
+  implements ICommandHandler<CreateCompanyCommand>
+{
   constructor(
     @Inject('ICompanyRepository')
     private readonly companyRepository: ICompanyRepository,
@@ -81,7 +83,10 @@ export class CreateCompanyHandler implements ICommandHandler<CreateCompanyComman
     // 5. Schedule BullMQ job for Kafka publishing
     await this.outboxService.schedulePublishing([eventId]);
 
-    this.logger.info('Company created successfully', { companyId, name: command.name });
+    this.logger.info('Company created successfully', {
+      companyId,
+      name: command.name,
+    });
 
     return { companyId };
   }

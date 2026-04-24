@@ -30,7 +30,11 @@ export interface IOutboxService {
    * When tx is not provided, saves directly and creates BullMQ jobs immediately.
    */
   saveEvents(
-    events: Array<{ eventType: string; payload: Record<string, unknown>; aggregateId: string }>,
+    events: Array<{
+      eventType: string;
+      payload: Record<string, unknown>;
+      aggregateId: string;
+    }>,
     tx?: ITransactionContext,
   ): Promise<string[]>;
 

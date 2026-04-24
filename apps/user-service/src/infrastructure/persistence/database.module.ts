@@ -33,7 +33,7 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: configService.get('DATABASE_HOST', 'localhost'),
-        port: parseInt(configService.get('DATABASE_PORT', '5432'), 10),
+        port: Number.parseInt(configService.get('DATABASE_PORT', '5432'), 10),
         username: configService.get('DATABASE_USER', 'user_service'),
         password: configService.get('DATABASE_PASSWORD', 'password'),
         database: configService.get('DATABASE_NAME', 'user_service_db'),
@@ -49,9 +49,10 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
         ],
         synchronize: false, // Always use migrations
         logging: false, // Disable SQL logging (too verbose)
-        ssl: configService.get('DATABASE_SSL', 'false') === 'true'
-          ? { rejectUnauthorized: false }
-          : false,
+        ssl:
+          configService.get('DATABASE_SSL', 'false') === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
       inject: [ConfigService],
     }),
@@ -74,7 +75,7 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
     CandidateSkillMapper,
     UserCompanyMapper,
     CompanyMapper,
-    
+
     // User Repositories
     {
       provide: 'IUserRepository',
@@ -88,7 +89,7 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
       provide: 'IRoleRepository',
       useClass: TypeOrmRoleRepository,
     },
-    
+
     // Skill Repositories
     {
       provide: 'ISkillRepository',
@@ -98,7 +99,7 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
       provide: 'ISkillReadRepository',
       useClass: TypeOrmSkillReadRepository,
     },
-    
+
     // Company Repositories
     {
       provide: 'ICompanyRepository',
@@ -108,7 +109,7 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
       provide: 'ICompanyReadRepository',
       useClass: TypeOrmCompanyReadRepository,
     },
-    
+
     // Candidate Profile Repositories
     {
       provide: 'ICandidateProfileRepository',

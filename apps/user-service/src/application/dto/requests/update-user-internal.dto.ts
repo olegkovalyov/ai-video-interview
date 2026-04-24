@@ -24,7 +24,8 @@ export class UpdateUserInternalDto {
 
   @ApiPropertyOptional({
     description: 'User biography',
-    example: 'Experienced software engineer with 5+ years in backend development',
+    example:
+      'Experienced software engineer with 5+ years in backend development',
   })
   @IsOptional()
   @IsString()

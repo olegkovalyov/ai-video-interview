@@ -1,10 +1,34 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
+import type { KafkaMessage } from 'kafkajs';
 import { LoggerService } from '../../logger/logger.service';
 import { correlationStore } from '../../http/interceptors/correlation-id.store';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../../persistence/entities/user.entity';
+
+/**
+ * Subset of the user.authenticated event schema this consumer cares about.
+ * Produced by the auth gateway; kept narrow on purpose — everything else is ignored.
+ */
+interface UserAuthenticatedEvent {
+  eventType: 'user.authenticated';
+  payload?: {
+    externalAuthId?: string;
+    email?: string;
+  };
+}
+
+function isUserAuthenticatedEvent(
+  value: unknown,
+): value is UserAuthenticatedEvent {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'eventType' in value &&
+    (value as { eventType?: unknown }).eventType === 'user.authenticated'
+  );
+}
 
 /**
  * Consumer for auth-events to update last_login_at
@@ -19,58 +43,56 @@ export class AuthLoginConsumer implements OnModuleInit {
     private readonly logger: LoggerService,
   ) {}
 
-  async onModuleInit() {
-    // Non-blocking — don't await to avoid blocking app.listen()
-    this.kafkaService.subscribe(
+  onModuleInit() {
+    // Fire-and-forget: the Kafka subscription is long-running; awaiting it here
+    // would block NestJS `app.listen()`. Errors inside the subscription are
+    // handled per-message below.
+    void this.kafkaService.subscribe(
       KAFKA_TOPICS.AUTH_EVENTS,
       'user-service-auth-login-consumer',
-      async (message) => {
-        // Extract correlationId from Kafka headers for log enrichment
-        const correlationId =
-          message.headers?.['x-correlation-id']?.toString() || 'unknown';
-
-        await new Promise<void>((resolve, reject) => {
-          correlationStore.run({ correlationId }, async () => {
-            try {
-              if (!message.value) {
-                this.logger.warn('Received message with null value', {
-                  topic: KAFKA_TOPICS.AUTH_EVENTS,
-                });
-                resolve();
-                return;
-              }
-
-              const event = JSON.parse(message.value.toString());
-
-              // Only handle user.authenticated events
-              if (event.eventType === 'user.authenticated') {
-                await this.handleUserAuthenticated(event);
-              }
-              resolve();
-            } catch (error) {
-              this.logger.error('Failed to process auth event', {
-                error: error.message,
-                topic: KAFKA_TOPICS.AUTH_EVENTS,
-              });
-              resolve();
-            }
-          });
-        });
-      },
+      (message) => this.handleMessage(message),
     );
 
     this.logger.log('AuthLoginConsumer: Subscribed to auth-events');
   }
 
-  private async handleUserAuthenticated(event: any): Promise<void> {
+  private async handleMessage(message: KafkaMessage): Promise<void> {
+    const correlationId =
+      message.headers?.['x-correlation-id']?.toString() || 'unknown';
+
+    await correlationStore.run({ correlationId }, async () => {
+      try {
+        if (!message.value) {
+          this.logger.warn('Received message with null value', {
+            topic: KAFKA_TOPICS.AUTH_EVENTS,
+          });
+          return;
+        }
+
+        const event: unknown = JSON.parse(message.value.toString());
+
+        // Only handle user.authenticated events
+        if (isUserAuthenticatedEvent(event)) {
+          await this.handleUserAuthenticated(event);
+        }
+      } catch (error) {
+        this.logger.error('Failed to process auth event', {
+          error: error instanceof Error ? error.message : String(error),
+          topic: KAFKA_TOPICS.AUTH_EVENTS,
+        });
+      }
+    });
+  }
+
+  private async handleUserAuthenticated(
+    event: UserAuthenticatedEvent,
+  ): Promise<void> {
     const externalAuthId = event.payload?.externalAuthId;
 
     if (!externalAuthId) {
       this.logger.warn(
         'Missing externalAuthId in user.authenticated event payload',
-        {
-          event,
-        },
+        { event },
       );
       return;
     }
@@ -94,12 +116,12 @@ export class AuthLoginConsumer implements OnModuleInit {
           email: event.payload?.email,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error('Failed to update last_login_at', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         externalAuthId,
       });
-      // Don't throw - это не критичная операция
+      // Don't throw — this is a non-critical operation.
     }
   }
 }

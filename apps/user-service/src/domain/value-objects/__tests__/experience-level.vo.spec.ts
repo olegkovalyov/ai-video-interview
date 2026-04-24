@@ -84,8 +84,12 @@ describe('ExperienceLevel Value Object', () => {
     });
 
     it('should throw error for invalid level', () => {
-      expect(() => ExperienceLevel.fromString('invalid')).toThrow(DomainException);
-      expect(() => ExperienceLevel.fromString('invalid')).toThrow('Invalid experience level');
+      expect(() => ExperienceLevel.fromString('invalid')).toThrow(
+        DomainException,
+      );
+      expect(() => ExperienceLevel.fromString('invalid')).toThrow(
+        'Invalid experience level',
+      );
     });
 
     it('should throw error for empty string', () => {
@@ -93,7 +97,9 @@ describe('ExperienceLevel Value Object', () => {
     });
 
     it('should throw error for unknown level', () => {
-      expect(() => ExperienceLevel.fromString('expert')).toThrow(DomainException);
+      expect(() => ExperienceLevel.fromString('expert')).toThrow(
+        DomainException,
+      );
     });
   });
 

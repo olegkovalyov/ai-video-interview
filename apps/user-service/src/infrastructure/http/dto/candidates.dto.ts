@@ -1,15 +1,35 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsUUID, IsOptional, IsInt, IsEnum, IsArray, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsInt,
+  IsEnum,
+  IsArray,
+  Min,
+  Max,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
+
+const PROFICIENCY_LEVELS = [
+  'beginner',
+  'intermediate',
+  'advanced',
+  'expert',
+] as const;
+type ProficiencyLevel = (typeof PROFICIENCY_LEVELS)[number];
+
+const EXPERIENCE_LEVELS = ['junior', 'mid', 'senior', 'lead'] as const;
+type SearchExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
 
 /**
  * DTO for searching candidates by skills (HR)
  */
 export class SearchCandidatesDto {
-  @ApiPropertyOptional({ 
-    description: 'Array of skill IDs to search for', 
+  @ApiPropertyOptional({
+    description: 'Array of skill IDs to search for',
     example: ['uuid1', 'uuid2'],
-    type: [String]
+    type: [String],
   })
   @IsOptional()
   @Transform(({ value }) => {
@@ -22,41 +42,52 @@ export class SearchCandidatesDto {
   @IsUUID('4', { each: true })
   skillIds?: string[];
 
-  @ApiPropertyOptional({ 
-    description: 'Minimum proficiency level', 
+  @ApiPropertyOptional({
+    description: 'Minimum proficiency level',
     example: 'intermediate',
-    enum: ['beginner', 'intermediate', 'advanced', 'expert']
+    enum: PROFICIENCY_LEVELS,
   })
   @IsOptional()
-  @IsEnum(['beginner', 'intermediate', 'advanced', 'expert'])
-  minProficiency?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  @IsEnum(PROFICIENCY_LEVELS)
+  minProficiency?: ProficiencyLevel;
 
-  @ApiPropertyOptional({ 
-    description: 'Minimum years of experience', 
+  @ApiPropertyOptional({
+    description: 'Minimum years of experience',
     example: 2,
-    minimum: 0
+    minimum: 0,
   })
   @IsOptional()
   @IsInt()
   @Min(0)
   minYears?: number;
 
-  @ApiPropertyOptional({ 
-    description: 'Experience level', 
+  @ApiPropertyOptional({
+    description: 'Experience level',
     example: 'mid',
-    enum: ['junior', 'mid', 'senior', 'lead']
+    enum: EXPERIENCE_LEVELS,
   })
   @IsOptional()
-  @IsEnum(['junior', 'mid', 'senior', 'lead'])
-  experienceLevel?: 'junior' | 'mid' | 'senior' | 'lead';
+  @IsEnum(EXPERIENCE_LEVELS)
+  experienceLevel?: SearchExperienceLevel;
 
-  @ApiPropertyOptional({ description: 'Page number', example: 1, default: 1, minimum: 1 })
+  @ApiPropertyOptional({
+    description: 'Page number',
+    example: 1,
+    default: 1,
+    minimum: 1,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ description: 'Items per page', example: 20, default: 20, minimum: 1, maximum: 100 })
+  @ApiPropertyOptional({
+    description: 'Items per page',
+    example: 20,
+    default: 20,
+    minimum: 1,
+    maximum: 100,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -72,27 +103,27 @@ export class AddCandidateSkillDto {
   @IsUUID()
   skillId: string;
 
-  @ApiPropertyOptional({ 
-    description: 'Skill description or notes', 
-    example: 'Used in production for 2 years' 
+  @ApiPropertyOptional({
+    description: 'Skill description or notes',
+    example: 'Used in production for 2 years',
   })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ 
-    description: 'Proficiency level', 
+  @ApiPropertyOptional({
+    description: 'Proficiency level',
     example: 'intermediate',
-    enum: ['beginner', 'intermediate', 'advanced', 'expert']
+    enum: ['beginner', 'intermediate', 'advanced', 'expert'],
   })
   @IsOptional()
   @IsEnum(['beginner', 'intermediate', 'advanced', 'expert'])
   proficiencyLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
-  @ApiPropertyOptional({ 
-    description: 'Years of experience with this skill', 
+  @ApiPropertyOptional({
+    description: 'Years of experience with this skill',
     example: 2,
-    minimum: 0
+    minimum: 0,
   })
   @IsOptional()
   @IsInt()
@@ -104,27 +135,27 @@ export class AddCandidateSkillDto {
  * DTO for updating a candidate skill
  */
 export class UpdateCandidateSkillDto {
-  @ApiPropertyOptional({ 
-    description: 'Skill description or notes', 
-    example: 'Updated: used in 5 major projects' 
+  @ApiPropertyOptional({
+    description: 'Skill description or notes',
+    example: 'Updated: used in 5 major projects',
   })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ 
-    description: 'Proficiency level', 
+  @ApiPropertyOptional({
+    description: 'Proficiency level',
     example: 'advanced',
-    enum: ['beginner', 'intermediate', 'advanced', 'expert']
+    enum: ['beginner', 'intermediate', 'advanced', 'expert'],
   })
   @IsOptional()
   @IsEnum(['beginner', 'intermediate', 'advanced', 'expert'])
   proficiencyLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
-  @ApiPropertyOptional({ 
-    description: 'Years of experience with this skill', 
+  @ApiPropertyOptional({
+    description: 'Years of experience with this skill',
     example: 3,
-    minimum: 0
+    minimum: 0,
   })
   @IsOptional()
   @IsInt()
@@ -139,7 +170,7 @@ export class UpdateExperienceLevelDto {
   @ApiProperty({
     description: 'Candidate experience level',
     example: 'mid',
-    enum: ['junior', 'mid', 'senior', 'lead']
+    enum: ['junior', 'mid', 'senior', 'lead'],
   })
   @IsEnum(['junior', 'mid', 'senior', 'lead'])
   experienceLevel: 'junior' | 'mid' | 'senior' | 'lead';

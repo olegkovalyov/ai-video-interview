@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { DeleteCompanyHandler } from '../delete-company.handler';
 import { DeleteCompanyCommand } from '../delete-company.command';
 import { Company } from '../../../../../domain/aggregates/company.aggregate';
@@ -106,7 +107,9 @@ describe('DeleteCompanyHandler', () => {
       );
 
       // Assert - schedulePublishing called after UoW commit
-      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith(['mock-event-id']);
+      expect(mockOutboxService.schedulePublishing).toHaveBeenCalledWith([
+        'mock-event-id',
+      ]);
     });
 
     it('should include deletedAt in outbox event payload', async () => {
@@ -136,7 +139,9 @@ describe('DeleteCompanyHandler', () => {
       const command = new DeleteCompanyCommand('non-existent-id', 'hr-user-id');
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(CompanyNotFoundException);
+      await expect(handler.execute(command)).rejects.toThrow(
+        CompanyNotFoundException,
+      );
 
       // Assert - No saves/deletes attempted
       expect(mockUnitOfWork.execute).not.toHaveBeenCalled();
@@ -150,10 +155,15 @@ describe('DeleteCompanyHandler', () => {
       const company = createCompany('company-id-1', 'original-creator-id');
       mockCompanyRepository.findById.mockResolvedValue(company);
 
-      const command = new DeleteCompanyCommand('company-id-1', 'different-user-id');
+      const command = new DeleteCompanyCommand(
+        'company-id-1',
+        'different-user-id',
+      );
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow(CompanyAccessDeniedException);
+      await expect(handler.execute(command)).rejects.toThrow(
+        CompanyAccessDeniedException,
+      );
 
       // Assert - No saves/deletes attempted
       expect(mockUnitOfWork.execute).not.toHaveBeenCalled();
@@ -183,10 +193,7 @@ describe('DeleteCompanyHandler', () => {
       await handler.execute(command);
 
       // Assert - Outbox save comes BEFORE delete (important for FK constraints)
-      expect(executionOrder).toEqual([
-        'outbox.saveEvent',
-        'company.delete',
-      ]);
+      expect(executionOrder).toEqual(['outbox.saveEvent', 'company.delete']);
     });
 
     it('should not call schedulePublishing if UoW fails', async () => {
@@ -198,7 +205,9 @@ describe('DeleteCompanyHandler', () => {
       const command = new DeleteCompanyCommand('company-id-1', 'hr-user-id');
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Transaction failed');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Transaction failed',
+      );
       expect(mockOutboxService.schedulePublishing).not.toHaveBeenCalled();
     });
 

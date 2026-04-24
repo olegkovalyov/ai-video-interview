@@ -1,19 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { register, collectDefaultMetrics, Counter, Histogram } from 'prom-client';
+import {
+  register,
+  collectDefaultMetrics,
+  Counter,
+  Histogram,
+} from 'prom-client';
 
 @Injectable()
 export class MetricsService {
   // HTTP Request Counter
   public readonly httpRequestsTotal: Counter<string>;
-  
+
   // HTTP Request Duration
   public readonly httpRequestDuration: Histogram<string>;
 
   constructor() {
     // Collect default metrics (CPU, Memory, Event Loop, etc.)
-    collectDefaultMetrics({ 
+    collectDefaultMetrics({
       prefix: 'user_service_',
-      register 
+      register,
     });
 
     // HTTP Requests Total
@@ -38,8 +43,16 @@ export class MetricsService {
     return register.metrics();
   }
 
-  recordHttpRequest(method: string, route: string, status: number, duration: number) {
+  recordHttpRequest(
+    method: string,
+    route: string,
+    status: number,
+    duration: number,
+  ) {
     this.httpRequestsTotal.inc({ method, route, status: status.toString() });
-    this.httpRequestDuration.observe({ method, route, status: status.toString() }, duration);
+    this.httpRequestDuration.observe(
+      { method, route, status: status.toString() },
+      duration,
+    );
   }
 }

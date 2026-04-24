@@ -49,7 +49,9 @@ describe('UserStatus Value Object', () => {
 
     it('should throw error for invalid status', () => {
       expect(() => UserStatus.fromString('invalid')).toThrow(DomainException);
-      expect(() => UserStatus.fromString('invalid')).toThrow('Invalid user status: invalid');
+      expect(() => UserStatus.fromString('invalid')).toThrow(
+        'Invalid user status: invalid',
+      );
     });
 
     it('should throw error for empty string', () => {

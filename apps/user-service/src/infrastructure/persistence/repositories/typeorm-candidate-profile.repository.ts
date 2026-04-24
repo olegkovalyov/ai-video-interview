@@ -13,7 +13,9 @@ import { ExperienceLevel } from '../../../domain/value-objects/experience-level.
  * Updated to handle CandidateSkill entities
  */
 @Injectable()
-export class TypeOrmCandidateProfileRepository implements ICandidateProfileRepository {
+export class TypeOrmCandidateProfileRepository
+  implements ICandidateProfileRepository
+{
   constructor(
     @InjectRepository(CandidateSkillEntity)
     private readonly skillRepository: Repository<CandidateSkillEntity>,
@@ -21,7 +23,10 @@ export class TypeOrmCandidateProfileRepository implements ICandidateProfileRepos
     private readonly dataSource: DataSource,
   ) {}
 
-  async save(profile: CandidateProfile, tx?: ITransactionContext): Promise<void> {
+  async save(
+    profile: CandidateProfile,
+    tx?: ITransactionContext,
+  ): Promise<void> {
     const doSave = async (manager: EntityManager) => {
       // Save experience_level in candidate_profiles table
       await manager.query(
@@ -38,24 +43,24 @@ export class TypeOrmCandidateProfileRepository implements ICandidateProfileRepos
       );
 
       // Remove existing skills
-      await manager.delete(CandidateSkillEntity, { candidateId: profile.userId });
+      await manager.delete(CandidateSkillEntity, {
+        candidateId: profile.userId,
+      });
 
       // Save skills
       if (profile.skills.length > 0) {
-        const skillEntities = profile.skills.map(skill =>
+        const skillEntities = profile.skills.map((skill) =>
           this.skillMapper.toEntity(skill),
         );
         await manager.save(CandidateSkillEntity, skillEntities);
       }
     };
 
-    if (tx) {
-      // Use the existing transaction from UnitOfWork
-      await doSave(tx as unknown as EntityManager);
-    } else {
-      // Create own transaction (backward compatibility)
-      await this.dataSource.transaction(doSave);
-    }
+    await (tx
+      ? // Use the existing transaction from UnitOfWork
+        doSave(tx as unknown as EntityManager)
+      : // Create own transaction (backward compatibility)
+        this.dataSource.transaction(doSave));
   }
 
   async findByUserId(userId: string): Promise<CandidateProfile | null> {
@@ -93,9 +98,10 @@ export class TypeOrmCandidateProfileRepository implements ICandidateProfileRepos
 
   async delete(userId: string): Promise<void> {
     // CASCADE will remove candidate_skills
-    await this.dataSource.query(`DELETE FROM candidate_profiles WHERE user_id = $1`, [
-      userId,
-    ]);
+    await this.dataSource.query(
+      `DELETE FROM candidate_profiles WHERE user_id = $1`,
+      [userId],
+    );
   }
 
   async hasSkill(userId: string, skillId: string): Promise<boolean> {

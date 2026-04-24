@@ -1,7 +1,7 @@
-import { 
-  SkillReadModel, 
-  SkillCategoryReadModel, 
-  SkillWithCategoryReadModel 
+import type {
+  SkillReadModel,
+  SkillCategoryReadModel,
+  SkillWithCategoryReadModel,
 } from '../read-models/skill.read-model';
 
 /**

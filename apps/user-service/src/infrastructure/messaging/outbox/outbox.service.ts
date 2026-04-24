@@ -108,11 +108,9 @@ export class OutboxService implements IOutboxService {
   async schedulePublishing(eventIds: string[]): Promise<void> {
     if (eventIds.length === 0) return;
 
-    if (eventIds.length === 1) {
-      await this.addPublishJob(eventIds[0]);
-    } else {
-      await this.addPublishJobs(eventIds);
-    }
+    await (eventIds.length === 1
+      ? this.addPublishJob(eventIds[0])
+      : this.addPublishJobs(eventIds));
   }
 
   private buildOutboxEntity(

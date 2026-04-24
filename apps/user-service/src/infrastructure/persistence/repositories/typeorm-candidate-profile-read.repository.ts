@@ -8,17 +8,15 @@ import {
   PaginatedResult,
   CandidateProfileWithUser,
 } from '../../../domain/repositories/candidate-profile-read.repository.interface';
-import type { 
+import type {
   CandidateProfileReadModel,
   CandidateSkillReadModel,
   SkillsByCategoryReadModel,
 } from '../../../domain/read-models/candidate-profile.read-model';
-import { CandidateProfile } from '../../../domain/aggregates/candidate-profile.aggregate';
 import { CandidateSkillEntity } from '../entities/candidate-skill.entity';
 import { UserEntity } from '../entities/user.entity';
 import { SkillEntity } from '../entities/skill.entity';
 import { CandidateSkillMapper } from '../mappers/candidate-skill.mapper';
-import { ExperienceLevel } from '../../../domain/value-objects/experience-level.vo';
 
 // Proficiency levels in order for comparison
 const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
@@ -38,7 +36,9 @@ export class TypeOrmCandidateProfileReadRepository
     private readonly dataSource: DataSource,
   ) {}
 
-  async findByUserId(userId: string): Promise<CandidateProfileReadModel | null> {
+  async findByUserId(
+    userId: string,
+  ): Promise<CandidateProfileReadModel | null> {
     const profileData = await this.dataSource.query(
       `SELECT 
         user_id, 
@@ -53,7 +53,7 @@ export class TypeOrmCandidateProfileReadRepository
     if (profileData.length === 0) return null;
 
     const row = profileData[0];
-    
+
     // Return ReadModel with ONLY real database columns
     return {
       userId: row.user_id,
@@ -64,7 +64,9 @@ export class TypeOrmCandidateProfileReadRepository
     };
   }
 
-  async findByUserIdWithUser(userId: string): Promise<CandidateProfileWithUser | null> {
+  async findByUserIdWithUser(
+    userId: string,
+  ): Promise<CandidateProfileWithUser | null> {
     const profile = await this.findByUserId(userId);
     if (!profile) return null;
 
@@ -131,14 +133,14 @@ export class TypeOrmCandidateProfileReadRepository
     page: number,
     limit: number,
   ): Promise<{ candidateIds: string[]; total: number }> {
-    const params: any[] = [filters.skillIds];
+    const params: unknown[] = [filters.skillIds];
     const conditions: string[] = ['cs.skill_id = ANY($1::uuid[])'];
     let paramIndex = 2;
 
     // minProficiency: "not less than" using CASE
     if (filters.minProficiency) {
       const minLevel = PROFICIENCY_LEVELS.indexOf(filters.minProficiency);
-      if (minLevel >= 0) {
+      if (minLevel !== -1) {
         conditions.push(`
           CASE cs.proficiency_level
             WHEN 'beginner' THEN 0
@@ -153,7 +155,7 @@ export class TypeOrmCandidateProfileReadRepository
       }
     }
 
-    if (filters.minYears !== undefined && filters.minYears !== null) {
+    if (filters.minYears != null) {
       conditions.push(`cs.years_of_experience >= $${paramIndex}`);
       params.push(filters.minYears);
       paramIndex++;
@@ -175,9 +177,7 @@ export class TypeOrmCandidateProfileReadRepository
     const limitParam = paramIndex++;
     const offsetParam = paramIndex++;
 
-    params.push(filters.skillIds!.length);
-    params.push(limit);
-    params.push((page - 1) * limit);
+    params.push(filters.skillIds?.length ?? 0, limit, (page - 1) * limit);
 
     // Get matching candidates
     const results = await this.dataSource.query(
@@ -208,8 +208,15 @@ export class TypeOrmCandidateProfileReadRepository
     );
 
     return {
-      candidateIds: results.map((r: { candidate_id: string; skill_id?: string; skill_name?: string; count?: string }) => r.candidate_id),
-      total: parseInt(countResult[0]?.total || '0', 10),
+      candidateIds: results.map(
+        (r: {
+          candidate_id: string;
+          skill_id?: string;
+          skill_name?: string;
+          count?: string;
+        }) => r.candidate_id,
+      ),
+      total: Number.parseInt(countResult[0]?.total || '0', 10),
     };
   }
 
@@ -221,7 +228,7 @@ export class TypeOrmCandidateProfileReadRepository
     page: number,
     limit: number,
   ): Promise<{ candidateIds: string[]; total: number }> {
-    const params: any[] = [];
+    const params: unknown[] = [];
     const conditions: string[] = ["u.role = 'candidate'"];
     let paramIndex = 1;
 
@@ -233,7 +240,7 @@ export class TypeOrmCandidateProfileReadRepository
     }
 
     // minYears: has at least 1 skill with >= N years
-    if (filters.minYears !== undefined && filters.minYears !== null) {
+    if (filters.minYears != null) {
       conditions.push(`
         EXISTS (
           SELECT 1 FROM candidate_skills cs 
@@ -248,7 +255,7 @@ export class TypeOrmCandidateProfileReadRepository
     // minProficiency: has at least 1 skill with level >= specified
     if (filters.minProficiency) {
       const minLevel = PROFICIENCY_LEVELS.indexOf(filters.minProficiency);
-      if (minLevel >= 0) {
+      if (minLevel !== -1) {
         conditions.push(`
           EXISTS (
             SELECT 1 FROM candidate_skills cs 
@@ -269,8 +276,7 @@ export class TypeOrmCandidateProfileReadRepository
 
     const limitParam = paramIndex++;
     const offsetParam = paramIndex++;
-    params.push(limit);
-    params.push((page - 1) * limit);
+    params.push(limit, (page - 1) * limit);
 
     // Get candidates
     const results = await this.dataSource.query(
@@ -299,30 +305,39 @@ export class TypeOrmCandidateProfileReadRepository
     );
 
     return {
-      candidateIds: results.map((r: { candidate_id: string; skill_id?: string; skill_name?: string; count?: string }) => r.candidate_id),
-      total: parseInt(countResult[0]?.total || '0', 10),
+      candidateIds: results.map(
+        (r: {
+          candidate_id: string;
+          skill_id?: string;
+          skill_name?: string;
+          count?: string;
+        }) => r.candidate_id,
+      ),
+      total: Number.parseInt(countResult[0]?.total || '0', 10),
     };
   }
 
   /**
    * Load full candidate data by IDs
    */
-  private async loadCandidateData(candidateIds: string[]): Promise<CandidateSearchResult[]> {
+  private async loadCandidateData(
+    candidateIds: string[],
+  ): Promise<CandidateSearchResult[]> {
     const candidates = await this.userRepository.find({
       where: { id: In(candidateIds) },
     });
 
     const data = await Promise.all(
-      candidates.map(async candidate => {
+      candidates.map(async (candidate) => {
         const profile = await this.findByUserId(candidate.id);
-        
+
         // Get ALL skills of the candidate
         const skillEntities = await this.skillRepository.find({
           where: { candidateId: candidate.id },
           relations: ['skill'],
         });
 
-        const matchedSkills = skillEntities.map(s => ({
+        const matchedSkills = skillEntities.map((s) => ({
           skillId: s.skillId,
           skillName: s.skill?.name || '',
           proficiencyLevel: s.proficiencyLevel || 'intermediate',
@@ -335,8 +350,10 @@ export class TypeOrmCandidateProfileReadRepository
           email: candidate.email,
           avatarUrl: candidate.avatarUrl,
           experienceLevel: profile?.experienceLevel || null,
-          matchScore: skillEntities.reduce((score, s) => 
-            score + (s.yearsOfExperience || 0), 0),
+          matchScore: skillEntities.reduce(
+            (score, s) => score + (s.yearsOfExperience || 0),
+            0,
+          ),
           matchedSkills: matchedSkills,
         };
       }),
@@ -348,7 +365,9 @@ export class TypeOrmCandidateProfileReadRepository
     return data;
   }
 
-  async getCandidateSkillsGroupedByCategory(userId: string): Promise<SkillsByCategoryReadModel[]> {
+  async getCandidateSkillsGroupedByCategory(
+    userId: string,
+  ): Promise<SkillsByCategoryReadModel[]> {
     const skillEntities = await this.skillRepository.find({
       where: { candidateId: userId },
       relations: ['skill', 'skill.category'],
@@ -363,13 +382,15 @@ export class TypeOrmCandidateProfileReadRepository
       const categorySlug = entity.skill?.category?.slug || null;
       const key = categoryId || 'uncategorized';
 
-      if (!grouped.has(key)) {
-        grouped.set(key, {
+      let group = grouped.get(key);
+      if (!group) {
+        group = {
           categoryId,
           categoryName,
           categorySlug,
           skills: [],
-        });
+        };
+        grouped.set(key, group);
       }
 
       // Build CandidateSkillReadModel directly from entity
@@ -390,21 +411,23 @@ export class TypeOrmCandidateProfileReadRepository
         updatedAt: entity.updatedAt,
       };
 
-      grouped.get(key)!.skills.push(skillReadModel);
+      group.skills.push(skillReadModel);
     }
 
-    return Array.from(grouped.values());
+    return [...grouped.values()];
   }
 
   async countBySkill(skillId: string): Promise<number> {
     return this.skillRepository.count({ where: { skillId } });
   }
 
-  async getTopSkills(limit: number): Promise<{
-    skillId: string;
-    skillName: string;
-    count: number;
-  }[]> {
+  async getTopSkills(limit: number): Promise<
+    {
+      skillId: string;
+      skillName: string;
+      count: number;
+    }[]
+  > {
     const results = await this.dataSource.query(
       `
       SELECT 
@@ -420,10 +443,17 @@ export class TypeOrmCandidateProfileReadRepository
       [limit],
     );
 
-    return results.map((r: { candidate_id: string; skill_id?: string; skill_name?: string; count?: string }) => ({
-      skillId: r.skill_id,
-      skillName: r.skill_name,
-      count: parseInt(r.count ?? '0', 10),
-    }));
+    return results.map(
+      (r: {
+        candidate_id: string;
+        skill_id?: string;
+        skill_name?: string;
+        count?: string;
+      }) => ({
+        skillId: r.skill_id,
+        skillName: r.skill_name,
+        count: Number.parseInt(r.count ?? '0', 10),
+      }),
+    );
   }
 }

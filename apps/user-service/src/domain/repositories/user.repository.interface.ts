@@ -1,4 +1,4 @@
-import { User } from '../aggregates/user.aggregate';
+import type { User } from '../aggregates/user.aggregate';
 import type { ITransactionContext } from '../../application/interfaces/transaction-context.interface';
 
 /**

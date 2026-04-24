@@ -1,7 +1,6 @@
 import type {
   CandidateProfileReadModel,
   CandidateProfileWithUserReadModel,
-  CandidateSkillReadModel,
   SkillsByCategoryReadModel,
   CandidateSearchResultReadModel,
 } from '../read-models/candidate-profile.read-model';
@@ -46,7 +45,9 @@ export interface ICandidateProfileReadRepository {
   /**
    * Find candidate profile with user info
    */
-  findByUserIdWithUser(userId: string): Promise<CandidateProfileWithUserReadModel | null>;
+  findByUserIdWithUser(
+    userId: string,
+  ): Promise<CandidateProfileWithUserReadModel | null>;
 
   /**
    * Search candidates by skills with filters
@@ -60,7 +61,9 @@ export interface ICandidateProfileReadRepository {
   /**
    * Get candidate skills grouped by category
    */
-  getCandidateSkillsGroupedByCategory(userId: string): Promise<SkillsByCategoryReadModel[]>;
+  getCandidateSkillsGroupedByCategory(
+    userId: string,
+  ): Promise<SkillsByCategoryReadModel[]>;
 
   /**
    * Count candidates with specific skill
@@ -70,9 +73,11 @@ export interface ICandidateProfileReadRepository {
   /**
    * List top skills (most used by candidates)
    */
-  getTopSkills(limit: number): Promise<{
-    skillId: string;
-    skillName: string;
-    count: number;
-  }[]>;
+  getTopSkills(limit: number): Promise<
+    {
+      skillId: string;
+      skillName: string;
+      count: number;
+    }[]
+  >;
 }

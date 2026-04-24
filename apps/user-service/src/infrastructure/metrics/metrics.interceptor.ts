@@ -12,7 +12,7 @@ import { MetricsService } from './metrics.service';
 export class MetricsInterceptor implements NestInterceptor {
   constructor(private readonly metricsService: MetricsService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
 
@@ -24,7 +24,12 @@ export class MetricsInterceptor implements NestInterceptor {
       tap(() => {
         const duration = (Date.now() - startTime) / 1000;
         const statusCode = response.statusCode;
-        this.metricsService.recordHttpRequest(method, route, statusCode, duration);
+        this.metricsService.recordHttpRequest(
+          method,
+          route,
+          statusCode,
+          duration,
+        );
       }),
     );
   }
