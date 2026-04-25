@@ -33,78 +33,87 @@ export class OutboxPublisherProcessor extends WorkerHost {
   async process(job: Job<{ eventId: string }>): Promise<void> {
     const { eventId } = job.data;
 
-    // 1. Fetch from outbox table
     const outbox = await this.outboxRepository.findOne({
       where: { eventId, status: OUTBOX_STATUS.PENDING },
     });
-
     if (!outbox) {
       this.logger.debug(
         `Outbox event ${eventId} already published or not found`,
-        {
-          category: 'outbox',
-          action: 'skip',
-          eventId,
-        },
+        { category: 'outbox', action: 'skip', eventId },
       );
       return;
     }
 
-    // 2. Mark as publishing
     outbox.status = OUTBOX_STATUS.PUBLISHING;
     await this.outboxRepository.save(outbox);
 
     try {
-      // 3. Publish to user-events topic with trace context
-      await this.kafkaService.publishEvent(
-        KAFKA_TOPICS.USER_EVENTS,
-        outbox.payload,
-        injectTraceContext(),
-      );
-
-      // 4. Mark as published
-      outbox.status = OUTBOX_STATUS.PUBLISHED;
-      outbox.publishedAt = new Date();
-      await this.outboxRepository.save(outbox);
-
-      this.logger.debug(
-        `Outbox event published: ${eventId} (${outbox.eventType})`,
-        {
-          category: 'outbox',
-          action: 'published',
-          eventId,
-          eventType: outbox.eventType,
-        },
-      );
+      await this.publishAndMarkSent(outbox);
     } catch (error) {
-      // 5. Handle failure
-      const message = errorMessage(error);
-      outbox.status = OUTBOX_STATUS.FAILED;
-      outbox.errorMessage = message;
-      outbox.retryCount += 1;
-      await this.outboxRepository.save(outbox);
+      const shouldRetry = await this.handlePublishFailure(outbox, error);
+      if (shouldRetry) throw error;
+    }
+  }
 
+  private async publishAndMarkSent(outbox: OutboxEntity): Promise<void> {
+    await this.kafkaService.publishEvent(
+      KAFKA_TOPICS.USER_EVENTS,
+      outbox.payload,
+      injectTraceContext(),
+    );
+    outbox.status = OUTBOX_STATUS.PUBLISHED;
+    outbox.publishedAt = new Date();
+    await this.outboxRepository.save(outbox);
+
+    this.logger.debug(
+      `Outbox event published: ${outbox.eventId} (${outbox.eventType})`,
+      {
+        category: 'outbox',
+        action: 'published',
+        eventId: outbox.eventId,
+        eventType: outbox.eventType,
+      },
+    );
+  }
+
+  /**
+   * Persist failure metadata and decide whether the caller should re-throw.
+   * Re-throwing causes BullMQ to retry under its exponential-backoff policy.
+   * Returning `false` once we hit RETRY_ATTEMPTS preserves the legacy
+   * "max retries → swallow" behaviour from before this refactor.
+   */
+  private async handlePublishFailure(
+    outbox: OutboxEntity,
+    error: unknown,
+  ): Promise<boolean> {
+    const message = errorMessage(error);
+    outbox.status = OUTBOX_STATUS.FAILED;
+    outbox.errorMessage = message;
+    outbox.retryCount += 1;
+    await this.outboxRepository.save(outbox);
+
+    this.logger.error(
+      `Failed to publish outbox event ${outbox.eventId}: ${message}`,
+      {
+        category: 'outbox',
+        action: 'publish_failed',
+        eventId: outbox.eventId,
+        retryCount: outbox.retryCount,
+        error: message,
+      },
+    );
+
+    if (outbox.retryCount >= OUTBOX_CONFIG.RETRY_ATTEMPTS) {
       this.logger.error(
-        `Failed to publish outbox event ${eventId}: ${message}`,
+        `Max retries reached for outbox event ${outbox.eventId}`,
         {
           category: 'outbox',
-          action: 'publish_failed',
-          eventId,
-          retryCount: outbox.retryCount,
-          error: message,
+          action: 'max_retries',
+          eventId: outbox.eventId,
         },
       );
-
-      // Re-throw if haven't exceeded retry limit
-      if (outbox.retryCount < OUTBOX_CONFIG.RETRY_ATTEMPTS) {
-        throw error;
-      }
-
-      this.logger.error(`Max retries reached for outbox event ${eventId}`, {
-        category: 'outbox',
-        action: 'max_retries',
-        eventId,
-      });
+      return false;
     }
+    return true;
   }
 }

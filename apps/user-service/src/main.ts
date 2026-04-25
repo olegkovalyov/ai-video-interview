@@ -1,5 +1,6 @@
 import './infrastructure/tracing/tracing'; // Must be first — initializes OpenTelemetry before NestJS
 import { NestFactory } from '@nestjs/core';
+import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -9,69 +10,15 @@ import { DomainExceptionFilter } from './infrastructure/http/filters/domain-exce
 import { OptimisticLockFilter } from './infrastructure/http/filters/optimistic-lock.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    bufferLogs: true, // Буферизуем логи до подключения logger
-  });
-
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const logger = app.get(LoggerService);
-
-  // Используем наш Winston Logger для ВСЕХ NestJS логов
   app.useLogger(logger);
 
-  // No global prefix for microservice
-  // Versioning should be handled at API Gateway level only
-  // User Service exposes simple paths:
-  // - /users (proxied by API Gateway)
-  // - /internal/* (service-to-service)
-  // - /health (monitoring)
-
-  // Domain exception filter (maps domain exceptions to HTTP statuses)
-  app.useGlobalFilters(new OptimisticLockFilter(), new DomainExceptionFilter());
-
-  // Validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  // CORS
-  app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'http://localhost:3000',
-    ],
-    credentials: true,
-  });
-
-  // Swagger
-  const config = new DocumentBuilder()
-    .setTitle('User Service API')
-    .setDescription('User management microservice')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addApiKey(
-      { type: 'apiKey', name: 'x-internal-token', in: 'header' },
-      'internal-token',
-    )
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  app.use('/api/docs-json', (_req: Request, res: Response) => {
-    res.json(document);
-  });
-
-  // Graceful shutdown (from memory)
+  configureGlobalMiddleware(app);
+  configureSwagger(app);
   app.enableShutdownHooks();
 
   const port = process.env.PORT || 8002;
-
   logger.info('🚀 User Service starting up', {
     service: 'user-service',
     action: 'startup',
@@ -87,6 +34,49 @@ async function bootstrap() {
     port,
     url: `http://localhost:${port}`,
     docsUrl: `http://localhost:${port}/api/docs`,
+  });
+}
+
+/**
+ * Wire up global filters, the validation pipe, and CORS.
+ * No global prefix is set — versioning happens at the API Gateway level;
+ * this microservice exposes simple paths (/users, /internal/*, /health).
+ */
+function configureGlobalMiddleware(app: INestApplication): void {
+  app.useGlobalFilters(new OptimisticLockFilter(), new DomainExceptionFilter());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:3000',
+    ],
+    credentials: true,
+  });
+}
+
+/** Mount Swagger UI at /api/docs and expose the raw OpenAPI JSON. */
+function configureSwagger(app: INestApplication): void {
+  const config = new DocumentBuilder()
+    .setTitle('User Service API')
+    .setDescription('User management microservice')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addApiKey(
+      { type: 'apiKey', name: 'x-internal-token', in: 'header' },
+      'internal-token',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+  app.use('/api/docs-json', (_req: Request, res: Response) => {
+    res.json(document);
   });
 }
 

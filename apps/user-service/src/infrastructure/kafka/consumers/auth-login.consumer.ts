@@ -88,7 +88,6 @@ export class AuthLoginConsumer implements OnModuleInit {
     event: UserAuthenticatedEvent,
   ): Promise<void> {
     const externalAuthId = event.payload?.externalAuthId;
-
     if (!externalAuthId) {
       this.logger.warn(
         'Missing externalAuthId in user.authenticated event payload',
@@ -98,30 +97,35 @@ export class AuthLoginConsumer implements OnModuleInit {
     }
 
     try {
-      // Update last_login_at
-      const result = await this.userRepository.update(
-        { externalAuthId },
-        { lastLoginAt: new Date() },
-      );
-
-      if (result.affected && result.affected > 0) {
-        this.logger.debug('Updated last_login_at', {
-          externalAuthId,
-          email: event.payload?.email,
-          eventType: event.eventType,
-        });
-      } else {
-        this.logger.warn('User not found for last_login update', {
-          externalAuthId,
-          email: event.payload?.email,
-        });
-      }
+      await this.touchLastLogin(externalAuthId, event);
     } catch (error) {
+      // Non-critical: failing to update last_login_at must not crash the consumer.
       this.logger.error('Failed to update last_login_at', {
         error: error instanceof Error ? error.message : String(error),
         externalAuthId,
       });
-      // Don't throw — this is a non-critical operation.
+    }
+  }
+
+  private async touchLastLogin(
+    externalAuthId: string,
+    event: UserAuthenticatedEvent,
+  ): Promise<void> {
+    const result = await this.userRepository.update(
+      { externalAuthId },
+      { lastLoginAt: new Date() },
+    );
+    if (result.affected && result.affected > 0) {
+      this.logger.debug('Updated last_login_at', {
+        externalAuthId,
+        email: event.payload?.email,
+        eventType: event.eventType,
+      });
+    } else {
+      this.logger.warn('User not found for last_login update', {
+        externalAuthId,
+        email: event.payload?.email,
+      });
     }
   }
 }
