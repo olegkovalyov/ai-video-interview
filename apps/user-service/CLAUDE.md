@@ -1,5 +1,47 @@
 # User Service
 
+> **🟢 Reference implementation status (as of `ff74cb9`, 2026-04-25)**
+>
+> This service is the **canonical reference** for the AI Video Interview monorepo. Every backend service is expected to converge on the patterns established here unless there's a documented reason to deviate.
+>
+> **Single source of truth**: see [docs/2026-audit/user-service-canonical-patterns.md](../../docs/2026-audit/user-service-canonical-patterns.md) — full reference covering layer separation, aggregate / VO / domain-exception patterns, Application Service pattern, repository helpers, outbox, observability stack, ESLint ratchet, test conventions, migration discipline, and an adoption checklist for new services.
+>
+> **Quality gates locked** (any regression fails CI):
+>
+> - `max-classes-per-file: 1`, `max-params: 4`, `max-lines-per-function: 30`
+> - `complexity: 10`, `sonarjs/cognitive-complexity: 10`, `max-depth: 2`
+> - 0 errors / 0 warnings on lint
+> - Tests: 605 unit + 16 redaction + 231 integration + 109 e2e (945 total) — all green
+>
+> **Reference patterns at a glance**:
+>
+> | Concern                                   | Reference file                                                                           |
+> | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+> | Layer separation                          | `src/{domain,application,infrastructure}/`                                               |
+> | Aggregate per-field helpers               | `src/domain/aggregates/user.aggregate.ts`                                                |
+> | Three-state VO update                     | `src/domain/aggregates/company.aggregate.ts`                                             |
+> | Domain exception (static code+httpStatus) | `src/domain/exceptions/user.exceptions.ts`                                               |
+> | DomainExceptionFilter (table-driven)      | `src/infrastructure/http/filters/domain-exception.filter.ts`                             |
+> | Application Service pattern               | `src/application/services/user-update.service.ts`                                        |
+> | Thin CQRS handler                         | `src/application/commands/update-user/update-user.handler.ts`                            |
+> | Repository filter helper                  | `src/infrastructure/persistence/repositories/typeorm-user-read.repository.ts`            |
+> | SQL bindings + clauses                    | `src/infrastructure/persistence/repositories/typeorm-candidate-profile-query.service.ts` |
+> | Outbox saveEvent + observability capture  | `src/infrastructure/messaging/outbox/outbox.service.ts`                                  |
+> | Outbox restore on publish                 | `src/infrastructure/messaging/outbox/outbox-publisher.processor.ts`                      |
+> | RequestContext store                      | `src/infrastructure/http/interceptors/request-context.store.ts`                          |
+> | HTTP interceptor (UUID gen + JWT extract) | `src/infrastructure/http/interceptors/correlation-id.interceptor.ts`                     |
+> | Kafka consumer wrapper                    | `src/infrastructure/kafka/with-kafka-request-context.ts`                                 |
+> | PII redaction (hash / strip / off)        | `src/infrastructure/logger/redaction.ts`                                                 |
+> | ESLint ratchet config                     | `eslint.config.mjs`                                                                      |
+>
+> **Cross-service helpers** (in `@repo/shared`):
+>
+> - `injectTraceContext` / `extractTraceContext` — W3C trace propagation in Kafka headers
+> - `withKafkaTracing` — wrap consumer in OTel span
+> - `withRestoredTrace` — re-attach saved parent span context (used by outbox publisher)
+>
+> **Required env vars for observability**: `LOKI_HOST`, `LOG_LEVEL`, `LOG_PII_REDACTION_MODE` (off/hash/strip; default hash-in-prod, off-in-dev), `NODE_ENV`.
+
 ## Overview
 
 Domain-driven microservice responsible for user management, company profiles, candidate skills, and role assignment. Implements DDD + CQRS + Clean Architecture with strict layer separation and the Outbox pattern for reliable event publishing.
@@ -94,6 +136,7 @@ src/
 ### Aggregates
 
 **User** (primary aggregate root):
+
 - Private constructor + static `create()` factory method + `reconstitute()` for persistence
 - Business methods: `updateProfile()`, `changeEmail()`, `verifyEmail()`, `suspend()`, `activate()`, `delete()`, `uploadAvatar()`, `selectRole()`
 - Invariants enforced: `ensureNotDeleted()`, `ensureNotSuspended()`
@@ -111,7 +154,9 @@ All value objects extend `ValueObject<T>` base class with `equals()` semantics:
 ```typescript
 // Pattern: private constructor + static create() with validation
 export class Email extends ValueObject<EmailProps> {
-  private constructor(props: EmailProps) { super(props); }
+  private constructor(props: EmailProps) {
+    super(props);
+  }
 
   public static create(email: string): Email {
     // Validation: required, regex, max 255 chars
@@ -119,7 +164,9 @@ export class Email extends ValueObject<EmailProps> {
     return new Email({ value: normalized });
   }
 
-  public get value(): string { return this.props.value; }
+  public get value(): string {
+    return this.props.value;
+  }
 }
 ```
 
@@ -212,20 +259,20 @@ npm run migration:run      # Run pending migrations
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| PORT | Server port (default: 8002) |
-| DATABASE_HOST | PostgreSQL host |
-| DATABASE_PORT | PostgreSQL port (default: 5432) |
-| DATABASE_NAME | Database name (ai_video_interview_user) |
-| DATABASE_USER | Database username |
-| DATABASE_PASSWORD | Database password |
-| KAFKA_BROKERS | Kafka broker addresses |
-| REDIS_HOST | Redis host for BullMQ |
-| MINIO_ENDPOINT | MinIO endpoint |
-| MINIO_ACCESS_KEY | MinIO access key |
-| MINIO_SECRET_KEY | MinIO secret key |
-| MINIO_BUCKET | MinIO bucket name |
+| Variable          | Description                             |
+| ----------------- | --------------------------------------- |
+| PORT              | Server port (default: 8002)             |
+| DATABASE_HOST     | PostgreSQL host                         |
+| DATABASE_PORT     | PostgreSQL port (default: 5432)         |
+| DATABASE_NAME     | Database name (ai_video_interview_user) |
+| DATABASE_USER     | Database username                       |
+| DATABASE_PASSWORD | Database password                       |
+| KAFKA_BROKERS     | Kafka broker addresses                  |
+| REDIS_HOST        | Redis host for BullMQ                   |
+| MINIO_ENDPOINT    | MinIO endpoint                          |
+| MINIO_ACCESS_KEY  | MinIO access key                        |
+| MINIO_SECRET_KEY  | MinIO secret key                        |
+| MINIO_BUCKET      | MinIO bucket name                       |
 
 ## Testing
 
