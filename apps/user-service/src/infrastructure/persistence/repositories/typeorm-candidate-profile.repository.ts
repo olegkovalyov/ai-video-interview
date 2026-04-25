@@ -27,40 +27,49 @@ export class TypeOrmCandidateProfileRepository
     profile: CandidateProfile,
     tx?: ITransactionContext,
   ): Promise<void> {
-    const doSave = async (manager: EntityManager) => {
-      // Save experience_level in candidate_profiles table
-      await manager.query(
-        `INSERT INTO candidate_profiles (user_id, experience_level, created_at, updated_at)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (user_id)
-         DO UPDATE SET experience_level = $2, updated_at = $4`,
-        [
-          profile.userId,
-          profile.experienceLevel?.value || null,
-          profile.createdAt,
-          profile.updatedAt,
-        ],
-      );
-
-      // Remove existing skills
-      await manager.delete(CandidateSkillEntity, {
-        candidateId: profile.userId,
-      });
-
-      // Save skills
-      if (profile.skills.length > 0) {
-        const skillEntities = profile.skills.map((skill) =>
-          this.skillMapper.toEntity(skill),
-        );
-        await manager.save(CandidateSkillEntity, skillEntities);
-      }
-    };
-
+    const doSave = (manager: EntityManager) =>
+      this.persistProfile(profile, manager);
     await (tx
-      ? // Use the existing transaction from UnitOfWork
-        doSave(tx as unknown as EntityManager)
-      : // Create own transaction (backward compatibility)
-        this.dataSource.transaction(doSave));
+      ? doSave(tx as unknown as EntityManager)
+      : this.dataSource.transaction(doSave));
+  }
+
+  private async persistProfile(
+    profile: CandidateProfile,
+    manager: EntityManager,
+  ): Promise<void> {
+    await this.upsertProfileRow(profile, manager);
+    await this.replaceSkills(profile, manager);
+  }
+
+  private async upsertProfileRow(
+    profile: CandidateProfile,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager.query(
+      `INSERT INTO candidate_profiles (user_id, experience_level, created_at, updated_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id)
+       DO UPDATE SET experience_level = $2, updated_at = $4`,
+      [
+        profile.userId,
+        profile.experienceLevel?.value || null,
+        profile.createdAt,
+        profile.updatedAt,
+      ],
+    );
+  }
+
+  private async replaceSkills(
+    profile: CandidateProfile,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager.delete(CandidateSkillEntity, { candidateId: profile.userId });
+    if (profile.skills.length === 0) return;
+    const skillEntities = profile.skills.map((skill) =>
+      this.skillMapper.toEntity(skill),
+    );
+    await manager.save(CandidateSkillEntity, skillEntities);
   }
 
   async findByUserId(userId: string): Promise<CandidateProfile | null> {

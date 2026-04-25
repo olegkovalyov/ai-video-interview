@@ -55,21 +55,7 @@ export class CompanyCreationService {
     });
 
     const companyId = uuid();
-    const userCompanyId = uuid();
-
-    const company = Company.create({
-      id: companyId,
-      name: input.name,
-      description: input.description,
-      website: input.website,
-      logoUrl: input.logoUrl,
-      industry: input.industry,
-      size: input.size ? CompanySize.fromString(input.size) : null,
-      location: input.location,
-      createdBy: input.createdBy,
-      userCompanyId,
-      position: input.position,
-    });
+    const company = CompanyCreationService.assembleCompany(companyId, input);
 
     const eventId = await this.persistOrTranslateUniqueViolation(
       company,
@@ -82,8 +68,26 @@ export class CompanyCreationService {
       companyId,
       name: input.name,
     });
-
     return { companyId };
+  }
+
+  private static assembleCompany(
+    companyId: string,
+    input: CreateCompanyInput,
+  ): Company {
+    return Company.create({
+      id: companyId,
+      name: input.name,
+      description: input.description,
+      website: input.website,
+      logoUrl: input.logoUrl,
+      industry: input.industry,
+      size: input.size ? CompanySize.fromString(input.size) : null,
+      location: input.location,
+      createdBy: input.createdBy,
+      userCompanyId: uuid(),
+      position: input.position,
+    });
   }
 
   /**

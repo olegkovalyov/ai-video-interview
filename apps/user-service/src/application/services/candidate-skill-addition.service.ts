@@ -59,6 +59,23 @@ export class CandidateSkillAdditionService {
     await this.assertSkillNotInProfile(input, skill);
 
     const candidateSkillId = uuid();
+    this.applySkillToProfile(profile, input, candidateSkillId);
+    await this.profileRepository.save(profile);
+    this.publishInternalEvents(profile);
+
+    this.logger.info('Skill added to candidate profile successfully', {
+      candidateId: input.candidateId,
+      skillId: input.skillId,
+      candidateSkillId,
+    });
+    return { candidateSkillId };
+  }
+
+  private applySkillToProfile(
+    profile: CandidateProfile,
+    input: AddCandidateSkillInput,
+    candidateSkillId: string,
+  ): void {
     profile.addSkill({
       skillId: input.skillId,
       candidateSkillId,
@@ -70,15 +87,6 @@ export class CandidateSkillAdditionService {
         input.yearsOfExperience,
       ),
     });
-    await this.profileRepository.save(profile);
-    this.publishInternalEvents(profile);
-
-    this.logger.info('Skill added to candidate profile successfully', {
-      candidateId: input.candidateId,
-      skillId: input.skillId,
-      candidateSkillId,
-    });
-    return { candidateSkillId };
   }
 
   private async loadActiveSkill(skillId: string): Promise<SkillReference> {

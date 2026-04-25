@@ -18,11 +18,8 @@ import { UserEntity } from '../entities/user.entity';
 import { SkillEntity } from '../entities/skill.entity';
 import { CandidateSkillMapper } from '../mappers/candidate-skill.mapper';
 
-// Proficiency levels in order for comparison
 const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
 
-// Raw row shapes returned by dataSource.query (snake_case column names).
-// Kept local — these are private to this repository and should not leak.
 interface CandidateProfileRow {
   user_id: string;
   experience_level: string | null;
@@ -43,6 +40,23 @@ interface TopSkillRow {
   skill_id: string;
   skill_name: string;
   count: string;
+}
+
+interface SqlClauses {
+  conditions: string[];
+  params: unknown[];
+  paramIndex: number;
+}
+
+interface SpecificSkillsBindings {
+  skillCountParam: number;
+  limitParam: number;
+  offsetParam: number;
+}
+
+interface AllCandidatesBindings {
+  limitParam: number;
+  offsetParam: number;
 }
 
 @Injectable()
@@ -99,7 +113,6 @@ export class TypeOrmCandidateProfileQueryService
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) return null;
 
-    // Flatten profile and user data
     return {
       ...profile,
       fullName: `${user.firstName} ${user.lastName}`,
@@ -119,27 +132,14 @@ export class TypeOrmCandidateProfileQueryService
     limit: number,
   ): Promise<PaginatedResult<CandidateSearchResult>> {
     const hasSkillIds = filters.skillIds && filters.skillIds.length > 0;
-
-    let candidateIds: string[];
-    let total: number;
-
-    if (hasSkillIds) {
-      // MODE 1: Search by specific skills (original logic)
-      const result = await this.searchBySpecificSkills(filters, page, limit);
-      candidateIds = result.candidateIds;
-      total = result.total;
-    } else {
-      // MODE 2: Search all candidates with filters
-      const result = await this.searchAllCandidates(filters, page, limit);
-      candidateIds = result.candidateIds;
-      total = result.total;
-    }
+    const { candidateIds, total } = hasSkillIds
+      ? await this.searchBySpecificSkills(filters, page, limit)
+      : await this.searchAllCandidates(filters, page, limit);
 
     if (candidateIds.length === 0) {
       return { data: [], total: 0, page, limit, totalPages: 0 };
     }
 
-    // Load candidate data
     const data = await this.loadCandidateData(candidateIds);
 
     return {
@@ -152,181 +152,255 @@ export class TypeOrmCandidateProfileQueryService
   }
 
   /**
-   * MODE 1: Search candidates who have ALL specified skills
+   * MODE 1: Search candidates who have ALL specified skills.
    */
   private async searchBySpecificSkills(
     filters: CandidateSearchFilters,
     page: number,
     limit: number,
   ): Promise<{ candidateIds: string[]; total: number }> {
-    const params: unknown[] = [filters.skillIds];
-    const conditions: string[] = ['cs.skill_id = ANY($1::uuid[])'];
-    let paramIndex = 2;
+    const clauses: SqlClauses = {
+      conditions: ['cs.skill_id = ANY($1::uuid[])'],
+      params: [filters.skillIds],
+      paramIndex: 2,
+    };
+    this.appendSpecificSkillFilters(clauses, filters);
+    const bindings = this.bindSpecificSkillsPagination(
+      clauses,
+      filters.skillIds?.length ?? 0,
+      page,
+      limit,
+    );
+    const whereSql = clauses.conditions.join(' AND ');
+    const candidateIds = await this.fetchSpecificSkillCandidateIds(
+      whereSql,
+      bindings,
+      clauses.params,
+    );
+    const total = await this.countSpecificSkillCandidates(
+      whereSql,
+      bindings.skillCountParam,
+      clauses.params.slice(0, -2),
+    );
+    return { candidateIds, total };
+  }
 
-    // minProficiency: "not less than" using CASE
+  private bindSpecificSkillsPagination(
+    clauses: SqlClauses,
+    skillCount: number,
+    page: number,
+    limit: number,
+  ): SpecificSkillsBindings {
+    const skillCountParam = clauses.paramIndex++;
+    const limitParam = clauses.paramIndex++;
+    const offsetParam = clauses.paramIndex++;
+    clauses.params.push(skillCount, limit, (page - 1) * limit);
+    return { skillCountParam, limitParam, offsetParam };
+  }
+
+  private appendSpecificSkillFilters(
+    clauses: SqlClauses,
+    filters: CandidateSearchFilters,
+  ): void {
     if (filters.minProficiency) {
-      const minLevel = PROFICIENCY_LEVELS.indexOf(filters.minProficiency);
-      if (minLevel !== -1) {
-        conditions.push(`
-          CASE cs.proficiency_level
-            WHEN 'beginner' THEN 0
-            WHEN 'intermediate' THEN 1
-            WHEN 'advanced' THEN 2
-            WHEN 'expert' THEN 3
-            ELSE 0
-          END >= $${paramIndex}
-        `);
-        params.push(minLevel);
-        paramIndex++;
-      }
+      this.appendProficiencyClause(
+        clauses,
+        filters.minProficiency,
+        TypeOrmCandidateProfileQueryService.SQL_CASE_PROFICIENCY,
+      );
     }
-
     if (filters.minYears != null) {
-      conditions.push(`cs.years_of_experience >= $${paramIndex}`);
-      params.push(filters.minYears);
-      paramIndex++;
+      clauses.conditions.push(
+        `cs.years_of_experience >= $${clauses.paramIndex++}`,
+      );
+      clauses.params.push(filters.minYears);
     }
-
-    // experienceLevel: exact match
     if (filters.experienceLevel) {
-      conditions.push(`
-        cs.candidate_id IN (
-          SELECT user_id FROM candidate_profiles 
-          WHERE experience_level = $${paramIndex}
-        )
-      `);
-      params.push(filters.experienceLevel);
-      paramIndex++;
+      clauses.conditions.push(
+        `cs.candidate_id IN (SELECT user_id FROM candidate_profiles WHERE experience_level = $${clauses.paramIndex++})`,
+      );
+      clauses.params.push(filters.experienceLevel);
     }
+  }
 
-    const skillCountParam = paramIndex++;
-    const limitParam = paramIndex++;
-    const offsetParam = paramIndex++;
-
-    params.push(filters.skillIds?.length ?? 0, limit, (page - 1) * limit);
-
-    const results = await this.dataSource.query<CandidateIdRow[]>(
+  private async fetchSpecificSkillCandidateIds(
+    whereSql: string,
+    bindings: SpecificSkillsBindings,
+    params: unknown[],
+  ): Promise<string[]> {
+    const rows = await this.dataSource.query<CandidateIdRow[]>(
       `
       SELECT cs.candidate_id
       FROM candidate_skills cs
-      WHERE ${conditions.join(' AND ')}
+      WHERE ${whereSql}
       GROUP BY cs.candidate_id
-      HAVING COUNT(DISTINCT cs.skill_id) = $${skillCountParam}
-      LIMIT $${limitParam} OFFSET $${offsetParam}
+      HAVING COUNT(DISTINCT cs.skill_id) = $${bindings.skillCountParam}
+      LIMIT $${bindings.limitParam} OFFSET $${bindings.offsetParam}
       `,
       params,
     );
+    return rows.map((r) => r.candidate_id);
+  }
 
-    const countParams = params.slice(0, -2); // Remove limit/offset
-    const countResult = await this.dataSource.query<CountRow[]>(
+  private async countSpecificSkillCandidates(
+    whereSql: string,
+    skillCountParam: number,
+    params: unknown[],
+  ): Promise<number> {
+    const result = await this.dataSource.query<CountRow[]>(
       `
       SELECT COUNT(*) as total FROM (
         SELECT cs.candidate_id
         FROM candidate_skills cs
-        WHERE ${conditions.join(' AND ')}
+        WHERE ${whereSql}
         GROUP BY cs.candidate_id
         HAVING COUNT(DISTINCT cs.skill_id) = $${skillCountParam}
       ) sub
       `,
-      countParams,
+      params,
     );
-
-    return {
-      candidateIds: results.map((r) => r.candidate_id),
-      total: Number.parseInt(countResult[0]?.total ?? '0', 10),
-    };
+    return Number.parseInt(result[0]?.total ?? '0', 10);
   }
 
   /**
-   * MODE 2: Search all candidates with optional filters (no skillIds required)
+   * MODE 2: Search all candidates with optional filters (no skillIds required).
    */
   private async searchAllCandidates(
     filters: CandidateSearchFilters,
     page: number,
     limit: number,
   ): Promise<{ candidateIds: string[]; total: number }> {
-    const params: unknown[] = [];
-    const conditions: string[] = ["u.role = 'candidate'"];
-    let paramIndex = 1;
+    const clauses: SqlClauses = {
+      conditions: ["u.role = 'candidate'"],
+      params: [],
+      paramIndex: 1,
+    };
+    this.appendAllCandidatesFilters(clauses, filters);
+    const bindings = this.bindAllCandidatesPagination(clauses, page, limit);
+    const whereSql = clauses.conditions.join(' AND ');
+    const candidateIds = await this.fetchAllCandidateIds(
+      whereSql,
+      bindings,
+      clauses.params,
+    );
+    const total = await this.countAllCandidates(
+      whereSql,
+      clauses.params.slice(0, -2),
+    );
+    return { candidateIds, total };
+  }
 
-    // experienceLevel: exact match
+  private bindAllCandidatesPagination(
+    clauses: SqlClauses,
+    page: number,
+    limit: number,
+  ): AllCandidatesBindings {
+    const limitParam = clauses.paramIndex++;
+    const offsetParam = clauses.paramIndex++;
+    clauses.params.push(limit, (page - 1) * limit);
+    return { limitParam, offsetParam };
+  }
+
+  private appendAllCandidatesFilters(
+    clauses: SqlClauses,
+    filters: CandidateSearchFilters,
+  ): void {
     if (filters.experienceLevel) {
-      conditions.push(`cp.experience_level = $${paramIndex}`);
-      params.push(filters.experienceLevel);
-      paramIndex++;
+      clauses.conditions.push(`cp.experience_level = $${clauses.paramIndex++}`);
+      clauses.params.push(filters.experienceLevel);
     }
-
-    // minYears: has at least 1 skill with >= N years
     if (filters.minYears != null) {
-      conditions.push(`
-        EXISTS (
-          SELECT 1 FROM candidate_skills cs 
-          WHERE cs.candidate_id = u.id 
-            AND cs.years_of_experience >= $${paramIndex}
-        )
-      `);
-      params.push(filters.minYears);
-      paramIndex++;
+      clauses.conditions.push(
+        `EXISTS (SELECT 1 FROM candidate_skills cs WHERE cs.candidate_id = u.id AND cs.years_of_experience >= $${clauses.paramIndex++})`,
+      );
+      clauses.params.push(filters.minYears);
     }
-
-    // minProficiency: has at least 1 skill with level >= specified
     if (filters.minProficiency) {
-      const minLevel = PROFICIENCY_LEVELS.indexOf(filters.minProficiency);
-      if (minLevel !== -1) {
-        conditions.push(`
-          EXISTS (
-            SELECT 1 FROM candidate_skills cs 
-            WHERE cs.candidate_id = u.id 
-              AND CASE cs.proficiency_level
-                    WHEN 'beginner' THEN 0
-                    WHEN 'intermediate' THEN 1
-                    WHEN 'advanced' THEN 2
-                    WHEN 'expert' THEN 3
-                    ELSE 0
-                  END >= $${paramIndex}
-          )
-        `);
-        params.push(minLevel);
-        paramIndex++;
-      }
+      this.appendProficiencyClause(
+        clauses,
+        filters.minProficiency,
+        TypeOrmCandidateProfileQueryService.SQL_EXISTS_PROFICIENCY,
+      );
     }
+  }
 
-    const limitParam = paramIndex++;
-    const offsetParam = paramIndex++;
-    params.push(limit, (page - 1) * limit);
-
-    const results = await this.dataSource.query<CandidateIdRow[]>(
+  private async fetchAllCandidateIds(
+    whereSql: string,
+    bindings: AllCandidatesBindings,
+    params: unknown[],
+  ): Promise<string[]> {
+    const rows = await this.dataSource.query<CandidateIdRow[]>(
       `
       SELECT u.id as candidate_id, u.created_at
       FROM users u
       LEFT JOIN candidate_profiles cp ON cp.user_id = u.id
-      WHERE ${conditions.join(' AND ')}
+      WHERE ${whereSql}
       GROUP BY u.id, u.created_at
       ORDER BY u.created_at DESC
-      LIMIT $${limitParam} OFFSET $${offsetParam}
+      LIMIT $${bindings.limitParam} OFFSET $${bindings.offsetParam}
       `,
       params,
     );
+    return rows.map((r) => r.candidate_id);
+  }
 
-    const countParams = params.slice(0, -2); // Remove limit/offset
-    const countResult = await this.dataSource.query<CountRow[]>(
+  private async countAllCandidates(
+    whereSql: string,
+    params: unknown[],
+  ): Promise<number> {
+    const result = await this.dataSource.query<CountRow[]>(
       `
       SELECT COUNT(DISTINCT u.id) as total
       FROM users u
       LEFT JOIN candidate_profiles cp ON cp.user_id = u.id
-      WHERE ${conditions.join(' AND ')}
+      WHERE ${whereSql}
       `,
-      countParams,
+      params,
     );
-
-    return {
-      candidateIds: results.map((r) => r.candidate_id),
-      total: Number.parseInt(countResult[0]?.total ?? '0', 10),
-    };
+    return Number.parseInt(result[0]?.total ?? '0', 10);
   }
 
+  private appendProficiencyClause(
+    clauses: SqlClauses,
+    minProficiency: string,
+    template: (paramIndex: number) => string,
+  ): void {
+    const minLevel = PROFICIENCY_LEVELS.indexOf(minProficiency);
+    if (minLevel === -1) return;
+    clauses.conditions.push(template(clauses.paramIndex++));
+    clauses.params.push(minLevel);
+  }
+
+  private static readonly SQL_CASE_PROFICIENCY = (paramIndex: number): string =>
+    `
+      CASE cs.proficiency_level
+        WHEN 'beginner' THEN 0
+        WHEN 'intermediate' THEN 1
+        WHEN 'advanced' THEN 2
+        WHEN 'expert' THEN 3
+        ELSE 0
+      END >= $${paramIndex}
+    `;
+
+  private static readonly SQL_EXISTS_PROFICIENCY = (
+    paramIndex: number,
+  ): string =>
+    `
+      EXISTS (
+        SELECT 1 FROM candidate_skills cs
+        WHERE cs.candidate_id = u.id
+          AND CASE cs.proficiency_level
+                WHEN 'beginner' THEN 0
+                WHEN 'intermediate' THEN 1
+                WHEN 'advanced' THEN 2
+                WHEN 'expert' THEN 3
+                ELSE 0
+              END >= $${paramIndex}
+      )
+    `;
+
   /**
-   * Load full candidate data by IDs
+   * Load full candidate data by IDs.
    */
   private async loadCandidateData(
     candidateIds: string[],
@@ -334,43 +408,38 @@ export class TypeOrmCandidateProfileQueryService
     const candidates = await this.userRepository.find({
       where: { id: In(candidateIds) },
     });
-
     const data = await Promise.all(
-      candidates.map(async (candidate) => {
-        const profile = await this.findByUserId(candidate.id);
-
-        // Get ALL skills of the candidate
-        const skillEntities = await this.skillRepository.find({
-          where: { candidateId: candidate.id },
-          relations: ['skill'],
-        });
-
-        const matchedSkills = skillEntities.map((s) => ({
-          skillId: s.skillId,
-          skillName: s.skill?.name || '',
-          proficiencyLevel: s.proficiencyLevel || 'intermediate',
-          yearsOfExperience: s.yearsOfExperience || null,
-        }));
-
-        return {
-          userId: candidate.id,
-          fullName: `${candidate.firstName} ${candidate.lastName}`,
-          email: candidate.email,
-          avatarUrl: candidate.avatarUrl,
-          experienceLevel: profile?.experienceLevel || null,
-          matchScore: skillEntities.reduce(
-            (score, s) => score + (s.yearsOfExperience || 0),
-            0,
-          ),
-          matchedSkills: matchedSkills,
-        };
-      }),
+      candidates.map((candidate) => this.toSearchResult(candidate)),
     );
-
-    // Sort by match score
     data.sort((a, b) => b.matchScore - a.matchScore);
-
     return data;
+  }
+
+  private async toSearchResult(
+    candidate: UserEntity,
+  ): Promise<CandidateSearchResult> {
+    const profile = await this.findByUserId(candidate.id);
+    const skillEntities = await this.skillRepository.find({
+      where: { candidateId: candidate.id },
+      relations: ['skill'],
+    });
+    return {
+      userId: candidate.id,
+      fullName: `${candidate.firstName} ${candidate.lastName}`,
+      email: candidate.email,
+      avatarUrl: candidate.avatarUrl,
+      experienceLevel: profile?.experienceLevel || null,
+      matchScore: skillEntities.reduce(
+        (score, s) => score + (s.yearsOfExperience || 0),
+        0,
+      ),
+      matchedSkills: skillEntities.map((s) => ({
+        skillId: s.skillId,
+        skillName: s.skill?.name || '',
+        proficiencyLevel: s.proficiencyLevel || 'intermediate',
+        yearsOfExperience: s.yearsOfExperience || null,
+      })),
+    };
   }
 
   async getCandidateSkillsGroupedByCategory(
@@ -383,46 +452,68 @@ export class TypeOrmCandidateProfileQueryService
     });
 
     const grouped = new Map<string, SkillsByCategoryReadModel>();
-
     for (const entity of skillEntities) {
-      const categoryId = entity.skill?.categoryId || null;
-      const categoryName = entity.skill?.category?.name || null;
-      const categorySlug = entity.skill?.category?.slug || null;
-      const key = categoryId || 'uncategorized';
-
-      let group = grouped.get(key);
-      if (!group) {
-        group = {
-          categoryId,
-          categoryName,
-          categorySlug,
-          skills: [],
-        };
-        grouped.set(key, group);
-      }
-
-      // Build CandidateSkillReadModel directly from entity
-      const skillReadModel: CandidateSkillReadModel = {
-        id: entity.id,
-        userId: entity.candidateId,
-        skillId: entity.skillId,
-        skillName: entity.skill?.name || '',
-        skillSlug: entity.skill?.slug || '',
-        categoryId,
-        categoryName,
-        description: entity.description,
-        proficiencyLevel: entity.proficiencyLevel,
-        yearsOfExperience: entity.yearsOfExperience,
-        lastUsedAt: null, // Not in current schema
-        endorsementsCount: 0, // Not in current schema
-        createdAt: entity.createdAt,
-        updatedAt: entity.updatedAt,
-      };
-
-      group.skills.push(skillReadModel);
+      const group = TypeOrmCandidateProfileQueryService.resolveCategoryGroup(
+        grouped,
+        entity,
+      );
+      group.skills.push(
+        TypeOrmCandidateProfileQueryService.toCandidateSkillReadModel(
+          entity,
+          group,
+        ),
+      );
     }
-
     return [...grouped.values()];
+  }
+
+  private static resolveCategoryGroup(
+    grouped: Map<string, SkillsByCategoryReadModel>,
+    entity: CandidateSkillEntity,
+  ): SkillsByCategoryReadModel {
+    const category =
+      TypeOrmCandidateProfileQueryService.extractCategory(entity);
+    const key = category.categoryId ?? 'uncategorized';
+    const existing = grouped.get(key);
+    if (existing) return existing;
+    const fresh: SkillsByCategoryReadModel = { ...category, skills: [] };
+    grouped.set(key, fresh);
+    return fresh;
+  }
+
+  private static extractCategory(entity: CandidateSkillEntity): {
+    categoryId: string | null;
+    categoryName: string | null;
+    categorySlug: string | null;
+  } {
+    const cat = entity.skill?.category;
+    return {
+      categoryId: entity.skill?.categoryId ?? null,
+      categoryName: cat?.name ?? null,
+      categorySlug: cat?.slug ?? null,
+    };
+  }
+
+  private static toCandidateSkillReadModel(
+    entity: CandidateSkillEntity,
+    group: SkillsByCategoryReadModel,
+  ): CandidateSkillReadModel {
+    return {
+      id: entity.id,
+      userId: entity.candidateId,
+      skillId: entity.skillId,
+      skillName: entity.skill?.name || '',
+      skillSlug: entity.skill?.slug || '',
+      categoryId: group.categoryId,
+      categoryName: group.categoryName,
+      description: entity.description,
+      proficiencyLevel: entity.proficiencyLevel,
+      yearsOfExperience: entity.yearsOfExperience,
+      lastUsedAt: null,
+      endorsementsCount: 0,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
   }
 
   async countBySkill(skillId: string): Promise<number> {

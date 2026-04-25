@@ -87,6 +87,18 @@ export class OutboxPublisherProcessor extends WorkerHost {
     error: unknown,
   ): Promise<boolean> {
     const message = errorMessage(error);
+    await this.recordFailure(outbox, message);
+    if (outbox.retryCount >= OUTBOX_CONFIG.RETRY_ATTEMPTS) {
+      this.logMaxRetriesReached(outbox);
+      return false;
+    }
+    return true;
+  }
+
+  private async recordFailure(
+    outbox: OutboxEntity,
+    message: string,
+  ): Promise<void> {
     outbox.status = OUTBOX_STATUS.FAILED;
     outbox.errorMessage = message;
     outbox.retryCount += 1;
@@ -102,18 +114,16 @@ export class OutboxPublisherProcessor extends WorkerHost {
         error: message,
       },
     );
+  }
 
-    if (outbox.retryCount >= OUTBOX_CONFIG.RETRY_ATTEMPTS) {
-      this.logger.error(
-        `Max retries reached for outbox event ${outbox.eventId}`,
-        {
-          category: 'outbox',
-          action: 'max_retries',
-          eventId: outbox.eventId,
-        },
-      );
-      return false;
-    }
-    return true;
+  private logMaxRetriesReached(outbox: OutboxEntity): void {
+    this.logger.error(
+      `Max retries reached for outbox event ${outbox.eventId}`,
+      {
+        category: 'outbox',
+        action: 'max_retries',
+        eventId: outbox.eventId,
+      },
+    );
   }
 }

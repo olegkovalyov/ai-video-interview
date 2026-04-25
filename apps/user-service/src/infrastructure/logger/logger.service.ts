@@ -61,31 +61,35 @@ export class LoggerService implements NestLoggerService {
    * the two file transports always run as a durable fallback.
    */
   private createTransports(logsDir: string): winston.transport[] {
-    // JSON for Loki/Grafana ingestion
     const fileFormat = winston.format.combine(
       winston.format.timestamp(),
       winston.format.errors({ stack: true }),
       winston.format.json(),
     );
-    const consoleFormat = winston.format.combine(prettyConsoleFormat);
-
     const transports: winston.transport[] = [];
-
     if (shouldEnableConsole()) {
-      transports.push(
-        new winston.transports.Console({
-          level: 'debug',
-          format: consoleFormat,
-        }),
-      );
+      transports.push(LoggerService.createConsoleTransport());
     }
-
     const lokiHost = process.env.LOKI_HOST;
     if (lokiHost) {
       transports.push(this.createLokiTransport(lokiHost, fileFormat));
     }
+    transports.push(...LoggerService.createFileTransports(logsDir, fileFormat));
+    return transports;
+  }
 
-    transports.push(
+  private static createConsoleTransport(): winston.transport {
+    return new winston.transports.Console({
+      level: 'debug',
+      format: winston.format.combine(prettyConsoleFormat),
+    });
+  }
+
+  private static createFileTransports(
+    logsDir: string,
+    fileFormat: winston.Logform.Format,
+  ): winston.transport[] {
+    return [
       new winston.transports.File({
         filename: path.join(logsDir, 'user-service.log'),
         level: 'debug',
@@ -98,9 +102,7 @@ export class LoggerService implements NestLoggerService {
         format: fileFormat,
         maxsize: 50 * 1024 * 1024,
       }),
-    );
-
-    return transports;
+    ];
   }
 
   private createLokiTransport(

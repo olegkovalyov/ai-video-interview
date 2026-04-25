@@ -471,7 +471,8 @@ describe('Users API (E2E)', () => {
       expect(mockStorageService.uploadFile).toHaveBeenCalled();
     });
 
-    // eslint-disable-next-line sonarjs/no-skipped-tests -- needs real JPEG fixture; FileTypeValidator (NestJS 11) rejects fake buffer at pipe with 400 before UserNotFoundException can be thrown.
+    // Skipped: needs real JPEG fixture; FileTypeValidator (NestJS 11) rejects
+    // fake buffer at pipe with 400 before UserNotFoundException can be thrown.
     it.skip('should return 404 for non-existent user', async () => {
       const nonExistentId = uuidv4();
 
