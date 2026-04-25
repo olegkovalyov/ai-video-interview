@@ -123,41 +123,14 @@ export class CandidateProfile extends AggregateRoot {
     yearsOfExperience: YearsOfExperience | null,
   ): void {
     const skill = this._skills.find((s) => s.skillId === skillId);
-
     if (!skill) {
       throw new CandidateSkillNotFoundException(skillId);
     }
 
     const changes: CandidateSkillChanges = {};
-
-    if (description !== skill.description) {
-      skill.updateDescription(description ?? '');
-      changes.description = description;
-    }
-
-    if (proficiencyLevel === null && skill.proficiencyLevel !== null) {
-      skill.updateProficiency(null);
-      changes.proficiencyLevel = null;
-    } else if (
-      proficiencyLevel &&
-      (!skill.proficiencyLevel ||
-        !proficiencyLevel.equals(skill.proficiencyLevel))
-    ) {
-      skill.updateProficiency(proficiencyLevel);
-      changes.proficiencyLevel = proficiencyLevel.value;
-    }
-
-    if (yearsOfExperience === null && skill.yearsOfExperience !== null) {
-      skill.updateYears(null);
-      changes.yearsOfExperience = null;
-    } else if (
-      yearsOfExperience &&
-      (!skill.yearsOfExperience ||
-        !yearsOfExperience.equals(skill.yearsOfExperience))
-    ) {
-      skill.updateYears(yearsOfExperience);
-      changes.yearsOfExperience = yearsOfExperience.value;
-    }
+    CandidateProfile.applyDescriptionChange(skill, description, changes);
+    CandidateProfile.applyProficiencyChange(skill, proficiencyLevel, changes);
+    CandidateProfile.applyYearsChange(skill, yearsOfExperience, changes);
 
     if (Object.keys(changes).length > 0) {
       this._updatedAt = new Date();
@@ -165,6 +138,54 @@ export class CandidateProfile extends AggregateRoot {
         new CandidateSkillUpdatedEvent(this._userId, skillId, changes),
       );
     }
+  }
+
+  private static applyDescriptionChange(
+    skill: CandidateSkill,
+    next: string | null,
+    changes: CandidateSkillChanges,
+  ): void {
+    if (next === skill.description) return;
+    skill.updateDescription(next ?? '');
+    changes.description = next;
+  }
+
+  /**
+   * Three-state update for ProficiencyLevel:
+   *   next = null     → clear when current was set
+   *   next = some VO  → set when current was null OR not equal
+   */
+  private static applyProficiencyChange(
+    skill: CandidateSkill,
+    next: ProficiencyLevel | null,
+    changes: CandidateSkillChanges,
+  ): void {
+    if (next === null) {
+      if (skill.proficiencyLevel === null) return;
+      skill.updateProficiency(null);
+      changes.proficiencyLevel = null;
+      return;
+    }
+    if (skill.proficiencyLevel && next.equals(skill.proficiencyLevel)) return;
+    skill.updateProficiency(next);
+    changes.proficiencyLevel = next.value;
+  }
+
+  /** Three-state update for YearsOfExperience — see applyProficiencyChange. */
+  private static applyYearsChange(
+    skill: CandidateSkill,
+    next: YearsOfExperience | null,
+    changes: CandidateSkillChanges,
+  ): void {
+    if (next === null) {
+      if (skill.yearsOfExperience === null) return;
+      skill.updateYears(null);
+      changes.yearsOfExperience = null;
+      return;
+    }
+    if (skill.yearsOfExperience && next.equals(skill.yearsOfExperience)) return;
+    skill.updateYears(next);
+    changes.yearsOfExperience = next.value;
   }
 
   /**

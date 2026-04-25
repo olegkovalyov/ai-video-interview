@@ -139,46 +139,72 @@ export class User extends AggregateRoot {
 
   /**
    * Update user profile. Emits {@link UserUpdatedEvent} only when at
-   * least one field actually changed.
+   * least one field actually changed. Each field is applied through a
+   * helper that records the diff in `changes` and skips no-op writes.
    */
   public updateProfile(args: UpdateUserProfileArgs): void {
     this.ensureNotDeleted();
     this.ensureNotSuspended();
 
     const changes: UserProfileChanges = {};
-
-    if (!this._fullName.equals(args.fullName)) {
-      this._fullName = args.fullName;
-      changes.fullName = {
-        firstName: args.fullName.firstName,
-        lastName: args.fullName.lastName,
-      };
-    }
-
-    if (args.bio !== undefined && args.bio !== this._bio) {
-      this._bio = args.bio;
-      changes.bio = args.bio;
-    }
-
-    if (args.phone !== undefined && args.phone !== this._phone) {
-      this._phone = args.phone;
-      changes.phone = args.phone;
-    }
-
-    if (args.timezone !== undefined && args.timezone !== this._timezone) {
-      this._timezone = args.timezone;
-      changes.timezone = args.timezone;
-    }
-
-    if (args.language !== undefined && args.language !== this._language) {
-      this._language = args.language;
-      changes.language = args.language;
-    }
+    this.applyFullNameChange(args.fullName, changes);
+    this.applyBioChange(args.bio, changes);
+    this.applyPhoneChange(args.phone, changes);
+    this.applyTimezoneChange(args.timezone, changes);
+    this.applyLanguageChange(args.language, changes);
 
     if (Object.keys(changes).length > 0) {
       this._updatedAt = new Date();
       this.apply(new UserUpdatedEvent(this._id, changes));
     }
+  }
+
+  private applyFullNameChange(
+    next: FullName,
+    changes: UserProfileChanges,
+  ): void {
+    if (this._fullName.equals(next)) return;
+    this._fullName = next;
+    changes.fullName = {
+      firstName: next.firstName,
+      lastName: next.lastName,
+    };
+  }
+
+  private applyBioChange(
+    next: string | undefined,
+    changes: UserProfileChanges,
+  ): void {
+    if (next === undefined || next === this._bio) return;
+    this._bio = next;
+    changes.bio = next;
+  }
+
+  private applyPhoneChange(
+    next: string | undefined,
+    changes: UserProfileChanges,
+  ): void {
+    if (next === undefined || next === this._phone) return;
+    this._phone = next;
+    changes.phone = next;
+  }
+
+  private applyTimezoneChange(
+    next: string | undefined,
+    changes: UserProfileChanges,
+  ): void {
+    if (next === undefined || next === this._timezone) return;
+    this._timezone = next;
+    changes.timezone = next;
+  }
+
+  private applyLanguageChange(
+    next: string | undefined,
+    changes: UserProfileChanges,
+  ): void {
+    if (next === undefined || next === this._language) return;
+    this._language = next;
+    changes.language = next;
   }
 
   /**

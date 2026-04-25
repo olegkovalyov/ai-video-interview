@@ -103,32 +103,10 @@ export class Company extends AggregateRoot {
    * associated user with `isPrimary=true`.
    */
   public static create(args: CreateCompanyArgs): Company {
-    if (!args.name || args.name.trim().length === 0) {
-      throw new DomainException('Company name cannot be empty');
-    }
+    Company.assertValidName(args.name);
+    Company.assertValidCreator(args.createdBy);
 
-    if (args.name.length > 255) {
-      throw new DomainException(
-        'Company name is too long (max 255 characters)',
-      );
-    }
-
-    if (!args.createdBy || args.createdBy.trim().length === 0) {
-      throw new DomainException('Creator ID cannot be empty');
-    }
-
-    const company = new Company({
-      id: args.id,
-      name: args.name.trim(),
-      description: args.description?.trim() || null,
-      website: args.website?.trim() || null,
-      logoUrl: args.logoUrl?.trim() || null,
-      industry: args.industry?.trim() || null,
-      size: args.size,
-      location: args.location?.trim() || null,
-      isActive: true,
-      createdBy: args.createdBy,
-    });
+    const company = new Company(Company.buildCreateProps(args));
 
     // Creator becomes the first associated user, marked primary.
     company.addUser({
@@ -146,6 +124,42 @@ export class Company extends AggregateRoot {
   }
 
   /**
+   * Build the {@link CompanyProps} bundle for the constructor — separates
+   * field normalisation (trim + empty-as-null) from the orchestration above.
+   */
+  private static buildCreateProps(args: CreateCompanyArgs): CompanyProps {
+    return {
+      id: args.id,
+      name: args.name.trim(),
+      description: Company.normalizeNullableField(args.description),
+      website: Company.normalizeNullableField(args.website),
+      logoUrl: Company.normalizeNullableField(args.logoUrl),
+      industry: Company.normalizeNullableField(args.industry),
+      size: args.size,
+      location: Company.normalizeNullableField(args.location),
+      isActive: true,
+      createdBy: args.createdBy,
+    };
+  }
+
+  private static assertValidName(name: string): void {
+    if (!name || name.trim().length === 0) {
+      throw new DomainException('Company name cannot be empty');
+    }
+    if (name.length > 255) {
+      throw new DomainException(
+        'Company name is too long (max 255 characters)',
+      );
+    }
+  }
+
+  private static assertValidCreator(createdBy: string): void {
+    if (!createdBy || createdBy.trim().length === 0) {
+      throw new DomainException('Creator ID cannot be empty');
+    }
+  }
+
+  /**
    * Reconstitute from persistence (no events emitted).
    */
   public static reconstitute(props: CompanyProps): Company {
@@ -157,66 +171,100 @@ export class Company extends AggregateRoot {
    * when at least one field actually changed.
    */
   public update(args: UpdateCompanyArgs): void {
-    if (!args.name || args.name.trim().length === 0) {
-      throw new DomainException('Company name cannot be empty');
-    }
-
-    if (args.name.length > 255) {
-      throw new DomainException(
-        'Company name is too long (max 255 characters)',
-      );
-    }
+    Company.assertValidName(args.name);
 
     const changes: CompanyChanges = {};
-
-    const trimmedName = args.name.trim();
-    if (trimmedName !== this._name) {
-      this._name = trimmedName;
-      changes.name = this._name;
-    }
-
-    const nextDescription = Company.normalizeNullableField(args.description);
-    if (nextDescription !== this._description) {
-      this._description = nextDescription;
-      changes.description = nextDescription;
-    }
-
-    const nextWebsite = Company.normalizeNullableField(args.website);
-    if (nextWebsite !== this._website) {
-      this._website = nextWebsite;
-      changes.website = nextWebsite;
-    }
-
-    const nextLogoUrl = Company.normalizeNullableField(args.logoUrl);
-    if (nextLogoUrl !== this._logoUrl) {
-      this._logoUrl = nextLogoUrl;
-      changes.logoUrl = nextLogoUrl;
-    }
-
-    const nextIndustry = Company.normalizeNullableField(args.industry);
-    if (nextIndustry !== this._industry) {
-      this._industry = nextIndustry;
-      changes.industry = nextIndustry;
-    }
-
-    if (args.size === null && this._size !== null) {
-      this._size = null;
-      changes.size = null;
-    } else if (args.size && (!this._size || !args.size.equals(this._size))) {
-      this._size = args.size;
-      changes.size = args.size.value;
-    }
-
-    const nextLocation = Company.normalizeNullableField(args.location);
-    if (nextLocation !== this._location) {
-      this._location = nextLocation;
-      changes.location = nextLocation;
-    }
+    this.applyNameChange(args.name, changes);
+    this.applyTextField('description', args.description, changes);
+    this.applyTextField('website', args.website, changes);
+    this.applyTextField('logoUrl', args.logoUrl, changes);
+    this.applyTextField('industry', args.industry, changes);
+    this.applyTextField('location', args.location, changes);
+    this.applySizeChange(args.size, changes);
 
     if (Object.keys(changes).length > 0) {
       this._updatedAt = new Date();
       this.apply(new CompanyUpdatedEvent(this._id, changes));
     }
+  }
+
+  private applyNameChange(name: string, changes: CompanyChanges): void {
+    const trimmed = name.trim();
+    if (trimmed === this._name) return;
+    this._name = trimmed;
+    changes.name = trimmed;
+  }
+
+  /**
+   * Apply an optional nullable text field — normalises whitespace, treats
+   * empty as null, writes + records diff iff the result differs from
+   * current. `field` is also the storage key of the underlying private
+   * member (e.g. 'description' → `this._description`).
+   */
+  private applyTextField(
+    field: 'description' | 'website' | 'logoUrl' | 'industry' | 'location',
+    next: string | null,
+    changes: CompanyChanges,
+  ): void {
+    const normalized = Company.normalizeNullableField(next);
+    const currentMap: Record<typeof field, string | null> = {
+      description: this._description,
+      website: this._website,
+      logoUrl: this._logoUrl,
+      industry: this._industry,
+      location: this._location,
+    };
+    if (normalized === currentMap[field]) return;
+    this.writeTextField(field, normalized);
+    changes[field] = normalized;
+  }
+
+  private writeTextField(
+    field: 'description' | 'website' | 'logoUrl' | 'industry' | 'location',
+    value: string | null,
+  ): void {
+    switch (field) {
+      case 'description': {
+        this._description = value;
+        return;
+      }
+      case 'website': {
+        this._website = value;
+        return;
+      }
+      case 'logoUrl': {
+        this._logoUrl = value;
+        return;
+      }
+      case 'industry': {
+        this._industry = value;
+        return;
+      }
+      case 'location': {
+        this._location = value;
+        return;
+      }
+    }
+  }
+
+  /**
+   * Three-state CompanySize update:
+   *   next = null     → clear when current was set
+   *   next = some VO  → set when current was null OR not equal
+   */
+  private applySizeChange(
+    next: CompanySize | null,
+    changes: CompanyChanges,
+  ): void {
+    if (next === null) {
+      if (this._size === null) return;
+      this._size = null;
+      changes.size = null;
+      return;
+    }
+    if (this._size && next.equals(this._size)) return;
+    this._size = next;
+    changes.size = next.value;
   }
 
   /**
