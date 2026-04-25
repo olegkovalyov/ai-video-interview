@@ -24,7 +24,12 @@ describe('User Aggregate', () => {
   describe('Factory Methods', () => {
     describe('create()', () => {
       it('should create new user with default values', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
 
         expect(user.id).toBe(userId);
         expect(user.externalAuthId).toBe(externalAuthId);
@@ -41,7 +46,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserCreatedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         const events = user.getUncommittedEvents();
 
         expect(events).toHaveLength(1);
@@ -50,7 +60,12 @@ describe('User Aggregate', () => {
       });
 
       it('should start with active status', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
 
         expect(user.isActive).toBe(true);
         expect(user.isSuspended).toBe(false);
@@ -58,7 +73,12 @@ describe('User Aggregate', () => {
       });
 
       it('should start with pending role', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
 
         expect(user.isPendingRole).toBe(true);
         expect(user.isCandidateRole).toBe(false);
@@ -69,14 +89,14 @@ describe('User Aggregate', () => {
 
     describe('reconstitute()', () => {
       it('should reconstitute user from persistence without emitting events', () => {
-        const user = User.reconstitute(
-          userId,
+        const user = User.reconstitute({
+          id: userId,
           externalAuthId,
           email,
           fullName,
-          UserStatus.active(),
-          UserRole.candidate(),
-        );
+          status: UserStatus.active(),
+          role: UserRole.candidate(),
+        });
 
         expect(user.id).toBe(userId);
         expect(user.role.isCandidate()).toBe(true);
@@ -84,14 +104,14 @@ describe('User Aggregate', () => {
       });
 
       it('should use default values for optional parameters', () => {
-        const user = User.reconstitute(
-          userId,
+        const user = User.reconstitute({
+          id: userId,
           externalAuthId,
           email,
           fullName,
-          UserStatus.active(),
-          UserRole.pending(),
-        );
+          status: UserStatus.active(),
+          role: UserRole.pending(),
+        });
 
         expect(user.timezone).toBe('UTC');
         expect(user.language).toBe('en');
@@ -102,58 +122,111 @@ describe('User Aggregate', () => {
   describe('Business Logic - Profile Updates', () => {
     describe('updateProfile()', () => {
       it('should update full name', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         const newName = FullName.create('Jane', 'Smith');
-        user.updateProfile(newName);
+        user.updateProfile({
+          fullName: newName,
+        });
 
         expect(user.fullName.firstName).toBe('Jane');
         expect(user.fullName.lastName).toBe('Smith');
       });
 
       it('should update bio', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
-        user.updateProfile(fullName, 'Software Engineer');
+        user.updateProfile({
+          fullName,
+          bio: 'Software Engineer',
+        });
 
         expect(user.bio).toBe('Software Engineer');
       });
 
       it('should update phone', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
-        user.updateProfile(fullName, undefined, '+1234567890');
+        user.updateProfile({
+          fullName,
+          bio: undefined,
+          phone: '+1234567890',
+        });
 
         expect(user.phone).toBe('+1234567890');
       });
 
       it('should update timezone', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
-        user.updateProfile(fullName, undefined, undefined, 'Europe/Kiev');
+        user.updateProfile({
+          fullName,
+          bio: undefined,
+          phone: undefined,
+          timezone: 'Europe/Kiev',
+        });
 
         expect(user.timezone).toBe('Europe/Kiev');
       });
 
       it('should update language', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
-        user.updateProfile(fullName, undefined, undefined, undefined, 'uk');
+        user.updateProfile({
+          fullName,
+          bio: undefined,
+          phone: undefined,
+          timezone: undefined,
+          language: 'uk',
+        });
 
         expect(user.language).toBe('uk');
       });
 
       it('should emit UserUpdatedEvent when changes are made', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         const newName = FullName.create('Jane', 'Smith');
-        user.updateProfile(newName, 'New bio');
+        user.updateProfile({
+          fullName: newName,
+          bio: 'New bio',
+        });
 
         const events = user.getUncommittedEvents();
         expect(events).toHaveLength(1);
@@ -161,21 +234,35 @@ describe('User Aggregate', () => {
       });
 
       it('should not emit event if no changes', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
-        user.updateProfile(fullName); // Same name, no changes
+        user.updateProfile({
+          fullName,
+        }); // Same name, no changes
 
         expect(user.getUncommittedEvents()).toHaveLength(0);
       });
 
       it('should update updatedAt timestamp', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         const oldUpdatedAt = user.updatedAt;
 
         // Wait a bit to ensure different timestamp
         const newName = FullName.create('Jane', 'Smith');
-        user.updateProfile(newName);
+        user.updateProfile({
+          fullName: newName,
+        });
 
         expect(user.updatedAt.getTime()).toBeGreaterThanOrEqual(
           oldUpdatedAt.getTime(),
@@ -183,19 +270,33 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         const newName = FullName.create('Jane', 'Smith');
-        expect(() => user.updateProfile(newName)).toThrow(UserDeletedException);
+        expect(() => user.updateProfile({
+          fullName: newName,
+        })).toThrow(UserDeletedException);
       });
 
       it('should throw error if user is suspended', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.suspend('Violation', 'admin-123');
 
         const newName = FullName.create('Jane', 'Smith');
-        expect(() => user.updateProfile(newName)).toThrow(
+        expect(() => user.updateProfile({
+          fullName: newName,
+        })).toThrow(
           UserSuspendedException,
         );
       });
@@ -203,7 +304,12 @@ describe('User Aggregate', () => {
 
     describe('changeEmail()', () => {
       it('should change email and reset verification', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.verifyEmail();
         user.clearEvents();
 
@@ -215,7 +321,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserUpdatedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         const newEmail = Email.create('newemail@example.com');
@@ -227,7 +338,12 @@ describe('User Aggregate', () => {
       });
 
       it('should not change if email is the same', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.changeEmail(email); // Same email
@@ -236,7 +352,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         const newEmail = Email.create('newemail@example.com');
@@ -246,7 +367,12 @@ describe('User Aggregate', () => {
 
     describe('verifyEmail()', () => {
       it('should mark email as verified', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.verifyEmail();
@@ -255,7 +381,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserUpdatedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.verifyEmail();
@@ -266,7 +397,12 @@ describe('User Aggregate', () => {
       });
 
       it('should not emit event if already verified', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.verifyEmail();
         user.clearEvents();
 
@@ -276,7 +412,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         expect(() => user.verifyEmail()).toThrow(UserDeletedException);
@@ -287,7 +428,12 @@ describe('User Aggregate', () => {
   describe('Business Logic - Status Management', () => {
     describe('suspend()', () => {
       it('should suspend active user', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.suspend('Terms violation', 'admin-123');
@@ -297,7 +443,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserSuspendedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.suspend('Terms violation', 'admin-123');
@@ -312,7 +463,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if already suspended', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.suspend('First suspension', 'admin-123');
 
         expect(() => user.suspend('Second suspension', 'admin-456')).toThrow(
@@ -321,7 +477,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         expect(() => user.suspend('Reason', 'admin-456')).toThrow(
@@ -332,7 +493,12 @@ describe('User Aggregate', () => {
 
     describe('activate()', () => {
       it('should activate suspended user', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.suspend('Reason', 'admin-123');
         user.clearEvents();
 
@@ -343,7 +509,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserActivatedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.suspend('Reason', 'admin-123');
         user.clearEvents();
 
@@ -355,7 +526,12 @@ describe('User Aggregate', () => {
       });
 
       it('should not emit event if already active', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.activate(); // Already active
@@ -364,7 +540,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         expect(() => user.activate()).toThrow(UserDeletedException);
@@ -373,7 +554,12 @@ describe('User Aggregate', () => {
 
     describe('delete()', () => {
       it('should delete user', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.delete('admin-123');
@@ -383,7 +569,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserDeletedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.delete('admin-123');
@@ -395,7 +586,12 @@ describe('User Aggregate', () => {
       });
 
       it('should not emit event if already deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
         user.clearEvents();
 
@@ -409,7 +605,12 @@ describe('User Aggregate', () => {
   describe('Business Logic - Avatar Management', () => {
     describe('uploadAvatar()', () => {
       it('should set avatar URL', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.uploadAvatar('https://example.com/avatar.jpg');
@@ -418,7 +619,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserUpdatedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.uploadAvatar('https://example.com/avatar.jpg');
@@ -429,14 +635,24 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error for empty URL', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
 
         expect(() => user.uploadAvatar('')).toThrow(DomainException);
         expect(() => user.uploadAvatar('  ')).toThrow(DomainException);
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         expect(() =>
@@ -445,7 +661,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is suspended', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.suspend('Reason', 'admin-123');
 
         expect(() =>
@@ -456,7 +677,12 @@ describe('User Aggregate', () => {
 
     describe('removeAvatar()', () => {
       it('should remove avatar', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.uploadAvatar('https://example.com/avatar.jpg');
         user.clearEvents();
 
@@ -466,7 +692,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserUpdatedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.uploadAvatar('https://example.com/avatar.jpg');
         user.clearEvents();
 
@@ -478,7 +709,12 @@ describe('User Aggregate', () => {
       });
 
       it('should not emit event if no avatar to remove', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.removeAvatar(); // No avatar
@@ -487,14 +723,24 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         expect(() => user.removeAvatar()).toThrow(UserDeletedException);
       });
 
       it('should throw error if user is suspended', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.suspend('Reason', 'admin-123');
 
         expect(() => user.removeAvatar()).toThrow(UserSuspendedException);
@@ -505,7 +751,12 @@ describe('User Aggregate', () => {
   describe('Business Logic - Role Selection', () => {
     describe('selectRole()', () => {
       it('should select candidate role', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.selectRole(UserRole.candidate());
@@ -515,7 +766,12 @@ describe('User Aggregate', () => {
       });
 
       it('should select HR role', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.selectRole(UserRole.hr());
@@ -525,7 +781,12 @@ describe('User Aggregate', () => {
       });
 
       it('should emit UserUpdatedEvent', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.clearEvents();
 
         user.selectRole(UserRole.candidate());
@@ -536,7 +797,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if role already selected', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.selectRole(UserRole.candidate());
 
         expect(() => user.selectRole(UserRole.hr())).toThrow(
@@ -548,7 +814,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if trying to select pending role', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
 
         expect(() => user.selectRole(UserRole.pending())).toThrow(
           DomainException,
@@ -556,7 +827,12 @@ describe('User Aggregate', () => {
       });
 
       it('should throw error if user is deleted', () => {
-        const user = User.create(userId, externalAuthId, email, fullName);
+        const user = User.create({
+          id: userId,
+          externalAuthId,
+          email,
+          fullName,
+        });
         user.delete('admin-123');
 
         expect(() => user.selectRole(UserRole.candidate())).toThrow(
@@ -568,7 +844,12 @@ describe('User Aggregate', () => {
 
   describe('Getters and Convenience Methods', () => {
     it('should have correct convenience getters', () => {
-      const user = User.create(userId, externalAuthId, email, fullName);
+      const user = User.create({
+        id: userId,
+        externalAuthId,
+        email,
+        fullName,
+      });
 
       expect(user.isActive).toBe(true);
       expect(user.isSuspended).toBe(false);
@@ -577,7 +858,12 @@ describe('User Aggregate', () => {
     });
 
     it('should return all properties correctly', () => {
-      const user = User.create(userId, externalAuthId, email, fullName);
+      const user = User.create({
+        id: userId,
+        externalAuthId,
+        email,
+        fullName,
+      });
 
       expect(user.id).toBe(userId);
       expect(user.externalAuthId).toBe(externalAuthId);

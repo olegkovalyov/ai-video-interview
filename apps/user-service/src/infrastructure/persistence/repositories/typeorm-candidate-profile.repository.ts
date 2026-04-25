@@ -90,13 +90,13 @@ export class TypeOrmCandidateProfileRepository
       ? ExperienceLevel.fromString(row.experience_level)
       : null;
 
-    return CandidateProfile.reconstitute(
+    return CandidateProfile.reconstitute({
       userId,
       experienceLevel,
       skills,
-      row.created_at,
-      row.updated_at,
-    );
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    });
   }
 
   async delete(userId: string): Promise<void> {

@@ -42,26 +42,26 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
           ? user.fullName.lastName
           : command.lastName;
       const fullName = FullName.create(firstName, lastName);
-      user.updateProfile(
+      user.updateProfile({
         fullName,
-        command.bio,
-        command.phone,
-        command.timezone,
-        command.language,
-      );
+        bio: command.bio,
+        phone: command.phone,
+        timezone: command.timezone,
+        language: command.language,
+      });
     } else if (
       command.bio !== undefined ||
       command.phone !== undefined ||
       command.timezone !== undefined ||
       command.language !== undefined
     ) {
-      user.updateProfile(
-        user.fullName,
-        command.bio,
-        command.phone,
-        command.timezone,
-        command.language,
-      );
+      user.updateProfile({
+        fullName: user.fullName,
+        bio: command.bio,
+        phone: command.phone,
+        timezone: command.timezone,
+        language: command.language,
+      });
     }
 
     // 3. Atomic save: aggregate + outbox in same transaction

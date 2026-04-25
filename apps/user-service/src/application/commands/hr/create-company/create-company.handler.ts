@@ -45,19 +45,19 @@ export class CreateCompanyHandler
     const companyId = uuid();
     const userCompanyId = uuid();
 
-    const company = Company.create(
-      companyId,
-      command.name,
-      command.description,
-      command.website,
-      command.logoUrl,
-      command.industry,
-      companySize,
-      command.location,
-      command.createdBy,
+    const company = Company.create({
+      id: companyId,
+      name: command.name,
+      description: command.description,
+      website: command.website,
+      logoUrl: command.logoUrl,
+      industry: command.industry,
+      size: companySize,
+      location: command.location,
+      createdBy: command.createdBy,
       userCompanyId,
-      command.position,
-    );
+      position: command.position,
+    });
 
     // 3. Atomic save: aggregate + outbox in same transaction
     const eventId = await this.unitOfWork.execute(async (tx) => {
@@ -77,7 +77,9 @@ export class CreateCompanyHandler
 
     // 4. After commit: publish domain events (internal)
     const events = company.getUncommittedEvents();
-    events.forEach((event) => { this.eventBus.publish(event); });
+    events.forEach((event) => {
+      this.eventBus.publish(event);
+    });
     company.clearEvents();
 
     // 5. Schedule BullMQ job for Kafka publishing

@@ -10,146 +10,158 @@ import {
 import { CompanyDeactivatedEvent } from '../events/company-deactivated.event';
 
 /**
- * Company Aggregate Root
- * Represents a company in the system
- * Created and managed by HR users
- * Can have multiple users associated (many-to-many via UserCompany)
+ * Full state of a {@link Company} aggregate. Used by the private
+ * constructor and `reconstitute` to restore from persistence verbatim.
+ */
+export interface CompanyProps {
+  id: string;
+  name: string;
+  description: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  industry: string | null;
+  size: CompanySize | null;
+  location: string | null;
+  isActive: boolean;
+  createdBy: string;
+  users?: UserCompany[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+/**
+ * Caller-supplied subset for {@link Company.create} — defaults are filled
+ * by the factory (isActive=true, timestamps=now, the creator becomes the
+ * first associated user with isPrimary=true).
+ */
+export interface CreateCompanyArgs {
+  id: string;
+  name: string;
+  description: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  industry: string | null;
+  size: CompanySize | null;
+  location: string | null;
+  createdBy: string;
+  userCompanyId: string;
+  position: string | null;
+}
+
+/**
+ * Mutable subset of company fields used by {@link Company.update}.
+ */
+export interface UpdateCompanyArgs {
+  name: string;
+  description: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  industry: string | null;
+  size: CompanySize | null;
+  location: string | null;
+}
+
+/**
+ * Company Aggregate Root.
+ * Created and managed by HR users; can have multiple associated users
+ * via the {@link UserCompany} entity (many-to-many).
  */
 export class Company extends AggregateRoot {
-  private constructor(
-    private readonly _id: string,
-    private _name: string,
-    private _description: string | null,
-    private _website: string | null,
-    private _logoUrl: string | null,
-    private _industry: string | null,
-    private _size: CompanySize | null,
-    private _location: string | null,
-    private _isActive: boolean,
-    private readonly _createdBy: string,
-    private _users: UserCompany[] = [],
-    private readonly _createdAt: Date = new Date(),
-    private _updatedAt: Date = new Date(),
-  ) {
+  private readonly _id: string;
+  private _name: string;
+  private _description: string | null;
+  private _website: string | null;
+  private _logoUrl: string | null;
+  private _industry: string | null;
+  private _size: CompanySize | null;
+  private _location: string | null;
+  private _isActive: boolean;
+  private readonly _createdBy: string;
+  private readonly _users: UserCompany[];
+  private readonly _createdAt: Date;
+  private _updatedAt: Date;
+
+  private constructor(props: CompanyProps) {
     super();
+    this._id = props.id;
+    this._name = props.name;
+    this._description = props.description;
+    this._website = props.website;
+    this._logoUrl = props.logoUrl;
+    this._industry = props.industry;
+    this._size = props.size;
+    this._location = props.location;
+    this._isActive = props.isActive;
+    this._createdBy = props.createdBy;
+    this._users = props.users ?? [];
+    this._createdAt = props.createdAt ?? new Date();
+    this._updatedAt = props.updatedAt ?? new Date();
   }
 
-  // ========================================
-  // FACTORY METHODS
-  // ========================================
-
   /**
-   * Create new company
-   * Automatically adds creator as first user with isPrimary=true
+   * Create new company. Automatically adds the creator as the first
+   * associated user with `isPrimary=true`.
    */
-  public static create(
-    id: string,
-    name: string,
-    description: string | null,
-    website: string | null,
-    logoUrl: string | null,
-    industry: string | null,
-    size: CompanySize | null,
-    location: string | null,
-    createdBy: string,
-    userCompanyId: string,
-    position: string | null,
-  ): Company {
-    if (!name || name.trim().length === 0) {
+  public static create(args: CreateCompanyArgs): Company {
+    if (!args.name || args.name.trim().length === 0) {
       throw new DomainException('Company name cannot be empty');
     }
 
-    if (name.length > 255) {
+    if (args.name.length > 255) {
       throw new DomainException(
         'Company name is too long (max 255 characters)',
       );
     }
 
-    if (!createdBy || createdBy.trim().length === 0) {
+    if (!args.createdBy || args.createdBy.trim().length === 0) {
       throw new DomainException('Creator ID cannot be empty');
     }
 
-    const company = new Company(
-      id,
-      name.trim(),
-      description?.trim() || null,
-      website?.trim() || null,
-      logoUrl?.trim() || null,
-      industry?.trim() || null,
-      size,
-      location?.trim() || null,
-      true, // Active by default
-      createdBy,
-      [],
-      new Date(),
-      new Date(),
+    const company = new Company({
+      id: args.id,
+      name: args.name.trim(),
+      description: args.description?.trim() || null,
+      website: args.website?.trim() || null,
+      logoUrl: args.logoUrl?.trim() || null,
+      industry: args.industry?.trim() || null,
+      size: args.size,
+      location: args.location?.trim() || null,
+      isActive: true,
+      createdBy: args.createdBy,
+    });
+
+    // Creator becomes the first associated user, marked primary.
+    company.addUser({
+      userCompanyId: args.userCompanyId,
+      userId: args.createdBy,
+      position: args.position,
+      isPrimary: true,
+    });
+
+    company.apply(
+      new CompanyCreatedEvent(args.id, args.name.trim(), args.createdBy),
     );
-
-    // Automatically add creator as first user with isPrimary=true
-    company.addUser(userCompanyId, createdBy, position, true);
-
-    // Publish domain event
-    company.apply(new CompanyCreatedEvent(id, name.trim(), createdBy));
 
     return company;
   }
 
   /**
-   * Reconstitute from persistence
+   * Reconstitute from persistence (no events emitted).
    */
-  public static reconstitute(
-    id: string,
-    name: string,
-    description: string | null,
-    website: string | null,
-    logoUrl: string | null,
-    industry: string | null,
-    size: CompanySize | null,
-    location: string | null,
-    isActive: boolean,
-    createdBy: string,
-    users: UserCompany[],
-    createdAt: Date,
-    updatedAt: Date,
-  ): Company {
-    return new Company(
-      id,
-      name,
-      description,
-      website,
-      logoUrl,
-      industry,
-      size,
-      location,
-      isActive,
-      createdBy,
-      users,
-      createdAt,
-      updatedAt,
-    );
+  public static reconstitute(props: CompanyProps): Company {
+    return new Company(props);
   }
 
-  // ========================================
-  // BUSINESS LOGIC
-  // ========================================
-
   /**
-   * Update company information
+   * Update company information. Emits {@link CompanyUpdatedEvent} only
+   * when at least one field actually changed.
    */
-  public update(
-    name: string,
-    description: string | null,
-    website: string | null,
-    logoUrl: string | null,
-    industry: string | null,
-    size: CompanySize | null,
-    location: string | null,
-  ): void {
-    if (!name || name.trim().length === 0) {
+  public update(args: UpdateCompanyArgs): void {
+    if (!args.name || args.name.trim().length === 0) {
       throw new DomainException('Company name cannot be empty');
     }
 
-    if (name.length > 255) {
+    if (args.name.length > 255) {
       throw new DomainException(
         'Company name is too long (max 255 characters)',
       );
@@ -157,48 +169,45 @@ export class Company extends AggregateRoot {
 
     const changes: CompanyChanges = {};
 
-    const trimmedName = name.trim();
+    const trimmedName = args.name.trim();
     if (trimmedName !== this._name) {
       this._name = trimmedName;
       changes.name = this._name;
     }
 
-    const nextDescription = Company.normalizeNullableField(description);
+    const nextDescription = Company.normalizeNullableField(args.description);
     if (nextDescription !== this._description) {
       this._description = nextDescription;
       changes.description = nextDescription;
     }
 
-    const nextWebsite = Company.normalizeNullableField(website);
+    const nextWebsite = Company.normalizeNullableField(args.website);
     if (nextWebsite !== this._website) {
       this._website = nextWebsite;
       changes.website = nextWebsite;
     }
 
-    const nextLogoUrl = Company.normalizeNullableField(logoUrl);
+    const nextLogoUrl = Company.normalizeNullableField(args.logoUrl);
     if (nextLogoUrl !== this._logoUrl) {
       this._logoUrl = nextLogoUrl;
       changes.logoUrl = nextLogoUrl;
     }
 
-    const nextIndustry = Company.normalizeNullableField(industry);
+    const nextIndustry = Company.normalizeNullableField(args.industry);
     if (nextIndustry !== this._industry) {
       this._industry = nextIndustry;
       changes.industry = nextIndustry;
     }
 
-    // Handle size change (including setting to null)
-    if (size === null && this._size !== null) {
-      // Remove size
+    if (args.size === null && this._size !== null) {
       this._size = null;
       changes.size = null;
-    } else if (size && (!this._size || !size.equals(this._size))) {
-      // Update size
-      this._size = size;
-      changes.size = size.value;
+    } else if (args.size && (!this._size || !args.size.equals(this._size))) {
+      this._size = args.size;
+      changes.size = args.size.value;
     }
 
-    const nextLocation = Company.normalizeNullableField(location);
+    const nextLocation = Company.normalizeNullableField(args.location);
     if (nextLocation !== this._location) {
       this._location = nextLocation;
       changes.location = nextLocation;
@@ -206,14 +215,12 @@ export class Company extends AggregateRoot {
 
     if (Object.keys(changes).length > 0) {
       this._updatedAt = new Date();
-
       this.apply(new CompanyUpdatedEvent(this._id, changes));
     }
   }
 
   /**
    * Normalize a nullable text field: trim whitespace, treat empty as null.
-   * Keeps `update()` type-safe (no undefined-vs-null mismatch on optional chaining).
    */
   private static normalizeNullableField(value: string | null): string | null {
     if (value === null) return null;
@@ -222,44 +229,40 @@ export class Company extends AggregateRoot {
   }
 
   /**
-   * Add user to company
+   * Add user to company.
    */
-  public addUser(
-    userCompanyId: string,
-    userId: string,
-    position: string | null,
-    isPrimary: boolean,
-  ): void {
-    // Check if user already associated
-    const exists = this._users.some((uc) => uc.userId === userId);
+  public addUser(args: {
+    userCompanyId: string;
+    userId: string;
+    position: string | null;
+    isPrimary: boolean;
+  }): void {
+    const exists = this._users.some((uc) => uc.userId === args.userId);
     if (exists) {
       throw new DomainException('User already associated with this company');
     }
 
-    // If setting as primary, unset other primary users
-    if (isPrimary) {
+    if (args.isPrimary) {
       this._users
         .filter((uc) => uc.isPrimary)
-        .forEach((uc) => uc.unsetAsPrimary());
+        .forEach((uc) => {
+          uc.unsetAsPrimary();
+        });
     }
 
     const userCompany = UserCompany.create({
-      id: userCompanyId,
-      userId,
+      id: args.userCompanyId,
+      userId: args.userId,
       companyId: this._id,
-      position,
-      isPrimary,
+      position: args.position,
+      isPrimary: args.isPrimary,
     });
 
     this._users.push(userCompany);
     this._updatedAt = new Date();
   }
 
-  /**
-   * Remove user from company
-   */
   public removeUser(userId: string): void {
-    // Cannot remove creator
     if (userId === this._createdBy) {
       throw new DomainException('Cannot remove company creator');
     }
@@ -273,9 +276,6 @@ export class Company extends AggregateRoot {
     this._updatedAt = new Date();
   }
 
-  /**
-   * Update user's position in company
-   */
   public updateUserPosition(userId: string, position: string): void {
     const userCompany = this._users.find((uc) => uc.userId === userId);
     if (!userCompany) {
@@ -286,31 +286,24 @@ export class Company extends AggregateRoot {
     this._updatedAt = new Date();
   }
 
-  /**
-   * Set user's company as primary
-   */
   public setUserPrimary(userId: string): void {
     const userCompany = this._users.find((uc) => uc.userId === userId);
     if (!userCompany) {
       throw new DomainException('User not found in company');
     }
 
-    // Unset other primary for this user
     this._users
       .filter((uc) => uc.userId === userId && uc.id !== userCompany.id)
-      .forEach((uc) => uc.unsetAsPrimary());
+      .forEach((uc) => {
+        uc.unsetAsPrimary();
+      });
 
     userCompany.setAsPrimary();
     this._updatedAt = new Date();
   }
 
-  /**
-   * Deactivate company
-   */
   public deactivate(): void {
-    if (!this._isActive) {
-      return; // Already inactive
-    }
+    if (!this._isActive) return;
 
     this._isActive = false;
     this._updatedAt = new Date();
@@ -318,13 +311,8 @@ export class Company extends AggregateRoot {
     this.apply(new CompanyDeactivatedEvent(this._id));
   }
 
-  /**
-   * Activate company
-   */
   public activate(): void {
-    if (this._isActive) {
-      return; // Already active
-    }
+    if (this._isActive) return;
 
     this._isActive = true;
     this._updatedAt = new Date();

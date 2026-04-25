@@ -24,18 +24,18 @@ describe('UpdateUserHandler', () => {
   const emailValue = 'test@example.com';
 
   const createExistingUser = (): User => {
-    return User.reconstitute(
-      userId,
+    return User.reconstitute({
+      id: userId,
       externalAuthId,
-      Email.create(emailValue),
-      FullName.create('John', 'Doe'),
-      {
+      email: Email.create(emailValue),
+      fullName: FullName.create('John', 'Doe'),
+      status: {
         value: 'active',
         isActive: () => true,
         isSuspended: () => false,
         isDeleted: () => false,
       } as any,
-      {
+      role: {
         value: 'candidate',
         isPending: () => false,
         isCandidate: () => true,
@@ -43,15 +43,14 @@ describe('UpdateUserHandler', () => {
         isAdmin: () => false,
         toString: () => 'candidate',
       } as any,
-      undefined, // avatarUrl
-      'Original bio', // bio
-      '+1234567890', // phone
-      'UTC', // timezone
-      'en', // language
-      false, // emailVerified
-      new Date(), // createdAt
-      new Date(), // updatedAt
-    );
+      bio: 'Original bio',
+      phone: '+1234567890',
+      timezone: 'UTC',
+      language: 'en',
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   };
 
   beforeEach(async () => {
@@ -95,7 +94,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       const result = await handler.execute(command);
 
@@ -130,7 +133,11 @@ describe('UpdateUserHandler', () => {
     it('should throw UserNotFoundException when user does not exist', async () => {
       mockUserRepository.findById.mockResolvedValue(null);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await expect(handler.execute(command)).rejects.toThrow(
         UserNotFoundException,
@@ -141,7 +148,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await handler.execute(command);
 
@@ -152,7 +163,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await handler.execute(command);
 
@@ -164,7 +179,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await handler.execute(command);
 
@@ -179,7 +198,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await handler.execute(command);
 
@@ -203,7 +226,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await handler.execute(command);
 
@@ -215,7 +242,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await handler.execute(command);
 
@@ -228,7 +259,11 @@ describe('UpdateUserHandler', () => {
     it('should not save to repository or outbox when user not found', async () => {
       mockUserRepository.findById.mockResolvedValue(null);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       await expect(handler.execute(command)).rejects.toThrow();
 
@@ -242,7 +277,11 @@ describe('UpdateUserHandler', () => {
       const existingUser = createExistingUser();
       mockUserRepository.findById.mockResolvedValue(existingUser);
 
-      const command = new UpdateUserCommand({ userId, firstName: 'Jane', lastName: 'Smith' });
+      const command = new UpdateUserCommand({
+        userId,
+        firstName: 'Jane',
+        lastName: 'Smith',
+      });
 
       const result = await handler.execute(command);
 

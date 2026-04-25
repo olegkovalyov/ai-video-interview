@@ -19,63 +19,104 @@ import {
 } from '../exceptions/user.exceptions';
 
 /**
- * User Aggregate Root
- * Central domain model representing a user in the system
- * Enforces business rules and maintains consistency
+ * Full state of a {@link User} aggregate. Used by the private constructor
+ * and `reconstitute` to restore an aggregate from persistence verbatim.
+ */
+export interface UserProps {
+  id: string;
+  externalAuthId: string;
+  email: Email;
+  fullName: FullName;
+  status: UserStatus;
+  role: UserRole;
+  avatarUrl?: string;
+  bio?: string;
+  phone?: string;
+  timezone?: string;
+  language?: string;
+  emailVerified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastLoginAt?: Date;
+}
+
+/**
+ * Caller-supplied subset for {@link User.create} — defaults are filled in
+ * by the factory (status=active, role=pending, timestamps=now, etc).
+ */
+export interface CreateUserArgs {
+  id: string;
+  externalAuthId: string;
+  email: Email;
+  fullName: FullName;
+}
+
+/**
+ * Optional fields for {@link User.updateProfile}. `fullName` is required
+ * because the aggregate's name is never absent.
+ */
+export interface UpdateUserProfileArgs {
+  fullName: FullName;
+  bio?: string;
+  phone?: string;
+  timezone?: string;
+  language?: string;
+}
+
+/**
+ * User Aggregate Root.
+ * Central domain model representing a user in the system; enforces
+ * business rules and maintains consistency.
  */
 export class User extends AggregateRoot {
-  private constructor(
-    private readonly _id: string,
-    private readonly _externalAuthId: string,
-    private _email: Email,
-    private _fullName: FullName,
-    private _status: UserStatus,
-    private _role: UserRole,
-    private _avatarUrl?: string,
-    private _bio?: string,
-    private _phone?: string,
-    private _timezone: string = 'UTC',
-    private _language: string = 'en',
-    private _emailVerified: boolean = false,
-    private readonly _createdAt: Date = new Date(),
-    private _updatedAt: Date = new Date(),
-    private _lastLoginAt?: Date,
-  ) {
+  private readonly _id: string;
+  private readonly _externalAuthId: string;
+  private _email: Email;
+  private _fullName: FullName;
+  private _status: UserStatus;
+  private _role: UserRole;
+  private _avatarUrl?: string;
+  private _bio?: string;
+  private _phone?: string;
+  private _timezone: string;
+  private _language: string;
+  private _emailVerified: boolean;
+  private readonly _createdAt: Date;
+  private _updatedAt: Date;
+  private _lastLoginAt?: Date;
+
+  private constructor(props: UserProps) {
     super();
+    this._id = props.id;
+    this._externalAuthId = props.externalAuthId;
+    this._email = props.email;
+    this._fullName = props.fullName;
+    this._status = props.status;
+    this._role = props.role;
+    this._avatarUrl = props.avatarUrl;
+    this._bio = props.bio;
+    this._phone = props.phone;
+    this._timezone = props.timezone ?? 'UTC';
+    this._language = props.language ?? 'en';
+    this._emailVerified = props.emailVerified ?? false;
+    this._createdAt = props.createdAt ?? new Date();
+    this._updatedAt = props.updatedAt ?? new Date();
+    this._lastLoginAt = props.lastLoginAt;
   }
 
-  // ========================================
-  // FACTORY METHODS
-  // ========================================
-
   /**
-   * Create a new user (factory method)
-   * Emits UserCreatedEvent
+   * Create a new user (factory). Emits {@link UserCreatedEvent}.
    */
-  public static create(
-    id: string,
-    externalAuthId: string,
-    email: Email,
-    fullName: FullName,
-  ): User {
-    const user = new User(
-      id,
-      externalAuthId,
-      email,
-      fullName,
-      UserStatus.active(),
-      UserRole.pending(), // New users start with pending role
-      undefined,
-      undefined,
-      undefined,
-      'UTC',
-      'en',
-      false,
-      new Date(),
-      new Date(),
-    );
+  public static create(args: CreateUserArgs): User {
+    const user = new User({
+      id: args.id,
+      externalAuthId: args.externalAuthId,
+      email: args.email,
+      fullName: args.fullName,
+      status: UserStatus.active(),
+      role: UserRole.pending(),
+    });
 
-    // Domain Event: User created
     user.apply(
       new UserCreatedEvent({
         userId: user.id,
@@ -90,91 +131,48 @@ export class User extends AggregateRoot {
   }
 
   /**
-   * Reconstitute user from persistence (no events emitted)
-   * Used by repository to rebuild aggregate from database
+   * Reconstitute user from persistence (no events emitted).
    */
-  public static reconstitute(
-    id: string,
-    externalAuthId: string,
-    email: Email,
-    fullName: FullName,
-    status: UserStatus,
-    role: UserRole,
-    avatarUrl?: string,
-    bio?: string,
-    phone?: string,
-    timezone?: string,
-    language?: string,
-    emailVerified?: boolean,
-    createdAt?: Date,
-    updatedAt?: Date,
-    lastLoginAt?: Date,
-  ): User {
-    return new User(
-      id,
-      externalAuthId,
-      email,
-      fullName,
-      status,
-      role,
-      avatarUrl,
-      bio,
-      phone,
-      timezone || 'UTC',
-      language || 'en',
-      emailVerified,
-      createdAt,
-      updatedAt,
-      lastLoginAt,
-    );
+  public static reconstitute(props: UserProps): User {
+    return new User(props);
   }
 
-  // ========================================
-  // BUSINESS LOGIC (Domain Methods)
-  // ========================================
-
   /**
-   * Update user profile
-   * Validates state and emits UserUpdatedEvent
+   * Update user profile. Emits {@link UserUpdatedEvent} only when at
+   * least one field actually changed.
    */
-  public updateProfile(
-    fullName: FullName,
-    bio?: string,
-    phone?: string,
-    timezone?: string,
-    language?: string,
-  ): void {
+  public updateProfile(args: UpdateUserProfileArgs): void {
     this.ensureNotDeleted();
     this.ensureNotSuspended();
 
     const changes: UserProfileChanges = {};
 
-    if (!this._fullName.equals(fullName)) {
-      this._fullName = fullName;
+    if (!this._fullName.equals(args.fullName)) {
+      this._fullName = args.fullName;
       changes.fullName = {
-        firstName: fullName.firstName,
-        lastName: fullName.lastName,
+        firstName: args.fullName.firstName,
+        lastName: args.fullName.lastName,
       };
     }
 
-    if (bio !== undefined && bio !== this._bio) {
-      this._bio = bio;
-      changes.bio = bio;
+    if (args.bio !== undefined && args.bio !== this._bio) {
+      this._bio = args.bio;
+      changes.bio = args.bio;
     }
 
-    if (phone !== undefined && phone !== this._phone) {
-      this._phone = phone;
-      changes.phone = phone;
+    if (args.phone !== undefined && args.phone !== this._phone) {
+      this._phone = args.phone;
+      changes.phone = args.phone;
     }
 
-    if (timezone !== undefined && timezone !== this._timezone) {
-      this._timezone = timezone;
-      changes.timezone = timezone;
+    if (args.timezone !== undefined && args.timezone !== this._timezone) {
+      this._timezone = args.timezone;
+      changes.timezone = args.timezone;
     }
 
-    if (language !== undefined && language !== this._language) {
-      this._language = language;
-      changes.language = language;
+    if (args.language !== undefined && args.language !== this._language) {
+      this._language = args.language;
+      changes.language = args.language;
     }
 
     if (Object.keys(changes).length > 0) {
@@ -184,18 +182,15 @@ export class User extends AggregateRoot {
   }
 
   /**
-   * Change email address
-   * Resets email verification and emits UserUpdatedEvent
+   * Change email address. Resets verification and emits event.
    */
   public changeEmail(email: Email): void {
     this.ensureNotDeleted();
 
-    if (this._email.equals(email)) {
-      return; // No change needed
-    }
+    if (this._email.equals(email)) return;
 
     this._email = email;
-    this._emailVerified = false; // Reset verification when email changes
+    this._emailVerified = false;
     this._updatedAt = new Date();
 
     this.apply(
@@ -206,30 +201,19 @@ export class User extends AggregateRoot {
     );
   }
 
-  /**
-   * Mark email as verified
-   */
   public verifyEmail(): void {
     this.ensureNotDeleted();
 
-    if (this._emailVerified) {
-      return; // Already verified
-    }
+    if (this._emailVerified) return;
 
     this._emailVerified = true;
     this._updatedAt = new Date();
 
-    this.apply(
-      new UserUpdatedEvent(this._id, {
-        emailVerified: true,
-      }),
-    );
+    this.apply(new UserUpdatedEvent(this._id, { emailVerified: true }));
   }
 
   /**
-   * Suspend user account
-   * Only active users can be suspended
-   * Emits UserSuspendedEvent
+   * Suspend user account. Only active users can be suspended.
    */
   public suspend(reason: string, suspendedBy: string): void {
     this.ensureNotDeleted();
@@ -244,17 +228,10 @@ export class User extends AggregateRoot {
     this.apply(new UserSuspendedEvent(this._id, reason, suspendedBy));
   }
 
-  /**
-   * Activate user account
-   * Can reactivate suspended users
-   * Emits UserActivatedEvent
-   */
   public activate(): void {
     this.ensureNotDeleted();
 
-    if (this._status.isActive()) {
-      return; // Already active
-    }
+    if (this._status.isActive()) return;
 
     const previousStatus = this._status.value;
     this._status = UserStatus.active();
@@ -263,15 +240,8 @@ export class User extends AggregateRoot {
     this.apply(new UserActivatedEvent(this._id, previousStatus));
   }
 
-  /**
-   * Delete user (hard delete)
-   * Emits UserDeletedEvent
-   * Actual deletion from DB happens in repository
-   */
   public delete(deletedBy: string): void {
-    if (this._status.isDeleted()) {
-      return; // Already deleted
-    }
+    if (this._status.isDeleted()) return;
 
     this._status = UserStatus.deleted();
     this._updatedAt = new Date();
@@ -279,10 +249,6 @@ export class User extends AggregateRoot {
     this.apply(new UserDeletedEvent(this._id, deletedBy));
   }
 
-  /**
-   * Upload avatar
-   * Updates avatar URL and emits event
-   */
   public uploadAvatar(avatarUrl: string): void {
     this.ensureNotDeleted();
     this.ensureNotSuspended();
@@ -294,50 +260,34 @@ export class User extends AggregateRoot {
     this._avatarUrl = avatarUrl;
     this._updatedAt = new Date();
 
-    this.apply(
-      new UserUpdatedEvent(this._id, {
-        avatarUrl,
-      }),
-    );
+    this.apply(new UserUpdatedEvent(this._id, { avatarUrl }));
   }
 
-  /**
-   * Remove avatar
-   */
   public removeAvatar(): void {
     this.ensureNotDeleted();
     this.ensureNotSuspended();
 
-    if (!this._avatarUrl) {
-      return; // No avatar to remove
-    }
+    if (!this._avatarUrl) return;
 
     this._avatarUrl = undefined;
     this._updatedAt = new Date();
 
-    this.apply(
-      new UserUpdatedEvent(this._id, {
-        avatarUrl: null,
-      }),
-    );
+    this.apply(new UserUpdatedEvent(this._id, { avatarUrl: null }));
   }
 
   /**
-   * Select user role (can only be done once!)
-   * Validates that role is pending before selection
-   * Role is immutable after selection
+   * Select user role. Can only be done once — role is immutable after
+   * selection.
    */
   public selectRole(role: UserRole): void {
     this.ensureNotDeleted();
 
-    // Can only select role if currently pending
     if (!this._role.isPending()) {
       throw new InvalidUserOperationException(
         'Role has already been selected and cannot be changed',
       );
     }
 
-    // Cannot select pending as a role
     if (role.isPending()) {
       throw new DomainException('Cannot explicitly select pending role');
     }
@@ -345,15 +295,11 @@ export class User extends AggregateRoot {
     this._role = role;
     this._updatedAt = new Date();
 
-    this.apply(
-      new UserUpdatedEvent(this._id, {
-        role: role.toString(),
-      }),
-    );
+    this.apply(new UserUpdatedEvent(this._id, { role: role.toString() }));
   }
 
   // ========================================
-  // INVARIANTS (Business Rules Protection)
+  // INVARIANTS
   // ========================================
 
   private ensureNotDeleted(): void {
@@ -369,7 +315,7 @@ export class User extends AggregateRoot {
   }
 
   // ========================================
-  // GETTERS (No setters - immutability!)
+  // GETTERS
   // ========================================
 
   public get id(): string {
@@ -428,7 +374,6 @@ export class User extends AggregateRoot {
     return this._lastLoginAt;
   }
 
-  // Convenience getters
   public get isActive(): boolean {
     return this._status.isActive();
   }
@@ -445,7 +390,6 @@ export class User extends AggregateRoot {
     return this._role;
   }
 
-  // Role type guards
   public get isPendingRole(): boolean {
     return this._role.isPending();
   }

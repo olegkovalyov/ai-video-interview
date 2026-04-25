@@ -78,20 +78,22 @@ export class AddCandidateSkillHandler
 
     // 5. Add skill to profile
     const candidateSkillId = uuid();
-    profile.addSkill(
-      command.skillId,
+    profile.addSkill({
+      skillId: command.skillId,
       candidateSkillId,
-      command.description,
-      proficiency,
-      years,
-    );
+      description: command.description,
+      proficiencyLevel: proficiency,
+      yearsOfExperience: years,
+    });
 
     // 6. Save profile
     await this.profileRepository.save(profile);
 
     // 7. Publish domain events
     const events = profile.getUncommittedEvents();
-    events.forEach((event) => { this.eventBus.publish(event); });
+    events.forEach((event) => {
+      this.eventBus.publish(event);
+    });
     profile.clearEvents();
 
     this.logger.info('Skill added to candidate profile successfully', {

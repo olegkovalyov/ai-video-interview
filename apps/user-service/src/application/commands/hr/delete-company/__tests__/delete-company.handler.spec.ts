@@ -58,21 +58,21 @@ describe('DeleteCompanyHandler', () => {
     id: string = 'company-id-1',
     createdBy: string = 'hr-user-id',
   ): Company => {
-    return Company.reconstitute(
+    return Company.reconstitute({
       id,
-      'Test Company',
-      'Description',
-      'https://company.com',
-      'https://company.com/logo.png',
-      'Technology',
-      CompanySize.fromString('51-200'),
-      'San Francisco, CA',
-      true,
+      name: 'Test Company',
+      description: 'Description',
+      website: 'https://company.com',
+      logoUrl: 'https://company.com/logo.png',
+      industry: 'Technology',
+      size: CompanySize.fromString('51-200'),
+      location: 'San Francisco, CA',
+      isActive: true,
       createdBy,
-      [], // users
-      new Date(),
-      new Date(),
-    );
+      users: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   };
 
   describe('Success Cases', () => {

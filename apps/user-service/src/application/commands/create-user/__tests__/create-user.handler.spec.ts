@@ -86,7 +86,13 @@ describe('CreateUserHandler', () => {
 
   describe('execute', () => {
     it('should create a new user successfully', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       const result = await handler.execute(command);
 
@@ -101,7 +107,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should check for existing user by externalAuthId', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -111,7 +123,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should check for existing user by email', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -119,15 +137,21 @@ describe('CreateUserHandler', () => {
     });
 
     it('should throw UserAlreadyExistsException when user exists by externalAuthId', async () => {
-      const existingUser = User.create(
-        'existing-id',
+      const existingUser = User.create({
+        id: 'existing-id',
         externalAuthId,
-        Email.create(emailValue),
-        FullName.create(firstName, lastName),
-      );
+        email: Email.create(emailValue),
+        fullName: FullName.create(firstName, lastName),
+      });
       mockUserRepository.findByExternalAuthId.mockResolvedValue(existingUser);
 
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await expect(handler.execute(command)).rejects.toThrow(
         UserAlreadyExistsException,
@@ -135,15 +159,21 @@ describe('CreateUserHandler', () => {
     });
 
     it('should throw UserAlreadyExistsException when user exists by email', async () => {
-      const existingUser = User.create(
-        'existing-id',
-        'other-auth-id',
-        Email.create(emailValue),
-        FullName.create(firstName, lastName),
-      );
+      const existingUser = User.create({
+        id: 'existing-id',
+        externalAuthId: 'other-auth-id',
+        email: Email.create(emailValue),
+        fullName: FullName.create(firstName, lastName),
+      });
       mockUserRepository.findByEmail.mockResolvedValue(existingUser);
 
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await expect(handler.execute(command)).rejects.toThrow(
         UserAlreadyExistsException,
@@ -151,7 +181,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should execute save and outbox within UnitOfWork transaction', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -160,7 +196,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should save user via repository with transaction context', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -172,7 +214,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should save outbox event with correct type and payload within transaction', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -194,7 +242,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should publish domain events via EventBus after UnitOfWork commit', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -202,7 +256,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should schedule outbox publishing after UnitOfWork commit', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -213,7 +273,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should log user creation start and success', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await handler.execute(command);
 
@@ -235,15 +301,21 @@ describe('CreateUserHandler', () => {
     });
 
     it('should not save to repository or outbox when user already exists', async () => {
-      const existingUser = User.create(
-        'existing-id',
+      const existingUser = User.create({
+        id: 'existing-id',
         externalAuthId,
-        Email.create(emailValue),
-        FullName.create(firstName, lastName),
-      );
+        email: Email.create(emailValue),
+        fullName: FullName.create(firstName, lastName),
+      });
       mockUserRepository.findByExternalAuthId.mockResolvedValue(existingUser);
 
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       await expect(handler.execute(command)).rejects.toThrow();
 
@@ -254,7 +326,13 @@ describe('CreateUserHandler', () => {
     });
 
     it('should return the created user aggregate', async () => {
-      const command = new CreateUserCommand({ userId, externalAuthId, email: emailValue, firstName, lastName });
+      const command = new CreateUserCommand({
+        userId,
+        externalAuthId,
+        email: emailValue,
+        firstName,
+        lastName,
+      });
 
       const result = await handler.execute(command);
 

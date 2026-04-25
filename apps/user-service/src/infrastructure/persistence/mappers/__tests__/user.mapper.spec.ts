@@ -58,26 +58,26 @@ describe('UserMapper', () => {
       lastLoginAt?: Date;
     } = {},
   ): User => {
-    return User.reconstitute(
-      overrides.id ?? uuidv4(),
-      overrides.externalAuthId ?? uuidv4(),
-      Email.create(overrides.email ?? 'john.doe@example.com'),
-      FullName.create(
+    return User.reconstitute({
+      id: overrides.id ?? uuidv4(),
+      externalAuthId: overrides.externalAuthId ?? uuidv4(),
+      email: Email.create(overrides.email ?? 'john.doe@example.com'),
+      fullName: FullName.create(
         overrides.firstName ?? 'John',
         overrides.lastName ?? 'Doe',
       ),
-      overrides.status ?? UserStatus.active(),
-      overrides.role ?? UserRole.candidate(),
-      overrides.avatarUrl ?? 'https://cdn.example.com/avatar.png',
-      overrides.bio ?? 'Software engineer with 10 years of experience',
-      overrides.phone ?? '+1234567890',
-      overrides.timezone ?? 'America/New_York',
-      overrides.language ?? 'en',
-      overrides.emailVerified ?? true,
-      overrides.createdAt ?? new Date('2025-01-15T10:00:00Z'),
-      overrides.updatedAt ?? new Date('2025-06-20T14:30:00Z'),
-      overrides.lastLoginAt ?? new Date('2025-06-20T14:00:00Z'),
-    );
+      status: overrides.status ?? UserStatus.active(),
+      role: overrides.role ?? UserRole.candidate(),
+      avatarUrl: overrides.avatarUrl ?? 'https://cdn.example.com/avatar.png',
+      bio: overrides.bio ?? 'Software engineer with 10 years of experience',
+      phone: overrides.phone ?? '+1234567890',
+      timezone: overrides.timezone ?? 'America/New_York',
+      language: overrides.language ?? 'en',
+      emailVerified: overrides.emailVerified ?? true,
+      createdAt: overrides.createdAt ?? new Date('2025-01-15T10:00:00Z'),
+      updatedAt: overrides.updatedAt ?? new Date('2025-06-20T14:30:00Z'),
+      lastLoginAt: overrides.lastLoginAt ?? new Date('2025-06-20T14:00:00Z'),
+    });
   };
 
   describe('toEntity()', () => {
@@ -129,22 +129,19 @@ describe('UserMapper', () => {
     });
 
     it('should map null for optional fields when undefined', () => {
-      const user = User.reconstitute(
-        uuidv4(),
-        uuidv4(),
-        Email.create('test@example.com'),
-        FullName.create('Test', 'User'),
-        UserStatus.active(),
-        UserRole.pending(),
-        undefined, // avatarUrl
-        undefined, // bio
-        undefined, // phone
-        'UTC',
-        'en',
-        false,
-        new Date(),
-        new Date(),
-      );
+      const user = User.reconstitute({
+        id: uuidv4(),
+        externalAuthId: uuidv4(),
+        email: Email.create('test@example.com'),
+        fullName: FullName.create('Test', 'User'),
+        status: UserStatus.active(),
+        role: UserRole.pending(),
+        timezone: 'UTC',
+        language: 'en',
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
       const entity = mapper.toEntity(user);
 
@@ -292,23 +289,23 @@ describe('UserMapper', () => {
       const updatedAt = new Date('2025-06-01T12:00:00Z');
       const lastLoginAt = new Date('2025-06-01T11:00:00Z');
 
-      const original = User.reconstitute(
+      const original = User.reconstitute({
         id,
         externalAuthId,
-        Email.create('roundtrip@example.com'),
-        FullName.create('Round', 'Trip'),
-        UserStatus.active(),
-        UserRole.candidate(),
-        'https://cdn.example.com/roundtrip.png',
-        'A bio for testing',
-        '+1111111111',
-        'Asia/Tokyo',
-        'ja',
-        true,
+        email: Email.create('roundtrip@example.com'),
+        fullName: FullName.create('Round', 'Trip'),
+        status: UserStatus.active(),
+        role: UserRole.candidate(),
+        avatarUrl: 'https://cdn.example.com/roundtrip.png',
+        bio: 'A bio for testing',
+        phone: '+1111111111',
+        timezone: 'Asia/Tokyo',
+        language: 'ja',
+        emailVerified: true,
         createdAt,
         updatedAt,
         lastLoginAt,
-      );
+      });
 
       const entity = mapper.toEntity(original);
       const restored = mapper.toDomain(entity);
@@ -332,22 +329,19 @@ describe('UserMapper', () => {
     });
 
     it('should preserve values with null optional fields through round-trip', () => {
-      const original = User.reconstitute(
-        uuidv4(),
-        uuidv4(),
-        Email.create('minimal@example.com'),
-        FullName.create('Minimal', 'User'),
-        UserStatus.active(),
-        UserRole.pending(),
-        undefined,
-        undefined,
-        undefined,
-        'UTC',
-        'en',
-        false,
-        new Date('2025-01-01T00:00:00Z'),
-        new Date('2025-01-01T00:00:00Z'),
-      );
+      const original = User.reconstitute({
+        id: uuidv4(),
+        externalAuthId: uuidv4(),
+        email: Email.create('minimal@example.com'),
+        fullName: FullName.create('Minimal', 'User'),
+        status: UserStatus.active(),
+        role: UserRole.pending(),
+        timezone: 'UTC',
+        language: 'en',
+        emailVerified: false,
+        createdAt: new Date('2025-01-01T00:00:00Z'),
+        updatedAt: new Date('2025-01-01T00:00:00Z'),
+      });
 
       const entity = mapper.toEntity(original);
       const restored = mapper.toDomain(entity);
@@ -362,12 +356,12 @@ describe('UserMapper', () => {
     it('should preserve User.create() values through round-trip', () => {
       const id = uuidv4();
       const externalAuthId = uuidv4();
-      const user = User.create(
+      const user = User.create({
         id,
         externalAuthId,
-        Email.create('created@example.com'),
-        FullName.create('Created', 'User'),
-      );
+        email: Email.create('created@example.com'),
+        fullName: FullName.create('Created', 'User'),
+      });
 
       const entity = mapper.toEntity(user);
       const restored = mapper.toDomain(entity);

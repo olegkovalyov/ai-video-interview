@@ -73,27 +73,24 @@ describe('SelectRoleHandler', () => {
   });
 
   const createPendingUser = (id: string = 'user-id-1'): User => {
-    return User.reconstitute(
+    return User.reconstitute({
       id,
-      'ext-auth-id-1',
-      Email.create('test@example.com'),
-      FullName.create('John', 'Doe'),
-      {
+      externalAuthId: 'ext-auth-id-1',
+      email: Email.create('test@example.com'),
+      fullName: FullName.create('John', 'Doe'),
+      status: {
         value: 'active',
         isActive: () => true,
         isSuspended: () => false,
         isDeleted: () => false,
       } as any,
-      UserRole.pending(),
-      undefined,
-      undefined,
-      undefined,
-      'UTC',
-      'en',
-      false,
-      new Date(),
-      new Date(),
-    );
+      role: UserRole.pending(),
+      timezone: 'UTC',
+      language: 'en',
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   };
 
   describe('Success Cases', () => {
@@ -265,27 +262,24 @@ describe('SelectRoleHandler', () => {
 
     it('should throw when role already selected (not pending)', async () => {
       // Arrange - user with non-pending role
-      const user = User.reconstitute(
-        'user-id-1',
-        'ext-auth-id-1',
-        Email.create('test@example.com'),
-        FullName.create('John', 'Doe'),
-        {
+      const user = User.reconstitute({
+        id: 'user-id-1',
+        externalAuthId: 'ext-auth-id-1',
+        email: Email.create('test@example.com'),
+        fullName: FullName.create('John', 'Doe'),
+        status: {
           value: 'active',
           isActive: () => true,
           isSuspended: () => false,
           isDeleted: () => false,
         } as any,
-        UserRole.candidate(), // Already candidate
-        undefined,
-        undefined,
-        undefined,
-        'UTC',
-        'en',
-        false,
-        new Date(),
-        new Date(),
-      );
+        role: UserRole.candidate(), // Already candidate
+        timezone: 'UTC',
+        language: 'en',
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
       mockUserRepository.findById.mockResolvedValue(user);
 
       const command = new SelectRoleCommand('user-id-1', 'hr');

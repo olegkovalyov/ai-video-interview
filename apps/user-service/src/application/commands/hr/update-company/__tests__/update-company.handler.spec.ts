@@ -65,21 +65,21 @@ describe('UpdateCompanyHandler', () => {
     id: string = 'company-id-1',
     createdBy: string = 'hr-user-id',
   ): Company => {
-    return Company.reconstitute(
+    return Company.reconstitute({
       id,
-      'Original Name',
-      'Original description',
-      'https://original.com',
-      'https://original.com/logo.png',
-      'Technology',
-      CompanySize.fromString('51-200'),
-      'San Francisco, CA',
-      true,
+      name: 'Original Name',
+      description: 'Original description',
+      website: 'https://original.com',
+      logoUrl: 'https://original.com/logo.png',
+      industry: 'Technology',
+      size: CompanySize.fromString('51-200'),
+      location: 'San Francisco, CA',
+      isActive: true,
       createdBy,
-      [], // users
-      new Date(),
-      new Date(),
-    );
+      users: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   };
 
   describe('Success Cases', () => {

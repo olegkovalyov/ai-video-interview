@@ -25,18 +25,18 @@ describe('DeleteUserHandler', () => {
   const deletedBy = 'admin-789';
 
   const createExistingUser = (): User => {
-    return User.reconstitute(
-      userId,
+    return User.reconstitute({
+      id: userId,
       externalAuthId,
-      Email.create(emailValue),
-      FullName.create('John', 'Doe'),
-      {
+      email: Email.create(emailValue),
+      fullName: FullName.create('John', 'Doe'),
+      status: {
         value: 'active',
         isActive: () => true,
         isSuspended: () => false,
         isDeleted: () => false,
       } as any,
-      {
+      role: {
         value: 'candidate',
         isPending: () => false,
         isCandidate: () => true,
@@ -44,15 +44,12 @@ describe('DeleteUserHandler', () => {
         isAdmin: () => false,
         toString: () => 'candidate',
       } as any,
-      undefined, // avatarUrl
-      undefined, // bio
-      undefined, // phone
-      'UTC', // timezone
-      'en', // language
-      false, // emailVerified
-      new Date(), // createdAt
-      new Date(), // updatedAt
-    );
+      timezone: 'UTC',
+      language: 'en',
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   };
 
   beforeEach(async () => {

@@ -19,19 +19,19 @@ describe('Company Aggregate', () => {
 
   describe('Factory Method - create', () => {
     it('should create company with all fields', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(company.id).toBe(validId);
       expect(company.name).toBe(validName);
@@ -49,19 +49,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should automatically add creator as first user with isPrimary=true', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(company.users).toHaveLength(1);
       expect(company.users[0].userId).toBe(validCreatedBy);
@@ -70,19 +70,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should create with minimal fields (nulls)', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        validCreatedBy,
-        validUserCompanyId,
-        null, // No position
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: null,
+      });
 
       expect(company.description).toBeNull();
       expect(company.website).toBeNull();
@@ -94,19 +94,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should trim all string fields', () => {
-      const company = Company.create(
-        validId,
-        '  TechCorp  ',
-        '  Description  ',
-        '  https://site.com  ',
-        '  logo.png  ',
-        '  Tech  ',
-        validSize,
-        '  SF  ',
-        validCreatedBy,
-        validUserCompanyId,
-        '  Manager  ',
-      );
+      const company = Company.create({
+        id: validId,
+        name: '  TechCorp  ',
+        description: '  Description  ',
+        website: '  https://site.com  ',
+        logoUrl: '  logo.png  ',
+        industry: '  Tech  ',
+        size: validSize,
+        location: '  SF  ',
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: '  Manager  ',
+      });
 
       expect(company.name).toBe('TechCorp');
       expect(company.description).toBe('Description');
@@ -117,19 +117,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should publish CompanyCreatedEvent', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       const events = company.getUncommittedEvents();
       expect(events).toHaveLength(1);
@@ -143,87 +143,87 @@ describe('Company Aggregate', () => {
 
     it('should throw error for empty name', () => {
       expect(() =>
-        Company.create(
-          validId,
-          '',
-          validDescription,
-          validWebsite,
-          validLogoUrl,
-          validIndustry,
-          validSize,
-          validLocation,
-          validCreatedBy,
-          validUserCompanyId,
-          validPosition,
-        ),
+        Company.create({
+          id: validId,
+          name: '',
+          description: validDescription,
+          website: validWebsite,
+          logoUrl: validLogoUrl,
+          industry: validIndustry,
+          size: validSize,
+          location: validLocation,
+          createdBy: validCreatedBy,
+          userCompanyId: validUserCompanyId,
+          position: validPosition,
+        }),
       ).toThrow('Company name cannot be empty');
     });
 
     it('should throw error for name exceeding max length', () => {
       const longName = 'a'.repeat(256);
       expect(() =>
-        Company.create(
-          validId,
-          longName,
-          validDescription,
-          validWebsite,
-          validLogoUrl,
-          validIndustry,
-          validSize,
-          validLocation,
-          validCreatedBy,
-          validUserCompanyId,
-          validPosition,
-        ),
+        Company.create({
+          id: validId,
+          name: longName,
+          description: validDescription,
+          website: validWebsite,
+          logoUrl: validLogoUrl,
+          industry: validIndustry,
+          size: validSize,
+          location: validLocation,
+          createdBy: validCreatedBy,
+          userCompanyId: validUserCompanyId,
+          position: validPosition,
+        }),
       ).toThrow('Company name is too long (max 255 characters)');
     });
 
     it('should throw error for empty creator ID', () => {
       expect(() =>
-        Company.create(
-          validId,
-          validName,
-          validDescription,
-          validWebsite,
-          validLogoUrl,
-          validIndustry,
-          validSize,
-          validLocation,
-          '',
-          validUserCompanyId,
-          validPosition,
-        ),
+        Company.create({
+          id: validId,
+          name: validName,
+          description: validDescription,
+          website: validWebsite,
+          logoUrl: validLogoUrl,
+          industry: validIndustry,
+          size: validSize,
+          location: validLocation,
+          createdBy: '',
+          userCompanyId: validUserCompanyId,
+          position: validPosition,
+        }),
       ).toThrow('Creator ID cannot be empty');
     });
   });
 
   describe('Business Logic - Update', () => {
     it('should update all fields', () => {
-      const company = Company.create(
-        validId,
-        'Old Name',
-        'Old Description',
-        'https://old.com',
-        'old-logo.png',
-        'Old Industry',
-        CompanySize.small(),
-        'Old Location',
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: 'Old Name',
+        description: 'Old Description',
+        website: 'https://old.com',
+        logoUrl: 'old-logo.png',
+        industry: 'Old Industry',
+        size: CompanySize.small(),
+        location: 'Old Location',
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       company.clearEvents();
 
-      company.update(
-        'New Name',
-        'New Description',
-        'https://new.com',
-        'new-logo.png',
-        'New Industry',
-        CompanySize.enterprise(),
-        'New Location',
-      );
+      company.update({
+        name: 'New Name',
+        description: 'New Description',
+        website: 'https://new.com',
+        logoUrl: 'new-logo.png',
+        industry: 'New Industry',
+        size: CompanySize.enterprise(),
+        location: 'New Location',
+      });
 
       expect(company.name).toBe('New Name');
       expect(company.description).toBe('New Description');
@@ -235,31 +235,31 @@ describe('Company Aggregate', () => {
     });
 
     it('should publish CompanyUpdatedEvent with changes', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       company.clearEvents();
 
-      company.update(
-        'Updated Name',
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-      );
+      company.update({
+        name: 'Updated Name',
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+      });
 
       const events = company.getUncommittedEvents();
       expect(events).toHaveLength(1);
@@ -270,84 +270,89 @@ describe('Company Aggregate', () => {
     });
 
     it('should not publish event if no changes', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       company.clearEvents();
 
       // Update with same values
-      company.update(
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-      );
+      company.update({
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+      });
 
       const events = company.getUncommittedEvents();
       expect(events).toHaveLength(0);
     });
 
     it('should throw error for empty name', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(() =>
-        company.update(
-          '',
-          validDescription,
-          validWebsite,
-          validLogoUrl,
-          validIndustry,
-          validSize,
-          validLocation,
-        ),
+        company.update({
+          name: '',
+          description: validDescription,
+          website: validWebsite,
+          logoUrl: validLogoUrl,
+          industry: validIndustry,
+          size: validSize,
+          location: validLocation,
+        }),
       ).toThrow('Company name cannot be empty');
     });
   });
 
   describe('Business Logic - Add/Remove Users', () => {
     it('should add user to company', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       const newUserId = 'user-new';
-      company.addUser('uc-new', newUserId, 'Recruiter', false);
+      company.addUser({
+        userCompanyId: 'uc-new',
+        userId: newUserId,
+        position: 'Recruiter',
+        isPrimary: false,
+      });
 
       expect(company.users).toHaveLength(2);
       expect(company.users[1].userId).toBe(newUserId);
@@ -356,47 +361,52 @@ describe('Company Aggregate', () => {
     });
 
     it('should throw error when adding duplicate user', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(() =>
-        company.addUser(
-          'uc-duplicate',
-          validCreatedBy,
-          'Another Position',
-          false,
-        ),
+        company.addUser({
+          userCompanyId: 'uc-duplicate',
+          userId: validCreatedBy,
+          position: 'Another Position',
+          isPrimary: false,
+        }),
       ).toThrow('User already associated with this company');
     });
 
     it('should remove user from company', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       const newUserId = 'user-new';
-      company.addUser('uc-new', newUserId, 'Recruiter', false);
+      company.addUser({
+        userCompanyId: 'uc-new',
+        userId: newUserId,
+        position: 'Recruiter',
+        isPrimary: false,
+      });
 
       expect(company.users).toHaveLength(2);
 
@@ -407,19 +417,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should throw error when removing creator', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(() => company.removeUser(validCreatedBy)).toThrow(
         'Cannot remove company creator',
@@ -427,19 +437,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should throw error when removing non-existent user', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(() => company.removeUser('non-existent')).toThrow(
         'User not found in company',
@@ -449,19 +459,19 @@ describe('Company Aggregate', () => {
 
   describe('Business Logic - Update User Position', () => {
     it('should update user position', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        'Old Position',
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: 'Old Position',
+      });
 
       company.updateUserPosition(validCreatedBy, 'New Position');
 
@@ -469,19 +479,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should throw error for non-existent user', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(() =>
         company.updateUserPosition('non-existent', 'Position'),
@@ -491,19 +501,19 @@ describe('Company Aggregate', () => {
 
   describe('Business Logic - Set Primary Company', () => {
     it('should set user primary company', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       company.setUserPrimary(validCreatedBy);
 
@@ -511,19 +521,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should throw error for non-existent user', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       expect(() => company.setUserPrimary('non-existent')).toThrow(
         'User not found in company',
@@ -533,19 +543,19 @@ describe('Company Aggregate', () => {
 
   describe('Business Logic - Activate/Deactivate', () => {
     it('should deactivate company', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       company.clearEvents();
 
@@ -559,19 +569,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should activate company', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       company.deactivate();
       company.activate();
@@ -580,19 +590,19 @@ describe('Company Aggregate', () => {
     });
 
     it('should not change state if already inactive', () => {
-      const company = Company.create(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        validCreatedBy,
-        validUserCompanyId,
-        validPosition,
-      );
+      const company = Company.create({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        createdBy: validCreatedBy,
+        userCompanyId: validUserCompanyId,
+        position: validPosition,
+      });
 
       company.deactivate();
       const oldUpdatedAt = company.updatedAt;
@@ -607,21 +617,21 @@ describe('Company Aggregate', () => {
       const createdAt = new Date('2024-01-01');
       const updatedAt = new Date('2024-01-02');
 
-      const company = Company.reconstitute(
-        validId,
-        validName,
-        validDescription,
-        validWebsite,
-        validLogoUrl,
-        validIndustry,
-        validSize,
-        validLocation,
-        false, // inactive
-        validCreatedBy,
-        [],
+      const company = Company.reconstitute({
+        id: validId,
+        name: validName,
+        description: validDescription,
+        website: validWebsite,
+        logoUrl: validLogoUrl,
+        industry: validIndustry,
+        size: validSize,
+        location: validLocation,
+        isActive: false,
+        createdBy: validCreatedBy,
+        users: [],
         createdAt,
         updatedAt,
-      );
+      });
 
       expect(company.id).toBe(validId);
       expect(company.name).toBe(validName);
