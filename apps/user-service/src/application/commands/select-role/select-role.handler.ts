@@ -1,109 +1,20 @@
-import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject, Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import { SelectRoleCommand } from './select-role.command';
-import type { IUserRepository } from '../../../domain/repositories/user.repository.interface';
-import type { ICandidateProfileRepository } from '../../../domain/repositories/candidate-profile.repository.interface';
-import { UserRole } from '../../../domain/value-objects/user-role.vo';
-import { CandidateProfile } from '../../../domain/aggregates/candidate-profile.aggregate';
-import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
-import { USER_EVENT_TYPES } from '../../../domain/constants';
-import type { IOutboxService } from '../../interfaces/outbox-service.interface';
-import type { IUnitOfWork } from '../../interfaces/unit-of-work.interface';
-import { LoggerService } from '../../../infrastructure/logger/logger.service';
+import { RoleSelectionService } from '../../services/role-selection.service';
 
 /**
- * SelectRole Command Handler
- * Handles user role selection and creates corresponding profile
+ * Thin CQRS adapter over {@link RoleSelectionService}.
  */
 @Injectable()
 @CommandHandler(SelectRoleCommand)
 export class SelectRoleHandler implements ICommandHandler<SelectRoleCommand> {
-  constructor(
-    @Inject('IUserRepository')
-    private readonly userRepository: IUserRepository,
-    @Inject('ICandidateProfileRepository')
-    private readonly candidateProfileRepository: ICandidateProfileRepository,
-    private readonly eventBus: EventBus,
-    @Inject('IOutboxService')
-    private readonly outboxService: IOutboxService,
-    @Inject('IUnitOfWork')
-    private readonly unitOfWork: IUnitOfWork,
-    private readonly logger: LoggerService,
-  ) {}
+  constructor(private readonly roleSelection: RoleSelectionService) {}
 
-  async execute(command: SelectRoleCommand): Promise<void> {
-    const { userId, role } = command;
-
-    this.logger.info('Selecting role for user', { userId, role });
-
-    // 1. Get user
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new UserNotFoundException(userId);
-    }
-
-    // 2. Select role (domain validates that role is pending)
-    let userRole: UserRole;
-    switch (role) {
-      case 'candidate': {
-        userRole = UserRole.candidate();
-
-        break;
-      }
-      case 'hr': {
-        userRole = UserRole.hr();
-
-        break;
-      }
-      case 'admin': {
-        userRole = UserRole.admin();
-
-        break;
-      }
-      default: {
-        // `role` has been narrowed to `never` here — this branch exists
-        // only as a defensive guard for values outside the union at runtime.
-        throw new Error(`Invalid role: ${String(role)}`);
-      }
-    }
-
-    user.selectRole(userRole);
-
-    // 3. Atomic: save user + candidate profile + outbox in same transaction
-    const eventId = await this.unitOfWork.execute(async (tx) => {
-      if (role === 'candidate') {
-        const profile = CandidateProfile.create(userId);
-        await this.candidateProfileRepository.save(profile, tx);
-      }
-      await this.userRepository.save(user, tx);
-      return this.outboxService.saveEvent(
-        USER_EVENT_TYPES.ROLE_SELECTED,
-        {
-          userId: user.id,
-          companyId: user.id, // userId as companyId until separate company entity exists
-          externalAuthId: user.externalAuthId,
-          email: user.email.value,
-          role: user.role.toString(),
-          selectedAt: user.updatedAt.toISOString(),
-        },
-        user.id,
-        tx,
-      );
-    });
-
-    // 4. After commit: publish domain events (internal)
-    user.getUncommittedEvents().forEach((event) => {
-      this.eventBus.publish(event);
-    });
-    user.clearEvents();
-
-    // 5. Schedule BullMQ job for Kafka publishing
-    await this.outboxService.schedulePublishing([eventId]);
-
-    this.logger.info('Role selected successfully', {
-      userId: user.id,
-      email: user.email.value,
-      role: user.role.toString(),
+  execute(command: SelectRoleCommand): Promise<void> {
+    return this.roleSelection.select({
+      userId: command.userId,
+      role: command.role,
     });
   }
 }
