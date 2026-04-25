@@ -2,7 +2,7 @@ import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
 import type { KafkaMessage } from 'kafkajs';
 import { LoggerService } from '../../logger/logger.service';
-import { correlationStore } from '../../http/interceptors/correlation-id.store';
+import { withKafkaRequestContext } from '../with-kafka-request-context';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../../persistence/entities/user.entity';
@@ -57,31 +57,34 @@ export class AuthLoginConsumer implements OnModuleInit {
   }
 
   private async handleMessage(message: KafkaMessage): Promise<void> {
-    const correlationId =
-      message.headers?.['x-correlation-id']?.toString() || 'unknown';
+    await withKafkaRequestContext(
+      {
+        topic: KAFKA_TOPICS.AUTH_EVENTS,
+        operationName: `kafka.process ${KAFKA_TOPICS.AUTH_EVENTS}`,
+        message,
+      },
+      async () => {
+        try {
+          if (!message.value) {
+            this.logger.warn('Received message with null value', {
+              topic: KAFKA_TOPICS.AUTH_EVENTS,
+            });
+            return;
+          }
 
-    await correlationStore.run({ correlationId }, async () => {
-      try {
-        if (!message.value) {
-          this.logger.warn('Received message with null value', {
+          const event: unknown = JSON.parse(message.value.toString());
+
+          if (isUserAuthenticatedEvent(event)) {
+            await this.handleUserAuthenticated(event);
+          }
+        } catch (error) {
+          this.logger.error('Failed to process auth event', {
+            error: error instanceof Error ? error.message : String(error),
             topic: KAFKA_TOPICS.AUTH_EVENTS,
           });
-          return;
         }
-
-        const event: unknown = JSON.parse(message.value.toString());
-
-        // Only handle user.authenticated events
-        if (isUserAuthenticatedEvent(event)) {
-          await this.handleUserAuthenticated(event);
-        }
-      } catch (error) {
-        this.logger.error('Failed to process auth event', {
-          error: error instanceof Error ? error.message : String(error),
-          topic: KAFKA_TOPICS.AUTH_EVENTS,
-        });
-      }
-    });
+      },
+    );
   }
 
   private async handleUserAuthenticated(

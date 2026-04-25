@@ -5,6 +5,13 @@ jest.mock('@repo/shared', () => ({
   KafkaService: jest.fn(),
   KAFKA_TOPICS: { USER_EVENTS: 'user-events' },
   injectTraceContext: jest.fn().mockReturnValue({}),
+  // The processor wraps each invocation in withRestoredTrace to re-attach
+  // the originating request's parent span. Tests don't care about OTel —
+  // pass-through that simply runs `fn` keeps the existing assertions valid
+  // while the production path still gets real tracing.
+  withRestoredTrace: jest.fn(async (_options: unknown, fn: () => unknown) =>
+    fn(),
+  ),
 }));
 
 describe('OutboxPublisherProcessor', () => {

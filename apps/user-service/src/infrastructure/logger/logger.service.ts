@@ -4,12 +4,19 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import LokiTransport from 'winston-loki';
 import { prettyConsoleFormat, shouldEnableConsole } from './console.formatter';
-import { correlationStore } from '../http/interceptors/correlation-id.store';
+import { requestContextStore } from '../http/interceptors/request-context.store';
+import {
+  readRedactionMode,
+  redactPIIFields,
+  type RedactionMode,
+} from './redaction';
 
 export interface LogContext {
   userId?: string;
+  userEmail?: string;
   traceId?: string;
   correlationId?: string;
+  source?: string;
   sessionId?: string;
   action?: string;
   duration?: number;
@@ -25,6 +32,7 @@ export interface LogContext {
 export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
   private lokiErrorLogged = false;
+  private readonly redactionMode: RedactionMode = readRedactionMode();
 
   constructor() {
     const logsDir = LoggerService.ensureDailyLogDir();
@@ -135,19 +143,32 @@ export class LoggerService implements NestLoggerService {
   }
 
   /**
-   * Enriches log context with correlationId from AsyncLocalStorage.
-   * Automatically attached to every log entry within a request scope.
+   * Enriches log context with the current {@link RequestContext} pulled from
+   * AsyncLocalStorage. Auto-attached fields (correlationId, traceId, userId,
+   * userEmail, source) make every log entry searchable in Loki / Grafana
+   * without manual passing at call sites. Caller-provided fields win on
+   * collision so explicit context overrides ambient.
    */
-  private enrichWithCorrelationId(
+  private enrichWithRequestContext(
     context?: LogContext,
   ): LogContext | undefined {
-    const store = correlationStore.getStore();
-    if (!store?.correlationId) return context;
-    return { correlationId: store.correlationId, ...context };
+    const store = requestContextStore.getStore();
+    const merged: LogContext | undefined = store
+      ? {
+          correlationId: store.correlationId,
+          traceId: store.traceId,
+          userId: store.userId,
+          userEmail: store.userEmail,
+          source: store.source,
+          ...context,
+        }
+      : context;
+    if (!merged) return undefined;
+    return redactPIIFields(merged, this.redactionMode);
   }
 
   info(message: string, context?: LogContext) {
-    this.logger.info(message, this.enrichWithCorrelationId(context));
+    this.logger.info(message, this.enrichWithRequestContext(context));
   }
 
   /**
@@ -158,11 +179,11 @@ export class LoggerService implements NestLoggerService {
    */
   error(message: unknown, ...optionalParams: unknown[]) {
     if (optionalParams.length === 0) {
-      this.logger.error(String(message), this.enrichWithCorrelationId());
+      this.logger.error(String(message), this.enrichWithRequestContext());
       return;
     }
     const context = LoggerService.buildErrorContext(optionalParams);
-    this.logger.error(String(message), this.enrichWithCorrelationId(context));
+    this.logger.error(String(message), this.enrichWithRequestContext(context));
   }
 
   private static buildErrorContext(params: unknown[]): LogContext {
@@ -194,7 +215,7 @@ export class LoggerService implements NestLoggerService {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
     this.logger.warn(
       String(message),
-      this.enrichWithCorrelationId(
+      this.enrichWithRequestContext(
         typeof context === 'string' ? { context } : (context as LogContext),
       ),
     );
@@ -204,7 +225,7 @@ export class LoggerService implements NestLoggerService {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
     this.logger.debug(
       String(message),
-      this.enrichWithCorrelationId(
+      this.enrichWithRequestContext(
         typeof context === 'string' ? { context } : (context as LogContext),
       ),
     );

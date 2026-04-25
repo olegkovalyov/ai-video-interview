@@ -4,9 +4,11 @@ import { Repository, EntityManager } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { v4 as uuid } from 'uuid';
+import { trace } from '@opentelemetry/api';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 import type { IOutboxService } from '../../../application/interfaces/outbox-service.interface';
 import type { ITransactionContext } from '../../../application/interfaces/transaction-context.interface';
+import { requestContextStore } from '../../http/interceptors/request-context.store';
 import {
   OUTBOX_STATUS,
   BULL_QUEUE,
@@ -15,6 +17,13 @@ import {
   SERVICE_NAME,
   SERVICE_VERSION,
 } from '../../constants';
+
+interface CapturedObservability {
+  traceId: string | null;
+  parentSpanId: string | null;
+  correlationId: string | null;
+  userId: string | null;
+}
 
 /**
  * OUTBOX Service
@@ -127,6 +136,7 @@ export class OutboxService implements IOutboxService {
       source: SERVICE_NAME,
       payload,
     };
+    const observability = OutboxService.captureObservability();
 
     return this.outboxRepository.create({
       eventId,
@@ -135,7 +145,25 @@ export class OutboxService implements IOutboxService {
       payload: envelope,
       status: OUTBOX_STATUS.PENDING,
       retryCount: 0,
+      ...observability,
     });
+  }
+
+  /**
+   * Snapshot of the active OTel span + AsyncLocalStorage context. Stored
+   * alongside the row so the publisher can restore them later — turning
+   * the outbox boundary from a trace break into a continuous parent /
+   * child relationship in Jaeger.
+   */
+  private static captureObservability(): CapturedObservability {
+    const span = trace.getActiveSpan();
+    const ctx = requestContextStore.getStore();
+    return {
+      traceId: span?.spanContext().traceId ?? null,
+      parentSpanId: span?.spanContext().spanId ?? null,
+      correlationId: ctx?.correlationId ?? null,
+      userId: ctx?.userId ?? null,
+    };
   }
 
   private async addPublishJob(eventId: string): Promise<void> {
