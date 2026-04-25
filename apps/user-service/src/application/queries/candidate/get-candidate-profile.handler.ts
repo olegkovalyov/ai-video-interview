@@ -1,7 +1,7 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetCandidateProfileQuery } from './get-candidate-profile.query';
-import type { ICandidateProfileReadRepository } from '../../../domain/repositories/candidate-profile-read.repository.interface';
+import type { ICandidateProfileQueryService } from '../../../domain/repositories/candidate-profile-query-service.interface';
 import type { CandidateProfileWithUserReadModel } from '../../../domain/read-models/candidate-profile.read-model';
 import { CandidateProfileNotFoundException } from '../../../domain/exceptions/candidate.exceptions';
 import { AccessDeniedException } from '../../../domain/exceptions/access-denied.exception';
@@ -15,8 +15,8 @@ export class GetCandidateProfileHandler
   implements IQueryHandler<GetCandidateProfileQuery>
 {
   constructor(
-    @Inject('ICandidateProfileReadRepository')
-    private readonly profileReadRepository: ICandidateProfileReadRepository,
+    @Inject('ICandidateProfileQueryService')
+    private readonly profileQueryService: ICandidateProfileQueryService,
   ) {}
 
   async execute(
@@ -32,7 +32,7 @@ export class GetCandidateProfileHandler
       );
     }
 
-    const profile = await this.profileReadRepository.findByUserIdWithUser(
+    const profile = await this.profileQueryService.findByUserIdWithUser(
       query.userId,
     );
 

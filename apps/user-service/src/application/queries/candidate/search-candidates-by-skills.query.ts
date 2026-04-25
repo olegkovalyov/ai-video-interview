@@ -1,5 +1,5 @@
 import { Query } from '@nestjs/cqrs';
-import type { PaginatedResult } from '../../../domain/repositories/candidate-profile-read.repository.interface';
+import type { PaginatedResult } from '../../../domain/repositories/candidate-profile-query-service.interface';
 import type { CandidateSearchResultReadModel } from '../../../domain/read-models/candidate-profile.read-model';
 
 export interface SearchCandidatesBySkillsQueryProps {

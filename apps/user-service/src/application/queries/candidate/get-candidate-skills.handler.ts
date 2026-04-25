@@ -1,7 +1,7 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetCandidateSkillsQuery } from './get-candidate-skills.query';
-import type { ICandidateProfileReadRepository } from '../../../domain/repositories/candidate-profile-read.repository.interface';
+import type { ICandidateProfileQueryService } from '../../../domain/repositories/candidate-profile-query-service.interface';
 import type { SkillsByCategoryReadModel } from '../../../domain/read-models/candidate-profile.read-model';
 import { AccessDeniedException } from '../../../domain/exceptions/access-denied.exception';
 
@@ -14,8 +14,8 @@ export class GetCandidateSkillsHandler
   implements IQueryHandler<GetCandidateSkillsQuery>
 {
   constructor(
-    @Inject('ICandidateProfileReadRepository')
-    private readonly profileReadRepository: ICandidateProfileReadRepository,
+    @Inject('ICandidateProfileQueryService')
+    private readonly profileQueryService: ICandidateProfileQueryService,
   ) {}
 
   async execute(
@@ -31,7 +31,7 @@ export class GetCandidateSkillsHandler
       );
     }
 
-    return this.profileReadRepository.getCandidateSkillsGroupedByCategory(
+    return this.profileQueryService.getCandidateSkillsGroupedByCategory(
       query.candidateId,
     );
   }

@@ -2,10 +2,10 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { SearchCandidatesBySkillsQuery } from './search-candidates-by-skills.query';
 import type {
-  ICandidateProfileReadRepository,
+  ICandidateProfileQueryService,
   CandidateSearchFilters,
   PaginatedResult,
-} from '../../../domain/repositories/candidate-profile-read.repository.interface';
+} from '../../../domain/repositories/candidate-profile-query-service.interface';
 import type { CandidateSearchResultReadModel } from '../../../domain/read-models/candidate-profile.read-model';
 
 /**
@@ -17,8 +17,8 @@ export class SearchCandidatesBySkillsHandler
   implements IQueryHandler<SearchCandidatesBySkillsQuery>
 {
   constructor(
-    @Inject('ICandidateProfileReadRepository')
-    private readonly profileReadRepository: ICandidateProfileReadRepository,
+    @Inject('ICandidateProfileQueryService')
+    private readonly profileQueryService: ICandidateProfileQueryService,
   ) {}
 
   async execute(
@@ -31,7 +31,7 @@ export class SearchCandidatesBySkillsHandler
       experienceLevel: query.experienceLevel,
     };
 
-    return this.profileReadRepository.searchBySkills(
+    return this.profileQueryService.searchBySkills(
       filters,
       query.page,
       query.limit,

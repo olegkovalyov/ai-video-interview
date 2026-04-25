@@ -1,4 +1,4 @@
-import type { CandidateProfileWithUser } from '../../../domain/repositories/candidate-profile-read.repository.interface';
+import type { CandidateProfileWithUser } from '../../../domain/repositories/candidate-profile-query-service.interface';
 import type {
   CandidateSearchResultReadModel,
   SkillsByCategoryReadModel,

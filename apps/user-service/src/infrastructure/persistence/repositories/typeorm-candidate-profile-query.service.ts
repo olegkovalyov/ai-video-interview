@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, DataSource } from 'typeorm';
 import {
-  ICandidateProfileReadRepository,
+  ICandidateProfileQueryService,
   CandidateSearchFilters,
   CandidateSearchResult,
   PaginatedResult,
   CandidateProfileWithUser,
-} from '../../../domain/repositories/candidate-profile-read.repository.interface';
+} from '../../../domain/repositories/candidate-profile-query-service.interface';
 import type {
   CandidateProfileReadModel,
   CandidateSkillReadModel,
@@ -46,9 +46,13 @@ interface TopSkillRow {
 }
 
 @Injectable()
-export class TypeOrmCandidateProfileReadRepository
-  implements ICandidateProfileReadRepository
+export class TypeOrmCandidateProfileQueryService
+  implements ICandidateProfileQueryService
 {
+  // CQRS read-side service: legitimately composes multiple TypeORM repos and
+  // a mapper to produce denormalized projections. Not subject to the
+  // SRP-by-method-count rule that targets write-side aggregate gateways.
+  // eslint-disable-next-line max-params
   constructor(
     @InjectRepository(CandidateSkillEntity)
     private readonly skillRepository: Repository<CandidateSkillEntity>,

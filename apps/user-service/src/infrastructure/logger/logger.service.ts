@@ -314,31 +314,4 @@ export class LoggerService implements NestLoggerService {
       this.error(message, undefined, logData);
     }
   }
-
-  httpLog(
-    method: string,
-    url: string,
-    statusCode: number,
-    duration: number,
-    context?: LogContext,
-  ) {
-    this.info(`HTTP: ${method} ${url} ${statusCode}`, {
-      ...context,
-      category: 'http',
-      method,
-      url,
-      statusCode,
-      duration,
-    });
-  }
-
-  performanceLog(operation: string, duration: number, context?: LogContext) {
-    const level = duration > 1000 ? 'warn' : 'info';
-    this.logger.log(level, `Performance: ${operation} took ${duration}ms`, {
-      ...context,
-      category: 'performance',
-      operation,
-      duration,
-    });
-  }
 }
