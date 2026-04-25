@@ -115,17 +115,17 @@ export class CompaniesController {
   })
   async createCompany(@Body() dto: CreateCompanyDto) {
     try {
-      const command = new CreateCompanyCommand(
-        dto.name,
-        dto.description || null,
-        dto.website || null,
-        null, // logoUrl
-        dto.industry || null,
-        dto.size || null,
-        dto.location || null,
-        null, // position
-        dto.createdBy,
-      );
+      const command = new CreateCompanyCommand({
+        name: dto.name,
+        description: dto.description ?? null,
+        website: dto.website ?? null,
+        logoUrl: null,
+        industry: dto.industry ?? null,
+        size: dto.size ?? null,
+        location: dto.location ?? null,
+        position: null,
+        createdBy: dto.createdBy,
+      });
 
       const result = await this.commandBus.execute(command);
 
@@ -202,17 +202,17 @@ export class CompaniesController {
     @Body() dto: UpdateCompanyDto,
   ) {
     try {
-      const command = new UpdateCompanyCommand(
+      const command = new UpdateCompanyCommand({
         companyId,
-        dto.name || '',
-        dto.description || null,
-        dto.website || null,
-        null, // logoUrl
-        dto.industry || null,
-        dto.size || null,
-        dto.location || null,
-        dto.updatedBy,
-      );
+        name: dto.name ?? '',
+        description: dto.description ?? null,
+        website: dto.website ?? null,
+        logoUrl: null,
+        industry: dto.industry ?? null,
+        size: dto.size ?? null,
+        location: dto.location ?? null,
+        userId: dto.updatedBy,
+      });
 
       const result = await this.commandBus.execute(command);
 
@@ -360,15 +360,15 @@ export class CompaniesController {
     description: 'Unauthorized - invalid or missing internal token',
   })
   async listCompanies(@Query() query: ListCompaniesDto) {
-    const listQuery = new ListCompaniesQuery(
-      query.page || 1,
-      query.limit || 20,
-      query.isActive,
-      query.search,
-      query.createdBy,
-      query.currentUserId,
-      query.isAdmin || false,
-    );
+    const listQuery = new ListCompaniesQuery({
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+      isActive: query.isActive,
+      search: query.search,
+      createdBy: query.createdBy,
+      currentUserId: query.currentUserId,
+      isAdmin: query.isAdmin ?? false,
+    });
 
     const result = await this.queryBus.execute(listQuery);
 

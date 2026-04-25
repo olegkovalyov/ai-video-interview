@@ -39,13 +39,13 @@ describe('CreateSkillCommand Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const command = new CreateSkillCommand(
-        'Elixir',
-        'elixir',
+      const command = new CreateSkillCommand({
+        name: 'Elixir',
+        slug: 'elixir',
         categoryId,
-        'Elixir is a functional programming language',
+        description: 'Elixir is a functional programming language',
         adminId,
-      );
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -81,13 +81,13 @@ describe('CreateSkillCommand Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const command = new CreateSkillCommand(
-        'Phoenix',
-        'phoenix',
+      const command = new CreateSkillCommand({
+        name: 'Phoenix',
+        slug: 'phoenix',
         categoryId,
-        null,
+        description: null,
         adminId,
-      );
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -107,13 +107,13 @@ describe('CreateSkillCommand Integration', () => {
     it('should create skill without category', async () => {
       // Arrange
       const adminId = uuidv4();
-      const command = new CreateSkillCommand(
-        'Custom Skill',
-        'custom-skill',
-        null,
-        'A skill without category',
+      const command = new CreateSkillCommand({
+        name: 'Custom Skill',
+        slug: 'custom-skill',
+        categoryId: null,
+        description: 'A skill without category',
         adminId,
-      );
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -132,13 +132,13 @@ describe('CreateSkillCommand Integration', () => {
     it('should create skill with is_active = true by default', async () => {
       // Arrange
       const adminId = uuidv4();
-      const command = new CreateSkillCommand(
-        'Ember.js',
-        'emberjs',
-        null,
-        null,
+      const command = new CreateSkillCommand({
+        name: 'Ember.js',
+        slug: 'emberjs',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -157,13 +157,13 @@ describe('CreateSkillCommand Integration', () => {
     it('should throw error when slug already exists', async () => {
       // Arrange - Use seeded skill slug (JavaScript already exists in seed data)
       const adminId = uuidv4();
-      const command = new CreateSkillCommand(
-        'JavaScript ES6',
-        'javascript', // This slug already exists in seed data
-        null,
-        null,
+      const command = new CreateSkillCommand({
+        name: 'JavaScript ES6',
+        slug: 'javascript', // This slug already exists in seed data
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow(
@@ -175,13 +175,13 @@ describe('CreateSkillCommand Integration', () => {
       // Arrange
       const nonExistentCategoryId = uuidv4();
       const adminId = uuidv4();
-      const command = new CreateSkillCommand(
-        'Elixir Test',
-        'elixir-test',
-        nonExistentCategoryId,
-        null,
+      const command = new CreateSkillCommand({
+        name: 'Elixir Test',
+        slug: 'elixir-test',
+        categoryId: nonExistentCategoryId,
+        description: null,
         adminId,
-      );
+      });
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow();
@@ -198,27 +198,27 @@ describe('CreateSkillCommand Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const command1 = new CreateSkillCommand(
-        'Haskell',
-        'haskell',
+      const command1 = new CreateSkillCommand({
+        name: 'Haskell',
+        slug: 'haskell',
         categoryId,
-        null,
+        description: null,
         adminId,
-      );
-      const command2 = new CreateSkillCommand(
-        'Scala',
-        'scala',
+      });
+      const command2 = new CreateSkillCommand({
+        name: 'Scala',
+        slug: 'scala',
         categoryId,
-        null,
+        description: null,
         adminId,
-      );
-      const command3 = new CreateSkillCommand(
-        'F#',
-        'fsharp',
+      });
+      const command3 = new CreateSkillCommand({
+        name: 'F#',
+        slug: 'fsharp',
         categoryId,
-        null,
+        description: null,
         adminId,
-      );
+      });
 
       // Act
       await commandBus.execute(command1);

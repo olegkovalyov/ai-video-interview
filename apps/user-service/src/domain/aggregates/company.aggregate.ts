@@ -243,13 +243,13 @@ export class Company extends AggregateRoot {
         .forEach((uc) => uc.unsetAsPrimary());
     }
 
-    const userCompany = UserCompany.create(
-      userCompanyId,
+    const userCompany = UserCompany.create({
+      id: userCompanyId,
       userId,
-      this._id,
+      companyId: this._id,
       position,
       isPrimary,
-    );
+    });
 
     this._users.push(userCompany);
     this._updatedAt = new Date();

@@ -82,43 +82,43 @@ describe('GetCandidateProfileQuery Integration', () => {
 
       // Create skills
       const adminId = uuidv4();
-      const skill1Command = new CreateSkillCommand(
-        'Node.js Test',
-        'nodejs-test',
-        null,
-        null,
+      const skill1Command = new CreateSkillCommand({
+        name: 'Node.js Test',
+        slug: 'nodejs-test',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand(
-        'React Test',
-        'react-test',
-        null,
-        null,
+      const skill2Command = new CreateSkillCommand({
+        name: 'React Test',
+        slug: 'react-test',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
       // Add skills to candidate
       await commandBus.execute(
-        new AddCandidateSkillCommand(
+        new AddCandidateSkillCommand({
           candidateId,
-          skill1Id,
-          'Backend development',
-          'advanced',
-          5,
-        ),
+          skillId: skill1Id,
+          description: 'Backend development',
+          proficiencyLevel: 'advanced',
+          yearsOfExperience: 5,
+        }),
       );
 
       await commandBus.execute(
-        new AddCandidateSkillCommand(
+        new AddCandidateSkillCommand({
           candidateId,
-          skill2Id,
-          'Frontend development',
-          'intermediate',
-          3,
-        ),
+          skillId: skill2Id,
+          description: 'Frontend development',
+          proficiencyLevel: 'intermediate',
+          yearsOfExperience: 3,
+        }),
       );
 
       // Act

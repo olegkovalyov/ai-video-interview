@@ -370,14 +370,14 @@ describe('CandidateProfile Aggregate (Updated)', () => {
       const updatedAt = new Date('2024-01-02');
       const experienceLevel = ExperienceLevel.senior();
       const skills = [
-        CandidateSkill.create(
-          'cs-1',
-          validUserId,
-          'react',
-          'React skills',
-          ProficiencyLevel.expert(),
-          YearsOfExperience.fromNumber(8),
-        ),
+        CandidateSkill.create({
+          id: 'cs-1',
+          candidateId: validUserId,
+          skillId: 'react',
+          description: 'React skills',
+          proficiencyLevel: ProficiencyLevel.expert(),
+          yearsOfExperience: YearsOfExperience.fromNumber(8),
+        }),
       ];
 
       const profile = CandidateProfile.reconstitute(

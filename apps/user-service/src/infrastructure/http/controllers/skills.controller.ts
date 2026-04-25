@@ -121,13 +121,13 @@ export class SkillsController {
   })
   async createSkill(@Body() dto: CreateSkillDto) {
     try {
-      const command = new CreateSkillCommand(
-        dto.name,
-        dto.slug,
-        dto.categoryId || null,
-        dto.description || null,
-        dto.adminId || 'system', // adminId для логирования
-      );
+      const command = new CreateSkillCommand({
+        name: dto.name,
+        slug: dto.slug,
+        categoryId: dto.categoryId ?? null,
+        description: dto.description ?? null,
+        adminId: dto.adminId ?? 'system',
+      });
 
       const result = await this.commandBus.execute(command);
 
@@ -176,13 +176,13 @@ export class SkillsController {
   })
   async updateSkill(@Param('id') skillId: string, @Body() dto: UpdateSkillDto) {
     try {
-      const command = new UpdateSkillCommand(
+      const command = new UpdateSkillCommand({
         skillId,
-        dto.name || '',
-        dto.description || null,
-        dto.categoryId || null,
-        dto.adminId || 'system',
-      );
+        name: dto.name ?? '',
+        description: dto.description ?? null,
+        categoryId: dto.categoryId ?? null,
+        adminId: dto.adminId ?? 'system',
+      });
 
       const result = await this.commandBus.execute(command);
 
@@ -401,13 +401,13 @@ export class SkillsController {
     @Query() query: Omit<ListSkillsDto, 'isActive'>,
     @Query('isActive', new ParseBoolPipe()) isActive?: boolean,
   ) {
-    const listSkillsQuery = new ListSkillsQuery(
-      query.page || 1,
-      query.limit || 20,
-      query.categoryId,
-      isActive, // Filter by active status from pipe
-      query.search,
-    );
+    const listSkillsQuery = new ListSkillsQuery({
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+      categoryId: query.categoryId,
+      isActive,
+      search: query.search,
+    });
 
     const result = await this.queryBus.execute(listSkillsQuery);
 

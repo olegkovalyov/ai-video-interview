@@ -35,13 +35,13 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
     it('should deactivate active skill', async () => {
       // Arrange - Create skill (active by default)
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Verify skill is active
@@ -66,13 +66,13 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
     it('should deactivate already deactivated skill (idempotent)', async () => {
       // Arrange - Create and deactivate skill
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       const deactivateCommand1 = new DeactivateSkillCommand(skillId, adminId);
@@ -113,31 +113,31 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
     it('should deactivate multiple skills', async () => {
       // Arrange - Create 3 skills
       const adminId = uuidv4();
-      const command1 = new CreateSkillCommand(
-        'Skill 1',
-        'skill-1',
-        null,
-        null,
+      const command1 = new CreateSkillCommand({
+        name: 'Skill 1',
+        slug: 'skill-1',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId: id1 } = await commandBus.execute(command1);
 
-      const command2 = new CreateSkillCommand(
-        'Skill 2',
-        'skill-2',
-        null,
-        null,
+      const command2 = new CreateSkillCommand({
+        name: 'Skill 2',
+        slug: 'skill-2',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId: id2 } = await commandBus.execute(command2);
 
-      const command3 = new CreateSkillCommand(
-        'Skill 3',
-        'skill-3',
-        null,
-        null,
+      const command3 = new CreateSkillCommand({
+        name: 'Skill 3',
+        slug: 'skill-3',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId: id3 } = await commandBus.execute(command3);
 
       // Act - Deactivate all 3
@@ -162,13 +162,13 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
     it('should activate deactivated skill', async () => {
       // Arrange - Create and deactivate skill
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       const deactivateCommand = new DeactivateSkillCommand(skillId, adminId);
@@ -196,13 +196,13 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
     it('should activate already active skill (idempotent)', async () => {
       // Arrange - Create skill (active by default)
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Verify skill is active
@@ -239,13 +239,13 @@ describe('ActivateSkillCommand & DeactivateSkillCommand Integration', () => {
     it('should toggle skill status multiple times', async () => {
       // Arrange - Create skill
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Toggle Skill',
-        'toggle-skill',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Toggle Skill',
+        slug: 'toggle-skill',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Initially active

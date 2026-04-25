@@ -58,13 +58,13 @@ describe('GetSkillQuery Integration', () => {
     it('should get skill without category', async () => {
       // Arrange - Create skill without category
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Standalone Skill Test',
-        'standalone-skill-test',
-        null,
-        'A skill without category',
+      const createCommand = new CreateSkillCommand({
+        name: 'Standalone Skill Test',
+        slug: 'standalone-skill-test',
+        categoryId: null,
+        description: 'A skill without category',
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act
@@ -82,13 +82,13 @@ describe('GetSkillQuery Integration', () => {
     it('should get inactive skill', async () => {
       // Arrange - Create and deactivate skill
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Inactive Skill Test',
-        'inactive-skill-test',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Inactive Skill Test',
+        slug: 'inactive-skill-test',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       await commandBus.execute(new DeactivateSkillCommand(skillId, uuidv4()));
@@ -111,13 +111,13 @@ describe('GetSkillQuery Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Full Metadata Skill',
-        'full-metadata-skill-test',
+      const createCommand = new CreateSkillCommand({
+        name: 'Full Metadata Skill',
+        slug: 'full-metadata-skill-test',
         categoryId,
-        'Complete skill description',
+        description: 'Complete skill description',
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act

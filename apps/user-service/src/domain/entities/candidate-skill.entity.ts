@@ -3,96 +3,92 @@ import type { ProficiencyLevel } from '../value-objects/proficiency-level.vo';
 import type { YearsOfExperience } from '../value-objects/years-of-experience.vo';
 
 /**
+ * Full state of a {@link CandidateSkill}.
+ */
+export interface CandidateSkillProps {
+  id: string;
+  candidateId: string;
+  skillId: string;
+  description: string | null;
+  proficiencyLevel: ProficiencyLevel | null;
+  yearsOfExperience: YearsOfExperience | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateCandidateSkillArgs {
+  id: string;
+  candidateId: string;
+  skillId: string;
+  description: string | null;
+  proficiencyLevel: ProficiencyLevel | null;
+  yearsOfExperience: YearsOfExperience | null;
+}
+
+/**
  * CandidateSkill Entity
- * Represents a candidate's skill with metadata (description, proficiency, years)
- * Belongs to CandidateProfile aggregate
+ * Represents a candidate's skill with metadata (description, proficiency, years).
+ * Belongs to CandidateProfile aggregate.
  */
 export class CandidateSkill {
-  private constructor(
-    private readonly _id: string,
-    private readonly _candidateId: string,
-    private readonly _skillId: string,
-    private _description: string | null,
-    private _proficiencyLevel: ProficiencyLevel | null,
-    private _yearsOfExperience: YearsOfExperience | null,
-    private readonly _createdAt: Date,
-    private _updatedAt: Date,
-  ) {}
+  private readonly _id: string;
+  private readonly _candidateId: string;
+  private readonly _skillId: string;
+  private _description: string | null;
+  private _proficiencyLevel: ProficiencyLevel | null;
+  private _yearsOfExperience: YearsOfExperience | null;
+  private readonly _createdAt: Date;
+  private _updatedAt: Date;
 
-  // ========================================
-  // FACTORY METHODS
-  // ========================================
+  private constructor(props: CandidateSkillProps) {
+    this._id = props.id;
+    this._candidateId = props.candidateId;
+    this._skillId = props.skillId;
+    this._description = props.description;
+    this._proficiencyLevel = props.proficiencyLevel;
+    this._yearsOfExperience = props.yearsOfExperience;
+    this._createdAt = props.createdAt;
+    this._updatedAt = props.updatedAt;
+  }
 
   /**
-   * Create new candidate skill
+   * Create new candidate skill.
    */
-  public static create(
-    id: string,
-    candidateId: string,
-    skillId: string,
-    description: string | null,
-    proficiencyLevel: ProficiencyLevel | null,
-    yearsOfExperience: YearsOfExperience | null,
-  ): CandidateSkill {
-    if (!candidateId || candidateId.trim().length === 0) {
+  public static create(args: CreateCandidateSkillArgs): CandidateSkill {
+    if (!args.candidateId || args.candidateId.trim().length === 0) {
       throw new DomainException('Candidate ID cannot be empty');
     }
 
-    if (!skillId || skillId.trim().length === 0) {
+    if (!args.skillId || args.skillId.trim().length === 0) {
       throw new DomainException('Skill ID cannot be empty');
     }
 
-    // Validate description length
-    if (description && description.length > 1000) {
+    if (args.description && args.description.length > 1000) {
       throw new DomainException(
         'Skill description is too long (max 1000 characters)',
       );
     }
 
-    return new CandidateSkill(
-      id,
-      candidateId,
-      skillId,
-      description?.trim() || null,
-      proficiencyLevel,
-      yearsOfExperience,
-      new Date(),
-      new Date(),
-    );
+    const now = new Date();
+    return new CandidateSkill({
+      id: args.id,
+      candidateId: args.candidateId,
+      skillId: args.skillId,
+      description: args.description?.trim() || null,
+      proficiencyLevel: args.proficiencyLevel,
+      yearsOfExperience: args.yearsOfExperience,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
 
   /**
-   * Reconstitute from persistence
+   * Reconstitute from persistence.
    */
-  public static reconstitute(
-    id: string,
-    candidateId: string,
-    skillId: string,
-    description: string | null,
-    proficiencyLevel: ProficiencyLevel | null,
-    yearsOfExperience: YearsOfExperience | null,
-    createdAt: Date,
-    updatedAt: Date,
-  ): CandidateSkill {
-    return new CandidateSkill(
-      id,
-      candidateId,
-      skillId,
-      description,
-      proficiencyLevel,
-      yearsOfExperience,
-      createdAt,
-      updatedAt,
-    );
+  public static reconstitute(props: CandidateSkillProps): CandidateSkill {
+    return new CandidateSkill(props);
   }
 
-  // ========================================
-  // BUSINESS LOGIC
-  // ========================================
-
-  /**
-   * Update skill description
-   */
   public updateDescription(description: string): void {
     if (description.length > 1000) {
       throw new DomainException(
@@ -104,24 +100,18 @@ export class CandidateSkill {
     this._updatedAt = new Date();
   }
 
-  /**
-   * Update proficiency level
-   */
   public updateProficiency(proficiencyLevel: ProficiencyLevel | null): void {
     this._proficiencyLevel = proficiencyLevel;
     this._updatedAt = new Date();
   }
 
-  /**
-   * Update years of experience
-   */
   public updateYears(yearsOfExperience: YearsOfExperience | null): void {
     this._yearsOfExperience = yearsOfExperience;
     this._updatedAt = new Date();
   }
 
   /**
-   * Update all metadata at once
+   * Update all metadata at once.
    */
   public update(
     description: string | null,
@@ -139,10 +129,6 @@ export class CandidateSkill {
     this._yearsOfExperience = yearsOfExperience;
     this._updatedAt = new Date();
   }
-
-  // ========================================
-  // GETTERS
-  // ========================================
 
   public get id(): string {
     return this._id;

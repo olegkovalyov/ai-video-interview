@@ -44,17 +44,17 @@ describe('CreateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const command = new CreateCompanyCommand(
-        'Tech Corp',
-        'Leading technology company',
-        'https://techcorp.com',
-        'https://techcorp.com/logo.png',
-        'Technology',
-        '51-200',
-        'San Francisco, CA',
-        'HR Manager',
-        hrUserId,
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Tech Corp',
+        description: 'Leading technology company',
+        website: 'https://techcorp.com',
+        logoUrl: 'https://techcorp.com/logo.png',
+        industry: 'Technology',
+        size: '51-200',
+        location: 'San Francisco, CA',
+        position: 'HR Manager',
+        createdBy: hrUserId,
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -102,17 +102,17 @@ describe('CreateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const command = new CreateCompanyCommand(
-        'Startup Inc',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Startup Inc',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -153,17 +153,17 @@ describe('CreateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const command = new CreateCompanyCommand(
-        'My Company',
-        'Description',
-        null,
-        null,
-        null,
-        null,
-        null,
-        'CEO & Founder',
-        hrUserId,
-      );
+      const command = new CreateCompanyCommand({
+        name: 'My Company',
+        description: 'Description',
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: 'CEO & Founder',
+        createdBy: hrUserId,
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -186,41 +186,41 @@ describe('CreateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const command1 = new CreateCompanyCommand(
-        'Company 1',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const command1 = new CreateCompanyCommand({
+        name: 'Company 1',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
 
-      const command2 = new CreateCompanyCommand(
-        'Company 2',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const command2 = new CreateCompanyCommand({
+        name: 'Company 2',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
 
-      const command3 = new CreateCompanyCommand(
-        'Company 3',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const command3 = new CreateCompanyCommand({
+        name: 'Company 3',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
 
       // Act
       const result1 = await commandBus.execute(command1);
@@ -264,17 +264,17 @@ describe('CreateCompanyCommand Integration', () => {
 
       // Act & Assert - Create company for each size
       for (const size of sizes) {
-        const command = new CreateCompanyCommand(
-          `Company ${size}`,
-          null,
-          null,
-          null,
-          null,
+        const command = new CreateCompanyCommand({
+          name: `Company ${size}`,
+          description: null,
+          website: null,
+          logoUrl: null,
+          industry: null,
           size,
-          null,
-          null,
-          hrUserId,
-        );
+          location: null,
+          position: null,
+          createdBy: hrUserId,
+        });
 
         const result = await commandBus.execute(command);
 
@@ -292,17 +292,17 @@ describe('CreateCompanyCommand Integration', () => {
     it('should throw error when user not found', async () => {
       // Arrange
       const nonExistentUserId = uuidv4();
-      const command = new CreateCompanyCommand(
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        nonExistentUserId,
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: nonExistentUserId,
+      });
 
       // Act & Assert
       await expect(commandBus.execute(command)).rejects.toThrow();

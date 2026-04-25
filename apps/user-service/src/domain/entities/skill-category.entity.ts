@@ -1,49 +1,46 @@
 /**
+ * Construction args for {@link SkillCategory.reconstitute}.
+ */
+export interface SkillCategoryProps {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
  * SkillCategory Entity
  * Represents a category grouping related skills.
  * Read-only for MVP (managed via seed data).
  */
 export class SkillCategory {
-  private constructor(
-    private readonly _id: string,
-    private readonly _name: string,
-    private readonly _slug: string,
-    private readonly _description: string | null,
-    private readonly _sortOrder: number,
-    private readonly _createdAt: Date,
-    private readonly _updatedAt: Date,
-  ) {}
+  private readonly _id: string;
+  private readonly _name: string;
+  private readonly _slug: string;
+  private readonly _description: string | null;
+  private readonly _sortOrder: number;
+  private readonly _createdAt: Date;
+  private readonly _updatedAt: Date;
 
-  // ========================================
-  // FACTORY METHODS
-  // ========================================
-
-  /**
-   * Reconstitute from persistence
-   */
-  public static reconstitute(
-    id: string,
-    name: string,
-    slug: string,
-    description: string | null,
-    sortOrder: number,
-    createdAt: Date,
-    updatedAt: Date,
-  ): SkillCategory {
-    return new SkillCategory(
-      id,
-      name,
-      slug,
-      description,
-      sortOrder,
-      createdAt,
-      updatedAt,
-    );
+  private constructor(props: SkillCategoryProps) {
+    this._id = props.id;
+    this._name = props.name;
+    this._slug = props.slug;
+    this._description = props.description;
+    this._sortOrder = props.sortOrder;
+    this._createdAt = props.createdAt;
+    this._updatedAt = props.updatedAt;
   }
 
-  // ========================================
-  // GETTERS
-  // ========================================
+  /**
+   * Reconstitute from persistence.
+   */
+  public static reconstitute(props: SkillCategoryProps): SkillCategory {
+    return new SkillCategory(props);
+  }
 
   public get id(): string {
     return this._id;

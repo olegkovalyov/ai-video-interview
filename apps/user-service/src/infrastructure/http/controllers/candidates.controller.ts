@@ -150,14 +150,14 @@ export class CandidatesController {
   async searchCandidates(@Query() query: SearchCandidatesDto) {
     try {
       const result = await this.queryBus.execute(
-        new SearchCandidatesBySkillsQuery(
-          query.skillIds || [],
-          query.minProficiency,
-          query.minYears ? Number(query.minYears) : undefined,
-          query.experienceLevel,
-          query.page || 1,
-          query.limit || 20,
-        ),
+        new SearchCandidatesBySkillsQuery({
+          skillIds: query.skillIds ?? [],
+          minProficiency: query.minProficiency,
+          minYears: query.minYears ? Number(query.minYears) : undefined,
+          experienceLevel: query.experienceLevel,
+          page: query.page ?? 1,
+          limit: query.limit ?? 20,
+        }),
       );
 
       return {
@@ -339,13 +339,13 @@ export class CandidatesController {
     @Body() dto: AddCandidateSkillDto,
   ) {
     try {
-      const command = new AddCandidateSkillCommand(
+      const command = new AddCandidateSkillCommand({
         candidateId,
-        dto.skillId,
-        dto.description || null,
-        dto.proficiencyLevel || 'beginner',
-        dto.yearsOfExperience || 0,
-      );
+        skillId: dto.skillId,
+        description: dto.description ?? null,
+        proficiencyLevel: dto.proficiencyLevel ?? 'beginner',
+        yearsOfExperience: dto.yearsOfExperience ?? 0,
+      });
 
       const result = await this.commandBus.execute(command);
 
@@ -422,13 +422,13 @@ export class CandidatesController {
         });
       }
 
-      const command = new UpdateCandidateSkillCommand(
+      const command = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        dto.description || null,
-        dto.proficiencyLevel || 'beginner',
-        dto.yearsOfExperience === undefined ? 0 : dto.yearsOfExperience,
-      );
+        description: dto.description ?? null,
+        proficiencyLevel: dto.proficiencyLevel ?? 'beginner',
+        yearsOfExperience: dto.yearsOfExperience ?? 0,
+      });
 
       await this.commandBus.execute(command);
 

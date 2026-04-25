@@ -34,24 +34,24 @@ describe('UpdateSkillCommand Integration', () => {
     it('should update skill name', async () => {
       // Arrange - Create skill
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Original Name',
-        'original-slug',
-        null,
-        'Original description',
+      const createCommand = new CreateSkillCommand({
+        name: 'Original Name',
+        slug: 'original-slug',
+        categoryId: null,
+        description: 'Original description',
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act - Update name
       const updateAdminId = uuidv4();
-      const updateCommand = new UpdateSkillCommand(
+      const updateCommand = new UpdateSkillCommand({
         skillId,
-        'Updated Name',
-        'Original description',
-        null,
-        updateAdminId,
-      );
+        name: 'Updated Name',
+        description: 'Original description',
+        categoryId: null,
+        adminId: updateAdminId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -68,23 +68,23 @@ describe('UpdateSkillCommand Integration', () => {
     it('should update skill description', async () => {
       // Arrange
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-slug',
-        null,
-        'Old description',
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-slug',
+        categoryId: null,
+        description: 'Old description',
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act
-      const updateCommand = new UpdateSkillCommand(
+      const updateCommand = new UpdateSkillCommand({
         skillId,
-        'Test Skill',
-        'New description',
-        null,
+        name: 'Test Skill',
+        description: 'New description',
+        categoryId: null,
         adminId,
-      );
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -105,23 +105,23 @@ describe('UpdateSkillCommand Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act - Add category
-      const updateCommand = new UpdateSkillCommand(
+      const updateCommand = new UpdateSkillCommand({
         skillId,
-        'Test Skill',
-        null,
+        name: 'Test Skill',
+        description: null,
         categoryId,
         adminId,
-      );
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -142,23 +142,23 @@ describe('UpdateSkillCommand Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
         categoryId,
-        'Test description',
+        description: 'Test description',
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act - Remove category
-      const updateCommand = new UpdateSkillCommand(
+      const updateCommand = new UpdateSkillCommand({
         skillId,
-        'Test Skill',
-        'Test description',
-        null,
+        name: 'Test Skill',
+        description: 'Test description',
+        categoryId: null,
         adminId,
-      );
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -179,24 +179,24 @@ describe('UpdateSkillCommand Integration', () => {
       const categoryId = categories[0].id;
 
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Old Name',
-        'old-slug',
-        null,
-        'Old description',
+      const createCommand = new CreateSkillCommand({
+        name: 'Old Name',
+        slug: 'old-slug',
+        categoryId: null,
+        description: 'Old description',
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act - Update everything
       const updateAdminId = uuidv4();
-      const updateCommand = new UpdateSkillCommand(
+      const updateCommand = new UpdateSkillCommand({
         skillId,
-        'New Name',
-        'New description',
+        name: 'New Name',
+        description: 'New description',
         categoryId,
-        updateAdminId,
-      );
+        adminId: updateAdminId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -214,23 +214,23 @@ describe('UpdateSkillCommand Integration', () => {
     it('should set description to null', async () => {
       // Arrange
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
-        null,
-        'Some description',
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
+        categoryId: null,
+        description: 'Some description',
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       // Act - Remove description
-      const updateCommand = new UpdateSkillCommand(
+      const updateCommand = new UpdateSkillCommand({
         skillId,
-        'Test Skill',
-        null,
-        null,
+        name: 'Test Skill',
+        description: null,
+        categoryId: null,
         adminId,
-      );
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -248,13 +248,13 @@ describe('UpdateSkillCommand Integration', () => {
       // Arrange
       const nonExistentId = uuidv4();
       const adminId = uuidv4();
-      const updateCommand = new UpdateSkillCommand(
-        nonExistentId,
-        'Updated Name',
-        'Updated description',
-        null,
+      const updateCommand = new UpdateSkillCommand({
+        skillId: nonExistentId,
+        name: 'Updated Name',
+        description: 'Updated description',
+        categoryId: null,
         adminId,
-      );
+      });
 
       // Act & Assert
       await expect(commandBus.execute(updateCommand)).rejects.toThrow();
@@ -263,23 +263,23 @@ describe('UpdateSkillCommand Integration', () => {
     it('should throw error when category not found', async () => {
       // Arrange
       const adminId = uuidv4();
-      const createCommand = new CreateSkillCommand(
-        'Test Skill',
-        'test-skill',
-        null,
-        null,
+      const createCommand = new CreateSkillCommand({
+        name: 'Test Skill',
+        slug: 'test-skill',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId } = await commandBus.execute(createCommand);
 
       const nonExistentCategoryId = uuidv4();
-      const updateCommand = new UpdateSkillCommand(
+      const updateCommand = new UpdateSkillCommand({
         skillId,
-        'Test Skill',
-        null,
-        nonExistentCategoryId,
+        name: 'Test Skill',
+        description: null,
+        categoryId: nonExistentCategoryId,
         adminId,
-      );
+      });
 
       // Act & Assert
       await expect(commandBus.execute(updateCommand)).rejects.toThrow();
@@ -288,32 +288,32 @@ describe('UpdateSkillCommand Integration', () => {
     it('should throw error when updating to duplicate name', async () => {
       // Arrange - Create two skills
       const adminId = uuidv4();
-      const command1 = new CreateSkillCommand(
-        'Skill 1',
-        'skill-1',
-        null,
-        null,
+      const command1 = new CreateSkillCommand({
+        name: 'Skill 1',
+        slug: 'skill-1',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       await commandBus.execute(command1);
 
-      const command2 = new CreateSkillCommand(
-        'Skill 2',
-        'skill-2',
-        null,
-        null,
+      const command2 = new CreateSkillCommand({
+        name: 'Skill 2',
+        slug: 'skill-2',
+        categoryId: null,
+        description: null,
         adminId,
-      );
+      });
       const { skillId: skill2Id } = await commandBus.execute(command2);
 
       // Act - Try to update skill2 to have same name as skill1
-      const updateCommand = new UpdateSkillCommand(
-        skill2Id,
-        'Skill 1', // This name already exists
-        'Updated description',
-        null,
+      const updateCommand = new UpdateSkillCommand({
+        skillId: skill2Id,
+        name: 'Skill 1', // This name already exists
+        description: 'Updated description',
+        categoryId: null,
         adminId,
-      );
+      });
 
       // Assert - Should fail due to unique constraint on name
       await expect(commandBus.execute(updateCommand)).rejects.toThrow();

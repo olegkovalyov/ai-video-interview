@@ -90,26 +90,26 @@ export class CandidateProfile extends AggregateRoot {
     }
 
     // Create new skill entity
-    const skill = CandidateSkill.create(
-      candidateSkillId,
-      this._userId,
+    const skill = CandidateSkill.create({
+      id: candidateSkillId,
+      candidateId: this._userId,
       skillId,
       description,
       proficiencyLevel,
       yearsOfExperience,
-    );
+    });
 
     this._skills.push(skill);
     this._updatedAt = new Date();
 
     // Publish domain event
     this.apply(
-      new CandidateSkillAddedEvent(
-        this._userId,
+      new CandidateSkillAddedEvent({
+        candidateId: this._userId,
         skillId,
-        proficiencyLevel?.value || 'beginner',
-        yearsOfExperience?.value || 0,
-      ),
+        proficiencyLevel: proficiencyLevel?.value ?? 'beginner',
+        yearsOfExperience: yearsOfExperience?.value ?? 0,
+      }),
     );
   }
 

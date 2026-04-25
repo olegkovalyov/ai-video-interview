@@ -75,17 +75,17 @@ describe('CreateCompanyHandler', () => {
   describe('Success Cases', () => {
     it('should create company with full data', async () => {
       // Arrange
-      const command = new CreateCompanyCommand(
-        'Tech Corp',
-        'Leading technology company',
-        'https://techcorp.com',
-        'https://techcorp.com/logo.png',
-        'Technology',
-        '51-200',
-        'San Francisco, CA',
-        'HR Manager',
-        'hr-user-id',
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Tech Corp',
+        description: 'Leading technology company',
+        website: 'https://techcorp.com',
+        logoUrl: 'https://techcorp.com/logo.png',
+        industry: 'Technology',
+        size: '51-200',
+        location: 'San Francisco, CA',
+        position: 'HR Manager',
+        createdBy: 'hr-user-id',
+      });
 
       // Act
       const result = await handler.execute(command);
@@ -130,17 +130,17 @@ describe('CreateCompanyHandler', () => {
 
     it('should create company with minimal data', async () => {
       // Arrange
-      const command = new CreateCompanyCommand(
-        'Startup Inc',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Startup Inc',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: 'hr-user-id',
+      });
 
       // Act
       const result = await handler.execute(command);
@@ -165,17 +165,17 @@ describe('CreateCompanyHandler', () => {
 
     it('should include createdAt in outbox event payload', async () => {
       // Arrange
-      const command = new CreateCompanyCommand(
-        'Test Corp',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Test Corp',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: 'hr-user-id',
+      });
 
       // Act
       await handler.execute(command);
@@ -191,17 +191,17 @@ describe('CreateCompanyHandler', () => {
   describe('Error Cases', () => {
     it('should throw when company name is empty', async () => {
       // Arrange
-      const command = new CreateCompanyCommand(
-        '', // empty name
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new CreateCompanyCommand({
+        name: '', // empty name
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: 'hr-user-id',
+      });
 
       // Act & Assert - Domain validation throws
       await expect(handler.execute(command)).rejects.toThrow(
@@ -226,17 +226,17 @@ describe('CreateCompanyHandler', () => {
         return 'mock-event-id';
       });
 
-      const command = new CreateCompanyCommand(
-        'Test Corp',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Test Corp',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: 'hr-user-id',
+      });
 
       // Act
       await handler.execute(command);
@@ -249,17 +249,17 @@ describe('CreateCompanyHandler', () => {
       // Arrange
       mockUnitOfWork.execute.mockRejectedValue(new Error('Transaction failed'));
 
-      const command = new CreateCompanyCommand(
-        'Test Corp',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Test Corp',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: 'hr-user-id',
+      });
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(
@@ -272,17 +272,17 @@ describe('CreateCompanyHandler', () => {
       // Arrange
       mockUnitOfWork.execute.mockRejectedValue(new Error('Transaction failed'));
 
-      const command = new CreateCompanyCommand(
-        'Test Corp',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new CreateCompanyCommand({
+        name: 'Test Corp',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: 'hr-user-id',
+      });
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(

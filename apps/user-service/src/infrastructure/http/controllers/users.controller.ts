@@ -333,13 +333,13 @@ export class UsersController {
     try {
       // Execute command (creates the user)
       await this.commandBus.execute(
-        new CreateUserCommand(
-          dto.userId,
-          dto.externalAuthId,
-          dto.email,
-          dto.firstName,
-          dto.lastName,
-        ),
+        new CreateUserCommand({
+          userId: dto.userId,
+          externalAuthId: dto.externalAuthId,
+          email: dto.email,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+        }),
       );
 
       // Query created user (returns Read Model)
@@ -413,15 +413,15 @@ export class UsersController {
     try {
       // Execute command (updates the user)
       await this.commandBus.execute(
-        new UpdateUserCommand(
+        new UpdateUserCommand({
           userId,
-          dto.firstName,
-          dto.lastName,
-          dto.bio,
-          dto.phone,
-          dto.timezone,
-          dto.language,
-        ),
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          bio: dto.bio,
+          phone: dto.phone,
+          timezone: dto.timezone,
+          language: dto.language,
+        }),
       );
 
       // Query updated user (returns Read Model)
@@ -784,17 +784,7 @@ export class UsersController {
   async deleteAvatar(@Param('userId') userId: string): Promise<void> {
     try {
       // Delete avatar by setting avatarUrl to undefined
-      await this.commandBus.execute(
-        new UpdateUserCommand(
-          userId,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-        ),
-      );
+      await this.commandBus.execute(new UpdateUserCommand({ userId }));
     } catch (error) {
       if (error instanceof UserNotFoundException) {
         throw new NotFoundException({

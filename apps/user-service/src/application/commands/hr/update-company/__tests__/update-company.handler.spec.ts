@@ -88,17 +88,17 @@ describe('UpdateCompanyHandler', () => {
       const company = createCompany();
       mockCompanyRepository.findById.mockResolvedValue(company);
 
-      const command = new UpdateCompanyCommand(
-        'company-id-1',
-        'Updated Name',
-        'Original description',
-        'https://original.com',
-        'https://original.com/logo.png',
-        'Technology',
-        '51-200',
-        'San Francisco, CA',
-        'hr-user-id',
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'company-id-1',
+        name: 'Updated Name',
+        description: 'Original description',
+        website: 'https://original.com',
+        logoUrl: 'https://original.com/logo.png',
+        industry: 'Technology',
+        size: '51-200',
+        location: 'San Francisco, CA',
+        userId: 'hr-user-id',
+      });
 
       // Act
       await handler.execute(command);
@@ -137,17 +137,17 @@ describe('UpdateCompanyHandler', () => {
       const company = createCompany();
       mockCompanyRepository.findById.mockResolvedValue(company);
 
-      const command = new UpdateCompanyCommand(
-        'company-id-1',
-        'New Name',
-        'New description',
-        'https://new.com',
-        'https://new.com/logo.png',
-        'Finance',
-        '200+',
-        'New York, NY',
-        'hr-user-id',
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'company-id-1',
+        name: 'New Name',
+        description: 'New description',
+        website: 'https://new.com',
+        logoUrl: 'https://new.com/logo.png',
+        industry: 'Finance',
+        size: '200+',
+        location: 'New York, NY',
+        userId: 'hr-user-id',
+      });
 
       // Act
       await handler.execute(command);
@@ -173,17 +173,17 @@ describe('UpdateCompanyHandler', () => {
       const company = createCompany();
       mockCompanyRepository.findById.mockResolvedValue(company);
 
-      const command = new UpdateCompanyCommand(
-        'company-id-1',
-        'Original Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'company-id-1',
+        name: 'Original Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: 'hr-user-id',
+      });
 
       // Act
       await handler.execute(command);
@@ -200,17 +200,17 @@ describe('UpdateCompanyHandler', () => {
       const company = createCompany();
       mockCompanyRepository.findById.mockResolvedValue(company);
 
-      const command = new UpdateCompanyCommand(
-        'company-id-1',
-        'New Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'company-id-1',
+        name: 'New Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: 'hr-user-id',
+      });
 
       // Act
       await handler.execute(command);
@@ -228,17 +228,17 @@ describe('UpdateCompanyHandler', () => {
       // Arrange
       mockCompanyRepository.findById.mockResolvedValue(null);
 
-      const command = new UpdateCompanyCommand(
-        'non-existent-id',
-        'Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'non-existent-id',
+        name: 'Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: 'hr-user-id',
+      });
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(
@@ -256,17 +256,17 @@ describe('UpdateCompanyHandler', () => {
       const company = createCompany('company-id-1', 'original-creator-id');
       mockCompanyRepository.findById.mockResolvedValue(company);
 
-      const command = new UpdateCompanyCommand(
-        'company-id-1',
-        'New Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'different-user-id', // Not the creator
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'company-id-1',
+        name: 'New Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: 'different-user-id', // Not the creator
+      });
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(
@@ -294,17 +294,17 @@ describe('UpdateCompanyHandler', () => {
         return 'mock-event-id';
       });
 
-      const command = new UpdateCompanyCommand(
-        'company-id-1',
-        'New Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'company-id-1',
+        name: 'New Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: 'hr-user-id',
+      });
 
       // Act
       await handler.execute(command);
@@ -319,17 +319,17 @@ describe('UpdateCompanyHandler', () => {
       mockCompanyRepository.findById.mockResolvedValue(company);
       mockUnitOfWork.execute.mockRejectedValue(new Error('Transaction failed'));
 
-      const command = new UpdateCompanyCommand(
-        'company-id-1',
-        'New Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'hr-user-id',
-      );
+      const command = new UpdateCompanyCommand({
+        companyId: 'company-id-1',
+        name: 'New Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: 'hr-user-id',
+      });
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(

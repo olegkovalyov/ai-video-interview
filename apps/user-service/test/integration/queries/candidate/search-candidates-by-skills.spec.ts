@@ -86,14 +86,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
   describe('Success Cases', () => {
     it('should search candidates by single skill', async () => {
       // Act
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1],
-        undefined,
-        undefined,
-        undefined,
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1],
+        minProficiency: undefined,
+        minYears: undefined,
+        experienceLevel: undefined,
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert
@@ -105,14 +105,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
 
     it('should search candidates by multiple skills', async () => {
       // Act
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1, skillId2],
-        undefined,
-        undefined,
-        undefined,
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1, skillId2],
+        minProficiency: undefined,
+        minYears: undefined,
+        experienceLevel: undefined,
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert
@@ -124,14 +124,12 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
     it('should filter by minimum proficiency (not less than)', async () => {
       // Candidate has TypeScript at 'advanced' level
       // Act - search for intermediate or higher (should find)
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1],
-        'intermediate', // advanced >= intermediate ✓
-        undefined,
-        undefined,
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1],
+        minProficiency: 'intermediate', // advanced >= intermediate ✓
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert
@@ -141,14 +139,12 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
     it('should exclude candidates below minimum proficiency', async () => {
       // Candidate has React at 'intermediate' level
       // Act - search for expert level (should NOT find)
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId2],
-        'expert', // intermediate < expert ✗
-        undefined,
-        undefined,
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId2],
+        minProficiency: 'expert', // intermediate < expert ✗
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert - no results because intermediate < expert
@@ -158,14 +154,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
     it('should filter by experienceLevel (exact match)', async () => {
       // Candidate profile has experience_level = 'mid'
       // Act - search for 'mid' experience level
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1],
-        undefined,
-        undefined,
-        'mid',
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1],
+        minProficiency: undefined,
+        minYears: undefined,
+        experienceLevel: 'mid',
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert
@@ -176,14 +172,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
     it('should return empty when experienceLevel does not match', async () => {
       // Candidate profile has experience_level = 'mid'
       // Act - search for 'senior' experience level
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1],
-        undefined,
-        undefined,
-        'senior',
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1],
+        minProficiency: undefined,
+        minYears: undefined,
+        experienceLevel: 'senior',
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert - no results because mid != senior
@@ -192,14 +188,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
 
     it('should filter by minimum years of experience', async () => {
       // Act - search for 2+ years (should find candidate)
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1],
-        undefined,
-        2,
-        undefined,
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1],
+        minProficiency: undefined,
+        minYears: 2,
+        experienceLevel: undefined,
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert
@@ -208,14 +204,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
 
     it('should return empty when no candidates match criteria', async () => {
       // Act - search for 10+ years (no one has that)
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1],
-        undefined,
-        10,
-        undefined,
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1],
+        minProficiency: undefined,
+        minYears: 10,
+        experienceLevel: undefined,
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert
@@ -225,14 +221,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
 
     it('should return all candidates when skillIds is empty (no skill filter)', async () => {
       // Act - empty skillIds means "no skill filter", returns all candidates
-      const query = new SearchCandidatesBySkillsQuery(
-        [],
-        undefined,
-        undefined,
-        undefined,
-        1,
-        20,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [],
+        minProficiency: undefined,
+        minYears: undefined,
+        experienceLevel: undefined,
+        page: 1,
+        limit: 20,
+      });
       const result = await queryBus.execute(query);
 
       // Assert - candidate from beforeEach is returned (Mode 2: search all)
@@ -242,14 +238,14 @@ describe('SearchCandidatesBySkillsQuery Integration', () => {
 
     it('should support pagination', async () => {
       // Act
-      const query = new SearchCandidatesBySkillsQuery(
-        [skillId1],
-        undefined,
-        undefined,
-        undefined,
-        1,
-        10,
-      );
+      const query = new SearchCandidatesBySkillsQuery({
+        skillIds: [skillId1],
+        minProficiency: undefined,
+        minYears: undefined,
+        experienceLevel: undefined,
+        page: 1,
+        limit: 10,
+      });
       const result = await queryBus.execute(query);
 
       // Assert

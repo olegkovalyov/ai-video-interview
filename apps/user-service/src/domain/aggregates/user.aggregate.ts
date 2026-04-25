@@ -77,13 +77,13 @@ export class User extends AggregateRoot {
 
     // Domain Event: User created
     user.apply(
-      new UserCreatedEvent(
-        user.id,
-        user.email.value,
-        user.externalAuthId,
-        user.fullName.firstName,
-        user.fullName.lastName,
-      ),
+      new UserCreatedEvent({
+        userId: user.id,
+        email: user.email.value,
+        externalAuthId: user.externalAuthId,
+        firstName: user.fullName.firstName,
+        lastName: user.fullName.lastName,
+      }),
     );
 
     return user;

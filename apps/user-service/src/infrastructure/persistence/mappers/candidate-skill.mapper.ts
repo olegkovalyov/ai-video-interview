@@ -34,16 +34,16 @@ export class CandidateSkillMapper {
         ? null
         : YearsOfExperience.fromNumber(entity.yearsOfExperience);
 
-    return CandidateSkill.reconstitute(
-      entity.id,
-      entity.candidateId,
-      entity.skillId,
-      entity.description,
-      proficiency,
-      years,
-      entity.createdAt,
-      entity.updatedAt,
-    );
+    return CandidateSkill.reconstitute({
+      id: entity.id,
+      candidateId: entity.candidateId,
+      skillId: entity.skillId,
+      description: entity.description,
+      proficiencyLevel: proficiency,
+      yearsOfExperience: years,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    });
   }
 
   toDomainList(entities: CandidateSkillEntity[]): CandidateSkill[] {

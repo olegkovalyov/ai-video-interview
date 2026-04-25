@@ -47,13 +47,13 @@ export class CreateSkillHandler implements ICommandHandler<CreateSkillCommand> {
 
     // 3. Create Skill entity
     const skillId = uuid();
-    const skill = Skill.create(
-      skillId,
-      command.name,
-      command.slug,
-      command.categoryId,
-      command.description,
-    );
+    const skill = Skill.create({
+      id: skillId,
+      name: command.name,
+      slug: command.slug,
+      categoryId: command.categoryId,
+      description: command.description,
+    });
 
     // 4. Save to repository
     await this.skillRepository.save(skill);

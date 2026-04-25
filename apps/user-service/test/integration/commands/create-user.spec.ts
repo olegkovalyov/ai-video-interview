@@ -35,13 +35,13 @@ describe('CreateUserCommand Integration', () => {
       // Arrange
       const userId = uuidv4();
       const externalAuthId = uuidv4();
-      const command = new CreateUserCommand(
+      const command = new CreateUserCommand({
         userId,
         externalAuthId,
-        'john.doe@example.com',
-        'John',
-        'Doe',
-      );
+        email: 'john.doe@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -69,22 +69,22 @@ describe('CreateUserCommand Integration', () => {
     it('should create multiple users with different emails', async () => {
       // Arrange & Act
       await commandBus.execute(
-        new CreateUserCommand(
-          uuidv4(),
-          uuidv4(),
-          'user1@example.com',
-          'User',
-          'One',
-        ),
+        new CreateUserCommand({
+          userId: uuidv4(),
+          externalAuthId: uuidv4(),
+          email: 'user1@example.com',
+          firstName: 'User',
+          lastName: 'One',
+        }),
       );
       await commandBus.execute(
-        new CreateUserCommand(
-          uuidv4(),
-          uuidv4(),
-          'user2@example.com',
-          'User',
-          'Two',
-        ),
+        new CreateUserCommand({
+          userId: uuidv4(),
+          externalAuthId: uuidv4(),
+          email: 'user2@example.com',
+          firstName: 'User',
+          lastName: 'Two',
+        }),
       );
 
       // Assert
@@ -97,13 +97,13 @@ describe('CreateUserCommand Integration', () => {
     it('should call outbox service to save event', async () => {
       // Arrange
       const userId = uuidv4();
-      const command = new CreateUserCommand(
+      const command = new CreateUserCommand({
         userId,
-        uuidv4(),
-        'test@example.com',
-        'Test',
-        'User',
-      );
+        externalAuthId: uuidv4(),
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+      });
 
       // Act
       await commandBus.execute(command);
@@ -124,25 +124,28 @@ describe('CreateUserCommand Integration', () => {
       // Arrange - Create first user
       const firstUserId = uuidv4();
       await commandBus.execute(
-        new CreateUserCommand(
-          firstUserId,
-          uuidv4(),
-          'duplicate@example.com',
-          'First',
-          'User',
-        ),
+        new CreateUserCommand({
+          userId: firstUserId,
+          externalAuthId: uuidv4(),
+          email: 'duplicate@example.com',
+          firstName: 'First',
+          lastName: 'User',
+        }),
       );
 
       // Act & Assert - Try to create second user with same email
       await expect(
         commandBus.execute(
-          new CreateUserCommand(
-            uuidv4(), // Different userId
-            uuidv4(), // Different externalAuthId
-            'duplicate@example.com', // Same email
-            'Second',
-            'User',
-          ),
+          new CreateUserCommand({
+            userId: uuidv4(),
+            // Different userId
+            externalAuthId: uuidv4(),
+            // Different externalAuthId
+            email: 'duplicate@example.com',
+            // Same email
+            firstName: 'Second',
+            lastName: 'User',
+          }),
         ),
       ).rejects.toThrow();
     });
@@ -151,25 +154,27 @@ describe('CreateUserCommand Integration', () => {
       // Arrange - Create first user
       const externalAuthId = uuidv4();
       await commandBus.execute(
-        new CreateUserCommand(
-          uuidv4(),
+        new CreateUserCommand({
+          userId: uuidv4(),
           externalAuthId,
-          'user1@example.com',
-          'User',
-          'One',
-        ),
+          email: 'user1@example.com',
+          firstName: 'User',
+          lastName: 'One',
+        }),
       );
 
       // Act & Assert - Try to create second user with same externalAuthId
       await expect(
         commandBus.execute(
-          new CreateUserCommand(
-            uuidv4(),
-            externalAuthId, // Same externalAuthId
-            'user2@example.com', // Different email
-            'User',
-            'Two',
-          ),
+          new CreateUserCommand({
+            userId: uuidv4(),
+            externalAuthId,
+            // Same externalAuthId
+            email: 'user2@example.com',
+            // Different email
+            firstName: 'User',
+            lastName: 'Two',
+          }),
         ),
       ).rejects.toThrow();
     });
@@ -178,13 +183,14 @@ describe('CreateUserCommand Integration', () => {
       // Act & Assert
       await expect(
         commandBus.execute(
-          new CreateUserCommand(
-            uuidv4(),
-            uuidv4(),
-            'invalid-email', // Invalid email
-            'Test',
-            'User',
-          ),
+          new CreateUserCommand({
+            userId: uuidv4(),
+            externalAuthId: uuidv4(),
+            email: 'invalid-email',
+            // Invalid email
+            firstName: 'Test',
+            lastName: 'User',
+          }),
         ),
       ).rejects.toThrow();
     });
@@ -193,13 +199,14 @@ describe('CreateUserCommand Integration', () => {
       // Act & Assert
       await expect(
         commandBus.execute(
-          new CreateUserCommand(
-            uuidv4(),
-            uuidv4(),
-            'test@example.com',
-            '', // Empty firstName
-            'User',
-          ),
+          new CreateUserCommand({
+            userId: uuidv4(),
+            externalAuthId: uuidv4(),
+            email: 'test@example.com',
+            firstName: '',
+            // Empty firstName
+            lastName: 'User',
+          }),
         ),
       ).rejects.toThrow();
     });
@@ -208,13 +215,13 @@ describe('CreateUserCommand Integration', () => {
       // Act & Assert
       await expect(
         commandBus.execute(
-          new CreateUserCommand(
-            uuidv4(),
-            uuidv4(),
-            'test@example.com',
-            'Test',
-            '', // Empty lastName
-          ),
+          new CreateUserCommand({
+            userId: uuidv4(),
+            externalAuthId: uuidv4(),
+            email: 'test@example.com',
+            firstName: 'Test',
+            lastName: '', // Empty lastName
+          }),
         ),
       ).rejects.toThrow();
     });
@@ -225,13 +232,13 @@ describe('CreateUserCommand Integration', () => {
       // Note: EventBus and OutboxService are mocked in integration tests
       // This test verifies the command executes successfully
       const userId = uuidv4();
-      const command = new CreateUserCommand(
+      const command = new CreateUserCommand({
         userId,
-        uuidv4(),
-        'test@example.com',
-        'Test',
-        'User',
-      );
+        externalAuthId: uuidv4(),
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+      });
 
       await commandBus.execute(command);
 

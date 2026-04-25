@@ -18,14 +18,14 @@ export class UserCompanyMapper {
   }
 
   toDomain(entity: UserCompanyEntity): UserCompany {
-    return UserCompany.reconstitute(
-      entity.id,
-      entity.userId,
-      entity.companyId,
-      entity.position,
-      entity.isPrimary,
-      entity.joinedAt,
-    );
+    return UserCompany.reconstitute({
+      id: entity.id,
+      userId: entity.userId,
+      companyId: entity.companyId,
+      position: entity.position,
+      isPrimary: entity.isPrimary,
+      joinedAt: entity.joinedAt,
+    });
   }
 
   toDomainList(entities: UserCompanyEntity[]): UserCompany[] {

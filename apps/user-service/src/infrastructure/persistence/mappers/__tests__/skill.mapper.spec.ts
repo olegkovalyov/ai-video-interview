@@ -38,18 +38,20 @@ describe('SkillMapper', () => {
       updatedAt?: Date;
     } = {},
   ): Skill => {
-    return Skill.reconstitute(
-      overrides.id ?? uuidv4(),
-      overrides.name ?? 'TypeScript',
-      overrides.slug ?? 'typescript',
-      overrides.categoryId === undefined ? uuidv4() : overrides.categoryId,
-      overrides.description === undefined
-        ? 'A typed superset of JavaScript'
-        : overrides.description,
-      overrides.isActive ?? true,
-      overrides.createdAt ?? new Date('2025-02-10T08:00:00Z'),
-      overrides.updatedAt ?? new Date('2025-05-20T11:00:00Z'),
-    );
+    return Skill.reconstitute({
+      id: overrides.id ?? uuidv4(),
+      name: overrides.name ?? 'TypeScript',
+      slug: overrides.slug ?? 'typescript',
+      categoryId:
+        overrides.categoryId === undefined ? uuidv4() : overrides.categoryId,
+      description:
+        overrides.description === undefined
+          ? 'A typed superset of JavaScript'
+          : overrides.description,
+      isActive: overrides.isActive ?? true,
+      createdAt: overrides.createdAt ?? new Date('2025-02-10T08:00:00Z'),
+      updatedAt: overrides.updatedAt ?? new Date('2025-05-20T11:00:00Z'),
+    });
   };
 
   describe('toEntity()', () => {
@@ -181,16 +183,16 @@ describe('SkillMapper', () => {
       const createdAt = new Date('2025-01-01T00:00:00Z');
       const updatedAt = new Date('2025-04-01T00:00:00Z');
 
-      const original = Skill.reconstitute(
+      const original = Skill.reconstitute({
         id,
-        'NestJS',
-        'nestjs',
+        name: 'NestJS',
+        slug: 'nestjs',
         categoryId,
-        'A progressive Node.js framework',
-        true,
+        description: 'A progressive Node.js framework',
+        isActive: true,
         createdAt,
         updatedAt,
-      );
+      });
 
       const entity = mapper.toEntity(original);
       const restored = mapper.toDomain(entity);
