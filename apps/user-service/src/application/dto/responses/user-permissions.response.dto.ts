@@ -1,3 +1,7 @@
+/* eslint-disable max-classes-per-file --
+ * Application response DTO bundle: success + nested permissions shape are
+ * co-defined for one query response.
+ */
 import { ApiProperty } from '@nestjs/swagger';
 
 /**

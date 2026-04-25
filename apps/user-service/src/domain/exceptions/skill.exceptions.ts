@@ -1,3 +1,7 @@
+/* eslint-disable max-classes-per-file --
+ * Domain exception bundle: all exceptions for the Skill bounded context
+ * grouped by topic. See user.exceptions.ts for rationale.
+ */
 import { DomainException } from './domain.exception';
 
 /**

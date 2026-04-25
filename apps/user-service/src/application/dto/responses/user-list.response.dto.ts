@@ -1,3 +1,7 @@
+/* eslint-disable max-classes-per-file --
+ * Application response DTO bundle: paginated list + pagination metadata
+ * are co-defined for one query response shape.
+ */
 import { ApiProperty } from '@nestjs/swagger';
 import { UserResponseDto } from './user.response.dto';
 

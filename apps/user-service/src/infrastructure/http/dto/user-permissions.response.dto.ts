@@ -1,3 +1,7 @@
+/* eslint-disable max-classes-per-file --
+ * NestJS DTO bundle: related response DTOs for one controller live together.
+ * See dto/companies.dto.ts for rationale.
+ */
 import { ApiProperty } from '@nestjs/swagger';
 
 /**

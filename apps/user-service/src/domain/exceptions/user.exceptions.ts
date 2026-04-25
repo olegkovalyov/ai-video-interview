@@ -1,3 +1,8 @@
+/* eslint-disable max-classes-per-file --
+ * Domain exception bundle: all exceptions for the User bounded context
+ * grouped by topic (Vaughn Vernon "Implementing DDD" style). Splitting
+ * each into its own file fragments coherent domain knowledge with no benefit.
+ */
 import { DomainException } from './domain.exception';
 
 /**
