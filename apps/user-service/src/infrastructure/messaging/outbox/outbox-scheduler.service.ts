@@ -78,29 +78,34 @@ export class OutboxSchedulerService {
 
   private async enqueueEvents(events: OutboxEntity[]): Promise<void> {
     for (const event of events) {
-      try {
-        await this.outboxQueue.add(
-          BULL_JOB.PUBLISH_OUTBOX_EVENT,
-          { eventId: event.eventId },
-          {
-            jobId: event.eventId,
-            removeOnComplete: true,
-            removeOnFail: false,
-          },
-        );
-      } catch (error) {
-        // Duplicate jobId is benign — job is already queued from a previous tick.
-        if (errorMessage(error)?.includes('job already exists')) continue;
-        this.logger.error(
-          `Failed to queue outbox event ${event.eventId}: ${errorMessage(error)}`,
-          {
-            category: 'outbox',
-            action: 'queue_failed',
-            eventId: event.eventId,
-            error: errorMessage(error),
-          },
-        );
-      }
+      await this.enqueueOne(event);
+    }
+  }
+
+  private async enqueueOne(event: OutboxEntity): Promise<void> {
+    try {
+      await this.outboxQueue.add(
+        BULL_JOB.PUBLISH_OUTBOX_EVENT,
+        { eventId: event.eventId },
+        {
+          jobId: event.eventId,
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    } catch (error) {
+      const message = errorMessage(error);
+      // Duplicate jobId is benign — job is already queued from a previous tick.
+      if (message?.includes('job already exists')) return;
+      this.logger.error(
+        `Failed to queue outbox event ${event.eventId}: ${message}`,
+        {
+          category: 'outbox',
+          action: 'queue_failed',
+          eventId: event.eventId,
+          error: message,
+        },
+      );
     }
   }
 

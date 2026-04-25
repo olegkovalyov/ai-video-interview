@@ -13,9 +13,8 @@ export default [
   //   - 5.3.A: max-classes-per-file
   //   - Phase 5.2: max-params
   //   - 5.3.C: max-lines-per-function, complexity, sonarjs/cognitive-complexity
-  //
-  // `max-depth` keeps 2 pre-existing violations — promote in 5.3.D
-  // when aggregate complexity is reduced.
+  //   - 5.3.C-tail: max-depth at the soft limit (2) after extracting
+  //     enqueueOne in outbox-scheduler.
   // ──────────────────────────────────────────────────────────────────
   {
     files: ['src/**/*.ts'],
@@ -28,6 +27,7 @@ export default [
       ],
       complexity: ['error', 10],
       'sonarjs/cognitive-complexity': ['error', 10],
+      'max-depth': ['error', 2],
     },
   },
 
@@ -71,6 +71,7 @@ export default [
       'sonarjs/cognitive-complexity': 'off',
       'max-classes-per-file': 'off',
       'max-params': 'off',
+      'max-depth': 'off',
     },
   },
 ];
