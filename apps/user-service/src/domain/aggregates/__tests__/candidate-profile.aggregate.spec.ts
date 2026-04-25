@@ -4,6 +4,10 @@ import { ProficiencyLevel } from '../../value-objects/proficiency-level.vo';
 import { YearsOfExperience } from '../../value-objects/years-of-experience.vo';
 import { CandidateSkill } from '../../entities/candidate-skill.entity';
 import { DomainException } from '../../exceptions/domain.exception';
+import {
+  CandidateSkillAlreadyExistsException,
+  CandidateSkillNotFoundException,
+} from '../../exceptions/candidate.exceptions';
 import { CandidateSkillAddedEvent } from '../../events/candidate-skill-added.event';
 import { CandidateSkillUpdatedEvent } from '../../events/candidate-skill-updated.event';
 import { CandidateSkillRemovedEvent } from '../../events/candidate-skill-removed.event';
@@ -126,16 +130,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
           proficiencyLevel: ProficiencyLevel.advanced(),
           yearsOfExperience: YearsOfExperience.fromNumber(5),
         }),
-      ).toThrow(DomainException);
-      expect(() =>
-        profile.addSkill({
-          skillId: validSkillId,
-          candidateSkillId: 'another-id',
-          description: 'Another description',
-          proficiencyLevel: ProficiencyLevel.advanced(),
-          yearsOfExperience: YearsOfExperience.fromNumber(5),
-        }),
-      ).toThrow('Skill already added to profile');
+      ).toThrow(CandidateSkillAlreadyExistsException);
     });
 
     it('should add multiple different skills', () => {
@@ -258,15 +253,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
           ProficiencyLevel.advanced(),
           YearsOfExperience.fromNumber(5),
         ),
-      ).toThrow(DomainException);
-      expect(() =>
-        profile.updateSkill(
-          'non-existent',
-          'Description',
-          ProficiencyLevel.advanced(),
-          YearsOfExperience.fromNumber(5),
-        ),
-      ).toThrow('Skill not found in profile');
+      ).toThrow(CandidateSkillNotFoundException);
     });
   });
 
@@ -317,10 +304,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
       const profile = CandidateProfile.create(validUserId);
 
       expect(() => profile.removeSkill('non-existent')).toThrow(
-        DomainException,
-      );
-      expect(() => profile.removeSkill('non-existent')).toThrow(
-        'Skill not found in profile',
+        CandidateSkillNotFoundException,
       );
     });
 

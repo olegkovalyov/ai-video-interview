@@ -5,9 +5,13 @@ import { Company } from '../../domain/aggregates/company.aggregate';
 import { CompanySize } from '../../domain/value-objects/company-size.vo';
 import type { ICompanyRepository } from '../../domain/repositories/company.repository.interface';
 import { COMPANY_EVENT_TYPES } from '../../domain/constants';
+import { CompanyAlreadyExistsException } from '../../domain/exceptions/company.exceptions';
 import type { IOutboxService } from '../interfaces/outbox-service.interface';
 import type { IUnitOfWork } from '../interfaces/unit-of-work.interface';
 import { LoggerService } from '../../infrastructure/logger/logger.service';
+
+/** PostgreSQL unique-violation SQLSTATE — RFC SQL/PG; see pg docs. */
+const PG_UNIQUE_VIOLATION = '23505';
 
 export interface CreateCompanyInput {
   name: string;
@@ -67,7 +71,10 @@ export class CompanyCreationService {
       position: input.position,
     });
 
-    const eventId = await this.persistAtomically(company, input);
+    const eventId = await this.persistOrTranslateUniqueViolation(
+      company,
+      input,
+    );
     this.publishInternalEvents(company);
     await this.outboxService.schedulePublishing([eventId]);
 
@@ -77,6 +84,33 @@ export class CompanyCreationService {
     });
 
     return { companyId };
+  }
+
+  /**
+   * Persist the aggregate, translating the PG unique-violation SQLSTATE
+   * (23505) into a domain-level signal so the HTTP layer can return
+   * 409 + COMPANY_ALREADY_EXISTS without leaking driver details.
+   */
+  private async persistOrTranslateUniqueViolation(
+    company: Company,
+    input: CreateCompanyInput,
+  ): Promise<string> {
+    try {
+      return await this.persistAtomically(company, input);
+    } catch (error) {
+      if (CompanyCreationService.isPgUniqueViolation(error)) {
+        throw new CompanyAlreadyExistsException(input.name);
+      }
+      throw error;
+    }
+  }
+
+  private static isPgUniqueViolation(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      (error as { code?: unknown }).code === PG_UNIQUE_VIOLATION
+    );
   }
 
   private async persistAtomically(

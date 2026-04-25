@@ -1,5 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common';
-import { HttpStatus, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 
 // Suppress Logger.warn output from filter (tested behavior, not debug info)
 jest.spyOn(Logger.prototype, 'warn').mockImplementation();
@@ -15,7 +15,22 @@ import {
 import {
   CompanyNotFoundException,
   CompanyAccessDeniedException,
+  CompanyAlreadyExistsException,
+  InvalidCompanySizeException,
 } from '../../../../domain/exceptions/company.exceptions';
+import {
+  SkillNotFoundException,
+  SkillAlreadyExistsException,
+  SkillCategoryNotFoundException,
+  SkillNotActiveException,
+} from '../../../../domain/exceptions/skill.exceptions';
+import {
+  CandidateProfileNotFoundException,
+  CandidateSkillAlreadyExistsException,
+  CandidateSkillNotFoundException,
+  InvalidExperienceLevelException,
+} from '../../../../domain/exceptions/candidate.exceptions';
+import { AccessDeniedException } from '../../../../domain/exceptions/access-denied.exception';
 
 describe('DomainExceptionFilter', () => {
   let filter: DomainExceptionFilter;
@@ -37,166 +52,183 @@ describe('DomainExceptionFilter', () => {
     filter = new DomainExceptionFilter();
   });
 
-  it('should map DomainException to 400 Bad Request', () => {
-    const exception = new DomainException('Some business rule violated');
-    const host = createMockHost();
+  describe('response contract', () => {
+    it('should always set success: false', () => {
+      filter.catch(new UserNotFoundException('u'), createMockHost());
 
-    filter.catch(exception, host);
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false }),
+      );
+    });
 
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.BAD_REQUEST,
-        error: 'Bad Request',
-      }),
-    );
+    it('should expose exception message under "error"', () => {
+      filter.catch(new UserNotFoundException('user-789'), createMockHost());
+
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'User not found: user-789' }),
+      );
+    });
+
+    it('should include request path', () => {
+      filter.catch(
+        new DomainException('Something failed'),
+        createMockHost('/api/users/123'),
+      );
+
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/api/users/123' }),
+      );
+    });
+
+    it('should include ISO timestamp', () => {
+      const before = new Date().toISOString();
+      filter.catch(new DomainException('Something failed'), createMockHost());
+      const after = new Date().toISOString();
+
+      const body = mockJson.mock.calls[0][0];
+      expect(typeof body.timestamp).toBe('string');
+      expect(body.timestamp >= before).toBe(true);
+      expect(body.timestamp <= after).toBe(true);
+    });
   });
 
-  it('should map UserNotFoundException to 404 Not Found', () => {
-    const exception = new UserNotFoundException('user-123');
-    const host = createMockHost();
+  describe('status + code mapping (read from static fields)', () => {
+    type ExceptionFactory = () => DomainException;
 
-    filter.catch(exception, host);
+    const cases: ReadonlyArray<{
+      name: string;
+      factory: ExceptionFactory;
+      status: number;
+      code: string;
+    }> = [
+      {
+        name: 'DomainException (base)',
+        factory: () => new DomainException('boom'),
+        status: 400,
+        code: 'DOMAIN_ERROR',
+      },
+      {
+        name: 'UserNotFoundException',
+        factory: () => new UserNotFoundException('user-123'),
+        status: 404,
+        code: 'USER_NOT_FOUND',
+      },
+      {
+        name: 'UserAlreadyExistsException',
+        factory: () => new UserAlreadyExistsException('test@example.com'),
+        status: 409,
+        code: 'USER_ALREADY_EXISTS',
+      },
+      {
+        name: 'UserSuspendedException',
+        factory: () => new UserSuspendedException('user-123'),
+        status: 403,
+        code: 'USER_SUSPENDED',
+      },
+      {
+        name: 'UserDeletedException',
+        factory: () => new UserDeletedException('user-123'),
+        status: 410,
+        code: 'USER_DELETED',
+      },
+      {
+        name: 'InvalidUserOperationException',
+        factory: () => new InvalidUserOperationException('cannot transition'),
+        status: 422,
+        code: 'INVALID_USER_OPERATION',
+      },
+      {
+        name: 'CompanyNotFoundException',
+        factory: () => new CompanyNotFoundException('company-456'),
+        status: 404,
+        code: 'COMPANY_NOT_FOUND',
+      },
+      {
+        name: 'CompanyAccessDeniedException',
+        factory: () => new CompanyAccessDeniedException(),
+        status: 403,
+        code: 'COMPANY_ACCESS_DENIED',
+      },
+      {
+        name: 'CompanyAlreadyExistsException',
+        factory: () => new CompanyAlreadyExistsException('Acme'),
+        status: 409,
+        code: 'COMPANY_ALREADY_EXISTS',
+      },
+      {
+        name: 'InvalidCompanySizeException',
+        factory: () =>
+          new InvalidCompanySizeException('999', ['1-10', '11-50']),
+        status: 400,
+        code: 'INVALID_COMPANY_SIZE',
+      },
+      {
+        name: 'SkillNotFoundException',
+        factory: () => new SkillNotFoundException('skill-1'),
+        status: 404,
+        code: 'SKILL_NOT_FOUND',
+      },
+      {
+        name: 'SkillAlreadyExistsException',
+        factory: () => new SkillAlreadyExistsException('javascript'),
+        status: 409,
+        code: 'SKILL_ALREADY_EXISTS',
+      },
+      {
+        name: 'SkillCategoryNotFoundException',
+        factory: () => new SkillCategoryNotFoundException('cat-1'),
+        status: 422,
+        code: 'SKILL_CATEGORY_NOT_FOUND',
+      },
+      {
+        name: 'SkillNotActiveException',
+        factory: () => new SkillNotActiveException('Java'),
+        status: 422,
+        code: 'SKILL_NOT_ACTIVE',
+      },
+      {
+        name: 'CandidateProfileNotFoundException',
+        factory: () => new CandidateProfileNotFoundException('user-123'),
+        status: 404,
+        code: 'CANDIDATE_PROFILE_NOT_FOUND',
+      },
+      {
+        name: 'CandidateSkillAlreadyExistsException',
+        factory: () => new CandidateSkillAlreadyExistsException('TypeScript'),
+        status: 409,
+        code: 'CANDIDATE_SKILL_ALREADY_EXISTS',
+      },
+      {
+        name: 'CandidateSkillNotFoundException',
+        factory: () => new CandidateSkillNotFoundException('skill-1'),
+        status: 404,
+        code: 'CANDIDATE_SKILL_NOT_FOUND',
+      },
+      {
+        name: 'InvalidExperienceLevelException',
+        factory: () =>
+          new InvalidExperienceLevelException('expert', ['junior', 'mid']),
+        status: 400,
+        code: 'INVALID_EXPERIENCE_LEVEL',
+      },
+      {
+        name: 'AccessDeniedException',
+        factory: () => new AccessDeniedException(),
+        status: 403,
+        code: 'ACCESS_DENIED',
+      },
+    ];
 
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.NOT_FOUND,
-        error: 'Not Found',
-      }),
-    );
-  });
+    it.each(cases)(
+      '$name → $status with code $code',
+      ({ factory, status, code }) => {
+        filter.catch(factory(), createMockHost());
 
-  it('should map CompanyNotFoundException to 404 Not Found', () => {
-    const exception = new CompanyNotFoundException('company-456');
-    const host = createMockHost();
-
-    filter.catch(exception, host);
-
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.NOT_FOUND,
-        error: 'Not Found',
-      }),
-    );
-  });
-
-  it('should map CompanyAccessDeniedException to 403 Forbidden', () => {
-    const exception = new CompanyAccessDeniedException();
-    const host = createMockHost();
-
-    filter.catch(exception, host);
-
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.FORBIDDEN,
-        error: 'Forbidden',
-      }),
-    );
-  });
-
-  it('should include exception message in response', () => {
-    const exception = new UserNotFoundException('user-789');
-    const host = createMockHost();
-
-    filter.catch(exception, host);
-
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: 'User not found: user-789',
-      }),
-    );
-  });
-
-  it('should include request path in response', () => {
-    const exception = new DomainException('Something failed');
-    const host = createMockHost('/api/users/123');
-
-    filter.catch(exception, host);
-
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        path: '/api/users/123',
-      }),
-    );
-  });
-
-  it('should include timestamp in response', () => {
-    const exception = new DomainException('Something failed');
-    const host = createMockHost();
-
-    const before = new Date().toISOString();
-    filter.catch(exception, host);
-    const after = new Date().toISOString();
-
-    const responseBody = mockJson.mock.calls[0][0];
-    expect(responseBody.timestamp).toBeDefined();
-    expect(typeof responseBody.timestamp).toBe('string');
-    expect(responseBody.timestamp >= before).toBe(true);
-    expect(responseBody.timestamp <= after).toBe(true);
-  });
-
-  it('should map UserAlreadyExistsException to 409 Conflict', () => {
-    const exception = new UserAlreadyExistsException('test@example.com');
-    const host = createMockHost();
-
-    filter.catch(exception, host);
-
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.CONFLICT);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.CONFLICT,
-        error: 'Conflict',
-      }),
-    );
-  });
-
-  it('should map UserSuspendedException to 403 Forbidden', () => {
-    const exception = new UserSuspendedException('user-123');
-    const host = createMockHost();
-
-    filter.catch(exception, host);
-
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.FORBIDDEN,
-        error: 'Forbidden',
-      }),
-    );
-  });
-
-  it('should map UserDeletedException to 410 Gone', () => {
-    const exception = new UserDeletedException('user-123');
-    const host = createMockHost();
-
-    filter.catch(exception, host);
-
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.GONE);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.GONE,
-        error: 'Gone',
-      }),
-    );
-  });
-
-  it('should map InvalidUserOperationException to 422 Unprocessable Entity', () => {
-    const exception = new InvalidUserOperationException(
-      'User is already suspended',
-    );
-    const host = createMockHost();
-
-    filter.catch(exception, host);
-
-    expect(mockStatus).toHaveBeenCalledWith(HttpStatus.UNPROCESSABLE_ENTITY);
-    expect(mockJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        error: 'Unprocessable Entity',
-      }),
+        expect(mockStatus).toHaveBeenCalledWith(status);
+        expect(mockJson).toHaveBeenCalledWith(
+          expect.objectContaining({ code }),
+        );
+      },
     );
   });
 });

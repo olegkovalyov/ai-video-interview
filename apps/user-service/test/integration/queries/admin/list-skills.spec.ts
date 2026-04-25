@@ -86,7 +86,12 @@ describe('ListSkillsQuery Integration', () => {
       await commandBus.execute(new DeactivateSkillCommand(skillId, uuidv4()));
 
       // Act - Query only active skills
-      const activeQuery = new ListSkillsQuery({ page: 1, limit: 100, categoryId: undefined, isActive: true });
+      const activeQuery = new ListSkillsQuery({
+        page: 1,
+        limit: 100,
+        categoryId: undefined,
+        isActive: true,
+      });
       const activeResult = await queryBus.execute(activeQuery);
 
       // Assert - Should not contain inactive skill
@@ -94,7 +99,12 @@ describe('ListSkillsQuery Integration', () => {
       expect(hasInactive).toBe(false);
 
       // Act - Query only inactive skills
-      const inactiveQuery = new ListSkillsQuery({ page: 1, limit: 100, categoryId: undefined, isActive: false });
+      const inactiveQuery = new ListSkillsQuery({
+        page: 1,
+        limit: 100,
+        categoryId: undefined,
+        isActive: false,
+      });
       const inactiveResult = await queryBus.execute(inactiveQuery);
 
       // Assert - Should contain our inactive skill
@@ -185,7 +195,13 @@ describe('ListSkillsQuery Integration', () => {
       const categoryId = categories[0].id;
 
       // Act - Category + Active + Search
-      const query = new ListSkillsQuery({ page: 1, limit: 100, categoryId, isActive: true, search: 'Java' });
+      const query = new ListSkillsQuery({
+        page: 1,
+        limit: 100,
+        categoryId,
+        isActive: true,
+        search: 'Java',
+      });
       const result = await queryBus.execute(query);
 
       // Assert - All results match all filters
@@ -252,7 +268,11 @@ describe('ListSkillsQuery Integration', () => {
     it('should return empty array for non-existent category', async () => {
       // Act
       const nonExistentCategoryId = uuidv4();
-      const query = new ListSkillsQuery({ page: 1, limit: 100, categoryId: nonExistentCategoryId });
+      const query = new ListSkillsQuery({
+        page: 1,
+        limit: 100,
+        categoryId: nonExistentCategoryId,
+      });
       const result = await queryBus.execute(query);
 
       // Assert

@@ -1,5 +1,5 @@
 import { ValueObject } from '../base/base.value-object';
-import { DomainException } from '../exceptions/domain.exception';
+import { InvalidExperienceLevelException } from '../exceptions/candidate.exceptions';
 
 /**
  * ExperienceLevel Value Object
@@ -33,9 +33,7 @@ export class ExperienceLevel extends ValueObject<{ value: string }> {
     const normalized = level.toLowerCase().trim();
 
     if (!this.isValid(normalized)) {
-      throw new DomainException(
-        `Invalid experience level: ${level}. Must be one of: ${this.VALID_LEVELS.join(', ')}`,
-      );
+      throw new InvalidExperienceLevelException(level, this.VALID_LEVELS);
     }
 
     return new ExperienceLevel(normalized);

@@ -471,11 +471,18 @@ describe('Users API (E2E)', () => {
       expect(mockStorageService.uploadFile).toHaveBeenCalled();
     });
 
+    // FileTypeValidator in NestJS 11 inspects magic bytes via the `file-type`
+    // package, so a fake buffer is rejected at the pipe (400) before reaching
+    // the handler, which would otherwise throw UserNotFoundException (404).
+    // Restoring this test requires either a real JPEG fixture or relaxing the
+    // pipe — out of scope for the error-contract refactor; tracked separately.
+    // eslint-disable-next-line sonarjs/no-skipped-tests
     it.skip('should return 404 for non-existent user', async () => {
       const nonExistentId = uuidv4();
 
       await request(app.getHttpServer())
         .post(`/users/${nonExistentId}/avatar`)
+        .set('x-internal-token', 'test-token')
         .attach('file', Buffer.from('fake-image-data'), 'avatar.jpg')
         .expect(404);
     });

@@ -10,9 +10,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  BadRequestException,
-  NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -63,8 +60,6 @@ import {
   ConflictErrorSchema,
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
-
-import { errorMessage } from '../utils/error-message.util';
 
 /**
  * Skills Controller
@@ -120,35 +115,20 @@ export class SkillsController {
     description: 'Skill already exists',
   })
   async createSkill(@Body() dto: CreateSkillDto) {
-    try {
-      const command = new CreateSkillCommand({
+    const result = await this.commandBus.execute(
+      new CreateSkillCommand({
         name: dto.name,
         slug: dto.slug,
         categoryId: dto.categoryId ?? null,
         description: dto.description ?? null,
         adminId: dto.adminId ?? 'system',
-      });
+      }),
+    );
 
-      const result = await this.commandBus.execute(command);
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('already exists')) {
-        throw new ConflictException({
-          success: false,
-          error: errorMessage(error),
-          code: 'SKILL_ALREADY_EXISTS',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Put(':id')
@@ -175,35 +155,20 @@ export class SkillsController {
     description: 'Skill not found',
   })
   async updateSkill(@Param('id') skillId: string, @Body() dto: UpdateSkillDto) {
-    try {
-      const command = new UpdateSkillCommand({
+    const result = await this.commandBus.execute(
+      new UpdateSkillCommand({
         skillId,
         name: dto.name ?? '',
         description: dto.description ?? null,
         categoryId: dto.categoryId ?? null,
         adminId: dto.adminId ?? 'system',
-      });
+      }),
+    );
 
-      const result = await this.commandBus.execute(command);
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'SKILL_NOT_FOUND',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Delete(':id')
@@ -224,23 +189,9 @@ export class SkillsController {
     @Param('id') skillId: string,
     @Query('adminId') adminId?: string,
   ) {
-    try {
-      const command = new DeleteSkillCommand(skillId, adminId || 'system');
-      await this.commandBus.execute(command);
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'SKILL_NOT_FOUND',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    await this.commandBus.execute(
+      new DeleteSkillCommand(skillId, adminId || 'system'),
+    );
   }
 
   @Post(':id/activate')
@@ -269,32 +220,16 @@ export class SkillsController {
     @Param('id') skillId: string,
     @Query('adminId') adminId?: string,
   ) {
-    try {
-      const command = new ActivateSkillCommand(skillId, adminId || 'system');
-      await this.commandBus.execute(command);
+    await this.commandBus.execute(
+      new ActivateSkillCommand(skillId, adminId || 'system'),
+    );
 
-      // Get updated skill to return
-      const query = new GetSkillQuery(skillId);
-      const result = await this.queryBus.execute(query);
+    const result = await this.queryBus.execute(new GetSkillQuery(skillId));
 
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'SKILL_NOT_FOUND',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Post(':id/deactivate')
@@ -323,32 +258,16 @@ export class SkillsController {
     @Param('id') skillId: string,
     @Query('adminId') adminId?: string,
   ) {
-    try {
-      const command = new DeactivateSkillCommand(skillId, adminId || 'system');
-      await this.commandBus.execute(command);
+    await this.commandBus.execute(
+      new DeactivateSkillCommand(skillId, adminId || 'system'),
+    );
 
-      // Get updated skill to return
-      const query = new GetSkillQuery(skillId);
-      const result = await this.queryBus.execute(query);
+    const result = await this.queryBus.execute(new GetSkillQuery(skillId));
 
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'SKILL_NOT_FOUND',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   // ============================================
@@ -464,28 +383,12 @@ export class SkillsController {
     description: 'Skill not found',
   })
   async getSkill(@Param('id') skillId: string) {
-    try {
-      const query = new GetSkillQuery(skillId);
-      const result = await this.queryBus.execute(query);
+    const result = await this.queryBus.execute(new GetSkillQuery(skillId));
 
-      // Result already contains Read Model (plain object) - no mapping needed
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'SKILL_NOT_FOUND',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    // Result already contains Read Model (plain object) - no mapping needed
+    return {
+      success: true,
+      data: result,
+    };
   }
 }

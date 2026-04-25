@@ -4,6 +4,10 @@ import type { ProficiencyLevel } from '../value-objects/proficiency-level.vo';
 import type { YearsOfExperience } from '../value-objects/years-of-experience.vo';
 import { CandidateSkill } from '../entities/candidate-skill.entity';
 import { DomainException } from '../exceptions/domain.exception';
+import {
+  CandidateSkillAlreadyExistsException,
+  CandidateSkillNotFoundException,
+} from '../exceptions/candidate.exceptions';
 import { CandidateSkillAddedEvent } from '../events/candidate-skill-added.event';
 import {
   CandidateSkillUpdatedEvent,
@@ -84,7 +88,7 @@ export class CandidateProfile extends AggregateRoot {
   public addSkill(args: AddSkillArgs): void {
     const exists = this._skills.some((s) => s.skillId === args.skillId);
     if (exists) {
-      throw new DomainException('Skill already added to profile');
+      throw new CandidateSkillAlreadyExistsException(args.skillId);
     }
 
     const skill = CandidateSkill.create({
@@ -121,7 +125,7 @@ export class CandidateProfile extends AggregateRoot {
     const skill = this._skills.find((s) => s.skillId === skillId);
 
     if (!skill) {
-      throw new DomainException('Skill not found in profile');
+      throw new CandidateSkillNotFoundException(skillId);
     }
 
     const changes: CandidateSkillChanges = {};
@@ -170,7 +174,7 @@ export class CandidateProfile extends AggregateRoot {
     const index = this._skills.findIndex((s) => s.skillId === skillId);
 
     if (index === -1) {
-      throw new DomainException('Skill not found in profile');
+      throw new CandidateSkillNotFoundException(skillId);
     }
 
     this._skills.splice(index, 1);

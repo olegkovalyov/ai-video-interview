@@ -279,9 +279,11 @@ describe('User Aggregate', () => {
         user.delete('admin-123');
 
         const newName = FullName.create('Jane', 'Smith');
-        expect(() => user.updateProfile({
-          fullName: newName,
-        })).toThrow(UserDeletedException);
+        expect(() =>
+          user.updateProfile({
+            fullName: newName,
+          }),
+        ).toThrow(UserDeletedException);
       });
 
       it('should throw error if user is suspended', () => {
@@ -294,11 +296,11 @@ describe('User Aggregate', () => {
         user.suspend('Violation', 'admin-123');
 
         const newName = FullName.create('Jane', 'Smith');
-        expect(() => user.updateProfile({
-          fullName: newName,
-        })).toThrow(
-          UserSuspendedException,
-        );
+        expect(() =>
+          user.updateProfile({
+            fullName: newName,
+          }),
+        ).toThrow(UserSuspendedException);
       });
     });
 

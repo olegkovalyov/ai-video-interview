@@ -75,14 +75,18 @@ export class RoleSelectionService {
    */
   private static toUserRole(role: SelectableRole): UserRole {
     switch (role) {
-      case 'candidate':
+      case 'candidate': {
         return UserRole.candidate();
-      case 'hr':
+      }
+      case 'hr': {
         return UserRole.hr();
-      case 'admin':
+      }
+      case 'admin': {
         return UserRole.admin();
-      default:
+      }
+      default: {
         throw new Error(`Invalid role: ${String(role)}`);
+      }
     }
   }
 

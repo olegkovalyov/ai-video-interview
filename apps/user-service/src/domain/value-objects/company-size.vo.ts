@@ -1,5 +1,5 @@
 import { ValueObject } from '../base/base.value-object';
-import { DomainException } from '../exceptions/domain.exception';
+import { InvalidCompanySizeException } from '../exceptions/company.exceptions';
 
 /**
  * CompanySize Value Object
@@ -41,9 +41,7 @@ export class CompanySize extends ValueObject<{ value: string }> {
 
   public static fromString(value: string): CompanySize {
     if (!(CompanySize.VALID_SIZES as readonly string[]).includes(value)) {
-      throw new DomainException(
-        `Invalid company size: ${value}. Must be one of: ${CompanySize.VALID_SIZES.join(', ')}`,
-      );
+      throw new InvalidCompanySizeException(value, CompanySize.VALID_SIZES);
     }
     return new CompanySize(value);
   }
