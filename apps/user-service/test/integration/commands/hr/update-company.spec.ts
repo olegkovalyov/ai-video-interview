@@ -45,31 +45,31 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Old Name',
-        'Description',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Old Name',
+        description: 'Description',
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Act - Update name
-      const updateCommand = new UpdateCompanyCommand(
+      const updateCommand = new UpdateCompanyCommand({
         companyId,
-        'New Name',
-        'Description',
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+        name: 'New Name',
+        description: 'Description',
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: hrUserId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -91,31 +91,31 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        'Old description',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: 'Old description',
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Act
-      const updateCommand = new UpdateCompanyCommand(
+      const updateCommand = new UpdateCompanyCommand({
         companyId,
-        'Test Company',
-        'New description',
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+        name: 'Test Company',
+        description: 'New description',
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: hrUserId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -136,31 +136,31 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Act - Add website and logo
-      const updateCommand = new UpdateCompanyCommand(
+      const updateCommand = new UpdateCompanyCommand({
         companyId,
-        'Test Company',
-        null,
-        'https://newsite.com',
-        'https://newsite.com/logo.png',
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+        name: 'Test Company',
+        description: null,
+        website: 'https://newsite.com',
+        logoUrl: 'https://newsite.com/logo.png',
+        industry: null,
+        size: null,
+        location: null,
+        userId: hrUserId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -182,31 +182,31 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Act
-      const updateCommand = new UpdateCompanyCommand(
+      const updateCommand = new UpdateCompanyCommand({
         companyId,
-        'Test Company',
-        null,
-        null,
-        null,
-        'Technology',
-        '51-200',
-        'New York, NY',
-        hrUserId,
-      );
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: 'Technology',
+        size: '51-200',
+        location: 'New York, NY',
+        userId: hrUserId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -229,31 +229,31 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Old Company',
-        'Old desc',
-        'https://old.com',
-        null,
-        'Old Industry',
-        '1-10',
-        'Old Location',
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Old Company',
+        description: 'Old desc',
+        website: 'https://old.com',
+        logoUrl: null,
+        industry: 'Old Industry',
+        size: '1-10',
+        location: 'Old Location',
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Act - Update everything
-      const updateCommand = new UpdateCompanyCommand(
+      const updateCommand = new UpdateCompanyCommand({
         companyId,
-        'New Company',
-        'New description',
-        'https://new.com',
-        'https://new.com/logo.png',
-        'New Industry',
-        '200+',
-        'New Location',
-        hrUserId,
-      );
+        name: 'New Company',
+        description: 'New description',
+        website: 'https://new.com',
+        logoUrl: 'https://new.com/logo.png',
+        industry: 'New Industry',
+        size: '200+',
+        location: 'New Location',
+        userId: hrUserId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -280,31 +280,31 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        'Description',
-        'https://site.com',
-        'https://site.com/logo.png',
-        'Tech',
-        '11-50',
-        'SF, CA',
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: 'Description',
+        website: 'https://site.com',
+        logoUrl: 'https://site.com/logo.png',
+        industry: 'Tech',
+        size: '11-50',
+        location: 'SF, CA',
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Act - Remove all optional fields
-      const updateCommand = new UpdateCompanyCommand(
+      const updateCommand = new UpdateCompanyCommand({
         companyId,
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: hrUserId,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -334,17 +334,17 @@ describe('UpdateCompanyCommand Integration', () => {
       });
 
       const nonExistentId = uuidv4();
-      const updateCommand = new UpdateCompanyCommand(
-        nonExistentId,
-        'New Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const updateCommand = new UpdateCompanyCommand({
+        companyId: nonExistentId,
+        name: 'New Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: hrUserId,
+      });
 
       // Act & Assert
       await expect(commandBus.execute(updateCommand)).rejects.toThrow();
@@ -359,17 +359,17 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hr1UserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hr1UserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Arrange - HR2 tries to update
@@ -380,17 +380,17 @@ describe('UpdateCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const updateCommand = new UpdateCompanyCommand(
+      const updateCommand = new UpdateCompanyCommand({
         companyId,
-        'Updated Name',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hr2UserId,
-      );
+        name: 'Updated Name',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        userId: hr2UserId,
+      });
 
       // Act & Assert - HR2 is not a member, should fail
       await expect(commandBus.execute(updateCommand)).rejects.toThrow();

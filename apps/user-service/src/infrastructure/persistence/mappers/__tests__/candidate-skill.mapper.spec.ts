@@ -40,22 +40,25 @@ describe('CandidateSkillMapper', () => {
       updatedAt?: Date;
     } = {},
   ): CandidateSkill => {
-    return CandidateSkill.reconstitute(
-      overrides.id ?? uuidv4(),
-      overrides.candidateId ?? uuidv4(),
-      overrides.skillId ?? uuidv4(),
-      overrides.description === undefined
-        ? 'Experienced with TypeScript in production projects'
-        : overrides.description,
-      overrides.proficiencyLevel === undefined
-        ? ProficiencyLevel.advanced()
-        : overrides.proficiencyLevel,
-      overrides.yearsOfExperience === undefined
-        ? YearsOfExperience.fromNumber(5)
-        : overrides.yearsOfExperience,
-      overrides.createdAt ?? new Date('2025-04-01T10:00:00Z'),
-      overrides.updatedAt ?? new Date('2025-06-01T12:00:00Z'),
-    );
+    return CandidateSkill.reconstitute({
+      id: overrides.id ?? uuidv4(),
+      candidateId: overrides.candidateId ?? uuidv4(),
+      skillId: overrides.skillId ?? uuidv4(),
+      description:
+        overrides.description === undefined
+          ? 'Experienced with TypeScript in production projects'
+          : overrides.description,
+      proficiencyLevel:
+        overrides.proficiencyLevel === undefined
+          ? ProficiencyLevel.advanced()
+          : overrides.proficiencyLevel,
+      yearsOfExperience:
+        overrides.yearsOfExperience === undefined
+          ? YearsOfExperience.fromNumber(5)
+          : overrides.yearsOfExperience,
+      createdAt: overrides.createdAt ?? new Date('2025-04-01T10:00:00Z'),
+      updatedAt: overrides.updatedAt ?? new Date('2025-06-01T12:00:00Z'),
+    });
   };
 
   describe('toEntity()', () => {
@@ -261,16 +264,16 @@ describe('CandidateSkillMapper', () => {
       const createdAt = new Date('2025-03-01T00:00:00Z');
       const updatedAt = new Date('2025-05-15T00:00:00Z');
 
-      const original = CandidateSkill.reconstitute(
+      const original = CandidateSkill.reconstitute({
         id,
         candidateId,
         skillId,
-        'Round trip skill description',
-        ProficiencyLevel.intermediate(),
-        YearsOfExperience.fromNumber(3),
+        description: 'Round trip skill description',
+        proficiencyLevel: ProficiencyLevel.intermediate(),
+        yearsOfExperience: YearsOfExperience.fromNumber(3),
         createdAt,
         updatedAt,
-      );
+      });
 
       const entity = mapper.toEntity(original);
       const restored = mapper.toDomain(entity);

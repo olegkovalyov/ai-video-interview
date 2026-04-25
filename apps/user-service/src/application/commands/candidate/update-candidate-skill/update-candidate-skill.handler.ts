@@ -1,65 +1,27 @@
-import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Injectable } from '@nestjs/common';
 import { UpdateCandidateSkillCommand } from './update-candidate-skill.command';
-import { ProficiencyLevel } from '../../../../domain/value-objects/proficiency-level.vo';
-import { YearsOfExperience } from '../../../../domain/value-objects/years-of-experience.vo';
-import type { ICandidateProfileRepository } from '../../../../domain/repositories/candidate-profile.repository.interface';
-import { CandidateProfileNotFoundException } from '../../../../domain/exceptions/candidate.exceptions';
-import { LoggerService } from '../../../../infrastructure/logger/logger.service';
+import { CandidateSkillUpdateService } from '../../../services/candidate-skill-update.service';
 
+/**
+ * Thin CQRS adapter over {@link CandidateSkillUpdateService}.
+ */
+@Injectable()
 @CommandHandler(UpdateCandidateSkillCommand)
 export class UpdateCandidateSkillHandler
   implements ICommandHandler<UpdateCandidateSkillCommand>
 {
   constructor(
-    @Inject('ICandidateProfileRepository')
-    private readonly profileRepository: ICandidateProfileRepository,
-    private readonly eventBus: EventBus,
-    private readonly logger: LoggerService,
+    private readonly updateCandidateSkill: CandidateSkillUpdateService,
   ) {}
 
-  async execute(command: UpdateCandidateSkillCommand): Promise<void> {
-    this.logger.info('Updating candidate skill', {
+  execute(command: UpdateCandidateSkillCommand): Promise<void> {
+    return this.updateCandidateSkill.update({
       candidateId: command.candidateId,
       skillId: command.skillId,
-    });
-
-    // 1. Find candidate profile
-    const profile = await this.profileRepository.findByUserId(
-      command.candidateId,
-    );
-    if (!profile) {
-      throw new CandidateProfileNotFoundException(command.candidateId);
-    }
-
-    // 2. Create value objects (null means not specified/remove value)
-    const proficiency = command.proficiencyLevel
-      ? ProficiencyLevel.fromString(command.proficiencyLevel)
-      : null;
-    const years =
-      command.yearsOfExperience === null
-        ? null
-        : YearsOfExperience.fromNumber(command.yearsOfExperience);
-
-    // 3. Update skill (throws if not found)
-    profile.updateSkill(
-      command.skillId,
-      command.description,
-      proficiency,
-      years,
-    );
-
-    // 4. Save profile
-    await this.profileRepository.save(profile);
-
-    // 5. Publish domain events (if any changes)
-    const events = profile.getUncommittedEvents();
-    events.forEach((event) => { this.eventBus.publish(event); });
-    profile.clearEvents();
-
-    this.logger.info('Candidate skill updated successfully', {
-      candidateId: command.candidateId,
-      skillId: command.skillId,
+      description: command.description,
+      proficiencyLevel: command.proficiencyLevel,
+      yearsOfExperience: command.yearsOfExperience,
     });
   }
 }

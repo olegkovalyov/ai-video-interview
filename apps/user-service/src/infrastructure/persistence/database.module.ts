@@ -19,7 +19,7 @@ import { TypeOrmUserRepository } from './repositories/typeorm-user.repository';
 import { TypeOrmUserReadRepository } from './repositories/typeorm-user-read.repository';
 import { TypeOrmRoleRepository } from './repositories/typeorm-role.repository';
 import { TypeOrmCandidateProfileRepository } from './repositories/typeorm-candidate-profile.repository';
-import { TypeOrmCandidateProfileReadRepository } from './repositories/typeorm-candidate-profile-read.repository';
+import { TypeOrmCandidateProfileQueryService } from './repositories/typeorm-candidate-profile-query.service';
 import { TypeOrmSkillRepository } from './repositories/typeorm-skill.repository';
 import { TypeOrmSkillReadRepository } from './repositories/typeorm-skill-read.repository';
 import { TypeOrmCompanyRepository } from './repositories/typeorm-company.repository';
@@ -116,8 +116,8 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
       useClass: TypeOrmCandidateProfileRepository,
     },
     {
-      provide: 'ICandidateProfileReadRepository',
-      useClass: TypeOrmCandidateProfileReadRepository,
+      provide: 'ICandidateProfileQueryService',
+      useClass: TypeOrmCandidateProfileQueryService,
     },
 
     // UnitOfWork
@@ -144,7 +144,7 @@ import { TypeOrmUnitOfWork } from './unit-of-work/typeorm-unit-of-work';
     'ICompanyRepository',
     'ICompanyReadRepository',
     'ICandidateProfileRepository',
-    'ICandidateProfileReadRepository',
+    'ICandidateProfileQueryService',
     'IUnitOfWork',
   ],
 })

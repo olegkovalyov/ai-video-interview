@@ -48,23 +48,23 @@ export class UserMapper {
     const status = UserStatus.fromString(entity.status);
     const role = UserRole.fromString(entity.role);
 
-    return User.reconstitute(
-      entity.id,
-      entity.externalAuthId,
+    return User.reconstitute({
+      id: entity.id,
+      externalAuthId: entity.externalAuthId,
       email,
       fullName,
       status,
       role,
-      entity.avatarUrl || undefined,
-      entity.bio || undefined,
-      entity.phone || undefined,
-      entity.timezone,
-      entity.language,
-      entity.emailVerified,
-      entity.createdAt,
-      entity.updatedAt,
-      entity.lastLoginAt || undefined,
-    );
+      avatarUrl: entity.avatarUrl || undefined,
+      bio: entity.bio || undefined,
+      phone: entity.phone || undefined,
+      timezone: entity.timezone,
+      language: entity.language,
+      emailVerified: entity.emailVerified,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      lastLoginAt: entity.lastLoginAt || undefined,
+    });
   }
 
   /**

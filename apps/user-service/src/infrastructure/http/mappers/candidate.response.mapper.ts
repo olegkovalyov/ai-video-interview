@@ -1,8 +1,5 @@
-import type { CandidateProfileWithUser } from '../../../domain/repositories/candidate-profile-read.repository.interface';
-import type {
-  CandidateSearchResultReadModel,
-  SkillsByCategoryReadModel,
-} from '../../../domain/read-models/candidate-profile.read-model';
+import type { CandidateProfileWithUser } from '../../../domain/repositories/candidate-profile-query-service.interface';
+import type { SkillsByCategoryReadModel } from '../../../domain/read-models/candidate-profile.read-model';
 import type {
   CandidateProfileResponseDto,
   CandidateSkillResponseDto,

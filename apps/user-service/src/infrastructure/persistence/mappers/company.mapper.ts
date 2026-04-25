@@ -34,21 +34,21 @@ export class CompanyMapper {
       companySize = CompanySize.fromString(entity.size);
     }
 
-    return Company.reconstitute(
-      entity.id,
-      entity.name,
-      entity.description,
-      entity.website,
-      entity.logoUrl,
-      entity.industry,
-      companySize,
-      entity.location,
-      entity.isActive,
-      entity.createdBy,
-      userCompanies,
-      entity.createdAt,
-      entity.updatedAt,
-    );
+    return Company.reconstitute({
+      id: entity.id,
+      name: entity.name,
+      description: entity.description,
+      website: entity.website,
+      logoUrl: entity.logoUrl,
+      industry: entity.industry,
+      size: companySize,
+      location: entity.location,
+      isActive: entity.isActive,
+      createdBy: entity.createdBy,
+      users: userCompanies,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    });
   }
 
   toDomainList(entities: CompanyEntity[]): Company[] {

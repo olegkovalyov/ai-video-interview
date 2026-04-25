@@ -2,7 +2,7 @@ import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { KafkaService, KAFKA_TOPICS } from '@repo/shared';
 import type { KafkaMessage } from 'kafkajs';
 import { LoggerService } from '../../logger/logger.service';
-import { correlationStore } from '../../http/interceptors/correlation-id.store';
+import { withKafkaRequestContext } from '../with-kafka-request-context';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../../persistence/entities/user.entity';
@@ -57,38 +57,40 @@ export class AuthLoginConsumer implements OnModuleInit {
   }
 
   private async handleMessage(message: KafkaMessage): Promise<void> {
-    const correlationId =
-      message.headers?.['x-correlation-id']?.toString() || 'unknown';
+    await withKafkaRequestContext(
+      {
+        topic: KAFKA_TOPICS.AUTH_EVENTS,
+        operationName: `kafka.process ${KAFKA_TOPICS.AUTH_EVENTS}`,
+        message,
+      },
+      async () => {
+        try {
+          if (!message.value) {
+            this.logger.warn('Received message with null value', {
+              topic: KAFKA_TOPICS.AUTH_EVENTS,
+            });
+            return;
+          }
 
-    await correlationStore.run({ correlationId }, async () => {
-      try {
-        if (!message.value) {
-          this.logger.warn('Received message with null value', {
+          const event: unknown = JSON.parse(message.value.toString());
+
+          if (isUserAuthenticatedEvent(event)) {
+            await this.handleUserAuthenticated(event);
+          }
+        } catch (error) {
+          this.logger.error('Failed to process auth event', {
+            error: error instanceof Error ? error.message : String(error),
             topic: KAFKA_TOPICS.AUTH_EVENTS,
           });
-          return;
         }
-
-        const event: unknown = JSON.parse(message.value.toString());
-
-        // Only handle user.authenticated events
-        if (isUserAuthenticatedEvent(event)) {
-          await this.handleUserAuthenticated(event);
-        }
-      } catch (error) {
-        this.logger.error('Failed to process auth event', {
-          error: error instanceof Error ? error.message : String(error),
-          topic: KAFKA_TOPICS.AUTH_EVENTS,
-        });
-      }
-    });
+      },
+    );
   }
 
   private async handleUserAuthenticated(
     event: UserAuthenticatedEvent,
   ): Promise<void> {
     const externalAuthId = event.payload?.externalAuthId;
-
     if (!externalAuthId) {
       this.logger.warn(
         'Missing externalAuthId in user.authenticated event payload',
@@ -98,30 +100,35 @@ export class AuthLoginConsumer implements OnModuleInit {
     }
 
     try {
-      // Update last_login_at
-      const result = await this.userRepository.update(
-        { externalAuthId },
-        { lastLoginAt: new Date() },
-      );
-
-      if (result.affected && result.affected > 0) {
-        this.logger.debug('Updated last_login_at', {
-          externalAuthId,
-          email: event.payload?.email,
-          eventType: event.eventType,
-        });
-      } else {
-        this.logger.warn('User not found for last_login update', {
-          externalAuthId,
-          email: event.payload?.email,
-        });
-      }
+      await this.touchLastLogin(externalAuthId, event);
     } catch (error) {
+      // Non-critical: failing to update last_login_at must not crash the consumer.
       this.logger.error('Failed to update last_login_at', {
         error: error instanceof Error ? error.message : String(error),
         externalAuthId,
       });
-      // Don't throw — this is a non-critical operation.
+    }
+  }
+
+  private async touchLastLogin(
+    externalAuthId: string,
+    event: UserAuthenticatedEvent,
+  ): Promise<void> {
+    const result = await this.userRepository.update(
+      { externalAuthId },
+      { lastLoginAt: new Date() },
+    );
+    if (result.affected && result.affected > 0) {
+      this.logger.debug('Updated last_login_at', {
+        externalAuthId,
+        email: event.payload?.email,
+        eventType: event.eventType,
+      });
+    } else {
+      this.logger.warn('User not found for last_login update', {
+        externalAuthId,
+        email: event.payload?.email,
+      });
     }
   }
 }

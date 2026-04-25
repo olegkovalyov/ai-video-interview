@@ -1,8 +1,9 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { GetSkillQuery } from './get-skill.query';
 import type { ISkillReadRepository } from '../../../../domain/repositories/skill-read.repository.interface';
 import type { SkillWithCategoryReadModel } from '../../../../domain/read-models/skill.read-model';
+import { SkillNotFoundException } from '../../../../domain/exceptions/skill.exceptions';
 
 /**
  * Get Skill Query Handler
@@ -21,7 +22,7 @@ export class GetSkillHandler implements IQueryHandler<GetSkillQuery> {
     );
 
     if (!result) {
-      throw new NotFoundException(`Skill with ID "${query.skillId}" not found`);
+      throw new SkillNotFoundException(query.skillId);
     }
 
     return result;

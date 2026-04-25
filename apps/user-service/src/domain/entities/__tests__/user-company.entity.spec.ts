@@ -9,13 +9,13 @@ describe('UserCompany Entity', () => {
 
   describe('Factory Method - create', () => {
     it('should create user-company association', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        validPosition,
-        true,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: validPosition,
+        isPrimary: true,
+      });
 
       expect(uc.id).toBe(validId);
       expect(uc.userId).toBe(validUserId);
@@ -26,97 +26,121 @@ describe('UserCompany Entity', () => {
     });
 
     it('should create without position (null)', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        null,
-        false,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: null,
+        isPrimary: false,
+      });
 
       expect(uc.position).toBeNull();
       expect(uc.isPrimary).toBe(false);
     });
 
     it('should trim position', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        '  Tech Recruiter  ',
-        false,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: '  Tech Recruiter  ',
+        isPrimary: false,
+      });
 
       expect(uc.position).toBe('Tech Recruiter');
     });
 
     it('should throw error for empty user ID', () => {
       expect(() =>
-        UserCompany.create(validId, '', validCompanyId, validPosition, false),
+        UserCompany.create({
+          id: validId,
+          userId: '',
+          companyId: validCompanyId,
+          position: validPosition,
+          isPrimary: false,
+        }),
       ).toThrow(DomainException);
       expect(() =>
-        UserCompany.create(validId, '', validCompanyId, validPosition, false),
+        UserCompany.create({
+          id: validId,
+          userId: '',
+          companyId: validCompanyId,
+          position: validPosition,
+          isPrimary: false,
+        }),
       ).toThrow('User ID cannot be empty');
     });
 
     it('should throw error for empty company ID', () => {
       expect(() =>
-        UserCompany.create(validId, validUserId, '', validPosition, false),
+        UserCompany.create({
+          id: validId,
+          userId: validUserId,
+          companyId: '',
+          position: validPosition,
+          isPrimary: false,
+        }),
       ).toThrow(DomainException);
       expect(() =>
-        UserCompany.create(validId, validUserId, '', validPosition, false),
+        UserCompany.create({
+          id: validId,
+          userId: validUserId,
+          companyId: '',
+          position: validPosition,
+          isPrimary: false,
+        }),
       ).toThrow('Company ID cannot be empty');
     });
 
     it('should throw error for position exceeding max length', () => {
       const longPosition = 'a'.repeat(101);
       expect(() =>
-        UserCompany.create(
-          validId,
-          validUserId,
-          validCompanyId,
-          longPosition,
-          false,
-        ),
+        UserCompany.create({
+          id: validId,
+          userId: validUserId,
+          companyId: validCompanyId,
+          position: longPosition,
+          isPrimary: false,
+        }),
       ).toThrow('Position is too long (max 100 characters)');
     });
   });
 
   describe('Business Logic - updatePosition', () => {
     it('should update position', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        'Junior Recruiter',
-        false,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: 'Junior Recruiter',
+        isPrimary: false,
+      });
 
       uc.updatePosition('Senior Recruiter');
       expect(uc.position).toBe('Senior Recruiter');
     });
 
     it('should trim position when updating', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        validPosition,
-        false,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: validPosition,
+        isPrimary: false,
+      });
 
       uc.updatePosition('  Lead HR  ');
       expect(uc.position).toBe('Lead HR');
     });
 
     it('should throw error for empty position', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        validPosition,
-        false,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: validPosition,
+        isPrimary: false,
+      });
 
       expect(() => uc.updatePosition('')).toThrow('Position cannot be empty');
       expect(() => uc.updatePosition('   ')).toThrow(
@@ -125,13 +149,13 @@ describe('UserCompany Entity', () => {
     });
 
     it('should throw error for position exceeding max length', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        validPosition,
-        false,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: validPosition,
+        isPrimary: false,
+      });
 
       expect(() => uc.updatePosition('a'.repeat(101))).toThrow(
         'Position is too long (max 100 characters)',
@@ -141,13 +165,13 @@ describe('UserCompany Entity', () => {
 
   describe('Business Logic - Primary Flag', () => {
     it('should set as primary', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        validPosition,
-        false,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: validPosition,
+        isPrimary: false,
+      });
 
       expect(uc.isPrimary).toBe(false);
 
@@ -156,13 +180,13 @@ describe('UserCompany Entity', () => {
     });
 
     it('should unset as primary', () => {
-      const uc = UserCompany.create(
-        validId,
-        validUserId,
-        validCompanyId,
-        validPosition,
-        true,
-      );
+      const uc = UserCompany.create({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: validPosition,
+        isPrimary: true,
+      });
 
       expect(uc.isPrimary).toBe(true);
 
@@ -175,14 +199,14 @@ describe('UserCompany Entity', () => {
     it('should reconstitute from persistence', () => {
       const joinedAt = new Date('2024-01-01');
 
-      const uc = UserCompany.reconstitute(
-        validId,
-        validUserId,
-        validCompanyId,
-        validPosition,
-        true,
+      const uc = UserCompany.reconstitute({
+        id: validId,
+        userId: validUserId,
+        companyId: validCompanyId,
+        position: validPosition,
+        isPrimary: true,
         joinedAt,
-      );
+      });
 
       expect(uc.id).toBe(validId);
       expect(uc.userId).toBe(validUserId);

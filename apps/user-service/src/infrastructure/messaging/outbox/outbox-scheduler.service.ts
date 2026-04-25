@@ -36,66 +36,22 @@ export class OutboxSchedulerService {
   ) {}
 
   /**
-   * Poll for pending events every 5 seconds
+   * Poll for pending events every 5 seconds.
+   * Skips overlapping ticks via the {@link isPolling} re-entrancy guard.
    */
   @Cron(CronExpression.EVERY_5_SECONDS)
   async pollPendingEvents() {
-    if (this.isPolling) {
-      return;
-    }
-
+    if (this.isPolling) return;
     this.isPolling = true;
-
     try {
-      const threshold = new Date(Date.now() - OUTBOX_CONFIG.STUCK_THRESHOLD_MS);
-
-      const pendingEvents = await this.outboxRepository.find({
-        where: {
-          status: OUTBOX_STATUS.PENDING,
-          createdAt: MoreThan(threshold),
-        },
-        take: OUTBOX_CONFIG.PENDING_BATCH_SIZE,
-        order: {
-          createdAt: 'ASC',
-        },
-      });
-
-      if (pendingEvents.length > 0) {
-        this.logger.debug(
-          `Found ${pendingEvents.length} pending outbox events`,
-          {
-            category: 'outbox',
-            action: 'poll_pending',
-            count: pendingEvents.length,
-          },
-        );
-
-        for (const event of pendingEvents) {
-          try {
-            await this.outboxQueue.add(
-              BULL_JOB.PUBLISH_OUTBOX_EVENT,
-              { eventId: event.eventId },
-              {
-                jobId: event.eventId,
-                removeOnComplete: true,
-                removeOnFail: false,
-              },
-            );
-          } catch (error) {
-            if (errorMessage(error)?.includes('job already exists')) {
-              continue;
-            }
-            this.logger.error(
-              `Failed to queue outbox event ${event.eventId}: ${errorMessage(error)}`,
-              {
-                category: 'outbox',
-                action: 'queue_failed',
-                eventId: event.eventId,
-                error: errorMessage(error),
-              },
-            );
-          }
-        }
+      const events = await this.findPendingEvents();
+      if (events.length > 0) {
+        this.logger.debug(`Found ${events.length} pending outbox events`, {
+          category: 'outbox',
+          action: 'poll_pending',
+          count: events.length,
+        });
+        await this.enqueueEvents(events);
       }
     } catch (error) {
       this.logger.error(`Outbox polling failed: ${errorMessage(error)}`, {
@@ -108,46 +64,68 @@ export class OutboxSchedulerService {
     }
   }
 
+  private findPendingEvents(): Promise<OutboxEntity[]> {
+    const threshold = new Date(Date.now() - OUTBOX_CONFIG.STUCK_THRESHOLD_MS);
+    return this.outboxRepository.find({
+      where: {
+        status: OUTBOX_STATUS.PENDING,
+        createdAt: MoreThan(threshold),
+      },
+      take: OUTBOX_CONFIG.PENDING_BATCH_SIZE,
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  private async enqueueEvents(events: OutboxEntity[]): Promise<void> {
+    for (const event of events) {
+      await this.enqueueOne(event);
+    }
+  }
+
+  private async enqueueOne(event: OutboxEntity): Promise<void> {
+    try {
+      await this.outboxQueue.add(
+        BULL_JOB.PUBLISH_OUTBOX_EVENT,
+        { eventId: event.eventId },
+        {
+          jobId: event.eventId,
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    } catch (error) {
+      const message = errorMessage(error);
+      // Duplicate jobId is benign — job is already queued from a previous tick.
+      if (message?.includes('job already exists')) return;
+      this.logger.error(
+        `Failed to queue outbox event ${event.eventId}: ${message}`,
+        {
+          category: 'outbox',
+          action: 'queue_failed',
+          eventId: event.eventId,
+          error: message,
+        },
+      );
+    }
+  }
+
   /**
    * Poll for stuck "publishing" events every minute.
-   * Events stuck in "publishing" for > threshold will be retried.
+   * Events stuck in "publishing" for > threshold are reset to "pending"
+   * so the next tick of {@link pollPendingEvents} re-queues them.
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async pollStuckEvents() {
     try {
-      const threshold = new Date(Date.now() - OUTBOX_CONFIG.STUCK_THRESHOLD_MS);
+      const stuck = await this.findStuckEvents();
+      if (stuck.length === 0) return;
 
-      const stuckEvents = await this.outboxRepository.find({
-        where: {
-          status: OUTBOX_STATUS.PUBLISHING,
-          createdAt: LessThan(threshold),
-        },
-        take: OUTBOX_CONFIG.STUCK_BATCH_SIZE,
+      this.logger.warn(`Found ${stuck.length} stuck outbox events`, {
+        category: 'outbox',
+        action: 'poll_stuck',
+        count: stuck.length,
       });
-
-      if (stuckEvents.length > 0) {
-        this.logger.warn(`Found ${stuckEvents.length} stuck outbox events`, {
-          category: 'outbox',
-          action: 'poll_stuck',
-          count: stuckEvents.length,
-        });
-
-        for (const event of stuckEvents) {
-          event.status = OUTBOX_STATUS.PENDING;
-          event.retryCount += 1;
-          await this.outboxRepository.save(event);
-
-          this.logger.debug(
-            `Reset stuck outbox event ${event.eventId} to pending`,
-            {
-              category: 'outbox',
-              action: 'reset_stuck',
-              eventId: event.eventId,
-              retryCount: event.retryCount,
-            },
-          );
-        }
-      }
+      await this.resetStuckEvents(stuck);
     } catch (error) {
       this.logger.error(
         `Failed to process stuck outbox events: ${errorMessage(error)}`,
@@ -155,6 +133,34 @@ export class OutboxSchedulerService {
           category: 'outbox',
           action: 'stuck_error',
           error: errorMessage(error),
+        },
+      );
+    }
+  }
+
+  private findStuckEvents(): Promise<OutboxEntity[]> {
+    const threshold = new Date(Date.now() - OUTBOX_CONFIG.STUCK_THRESHOLD_MS);
+    return this.outboxRepository.find({
+      where: {
+        status: OUTBOX_STATUS.PUBLISHING,
+        createdAt: LessThan(threshold),
+      },
+      take: OUTBOX_CONFIG.STUCK_BATCH_SIZE,
+    });
+  }
+
+  private async resetStuckEvents(events: OutboxEntity[]): Promise<void> {
+    for (const event of events) {
+      event.status = OUTBOX_STATUS.PENDING;
+      event.retryCount += 1;
+      await this.outboxRepository.save(event);
+      this.logger.debug(
+        `Reset stuck outbox event ${event.eventId} to pending`,
+        {
+          category: 'outbox',
+          action: 'reset_stuck',
+          eventId: event.eventId,
+          retryCount: event.retryCount,
         },
       );
     }

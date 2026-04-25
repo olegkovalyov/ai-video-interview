@@ -50,6 +50,17 @@ import { GetCandidateProfileHandler } from '../../src/application/queries/candid
 import { GetCandidateSkillsHandler } from '../../src/application/queries/candidate/get-candidate-skills.handler';
 import { SearchCandidatesBySkillsHandler } from '../../src/application/queries/candidate/search-candidates-by-skills.handler';
 
+// Application Services (extracted from handlers)
+import { UserCreationService } from '../../src/application/services/user-creation.service';
+import { UserUpdateService } from '../../src/application/services/user-update.service';
+import { CompanyCreationService } from '../../src/application/services/company-creation.service';
+import { CompanyUpdateService } from '../../src/application/services/company-update.service';
+import { CompanyDeletionService } from '../../src/application/services/company-deletion.service';
+import { RoleSelectionService } from '../../src/application/services/role-selection.service';
+import { SkillCreationService } from '../../src/application/services/skill-creation.service';
+import { CandidateSkillAdditionService } from '../../src/application/services/candidate-skill-addition.service';
+import { CandidateSkillUpdateService } from '../../src/application/services/candidate-skill-update.service';
+
 // Mock services for testing
 export const mockKafkaService = {
   connect: jest.fn().mockResolvedValue(undefined),
@@ -142,6 +153,17 @@ export const mockStorageService = {
     GetCandidateProfileHandler,
     GetCandidateSkillsHandler,
     SearchCandidatesBySkillsHandler,
+
+    // Application Services (used by thin handlers above)
+    UserCreationService,
+    UserUpdateService,
+    CompanyCreationService,
+    CompanyUpdateService,
+    CompanyDeletionService,
+    RoleSelectionService,
+    SkillCreationService,
+    CandidateSkillAdditionService,
+    CandidateSkillUpdateService,
 
     // Mock services - use actual classes as tokens (not strings!)
     {

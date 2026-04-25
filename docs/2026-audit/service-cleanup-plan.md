@@ -4,16 +4,16 @@
 
 ## Current Status (update as we go)
 
-| #   | Service              | ESLint errors  | ESLint warnings | Tests                           | Commit SHA | Status                              |
-| --- | -------------------- | -------------- | --------------- | ------------------------------- | ---------- | ----------------------------------- |
-| 1   | **user-service**     | 147 → **0** ✅ | 629 → 551       | 🟢 581 unit / 231 int / 109 e2e | `768f3d0`  | **Phase 1 done** — warnings pending |
-| 2   | notification-service | —              | —               | —                               | —          | ⏳ next                             |
-| 3   | api-gateway          | —              | —               | —                               | —          | ⏳                                  |
-| 4   | ai-analysis-service  | —              | —               | —                               | —          | ⏳                                  |
-| 5   | billing-service      | —              | —               | —                               | —          | ⏳                                  |
-| 6   | interview-service    | —              | —               | —                               | —          | ⏳                                  |
-| 7   | web                  | —              | —               | —                               | —          | ⏳                                  |
-| 8   | packages/shared      | —              | —               | —                               | —          | ⏳                                  |
+| #   | Service              | ESLint errors  | ESLint warnings | Tests                           | Commit SHA | Status                            |
+| --- | -------------------- | -------------- | --------------- | ------------------------------- | ---------- | --------------------------------- |
+| 1   | **user-service**     | 147 → **0** ✅ | 629 → **0** ✅  | 🟢 605 unit / 231 int / 109 e2e | `64d5487`  | **Phase 5 done** — ratchet locked |
+| 2   | notification-service | —              | —               | —                               | —          | ⏳ next                           |
+| 3   | api-gateway          | —              | —               | —                               | —          | ⏳                                |
+| 4   | ai-analysis-service  | —              | —               | —                               | —          | ⏳                                |
+| 5   | billing-service      | —              | —               | —                               | —          | ⏳                                |
+| 6   | interview-service    | —              | —               | —                               | —          | ⏳                                |
+| 7   | web                  | —              | —               | —                               | —          | ⏳                                |
+| 8   | packages/shared      | —              | —               | —                               | —          | ⏳                                |
 
 **Order rationale**: smallest/simplest first (notification, api-gateway) → gain confidence and patterns → then medium (ai-analysis, billing) → largest last (interview-service, web). Each one teaches patterns for the next.
 

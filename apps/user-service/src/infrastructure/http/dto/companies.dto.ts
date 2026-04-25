@@ -1,3 +1,8 @@
+/* eslint-disable max-classes-per-file --
+ * NestJS DTO bundle: related request DTOs (Create/Update/List...) for one
+ * controller live together — official NestJS docs style. Splitting per class
+ * fragments cohesive API surface with no benefit.
+ */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,

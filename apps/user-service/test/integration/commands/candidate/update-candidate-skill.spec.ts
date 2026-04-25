@@ -51,32 +51,32 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Preact',
-        'preact-update-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Preact',
+        slug: 'preact-update-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'Old description',
-        'intermediate',
-        3,
-      );
+        description: 'Old description',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 3,
+      });
       await commandBus.execute(addCommand);
 
       // Act - Update description
-      const updateCommand = new UpdateCandidateSkillCommand(
+      const updateCommand = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        'New description',
-        'intermediate',
-        3,
-      );
+        description: 'New description',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 3,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -103,32 +103,32 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Aurelia',
-        'aurelia-update-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Aurelia',
+        slug: 'aurelia-update-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'Frontend framework',
-        'beginner',
-        1,
-      );
+        description: 'Frontend framework',
+        proficiencyLevel: 'beginner',
+        yearsOfExperience: 1,
+      });
       await commandBus.execute(addCommand);
 
       // Act - Update proficiency from beginner to advanced
-      const updateCommand = new UpdateCandidateSkillCommand(
+      const updateCommand = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        'Frontend framework',
-        'advanced',
-        1,
-      );
+        description: 'Frontend framework',
+        proficiencyLevel: 'advanced',
+        yearsOfExperience: 1,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -154,32 +154,32 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Backbone',
-        'backbone-update-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Backbone',
+        slug: 'backbone-update-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'Framework',
-        'intermediate',
-        2,
-      );
+        description: 'Framework',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 2,
+      });
       await commandBus.execute(addCommand);
 
       // Act - Update years from 2 to 5
-      const updateCommand = new UpdateCandidateSkillCommand(
+      const updateCommand = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        'Framework',
-        'intermediate',
-        5,
-      );
+        description: 'Framework',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 5,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -205,32 +205,32 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Bun',
-        'bun-update-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Bun',
+        slug: 'bun-update-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'Old description',
-        'beginner',
-        1,
-      );
+        description: 'Old description',
+        proficiencyLevel: 'beginner',
+        yearsOfExperience: 1,
+      });
       await commandBus.execute(addCommand);
 
       // Act - Update everything
-      const updateCommand = new UpdateCandidateSkillCommand(
+      const updateCommand = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        'New comprehensive description',
-        'expert',
-        10,
-      );
+        description: 'New comprehensive description',
+        proficiencyLevel: 'expert',
+        yearsOfExperience: 10,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -258,32 +258,32 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Zig',
-        'zig-update-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Zig',
+        slug: 'zig-update-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'Some description',
-        'intermediate',
-        3,
-      );
+        description: 'Some description',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 3,
+      });
       await commandBus.execute(addCommand);
 
       // Act - Remove description
-      const updateCommand = new UpdateCandidateSkillCommand(
+      const updateCommand = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        null,
-        'intermediate',
-        3,
-      );
+        description: null,
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 3,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -309,32 +309,32 @@ describe('UpdateCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Nim',
-        'nim-update-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Nim',
+        slug: 'nim-update-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'Description',
-        'advanced',
-        5,
-      );
+        description: 'Description',
+        proficiencyLevel: 'advanced',
+        yearsOfExperience: 5,
+      });
       await commandBus.execute(addCommand);
 
       // Act - Set proficiency and years to null
-      const updateCommand = new UpdateCandidateSkillCommand(
+      const updateCommand = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        'Description',
-        null,
-        null,
-      );
+        description: 'Description',
+        proficiencyLevel: null,
+        yearsOfExperience: null,
+      });
       await commandBus.execute(updateCommand);
 
       // Assert
@@ -354,13 +354,13 @@ describe('UpdateCandidateSkillCommand Integration', () => {
       const nonExistentCandidateId = uuidv4();
       const skillId = uuidv4();
 
-      const updateCommand = new UpdateCandidateSkillCommand(
-        nonExistentCandidateId,
+      const updateCommand = new UpdateCandidateSkillCommand({
+        candidateId: nonExistentCandidateId,
         skillId,
-        'Description',
-        'intermediate',
-        3,
-      );
+        description: 'Description',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 3,
+      });
 
       // Act & Assert
       await expect(commandBus.execute(updateCommand)).rejects.toThrow();
@@ -381,22 +381,22 @@ describe('UpdateCandidateSkillCommand Integration', () => {
       );
 
       // Create skill but don't add to profile
-      const createSkillCommand = new CreateSkillCommand(
-        'Skill',
-        'skill-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Skill',
+        slug: 'skill-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const updateCommand = new UpdateCandidateSkillCommand(
+      const updateCommand = new UpdateCandidateSkillCommand({
         candidateId,
         skillId,
-        'Description',
-        'intermediate',
-        3,
-      );
+        description: 'Description',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 3,
+      });
 
       // Act & Assert
       await expect(commandBus.execute(updateCommand)).rejects.toThrow();

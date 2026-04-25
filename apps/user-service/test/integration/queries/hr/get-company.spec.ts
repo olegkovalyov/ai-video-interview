@@ -47,17 +47,17 @@ describe('GetCompanyQuery Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Tech Corp',
-        'Leading tech company',
-        'https://techcorp.com',
-        null,
-        'Technology',
-        '51-200',
-        'San Francisco, CA',
-        'CTO',
-        hrId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Tech Corp',
+        description: 'Leading tech company',
+        website: 'https://techcorp.com',
+        logoUrl: null,
+        industry: 'Technology',
+        size: '51-200',
+        location: 'San Francisco, CA',
+        position: 'CTO',
+        createdBy: hrId,
+      });
 
       const { companyId } = await commandBus.execute(createCommand);
 
@@ -85,17 +85,17 @@ describe('GetCompanyQuery Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Complete Company',
-        'Full description here',
-        'https://complete.com',
-        'https://complete.com/logo.png',
-        'Healthcare',
-        '200+',
-        'Boston, MA',
-        'CEO',
-        hrId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Complete Company',
+        description: 'Full description here',
+        website: 'https://complete.com',
+        logoUrl: 'https://complete.com/logo.png',
+        industry: 'Healthcare',
+        size: '200+',
+        location: 'Boston, MA',
+        position: 'CEO',
+        createdBy: hrId,
+      });
 
       const { companyId } = await commandBus.execute(createCommand);
 
@@ -125,17 +125,17 @@ describe('GetCompanyQuery Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Minimal Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Minimal Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrId,
+      });
 
       const { companyId } = await commandBus.execute(createCommand);
 
@@ -163,17 +163,17 @@ describe('GetCompanyQuery Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'My Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'My Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrId,
+      });
 
       const { companyId } = await commandBus.execute(createCommand);
 

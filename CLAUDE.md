@@ -1,5 +1,22 @@
 # AI Video Interview Platform — Claude Code Orchestrator
 
+## Reference Implementation Status
+
+**`user-service` is the canonical reference for backend services** as of commit `ff74cb9` (2026-04-25). Every new or refactored service must converge on the patterns documented in [docs/2026-audit/user-service-canonical-patterns.md](docs/2026-audit/user-service-canonical-patterns.md) — single source of truth covering:
+
+- Layer separation (DDD), aggregate / VO patterns, domain exception contract
+- Application Service pattern (thin CQRS handlers + per-use-case services)
+- Repository helpers (filter helpers, Bindings parameter object, read/write split)
+- Outbox pattern with observability columns + trace restoration on publish
+- Observability stack: RequestContext (correlationId, traceId, userId, userEmail, source) + PII redaction + cross-service trace continuity
+- ESLint ratchet (6 rules locked at error: max-classes-per-file=1, max-params=4, max-lines-per-function=30, complexity=10, sonarjs/cognitive-complexity=10, max-depth=2)
+- Test conventions (--runInBand for integration/e2e, thin handler specs, no domain mocks)
+- Migration discipline (timestamps, reversibility, dev DB sync after merge)
+
+**Adoption checklist** at [§14 of the canonical doc](docs/2026-audit/user-service-canonical-patterns.md#14-adoption-checklist-for-new-services) is the minimum bar of parity.
+
+When implementing a feature in another service: copy the pattern from user-service first, deviate only with a documented reason.
+
 ## Project Identity
 
 Production-grade monorepo for an asynchronous AI-powered video interview platform. Built with microservices architecture using Turborepo, NestJS 11, Next.js 15, and TypeScript 5.8.

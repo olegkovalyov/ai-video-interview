@@ -1,85 +1,74 @@
 import { DomainException } from '../exceptions/domain.exception';
 
 /**
+ * Full state of a {@link UserCompany}.
+ */
+export interface UserCompanyProps {
+  id: string;
+  userId: string;
+  companyId: string;
+  position: string | null;
+  isPrimary: boolean;
+  joinedAt: Date;
+}
+
+export interface CreateUserCompanyArgs {
+  id: string;
+  userId: string;
+  companyId: string;
+  position: string | null;
+  isPrimary: boolean;
+}
+
+/**
  * UserCompany Entity
- * Represents a user's association with a company (many-to-many)
- * Belongs to Company aggregate
+ * Represents a user's association with a company (many-to-many).
+ * Belongs to Company aggregate.
  */
 export class UserCompany {
-  private constructor(
-    private readonly _id: string,
-    private readonly _userId: string,
-    private readonly _companyId: string,
-    private _position: string | null,
-    private _isPrimary: boolean,
-    private readonly _joinedAt: Date,
-  ) {}
+  private readonly _id: string;
+  private readonly _userId: string;
+  private readonly _companyId: string;
+  private _position: string | null;
+  private _isPrimary: boolean;
+  private readonly _joinedAt: Date;
 
-  // ========================================
-  // FACTORY METHODS
-  // ========================================
+  private constructor(props: UserCompanyProps) {
+    this._id = props.id;
+    this._userId = props.userId;
+    this._companyId = props.companyId;
+    this._position = props.position;
+    this._isPrimary = props.isPrimary;
+    this._joinedAt = props.joinedAt;
+  }
 
-  /**
-   * Create new user-company association
-   */
-  public static create(
-    id: string,
-    userId: string,
-    companyId: string,
-    position: string | null,
-    isPrimary: boolean,
-  ): UserCompany {
-    if (!userId || userId.trim().length === 0) {
+  public static create(args: CreateUserCompanyArgs): UserCompany {
+    if (!args.userId || args.userId.trim().length === 0) {
       throw new DomainException('User ID cannot be empty');
     }
 
-    if (!companyId || companyId.trim().length === 0) {
+    if (!args.companyId || args.companyId.trim().length === 0) {
       throw new DomainException('Company ID cannot be empty');
     }
 
-    // Validate position length
-    if (position && position.length > 100) {
+    if (args.position && args.position.length > 100) {
       throw new DomainException('Position is too long (max 100 characters)');
     }
 
-    return new UserCompany(
-      id,
-      userId,
-      companyId,
-      position?.trim() || null,
-      isPrimary,
-      new Date(),
-    );
+    return new UserCompany({
+      id: args.id,
+      userId: args.userId,
+      companyId: args.companyId,
+      position: args.position?.trim() || null,
+      isPrimary: args.isPrimary,
+      joinedAt: new Date(),
+    });
   }
 
-  /**
-   * Reconstitute from persistence
-   */
-  public static reconstitute(
-    id: string,
-    userId: string,
-    companyId: string,
-    position: string | null,
-    isPrimary: boolean,
-    joinedAt: Date,
-  ): UserCompany {
-    return new UserCompany(
-      id,
-      userId,
-      companyId,
-      position,
-      isPrimary,
-      joinedAt,
-    );
+  public static reconstitute(props: UserCompanyProps): UserCompany {
+    return new UserCompany(props);
   }
 
-  // ========================================
-  // BUSINESS LOGIC
-  // ========================================
-
-  /**
-   * Update user's position in the company
-   */
   public updatePosition(position: string): void {
     if (!position || position.trim().length === 0) {
       throw new DomainException('Position cannot be empty');
@@ -92,23 +81,13 @@ export class UserCompany {
     this._position = position.trim();
   }
 
-  /**
-   * Set as primary company for the user
-   */
   public setAsPrimary(): void {
     this._isPrimary = true;
   }
 
-  /**
-   * Unset as primary company
-   */
   public unsetAsPrimary(): void {
     this._isPrimary = false;
   }
-
-  // ========================================
-  // GETTERS
-  // ========================================
 
   public get id(): string {
     return this._id;

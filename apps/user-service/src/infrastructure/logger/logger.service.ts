@@ -4,12 +4,19 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import LokiTransport from 'winston-loki';
 import { prettyConsoleFormat, shouldEnableConsole } from './console.formatter';
-import { correlationStore } from '../http/interceptors/correlation-id.store';
+import { requestContextStore } from '../http/interceptors/request-context.store';
+import {
+  readRedactionMode,
+  redactPIIFields,
+  type RedactionMode,
+} from './redaction';
 
 export interface LogContext {
   userId?: string;
+  userEmail?: string;
   traceId?: string;
   correlationId?: string;
+  source?: string;
   sessionId?: string;
   action?: string;
   duration?: number;
@@ -24,36 +31,11 @@ export interface LogContext {
 @Injectable()
 export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
+  private lokiErrorLogged = false;
+  private readonly redactionMode: RedactionMode = readRedactionMode();
 
   constructor() {
-    // Логи в папке сервиса: apps/user-service/logs/
-    const baseLogsDir = path.join(__dirname, '../../../logs');
-
-    // Папка по дате: logs/2025-10-02/
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const logsDir = path.join(baseLogsDir, today);
-
-    // Создаем директорию с датой
-    if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir, { recursive: true });
-    }
-
-    const absolutePath = path.resolve(logsDir);
-    // Bootstrap notice — written to stdout before the logger itself is constructed.
-    process.stdout.write(
-      `📝 Logger initialized. Log directory: ${absolutePath}\n`,
-    );
-
-    // Формат для файлов - чистый JSON для Loki/Grafana
-    const fileFormat = winston.format.combine(
-      winston.format.timestamp(), // ISO 8601 формат
-      winston.format.errors({ stack: true }),
-      winston.format.json(),
-    );
-
-    // Формат для консоли - красивый вывод как в NestJS
-    const consoleFormat = winston.format.combine(prettyConsoleFormat);
-
+    const logsDir = LoggerService.ensureDailyLogDir();
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'debug',
       defaultMeta: {
@@ -61,126 +43,162 @@ export class LoggerService implements NestLoggerService {
         version: process.env.npm_package_version || '1.0.0',
         environment: process.env.NODE_ENV || 'development',
       },
-      transports: [
-        // Console для разработки (отключен в production)
-        ...(shouldEnableConsole()
-          ? [
-              new winston.transports.Console({
-                level: 'debug', // Показываем все включая debug
-                format: consoleFormat,
-              }),
-            ]
-          : []),
-        // Loki transport - прямая отправка в Loki (РЕАЛЬНОЕ ВРЕМЯ)
-        // Включается только если LOKI_HOST задан в env
-        ...(process.env.LOKI_HOST
-          ? [
-              new LokiTransport({
-                host: process.env.LOKI_HOST,
-                labels: {
-                  service: 'user-service',
-                  environment: process.env.NODE_ENV || 'development',
-                },
-                json: true,
-                format: fileFormat,
-                replaceTimestamp: true,
-                level: 'debug',
-                onConnectionError: (err: unknown) => {
-                  // Last-resort fallback: Loki transport failed, main logger may not be usable yet.
-                  // Write to stderr once to surface the problem without spamming.
-                  const state = this as unknown as {
-                    _lokiErrorLogged?: boolean;
-                  };
-                  if (!state._lokiErrorLogged) {
-                    const message =
-                      err instanceof Error ? err.message : String(err);
-                    process.stderr.write(
-                      `Loki connection error (further errors suppressed): ${message}\n`,
-                    );
-                    state._lokiErrorLogged = true;
-                  }
-                },
-              }),
-            ]
-          : []),
-        // Файл в папке по дате: logs/2025-10-02/user-service.log (fallback)
-        new winston.transports.File({
-          filename: path.join(logsDir, 'user-service.log'),
-          level: 'debug',
-          format: fileFormat,
-          maxsize: 100 * 1024 * 1024, // 100MB per day
-        }),
-        // Отдельный файл для ошибок
-        new winston.transports.File({
-          filename: path.join(logsDir, 'user-service-error.log'),
-          level: 'error',
-          format: fileFormat,
-          maxsize: 50 * 1024 * 1024, // 50MB
-        }),
-      ],
+      transports: this.createTransports(logsDir),
     });
   }
 
   /**
-   * Enriches log context with correlationId from AsyncLocalStorage.
-   * Automatically attached to every log entry within a request scope.
+   * Resolve `apps/user-service/logs/YYYY-MM-DD/` and create it if missing.
+   * Stdout is used here because the Winston logger is not constructed yet.
    */
-  private enrichWithCorrelationId(
+  private static ensureDailyLogDir(): string {
+    const baseLogsDir = path.join(__dirname, '../../../logs');
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const logsDir = path.join(baseLogsDir, today);
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    process.stdout.write(
+      `📝 Logger initialized. Log directory: ${path.resolve(logsDir)}\n`,
+    );
+    return logsDir;
+  }
+
+  /**
+   * Build the Winston transport list. Console + Loki are conditional on env;
+   * the two file transports always run as a durable fallback.
+   */
+  private createTransports(logsDir: string): winston.transport[] {
+    const fileFormat = winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.errors({ stack: true }),
+      winston.format.json(),
+    );
+    const transports: winston.transport[] = [];
+    if (shouldEnableConsole()) {
+      transports.push(LoggerService.createConsoleTransport());
+    }
+    const lokiHost = process.env.LOKI_HOST;
+    if (lokiHost) {
+      transports.push(this.createLokiTransport(lokiHost, fileFormat));
+    }
+    transports.push(...LoggerService.createFileTransports(logsDir, fileFormat));
+    return transports;
+  }
+
+  private static createConsoleTransport(): winston.transport {
+    return new winston.transports.Console({
+      level: 'debug',
+      format: winston.format.combine(prettyConsoleFormat),
+    });
+  }
+
+  private static createFileTransports(
+    logsDir: string,
+    fileFormat: winston.Logform.Format,
+  ): winston.transport[] {
+    return [
+      new winston.transports.File({
+        filename: path.join(logsDir, 'user-service.log'),
+        level: 'debug',
+        format: fileFormat,
+        maxsize: 100 * 1024 * 1024, // 100MB per day
+      }),
+      new winston.transports.File({
+        filename: path.join(logsDir, 'user-service-error.log'),
+        level: 'error',
+        format: fileFormat,
+        maxsize: 50 * 1024 * 1024,
+      }),
+    ];
+  }
+
+  private createLokiTransport(
+    host: string,
+    fileFormat: winston.Logform.Format,
+  ): LokiTransport {
+    return new LokiTransport({
+      host,
+      labels: {
+        service: 'user-service',
+        environment: process.env.NODE_ENV || 'development',
+      },
+      json: true,
+      format: fileFormat,
+      replaceTimestamp: true,
+      level: 'debug',
+      onConnectionError: (err: unknown) => {
+        // Last-resort fallback: Loki failed and main logger may not be
+        // usable yet. Write to stderr once to surface the problem without
+        // spamming on every reconnect attempt.
+        if (!this.lokiErrorLogged) {
+          const message = err instanceof Error ? err.message : String(err);
+          process.stderr.write(
+            `Loki connection error (further errors suppressed): ${message}\n`,
+          );
+          this.lokiErrorLogged = true;
+        }
+      },
+    });
+  }
+
+  /**
+   * Enriches log context with the current {@link RequestContext} pulled from
+   * AsyncLocalStorage. Auto-attached fields (correlationId, traceId, userId,
+   * userEmail, source) make every log entry searchable in Loki / Grafana
+   * without manual passing at call sites. Caller-provided fields win on
+   * collision so explicit context overrides ambient.
+   */
+  private enrichWithRequestContext(
     context?: LogContext,
   ): LogContext | undefined {
-    const store = correlationStore.getStore();
-    if (!store?.correlationId) return context;
-    return { correlationId: store.correlationId, ...context };
+    const store = requestContextStore.getStore();
+    const merged: LogContext | undefined = store
+      ? {
+          correlationId: store.correlationId,
+          traceId: store.traceId,
+          userId: store.userId,
+          userEmail: store.userEmail,
+          source: store.source,
+          ...context,
+        }
+      : context;
+    if (!merged) return undefined;
+    return redactPIIFields(merged, this.redactionMode);
   }
 
   info(message: string, context?: LogContext) {
-    this.logger.info(message, this.enrichWithCorrelationId(context));
+    this.logger.info(message, this.enrichWithRequestContext(context));
   }
 
-  // Перегруженный error для совместимости с NestJS и нашим кодом
+  /**
+   * Overloaded error logger. Accepts both shapes:
+   *   error(msg)
+   *   error(msg, err: Error, ctx?)         — our app code
+   *   error(msg, stackString, ctxString?)   — NestJS internal logger format
+   */
   error(message: unknown, ...optionalParams: unknown[]) {
     if (optionalParams.length === 0) {
-      this.logger.error(String(message), this.enrichWithCorrelationId());
+      this.logger.error(String(message), this.enrichWithRequestContext());
       return;
     }
+    const context = LoggerService.buildErrorContext(optionalParams);
+    this.logger.error(String(message), this.enrichWithRequestContext(context));
+  }
 
-    const firstParam = optionalParams[0];
-    const secondParam =
-      optionalParams.length > 1 ? optionalParams[1] : undefined;
-
-    // Проверяем если первый параметр - Error object
-    if (firstParam instanceof Error) {
-      this.logger.error(
-        String(message),
-        this.enrichWithCorrelationId({
-          ...LoggerService.toLogContext(secondParam),
-          error: {
-            name: firstParam.name,
-            message: firstParam.message,
-            stack: firstParam.stack,
-          },
-        }),
-      );
-      return;
+  private static buildErrorContext(params: unknown[]): LogContext {
+    const [first, second] = params;
+    if (first instanceof Error) {
+      return {
+        ...LoggerService.toLogContext(second),
+        error: { name: first.name, message: first.message, stack: first.stack },
+      };
     }
-
-    // Иначе считаем что это NestJS format (message, stack, context)
-    const hasStack =
-      typeof firstParam === 'string' && firstParam.includes('\n');
-    const stack = hasStack ? firstParam : undefined;
-    const contextIndex = hasStack ? 1 : 0;
-    const rawContext =
-      optionalParams.length > contextIndex
-        ? optionalParams[contextIndex]
-        : undefined;
-
-    this.logger.error(
-      String(message),
-      this.enrichWithCorrelationId({
-        ...LoggerService.toLogContext(rawContext),
-        stack: stack,
-      }),
-    );
+    // NestJS format: (message, stack, context). `stack` is a multi-line string.
+    const hasStack = typeof first === 'string' && first.includes('\n');
+    const stack = hasStack ? first : undefined;
+    const rawContext = hasStack ? second : first;
+    return { ...LoggerService.toLogContext(rawContext), stack };
   }
 
   /**
@@ -197,7 +215,7 @@ export class LoggerService implements NestLoggerService {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
     this.logger.warn(
       String(message),
-      this.enrichWithCorrelationId(
+      this.enrichWithRequestContext(
         typeof context === 'string' ? { context } : (context as LogContext),
       ),
     );
@@ -207,7 +225,7 @@ export class LoggerService implements NestLoggerService {
     const context = optionalParams.length > 0 ? optionalParams[0] : undefined;
     this.logger.debug(
       String(message),
-      this.enrichWithCorrelationId(
+      this.enrichWithRequestContext(
         typeof context === 'string' ? { context } : (context as LogContext),
       ),
     );
@@ -313,32 +331,5 @@ export class LoggerService implements NestLoggerService {
     } else {
       this.error(message, undefined, logData);
     }
-  }
-
-  httpLog(
-    method: string,
-    url: string,
-    statusCode: number,
-    duration: number,
-    context?: LogContext,
-  ) {
-    this.info(`HTTP: ${method} ${url} ${statusCode}`, {
-      ...context,
-      category: 'http',
-      method,
-      url,
-      statusCode,
-      duration,
-    });
-  }
-
-  performanceLog(operation: string, duration: number, context?: LogContext) {
-    const level = duration > 1000 ? 'warn' : 'info';
-    this.logger.log(level, `Performance: ${operation} took ${duration}ms`, {
-      ...context,
-      category: 'performance',
-      operation,
-      duration,
-    });
   }
 }

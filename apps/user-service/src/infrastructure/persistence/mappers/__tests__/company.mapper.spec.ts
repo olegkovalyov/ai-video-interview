@@ -48,25 +48,28 @@ describe('CompanyMapper', () => {
       updatedAt?: Date;
     } = {},
   ): Company => {
-    return Company.reconstitute(
-      overrides.id ?? uuidv4(),
-      overrides.name ?? 'Acme Corp',
-      'description' in overrides
-        ? overrides.description!
-        : 'A leading technology company',
-      'website' in overrides ? overrides.website! : 'https://acme.com',
-      'logoUrl' in overrides
-        ? overrides.logoUrl!
-        : 'https://cdn.example.com/acme-logo.png',
-      'industry' in overrides ? overrides.industry! : 'Technology',
-      'size' in overrides ? overrides.size! : CompanySize.large(),
-      'location' in overrides ? overrides.location! : 'San Francisco, CA',
-      overrides.isActive ?? true,
-      overrides.createdBy ?? uuidv4(),
-      [], // userCompanies
-      overrides.createdAt ?? new Date('2025-03-01T09:00:00Z'),
-      overrides.updatedAt ?? new Date('2025-06-15T16:00:00Z'),
-    );
+    return Company.reconstitute({
+      id: overrides.id ?? uuidv4(),
+      name: overrides.name ?? 'Acme Corp',
+      description:
+        'description' in overrides
+          ? overrides.description!
+          : 'A leading technology company',
+      website: 'website' in overrides ? overrides.website! : 'https://acme.com',
+      logoUrl:
+        'logoUrl' in overrides
+          ? overrides.logoUrl!
+          : 'https://cdn.example.com/acme-logo.png',
+      industry: 'industry' in overrides ? overrides.industry! : 'Technology',
+      size: 'size' in overrides ? overrides.size! : CompanySize.large(),
+      location:
+        'location' in overrides ? overrides.location! : 'San Francisco, CA',
+      isActive: overrides.isActive ?? true,
+      createdBy: overrides.createdBy ?? uuidv4(),
+      users: [],
+      createdAt: overrides.createdAt ?? new Date('2025-03-01T09:00:00Z'),
+      updatedAt: overrides.updatedAt ?? new Date('2025-06-15T16:00:00Z'),
+    });
   };
 
   describe('toEntity()', () => {
@@ -258,21 +261,21 @@ describe('CompanyMapper', () => {
       const createdAt = new Date('2025-02-01T00:00:00Z');
       const updatedAt = new Date('2025-05-01T12:00:00Z');
 
-      const original = Company.reconstitute(
+      const original = Company.reconstitute({
         id,
-        'Round Trip Corp',
-        'A round trip test company',
-        'https://roundtrip.com',
-        'https://cdn.example.com/rt.png',
-        'Finance',
-        CompanySize.enterprise(),
-        'London, UK',
-        true,
+        name: 'Round Trip Corp',
+        description: 'A round trip test company',
+        website: 'https://roundtrip.com',
+        logoUrl: 'https://cdn.example.com/rt.png',
+        industry: 'Finance',
+        size: CompanySize.enterprise(),
+        location: 'London, UK',
+        isActive: true,
         createdBy,
-        [],
+        users: [],
         createdAt,
         updatedAt,
-      );
+      });
 
       const entity = mapper.toEntity(original);
       const restored = mapper.toDomain(entity);

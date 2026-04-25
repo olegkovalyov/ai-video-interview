@@ -39,38 +39,40 @@ export class TypeOrmRoleRepository implements IRoleRepository {
    * @deprecated Users have a single `role` field in the new system; they don't have multiple roles.
    *   Read `User.role` directly instead. Kept only for interface compatibility during migration.
    */
-  async findByUserId(_userId: string): Promise<Role[]> {
-    return [];
+  findByUserId(_userId: string): Promise<Role[]> {
+    return Promise.resolve([]);
   }
 
   /**
    * @deprecated Role assignment is now done through the `User.selectRole()` domain method.
    *   This legacy method throws to prevent accidental use.
    */
-  async assignToUser(
+  assignToUser(
     _userId: string,
     _roleId: string,
     _assignedBy: string,
   ): Promise<void> {
-    throw new Error(
-      'assignToUser is deprecated. Use User.selectRole() instead.',
+    return Promise.reject(
+      new Error('assignToUser is deprecated. Use User.selectRole() instead.'),
     );
   }
 
   /**
    * @deprecated Roles are immutable once selected; they cannot be removed.
    */
-  async removeFromUser(_userId: string, _roleId: string): Promise<void> {
-    throw new Error(
-      'removeFromUser is deprecated. Roles are immutable in new system.',
+  removeFromUser(_userId: string, _roleId: string): Promise<void> {
+    return Promise.reject(
+      new Error(
+        'removeFromUser is deprecated. Roles are immutable in new system.',
+      ),
     );
   }
 
   /**
    * @deprecated Use `user.role` property directly.
    */
-  async userHasRole(_userId: string, _roleId: string): Promise<boolean> {
-    return false;
+  userHasRole(_userId: string, _roleId: string): Promise<boolean> {
+    return Promise.resolve(false);
   }
 
   private toDomain(entity: RoleEntity): Role {

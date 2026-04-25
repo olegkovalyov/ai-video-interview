@@ -45,17 +45,17 @@ describe('DeleteCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        'Description',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: 'Description',
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Verify company exists
@@ -86,17 +86,17 @@ describe('DeleteCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        'CEO',
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: 'CEO',
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Verify user_companies association exists
@@ -135,43 +135,43 @@ describe('DeleteCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const command1 = new CreateCompanyCommand(
-        'Company 1',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const command1 = new CreateCompanyCommand({
+        name: 'Company 1',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId: id1 } = await commandBus.execute(command1);
 
-      const command2 = new CreateCompanyCommand(
-        'Company 2',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const command2 = new CreateCompanyCommand({
+        name: 'Company 2',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId: id2 } = await commandBus.execute(command2);
 
-      const command3 = new CreateCompanyCommand(
-        'Company 3',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const command3 = new CreateCompanyCommand({
+        name: 'Company 3',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId: id3 } = await commandBus.execute(command3);
 
       // Act - Delete all 3
@@ -196,17 +196,17 @@ describe('DeleteCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Full Company',
-        'Description',
-        'https://company.com',
-        'https://company.com/logo.png',
-        'Technology',
-        '51-200',
-        'San Francisco, CA',
-        'CTO',
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Full Company',
+        description: 'Description',
+        website: 'https://company.com',
+        logoUrl: 'https://company.com/logo.png',
+        industry: 'Technology',
+        size: '51-200',
+        location: 'San Francisco, CA',
+        position: 'CTO',
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Act - Delete
@@ -248,17 +248,17 @@ describe('DeleteCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hr1UserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hr1UserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       // Arrange - HR2 tries to delete
@@ -284,17 +284,17 @@ describe('DeleteCompanyCommand Integration', () => {
         role: 'hr',
       });
 
-      const createCommand = new CreateCompanyCommand(
-        'Test Company',
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        hrUserId,
-      );
+      const createCommand = new CreateCompanyCommand({
+        name: 'Test Company',
+        description: null,
+        website: null,
+        logoUrl: null,
+        industry: null,
+        size: null,
+        location: null,
+        position: null,
+        createdBy: hrUserId,
+      });
       const { companyId } = await commandBus.execute(createCommand);
 
       const deleteCommand = new DeleteCompanyCommand(companyId, hrUserId);

@@ -29,15 +29,15 @@ export class SkillCategoryMapper {
    * Convert Entity to Domain Model
    */
   toDomain(entity: SkillCategoryEntity): SkillCategory {
-    return SkillCategory.reconstitute(
-      entity.id,
-      entity.name,
-      entity.slug,
-      entity.description,
-      entity.sortOrder,
-      entity.createdAt,
-      entity.updatedAt,
-    );
+    return SkillCategory.reconstitute({
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      description: entity.description,
+      sortOrder: entity.sortOrder,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    });
   }
 
   /**

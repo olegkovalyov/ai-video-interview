@@ -27,73 +27,51 @@ const colorize = (text: string, color: keyof typeof colors): string => {
  * [WARN] ID Token missing for logout
  * [ERROR] Database connection failed
  */
-export const prettyConsoleFormat = format.printf((info) => {
-  // Цветные уровни как в NestJS
-  const levelColors = {
-    error: colorize('[ERROR]', 'red'),
-    warn: colorize('[WARN] ', 'yellow'),
-    info: colorize('[INFO] ', 'green'),
-    debug: colorize('[DEBUG]', 'blue'),
-  };
+const LEVEL_COLORS: Record<string, string> = {
+  error: colorize('[ERROR]', 'red'),
+  warn: colorize('[WARN] ', 'yellow'),
+  info: colorize('[INFO] ', 'green'),
+  debug: colorize('[DEBUG]', 'blue'),
+};
 
-  const rawLevel = String(info.level);
-  const level =
-    levelColors[rawLevel as keyof typeof levelColors] ||
-    colorize(`[${rawLevel.toUpperCase()}]`, 'white');
+function formatLevel(rawLevel: string): string {
+  return (
+    LEVEL_COLORS[rawLevel] || colorize(`[${rawLevel.toUpperCase()}]`, 'white')
+  );
+}
 
-  // Категория (если есть)
-  let category = '';
-  if (info.category && typeof info.category === 'string') {
-    const categoryName =
-      info.category.charAt(0).toUpperCase() + info.category.slice(1);
-    category = colorize(`${categoryName}: `, 'cyan');
-  }
+function formatCategory(category: unknown): string {
+  if (typeof category !== 'string' || !category) return '';
+  const name = category.charAt(0).toUpperCase() + category.slice(1);
+  return colorize(`${name}: `, 'cyan');
+}
 
-  // Базовое сообщение
-  let msg = `${level} ${category}${String(info.message)}`;
-
-  // Добавляем контекстные детали (средний уровень)
+function collectDetails(info: Record<string, unknown>): string[] {
   const details: string[] = [];
-
-  // Kafka topics
-  if (info.topic && typeof info.topic === 'string') {
-    details.push(info.topic);
-  }
-
-  // Email (для user операций)
-  if (info.email && typeof info.email === 'string') {
+  if (typeof info.topic === 'string') details.push(info.topic);
+  if (typeof info.email === 'string')
     details.push(colorize(info.email, 'cyan'));
+  if (typeof info.userId === 'string' && !info.email) {
+    details.push(colorize(`(${info.userId.slice(0, 8)}...)`, 'gray'));
   }
-
-  // User ID (короткий)
-  if (info.userId && typeof info.userId === 'string' && !info.email) {
-    const shortId = info.userId.slice(0, 8);
-    details.push(colorize(`(${shortId}...)`, 'gray'));
-  }
-
-  // Action результат
-  if (
-    info.action &&
-    (info.action === 'connect' || info.action === 'subscribe')
-  ) {
-    // Уже включено в message, пропускаем
-  }
-
-  // Event Type для Kafka
-  if (info.eventType && typeof info.eventType === 'string') {
+  if (typeof info.eventType === 'string') {
     details.push(colorize(info.eventType, 'magenta'));
   }
+  return details;
+}
 
-  // Добавляем детали
+export const prettyConsoleFormat = format.printf((info) => {
+  const level = formatLevel(String(info.level));
+  const category = formatCategory(info.category);
+  let msg = `${level} ${category}${String(info.message)}`;
+
+  const details = collectDetails(info as Record<string, unknown>);
   if (details.length > 0) {
     msg += colorize(' → ', 'gray') + details.join(colorize(' | ', 'gray'));
   }
-
-  // Ошибка (если есть)
-  if (info.error && typeof info.error === 'string') {
+  if (typeof info.error === 'string') {
     msg += colorize(` | ${info.error}`, 'red');
   }
-
   return msg;
 });
 

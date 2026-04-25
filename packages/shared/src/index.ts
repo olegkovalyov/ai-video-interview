@@ -1,12 +1,12 @@
 /**
  * @repo/shared
- * 
+ *
  * Shared package for event-driven communication between microservices
  * Contains:
  * - Kafka events, topics, and services
  * - API type contracts (generated from OpenAPI/Swagger)
  * - Tracing utilities
- * 
+ *
  * Each service manages its own:
  * - Internal business logic
  * - Infrastructure concerns
@@ -14,18 +14,18 @@
  */
 
 // Export Kafka events and event types
-export * from './events';
-export * from './events/user.events';
+export * from "./events";
+export * from "./events/user.events";
 
 // Export Kafka services
-export * from './kafka/kafka.service';
-export * from './kafka/kafka-health.service';
+export * from "./kafka/kafka.service";
+export * from "./kafka/kafka-health.service";
 
 // Export tracing utilities
-export * from './tracing/kafka-propagation';
+export * from "./tracing/kafka-propagation";
 
 // Explicitly export factories and types for better IDE support
-export { 
+export {
   UserCommandFactory,
   AuthEventFactory,
   type UserCommand,
@@ -47,19 +47,20 @@ export {
   type UserAuthEvent,
   type UserAuthenticatedEvent,
   type UserLoggedOutEvent,
-} from './events/user.events';
+} from "./events/user.events";
 
 export {
   injectTraceContext,
   extractTraceContext,
   withKafkaTracing,
+  withRestoredTrace,
   getTraceInfo,
-} from './tracing/kafka-propagation';
+} from "./tracing/kafka-propagation";
 
 // ============================================================================
 // API Type Contracts (Generated from OpenAPI/Swagger)
 // ============================================================================
-// 
+//
 // Import contracts explicitly:
 //   import { CreateTemplateDto } from '@shared/contracts/interview-service';
 //   import { UserResponseDto } from '@shared/contracts/user-service';

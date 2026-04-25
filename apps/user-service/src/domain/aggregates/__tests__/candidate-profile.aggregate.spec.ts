@@ -4,6 +4,10 @@ import { ProficiencyLevel } from '../../value-objects/proficiency-level.vo';
 import { YearsOfExperience } from '../../value-objects/years-of-experience.vo';
 import { CandidateSkill } from '../../entities/candidate-skill.entity';
 import { DomainException } from '../../exceptions/domain.exception';
+import {
+  CandidateSkillAlreadyExistsException,
+  CandidateSkillNotFoundException,
+} from '../../exceptions/candidate.exceptions';
 import { CandidateSkillAddedEvent } from '../../events/candidate-skill-added.event';
 import { CandidateSkillUpdatedEvent } from '../../events/candidate-skill-updated.event';
 import { CandidateSkillRemovedEvent } from '../../events/candidate-skill-removed.event';
@@ -57,13 +61,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should add skill to profile', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Experienced with React hooks and state management',
-        ProficiencyLevel.advanced(),
-        YearsOfExperience.fromNumber(5),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Experienced with React hooks and state management',
+        proficiencyLevel: ProficiencyLevel.advanced(),
+        yearsOfExperience: YearsOfExperience.fromNumber(5),
+      });
 
       expect(profile.skills).toHaveLength(1);
       expect(profile.skills[0].skillId).toBe(validSkillId);
@@ -74,13 +78,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should add skill without description', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        null,
-        ProficiencyLevel.intermediate(),
-        YearsOfExperience.fromNumber(2),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: null,
+        proficiencyLevel: ProficiencyLevel.intermediate(),
+        yearsOfExperience: YearsOfExperience.fromNumber(2),
+      });
 
       expect(profile.skills[0].description).toBeNull();
     });
@@ -88,13 +92,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should publish CandidateSkillAddedEvent', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Test description',
-        ProficiencyLevel.expert(),
-        YearsOfExperience.fromNumber(10),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Test description',
+        proficiencyLevel: ProficiencyLevel.expert(),
+        yearsOfExperience: YearsOfExperience.fromNumber(10),
+      });
 
       const events = profile.getUncommittedEvents();
       expect(events).toHaveLength(1);
@@ -110,52 +114,43 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should throw error when adding duplicate skill', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Description',
-        ProficiencyLevel.intermediate(),
-        YearsOfExperience.fromNumber(3),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Description',
+        proficiencyLevel: ProficiencyLevel.intermediate(),
+        yearsOfExperience: YearsOfExperience.fromNumber(3),
+      });
 
       expect(() =>
-        profile.addSkill(
-          validSkillId,
-          'another-id',
-          'Another description',
-          ProficiencyLevel.advanced(),
-          YearsOfExperience.fromNumber(5),
-        ),
-      ).toThrow(DomainException);
-      expect(() =>
-        profile.addSkill(
-          validSkillId,
-          'another-id',
-          'Another description',
-          ProficiencyLevel.advanced(),
-          YearsOfExperience.fromNumber(5),
-        ),
-      ).toThrow('Skill already added to profile');
+        profile.addSkill({
+          skillId: validSkillId,
+          candidateSkillId: 'another-id',
+          description: 'Another description',
+          proficiencyLevel: ProficiencyLevel.advanced(),
+          yearsOfExperience: YearsOfExperience.fromNumber(5),
+        }),
+      ).toThrow(CandidateSkillAlreadyExistsException);
     });
 
     it('should add multiple different skills', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        'react',
-        'cs-1',
-        'React skills',
-        ProficiencyLevel.advanced(),
-        YearsOfExperience.fromNumber(5),
-      );
+      profile.addSkill({
+        skillId: 'react',
+        candidateSkillId: 'cs-1',
+        description: 'React skills',
+        proficiencyLevel: ProficiencyLevel.advanced(),
+        yearsOfExperience: YearsOfExperience.fromNumber(5),
+      });
 
-      profile.addSkill(
-        'nodejs',
-        'cs-2',
-        'Node.js skills',
-        ProficiencyLevel.intermediate(),
-        YearsOfExperience.fromNumber(3),
-      );
+      profile.addSkill({
+        skillId: 'nodejs',
+        candidateSkillId: 'cs-2',
+        description: 'Node.js skills',
+        proficiencyLevel: ProficiencyLevel.intermediate(),
+        yearsOfExperience: YearsOfExperience.fromNumber(3),
+      });
 
       expect(profile.skills).toHaveLength(2);
       expect(profile.skills[0].skillId).toBe('react');
@@ -167,13 +162,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should update existing skill', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Old description',
-        ProficiencyLevel.beginner(),
-        YearsOfExperience.fromNumber(1),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Old description',
+        proficiencyLevel: ProficiencyLevel.beginner(),
+        yearsOfExperience: YearsOfExperience.fromNumber(1),
+      });
 
       profile.clearEvents(); // Clear add event
 
@@ -193,13 +188,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should publish CandidateSkillUpdatedEvent with changes', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Old description',
-        ProficiencyLevel.intermediate(),
-        YearsOfExperience.fromNumber(3),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Old description',
+        proficiencyLevel: ProficiencyLevel.intermediate(),
+        yearsOfExperience: YearsOfExperience.fromNumber(3),
+      });
 
       profile.clearEvents();
 
@@ -226,13 +221,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should not publish event if no changes', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Description',
-        ProficiencyLevel.advanced(),
-        YearsOfExperience.fromNumber(5),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Description',
+        proficiencyLevel: ProficiencyLevel.advanced(),
+        yearsOfExperience: YearsOfExperience.fromNumber(5),
+      });
 
       profile.clearEvents();
 
@@ -258,15 +253,7 @@ describe('CandidateProfile Aggregate (Updated)', () => {
           ProficiencyLevel.advanced(),
           YearsOfExperience.fromNumber(5),
         ),
-      ).toThrow(DomainException);
-      expect(() =>
-        profile.updateSkill(
-          'non-existent',
-          'Description',
-          ProficiencyLevel.advanced(),
-          YearsOfExperience.fromNumber(5),
-        ),
-      ).toThrow('Skill not found in profile');
+      ).toThrow(CandidateSkillNotFoundException);
     });
   });
 
@@ -274,13 +261,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should remove skill from profile', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Description',
-        ProficiencyLevel.advanced(),
-        YearsOfExperience.fromNumber(5),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Description',
+        proficiencyLevel: ProficiencyLevel.advanced(),
+        yearsOfExperience: YearsOfExperience.fromNumber(5),
+      });
 
       expect(profile.skills).toHaveLength(1);
 
@@ -292,13 +279,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should publish CandidateSkillRemovedEvent', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Description',
-        ProficiencyLevel.advanced(),
-        YearsOfExperience.fromNumber(5),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Description',
+        proficiencyLevel: ProficiencyLevel.advanced(),
+        yearsOfExperience: YearsOfExperience.fromNumber(5),
+      });
 
       profile.clearEvents();
 
@@ -317,37 +304,34 @@ describe('CandidateProfile Aggregate (Updated)', () => {
       const profile = CandidateProfile.create(validUserId);
 
       expect(() => profile.removeSkill('non-existent')).toThrow(
-        DomainException,
-      );
-      expect(() => profile.removeSkill('non-existent')).toThrow(
-        'Skill not found in profile',
+        CandidateSkillNotFoundException,
       );
     });
 
     it('should remove only specified skill', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        'react',
-        'cs-1',
-        'React',
-        ProficiencyLevel.advanced(),
-        YearsOfExperience.fromNumber(5),
-      );
-      profile.addSkill(
-        'nodejs',
-        'cs-2',
-        'Node',
-        ProficiencyLevel.intermediate(),
-        YearsOfExperience.fromNumber(3),
-      );
-      profile.addSkill(
-        'postgres',
-        'cs-3',
-        'PostgreSQL',
-        ProficiencyLevel.beginner(),
-        YearsOfExperience.fromNumber(1),
-      );
+      profile.addSkill({
+        skillId: 'react',
+        candidateSkillId: 'cs-1',
+        description: 'React',
+        proficiencyLevel: ProficiencyLevel.advanced(),
+        yearsOfExperience: YearsOfExperience.fromNumber(5),
+      });
+      profile.addSkill({
+        skillId: 'nodejs',
+        candidateSkillId: 'cs-2',
+        description: 'Node',
+        proficiencyLevel: ProficiencyLevel.intermediate(),
+        yearsOfExperience: YearsOfExperience.fromNumber(3),
+      });
+      profile.addSkill({
+        skillId: 'postgres',
+        candidateSkillId: 'cs-3',
+        description: 'PostgreSQL',
+        proficiencyLevel: ProficiencyLevel.beginner(),
+        yearsOfExperience: YearsOfExperience.fromNumber(1),
+      });
 
       expect(profile.skills).toHaveLength(3);
 
@@ -370,23 +354,23 @@ describe('CandidateProfile Aggregate (Updated)', () => {
       const updatedAt = new Date('2024-01-02');
       const experienceLevel = ExperienceLevel.senior();
       const skills = [
-        CandidateSkill.create(
-          'cs-1',
-          validUserId,
-          'react',
-          'React skills',
-          ProficiencyLevel.expert(),
-          YearsOfExperience.fromNumber(8),
-        ),
+        CandidateSkill.create({
+          id: 'cs-1',
+          candidateId: validUserId,
+          skillId: 'react',
+          description: 'React skills',
+          proficiencyLevel: ProficiencyLevel.expert(),
+          yearsOfExperience: YearsOfExperience.fromNumber(8),
+        }),
       ];
 
-      const profile = CandidateProfile.reconstitute(
-        validUserId,
+      const profile = CandidateProfile.reconstitute({
+        userId: validUserId,
         experienceLevel,
         skills,
         createdAt,
         updatedAt,
-      );
+      });
 
       expect(profile.userId).toBe(validUserId);
       expect(profile.experienceLevel).toBe(experienceLevel);
@@ -397,13 +381,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     });
 
     it('should reconstitute with null experience level', () => {
-      const profile = CandidateProfile.reconstitute(
-        validUserId,
-        null,
-        [],
-        new Date(),
-        new Date(),
-      );
+      const profile = CandidateProfile.reconstitute({
+        userId: validUserId,
+        experienceLevel: null,
+        skills: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
       expect(profile.experienceLevel).toBeNull();
       expect(profile.skills).toEqual([]);
@@ -414,13 +398,13 @@ describe('CandidateProfile Aggregate (Updated)', () => {
     it('should return readonly skills array', () => {
       const profile = CandidateProfile.create(validUserId);
 
-      profile.addSkill(
-        validSkillId,
-        validCandidateSkillId,
-        'Description',
-        ProficiencyLevel.advanced(),
-        YearsOfExperience.fromNumber(5),
-      );
+      profile.addSkill({
+        skillId: validSkillId,
+        candidateSkillId: validCandidateSkillId,
+        description: 'Description',
+        proficiencyLevel: ProficiencyLevel.advanced(),
+        yearsOfExperience: YearsOfExperience.fromNumber(5),
+      });
 
       const skills = profile.skills;
       expect(skills).toHaveLength(1);

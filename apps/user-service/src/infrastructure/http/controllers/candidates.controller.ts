@@ -11,9 +11,6 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-  ConflictException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -55,7 +52,6 @@ import {
 
 // Mappers
 import { CandidateResponseMapper } from '../mappers/candidate.response.mapper';
-import { DomainException } from '../../../domain/exceptions/domain.exception';
 
 // Error Schemas
 import {
@@ -63,8 +59,6 @@ import {
   UnauthorizedErrorSchema,
   NotFoundErrorSchema,
 } from '../schemas/error.schemas';
-
-import { errorMessage } from '../utils/error-message.util';
 
 /**
  * Candidates Controller
@@ -148,38 +142,27 @@ export class CandidatesController {
     description: 'Unauthorized - invalid or missing internal token',
   })
   async searchCandidates(@Query() query: SearchCandidatesDto) {
-    try {
-      const result = await this.queryBus.execute(
-        new SearchCandidatesBySkillsQuery(
-          query.skillIds || [],
-          query.minProficiency,
-          query.minYears ? Number(query.minYears) : undefined,
-          query.experienceLevel,
-          query.page || 1,
-          query.limit || 20,
-        ),
-      );
+    const result = await this.queryBus.execute(
+      new SearchCandidatesBySkillsQuery({
+        skillIds: query.skillIds ?? [],
+        minProficiency: query.minProficiency,
+        minYears: query.minYears ? Number(query.minYears) : undefined,
+        experienceLevel: query.experienceLevel,
+        page: query.page ?? 1,
+        limit: query.limit ?? 20,
+      }),
+    );
 
-      return {
-        success: true,
-        data: CandidateResponseMapper.toSearchResultsDto(result.data),
-        pagination: {
-          total: result.total,
-          page: result.page,
-          limit: result.limit,
-          totalPages: result.totalPages,
-        },
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: CandidateResponseMapper.toSearchResultsDto(result.data),
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+    };
   }
 
   // ============================================
@@ -212,42 +195,14 @@ export class CandidatesController {
     @Query('isHR') isHR?: boolean,
     @Query('isAdmin') isAdmin?: boolean,
   ) {
-    try {
-      const query = new GetCandidateProfileQuery(
-        userId,
-        currentUserId,
-        isHR,
-        isAdmin,
-      );
+    const result = await this.queryBus.execute(
+      new GetCandidateProfileQuery(userId, currentUserId, isHR, isAdmin),
+    );
 
-      const result = await this.queryBus.execute(query);
-
-      return {
-        success: true,
-        data: CandidateResponseMapper.toProfileDto(result),
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'PROFILE_NOT_FOUND',
-        });
-      }
-
-      if (errorMessage(error).includes('permission')) {
-        throw new ForbiddenException({
-          success: false,
-          error: errorMessage(error),
-          code: 'FORBIDDEN',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: CandidateResponseMapper.toProfileDto(result),
+    };
   }
 
   @Get(':userId/skills')
@@ -275,34 +230,14 @@ export class CandidatesController {
     @Query('isHR') isHR?: boolean,
     @Query('isAdmin') isAdmin?: boolean,
   ) {
-    try {
-      const query = new GetCandidateSkillsQuery(
-        candidateId,
-        currentUserId,
-        isHR,
-        isAdmin,
-      );
+    const result = await this.queryBus.execute(
+      new GetCandidateSkillsQuery(candidateId, currentUserId, isHR, isAdmin),
+    );
 
-      const result = await this.queryBus.execute(query);
-
-      return {
-        success: true,
-        data: CandidateResponseMapper.toSkillsByCategoryDto(result),
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('permission')) {
-        throw new ForbiddenException({
-          success: false,
-          error: errorMessage(error),
-          code: 'FORBIDDEN',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: CandidateResponseMapper.toSkillsByCategoryDto(result),
+    };
   }
 
   // ============================================
@@ -338,46 +273,20 @@ export class CandidatesController {
     @Param('userId') candidateId: string,
     @Body() dto: AddCandidateSkillDto,
   ) {
-    try {
-      const command = new AddCandidateSkillCommand(
+    const result = await this.commandBus.execute(
+      new AddCandidateSkillCommand({
         candidateId,
-        dto.skillId,
-        dto.description || null,
-        dto.proficiencyLevel || 'beginner',
-        dto.yearsOfExperience || 0,
-      );
+        skillId: dto.skillId,
+        description: dto.description ?? null,
+        proficiencyLevel: dto.proficiencyLevel ?? 'beginner',
+        yearsOfExperience: dto.yearsOfExperience ?? 0,
+      }),
+    );
 
-      const result = await this.commandBus.execute(command);
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'NOT_FOUND',
-        });
-      }
-
-      if (
-        errorMessage(error).includes('already') ||
-        error instanceof ConflictException
-      ) {
-        throw new ConflictException({
-          success: false,
-          error: errorMessage(error),
-          code: 'SKILL_ALREADY_ADDED',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Put(':userId/skills/:skillId')
@@ -408,48 +317,32 @@ export class CandidatesController {
     @Param('skillId') skillId: string,
     @Body() dto: UpdateCandidateSkillDto,
   ) {
-    try {
-      // Validate that at least one field is provided
-      if (
-        !dto.description &&
-        !dto.proficiencyLevel &&
-        dto.yearsOfExperience === undefined
-      ) {
-        throw new BadRequestException({
-          success: false,
-          error: 'At least one field must be provided for update',
-          code: 'NO_FIELDS_TO_UPDATE',
-        });
-      }
-
-      const command = new UpdateCandidateSkillCommand(
-        candidateId,
-        skillId,
-        dto.description || null,
-        dto.proficiencyLevel || 'beginner',
-        dto.yearsOfExperience === undefined ? 0 : dto.yearsOfExperience,
-      );
-
-      await this.commandBus.execute(command);
-
-      return {
-        success: true,
-        message: 'Skill updated successfully',
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'NOT_FOUND',
-        });
-      }
-
+    if (
+      !dto.description &&
+      !dto.proficiencyLevel &&
+      dto.yearsOfExperience === undefined
+    ) {
       throw new BadRequestException({
         success: false,
-        error: errorMessage(error),
+        error: 'At least one field must be provided for update',
+        code: 'NO_FIELDS_TO_UPDATE',
       });
     }
+
+    await this.commandBus.execute(
+      new UpdateCandidateSkillCommand({
+        candidateId,
+        skillId,
+        description: dto.description ?? null,
+        proficiencyLevel: dto.proficiencyLevel ?? 'beginner',
+        yearsOfExperience: dto.yearsOfExperience ?? 0,
+      }),
+    );
+
+    return {
+      success: true,
+      message: 'Skill updated successfully',
+    };
   }
 
   @Delete(':userId/skills/:skillId')
@@ -473,23 +366,9 @@ export class CandidatesController {
     @Param('userId') candidateId: string,
     @Param('skillId') skillId: string,
   ) {
-    try {
-      const command = new RemoveCandidateSkillCommand(candidateId, skillId);
-      await this.commandBus.execute(command);
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'NOT_FOUND',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    await this.commandBus.execute(
+      new RemoveCandidateSkillCommand(candidateId, skillId),
+    );
   }
 
   @Put(':userId/experience-level')
@@ -523,45 +402,18 @@ export class CandidatesController {
     @Param('userId') userId: string,
     @Body() dto: UpdateExperienceLevelDto,
   ) {
-    try {
-      const command = new UpdateCandidateExperienceLevelCommand(
-        userId,
-        dto.experienceLevel,
-      );
-      await this.commandBus.execute(command);
+    await this.commandBus.execute(
+      new UpdateCandidateExperienceLevelCommand(userId, dto.experienceLevel),
+    );
 
-      // Get updated profile to return (pass userId as currentUserId to bypass permission check)
-      const query = new GetCandidateProfileQuery(userId, userId);
-      const result = await this.queryBus.execute(query);
+    // Pass userId as currentUserId to bypass permission check.
+    const result = await this.queryBus.execute(
+      new GetCandidateProfileQuery(userId, userId),
+    );
 
-      return {
-        success: true,
-        data: CandidateResponseMapper.toProfileDto(result),
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'PROFILE_NOT_FOUND',
-        });
-      }
-
-      if (
-        errorMessage(error).includes('Invalid experience level') ||
-        error instanceof DomainException
-      ) {
-        throw new BadRequestException({
-          success: false,
-          error: errorMessage(error),
-          code: 'INVALID_EXPERIENCE_LEVEL',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: CandidateResponseMapper.toProfileDto(result),
+    };
   }
 }

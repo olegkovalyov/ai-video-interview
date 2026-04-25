@@ -36,17 +36,18 @@ describe('SkillCategoryMapper', () => {
       updatedAt?: Date;
     } = {},
   ): SkillCategory => {
-    return SkillCategory.reconstitute(
-      overrides.id ?? uuidv4(),
-      overrides.name ?? 'Programming Languages',
-      overrides.slug ?? 'programming-languages',
-      overrides.description === undefined
-        ? 'Skills related to programming languages'
-        : overrides.description,
-      overrides.sortOrder ?? 1,
-      overrides.createdAt ?? new Date('2025-01-20T07:00:00Z'),
-      overrides.updatedAt ?? new Date('2025-04-10T15:00:00Z'),
-    );
+    return SkillCategory.reconstitute({
+      id: overrides.id ?? uuidv4(),
+      name: overrides.name ?? 'Programming Languages',
+      slug: overrides.slug ?? 'programming-languages',
+      description:
+        overrides.description === undefined
+          ? 'Skills related to programming languages'
+          : overrides.description,
+      sortOrder: overrides.sortOrder ?? 1,
+      createdAt: overrides.createdAt ?? new Date('2025-01-20T07:00:00Z'),
+      updatedAt: overrides.updatedAt ?? new Date('2025-04-10T15:00:00Z'),
+    });
   };
 
   describe('toEntity()', () => {
@@ -172,15 +173,15 @@ describe('SkillCategoryMapper', () => {
       const createdAt = new Date('2025-01-01T00:00:00Z');
       const updatedAt = new Date('2025-03-01T00:00:00Z');
 
-      const original = SkillCategory.reconstitute(
+      const original = SkillCategory.reconstitute({
         id,
-        'DevOps',
-        'devops',
-        'Infrastructure and deployment tools',
-        5,
+        name: 'DevOps',
+        slug: 'devops',
+        description: 'Infrastructure and deployment tools',
+        sortOrder: 5,
         createdAt,
         updatedAt,
-      );
+      });
 
       const entity = mapper.toEntity(original);
       const restored = mapper.toDomain(entity);

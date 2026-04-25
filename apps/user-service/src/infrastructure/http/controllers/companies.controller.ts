@@ -10,10 +10,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  BadRequestException,
-  NotFoundException,
-  ConflictException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -58,8 +54,6 @@ import {
   ConflictErrorSchema,
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
-
-import { errorCode, errorMessage } from '../utils/error-message.util';
 
 /**
  * Companies Controller
@@ -114,59 +108,24 @@ export class CompaniesController {
     description: 'Company already exists',
   })
   async createCompany(@Body() dto: CreateCompanyDto) {
-    try {
-      const command = new CreateCompanyCommand(
-        dto.name,
-        dto.description || null,
-        dto.website || null,
-        null, // logoUrl
-        dto.industry || null,
-        dto.size || null,
-        dto.location || null,
-        null, // position
-        dto.createdBy,
-      );
+    const result = await this.commandBus.execute(
+      new CreateCompanyCommand({
+        name: dto.name,
+        description: dto.description ?? null,
+        website: dto.website ?? null,
+        logoUrl: null,
+        industry: dto.industry ?? null,
+        size: dto.size ?? null,
+        location: dto.location ?? null,
+        position: null,
+        createdBy: dto.createdBy,
+      }),
+    );
 
-      const result = await this.commandBus.execute(command);
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      // Database unique constraint violation
-      if (
-        errorCode(error) === '23505' ||
-        errorMessage(error).includes('duplicate key')
-      ) {
-        throw new ConflictException({
-          success: false,
-          error: 'Company with this name already exists',
-          code: 'COMPANY_ALREADY_EXISTS',
-        });
-      }
-
-      if (errorMessage(error).includes('already exists')) {
-        throw new ConflictException({
-          success: false,
-          error: errorMessage(error),
-          code: 'COMPANY_ALREADY_EXISTS',
-        });
-      }
-
-      if (errorMessage(error).includes('Invalid company size')) {
-        throw new BadRequestException({
-          success: false,
-          error: errorMessage(error),
-          code: 'INVALID_COMPANY_SIZE',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Put(':id')
@@ -201,55 +160,24 @@ export class CompaniesController {
     @Param('id') companyId: string,
     @Body() dto: UpdateCompanyDto,
   ) {
-    try {
-      const command = new UpdateCompanyCommand(
+    const result = await this.commandBus.execute(
+      new UpdateCompanyCommand({
         companyId,
-        dto.name || '',
-        dto.description || null,
-        dto.website || null,
-        null, // logoUrl
-        dto.industry || null,
-        dto.size || null,
-        dto.location || null,
-        dto.updatedBy,
-      );
+        name: dto.name ?? '',
+        description: dto.description ?? null,
+        website: dto.website ?? null,
+        logoUrl: null,
+        industry: dto.industry ?? null,
+        size: dto.size ?? null,
+        location: dto.location ?? null,
+        userId: dto.updatedBy,
+      }),
+    );
 
-      const result = await this.commandBus.execute(command);
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'COMPANY_NOT_FOUND',
-        });
-      }
-
-      if (errorMessage(error).includes('not authorized')) {
-        throw new ForbiddenException({
-          success: false,
-          error: errorMessage(error),
-          code: 'FORBIDDEN',
-        });
-      }
-
-      if (errorMessage(error).includes('Invalid company size')) {
-        throw new BadRequestException({
-          success: false,
-          error: errorMessage(error),
-          code: 'INVALID_COMPANY_SIZE',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Delete(':id')
@@ -275,31 +203,7 @@ export class CompaniesController {
     @Param('id') companyId: string,
     @Query('userId') userId: string,
   ) {
-    try {
-      const command = new DeleteCompanyCommand(companyId, userId);
-      await this.commandBus.execute(command);
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'COMPANY_NOT_FOUND',
-        });
-      }
-
-      if (errorMessage(error).includes('not authorized')) {
-        throw new ForbiddenException({
-          success: false,
-          error: errorMessage(error),
-          code: 'FORBIDDEN',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    await this.commandBus.execute(new DeleteCompanyCommand(companyId, userId));
   }
 
   // ============================================
@@ -360,15 +264,15 @@ export class CompaniesController {
     description: 'Unauthorized - invalid or missing internal token',
   })
   async listCompanies(@Query() query: ListCompaniesDto) {
-    const listQuery = new ListCompaniesQuery(
-      query.page || 1,
-      query.limit || 20,
-      query.isActive,
-      query.search,
-      query.createdBy,
-      query.currentUserId,
-      query.isAdmin || false,
-    );
+    const listQuery = new ListCompaniesQuery({
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+      isActive: query.isActive,
+      search: query.search,
+      createdBy: query.createdBy,
+      currentUserId: query.currentUserId,
+      isAdmin: query.isAdmin ?? false,
+    });
 
     const result = await this.queryBus.execute(listQuery);
 
@@ -414,35 +318,11 @@ export class CompaniesController {
     @Query('userId') _userId?: string,
     @Query('isAdmin') _isAdmin?: boolean,
   ) {
-    try {
-      const query = new GetCompanyQuery(companyId);
-      const result = await this.queryBus.execute(query);
+    const result = await this.queryBus.execute(new GetCompanyQuery(companyId));
 
-      return {
-        success: true,
-        data: CompanyResponseMapper.toCompanyDto(result),
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('not found')) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'COMPANY_NOT_FOUND',
-        });
-      }
-
-      if (errorMessage(error).includes('not authorized')) {
-        throw new ForbiddenException({
-          success: false,
-          error: errorMessage(error),
-          code: 'FORBIDDEN',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: CompanyResponseMapper.toCompanyDto(result),
+    };
   }
 }

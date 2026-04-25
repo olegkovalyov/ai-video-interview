@@ -24,7 +24,7 @@ export class HealthController {
   @Get()
   @ApiOperation({ summary: 'Health check' })
   @ApiResponse({ status: 200, description: 'Service is healthy' })
-  async healthCheck() {
+  healthCheck() {
     const dbConnected = this.dataSource.isInitialized;
 
     return {
@@ -58,7 +58,7 @@ export class HealthController {
   @Get('live')
   @ApiOperation({ summary: 'Liveness check' })
   @ApiResponse({ status: 200, description: 'Service is alive' })
-  async livenessCheck() {
+  livenessCheck() {
     return {
       status: 'alive',
       timestamp: new Date().toISOString(),

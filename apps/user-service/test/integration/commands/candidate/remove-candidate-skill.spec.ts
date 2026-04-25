@@ -51,22 +51,22 @@ describe('RemoveCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'GraphQL',
-        'graphql-remove-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'GraphQL',
+        slug: 'graphql-remove-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'API query language',
-        'intermediate',
-        2,
-      );
+        description: 'API query language',
+        proficiencyLevel: 'intermediate',
+        yearsOfExperience: 2,
+      });
       await commandBus.execute(addCommand);
 
       // Verify skill exists
@@ -106,60 +106,60 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       );
 
       // Create 3 skills (unique names to avoid conflict with seed data)
-      const skill1Command = new CreateSkillCommand(
-        'Redis Test Cache',
-        'redis-remove-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const skill1Command = new CreateSkillCommand({
+        name: 'Redis Test Cache',
+        slug: 'redis-remove-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand(
-        'RabbitMQ Test Queue',
-        'rabbitmq-remove-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const skill2Command = new CreateSkillCommand({
+        name: 'RabbitMQ Test Queue',
+        slug: 'rabbitmq-remove-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
-      const skill3Command = new CreateSkillCommand(
-        'Kafka Test Stream',
-        'kafka-remove-test',
-        null,
-        null,
-        uuidv4(),
-      );
+      const skill3Command = new CreateSkillCommand({
+        name: 'Kafka Test Stream',
+        slug: 'kafka-remove-test',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId: skill3Id } = await commandBus.execute(skill3Command);
 
       // Add all 3 skills
       await commandBus.execute(
-        new AddCandidateSkillCommand(
+        new AddCandidateSkillCommand({
           candidateId,
-          skill1Id,
-          'Caching',
-          'intermediate',
-          2,
-        ),
+          skillId: skill1Id,
+          description: 'Caching',
+          proficiencyLevel: 'intermediate',
+          yearsOfExperience: 2,
+        }),
       );
       await commandBus.execute(
-        new AddCandidateSkillCommand(
+        new AddCandidateSkillCommand({
           candidateId,
-          skill2Id,
-          'Message queue',
-          'beginner',
-          1,
-        ),
+          skillId: skill2Id,
+          description: 'Message queue',
+          proficiencyLevel: 'beginner',
+          yearsOfExperience: 1,
+        }),
       );
       await commandBus.execute(
-        new AddCandidateSkillCommand(
+        new AddCandidateSkillCommand({
           candidateId,
-          skill3Id,
-          'Streaming',
-          'advanced',
-          3,
-        ),
+          skillId: skill3Id,
+          description: 'Streaming',
+          proficiencyLevel: 'advanced',
+          yearsOfExperience: 3,
+        }),
       );
 
       // Verify all 3 exist
@@ -201,41 +201,41 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       );
 
       // Create and add 2 skills
-      const skill1Command = new CreateSkillCommand(
-        'Skill 1',
-        'skill-1-remove',
-        null,
-        null,
-        uuidv4(),
-      );
+      const skill1Command = new CreateSkillCommand({
+        name: 'Skill 1',
+        slug: 'skill-1-remove',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId: skill1Id } = await commandBus.execute(skill1Command);
 
-      const skill2Command = new CreateSkillCommand(
-        'Skill 2',
-        'skill-2-remove',
-        null,
-        null,
-        uuidv4(),
-      );
+      const skill2Command = new CreateSkillCommand({
+        name: 'Skill 2',
+        slug: 'skill-2-remove',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId: skill2Id } = await commandBus.execute(skill2Command);
 
       await commandBus.execute(
-        new AddCandidateSkillCommand(
+        new AddCandidateSkillCommand({
           candidateId,
-          skill1Id,
-          null,
-          'beginner',
-          0,
-        ),
+          skillId: skill1Id,
+          description: null,
+          proficiencyLevel: 'beginner',
+          yearsOfExperience: 0,
+        }),
       );
       await commandBus.execute(
-        new AddCandidateSkillCommand(
+        new AddCandidateSkillCommand({
           candidateId,
-          skill2Id,
-          null,
-          'beginner',
-          0,
-        ),
+          skillId: skill2Id,
+          description: null,
+          proficiencyLevel: 'beginner',
+          yearsOfExperience: 0,
+        }),
       );
 
       // Act - Remove all skills
@@ -268,23 +268,23 @@ describe('RemoveCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Full Skill',
-        'full-skill-remove',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Full Skill',
+        slug: 'full-skill-remove',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       // Add skill with full metadata
-      const addCommand = new AddCandidateSkillCommand(
+      const addCommand = new AddCandidateSkillCommand({
         candidateId,
         skillId,
-        'Detailed description with lots of metadata',
-        'expert',
-        10,
-      );
+        description: 'Detailed description with lots of metadata',
+        proficiencyLevel: 'expert',
+        yearsOfExperience: 10,
+      });
       await commandBus.execute(addCommand);
 
       // Act - Remove
@@ -333,13 +333,13 @@ describe('RemoveCandidateSkillCommand Integration', () => {
       );
 
       // Create skill but don't add to profile
-      const createSkillCommand = new CreateSkillCommand(
-        'Unassigned Skill',
-        'unassigned-skill',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Unassigned Skill',
+        slug: 'unassigned-skill',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       const removeCommand = new RemoveCandidateSkillCommand(
@@ -365,17 +365,23 @@ describe('RemoveCandidateSkillCommand Integration', () => {
         [candidateId, null],
       );
 
-      const createSkillCommand = new CreateSkillCommand(
-        'Temp Skill',
-        'temp-skill',
-        null,
-        null,
-        uuidv4(),
-      );
+      const createSkillCommand = new CreateSkillCommand({
+        name: 'Temp Skill',
+        slug: 'temp-skill',
+        categoryId: null,
+        description: null,
+        adminId: uuidv4(),
+      });
       const { skillId } = await commandBus.execute(createSkillCommand);
 
       await commandBus.execute(
-        new AddCandidateSkillCommand(candidateId, skillId, null, 'beginner', 0),
+        new AddCandidateSkillCommand({
+          candidateId,
+          skillId,
+          description: null,
+          proficiencyLevel: 'beginner',
+          yearsOfExperience: 0,
+        }),
       );
       await commandBus.execute(
         new RemoveCandidateSkillCommand(candidateId, skillId),

@@ -32,11 +32,16 @@ export interface CandidateSearchFilters {
 }
 
 /**
- * CandidateProfile Read Repository Interface (Query operations)
- * Returns Read Models (plain objects) - no domain entities
- * Optimized for read operations (CQRS read side)
+ * CandidateProfile Query Service Interface (CQRS read side).
+ *
+ * Returns Read Models (plain objects) — no domain entities. Not a DDD
+ * Repository (write-side aggregate gateway): legitimately composes multiple
+ * tables and entity repos to produce denormalized projections for the UI.
+ *
+ * Naming: kept under `domain/repositories/` for now; physical move can come
+ * later — the rename signals intent without churning DI registration paths.
  */
-export interface ICandidateProfileReadRepository {
+export interface ICandidateProfileQueryService {
   /**
    * Find candidate profile by user ID
    */

@@ -34,16 +34,17 @@ describe('UserCompanyMapper', () => {
       joinedAt?: Date;
     } = {},
   ): UserCompany => {
-    return UserCompany.reconstitute(
-      overrides.id ?? uuidv4(),
-      overrides.userId ?? uuidv4(),
-      overrides.companyId ?? uuidv4(),
-      overrides.position === undefined
-        ? 'Senior Developer'
-        : overrides.position,
-      overrides.isPrimary ?? true,
-      overrides.joinedAt ?? new Date('2025-03-15T09:00:00Z'),
-    );
+    return UserCompany.reconstitute({
+      id: overrides.id ?? uuidv4(),
+      userId: overrides.userId ?? uuidv4(),
+      companyId: overrides.companyId ?? uuidv4(),
+      position:
+        overrides.position === undefined
+          ? 'Senior Developer'
+          : overrides.position,
+      isPrimary: overrides.isPrimary ?? true,
+      joinedAt: overrides.joinedAt ?? new Date('2025-03-15T09:00:00Z'),
+    });
   };
 
   describe('toEntity()', () => {
@@ -156,14 +157,14 @@ describe('UserCompanyMapper', () => {
       const companyId = uuidv4();
       const joinedAt = new Date('2025-02-01T00:00:00Z');
 
-      const original = UserCompany.reconstitute(
+      const original = UserCompany.reconstitute({
         id,
         userId,
         companyId,
-        'Product Manager',
-        true,
+        position: 'Product Manager',
+        isPrimary: true,
         joinedAt,
-      );
+      });
 
       const entity = mapper.toEntity(original);
       const restored = mapper.toDomain(entity);

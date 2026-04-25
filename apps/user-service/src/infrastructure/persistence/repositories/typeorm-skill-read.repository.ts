@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, type FindOptionsWhere } from 'typeorm';
+import {
+  Repository,
+  Like,
+  type FindOptionsWhere,
+  type SelectQueryBuilder,
+} from 'typeorm';
 import {
   ISkillReadRepository,
   PaginatedResult,
@@ -91,77 +96,54 @@ export class TypeOrmSkillReadRepository implements ISkillReadRepository {
     limit: number,
     filters?: SkillListFilters,
   ): Promise<PaginatedResult<SkillWithCategoryReadModel>> {
-    // Handle zero limit edge case
     if (limit === 0) {
-      let countQuery = this.repository.createQueryBuilder('skill');
-
-      if (filters?.categoryId) {
-        countQuery = countQuery.andWhere('skill.categoryId = :categoryId', {
-          categoryId: filters.categoryId,
-        });
-      }
-      if (filters?.isActive !== undefined) {
-        countQuery = countQuery.andWhere('skill.isActive = :isActive', {
-          isActive: filters.isActive,
-        });
-      }
-      if (filters?.search) {
-        countQuery = countQuery.andWhere('skill.name ILIKE :search', {
-          search: `%${filters.search}%`,
-        });
-      }
-
-      const total = await countQuery.getCount();
-
-      return {
-        data: [],
-        total,
-        page,
-        limit: 0,
-        totalPages: 0,
-      };
+      const total = await this.applySkillFilters(
+        this.repository.createQueryBuilder('skill'),
+        filters,
+      ).getCount();
+      return { data: [], total, page, limit: 0, totalPages: 0 };
     }
 
-    let query = this.repository
-      .createQueryBuilder('skill')
-      .leftJoinAndSelect('skill.category', 'category');
-
-    // Apply filters
-    if (filters?.categoryId) {
-      query = query.andWhere('skill.categoryId = :categoryId', {
-        categoryId: filters.categoryId,
-      });
-    }
-
-    if (filters?.isActive !== undefined) {
-      query = query.andWhere('skill.isActive = :isActive', {
-        isActive: filters.isActive,
-      });
-    }
-
-    if (filters?.search) {
-      query = query.andWhere('skill.name ILIKE :search', {
-        search: `%${filters.search}%`,
-      });
-    }
-
-    // Apply pagination and ordering
-    query = query
+    const query = this.applySkillFilters(
+      this.repository
+        .createQueryBuilder('skill')
+        .leftJoinAndSelect('skill.category', 'category'),
+      filters,
+    )
       .orderBy('skill.name', 'ASC')
       .skip((page - 1) * limit)
       .take(limit);
 
     const [entities, total] = await query.getManyAndCount();
-
-    const data = entities.map((entity) => this.toReadModelWithCategory(entity));
-
     return {
-      data,
+      data: entities.map((entity) => this.toReadModelWithCategory(entity)),
       total,
       page,
       limit,
-      totalPages: limit > 0 ? Math.ceil(total / limit) : 0,
+      totalPages: Math.ceil(total / limit),
     };
+  }
+
+  private applySkillFilters(
+    query: SelectQueryBuilder<SkillEntity>,
+    filters?: SkillListFilters,
+  ): SelectQueryBuilder<SkillEntity> {
+    if (filters?.categoryId) {
+      query.andWhere('skill.categoryId = :categoryId', {
+        categoryId: filters.categoryId,
+      });
+    }
+    if (filters?.isActive !== undefined) {
+      query.andWhere('skill.isActive = :isActive', {
+        isActive: filters.isActive,
+      });
+    }
+    if (filters?.search) {
+      query.andWhere('skill.name ILIKE :search', {
+        search: `%${filters.search}%`,
+      });
+    }
+    return query;
   }
 
   async listCategories(): Promise<SkillCategoryReadModel[]> {

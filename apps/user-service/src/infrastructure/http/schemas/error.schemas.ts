@@ -1,3 +1,8 @@
+/* eslint-disable max-classes-per-file --
+ * Swagger error-schema bundle: every HTTP error variant (BadRequest,
+ * Unauthorized, NotFound, Conflict, ...) is one Swagger schema class.
+ * Splitting per class fragments the API documentation surface.
+ */
 import { ApiProperty } from '@nestjs/swagger';
 
 /**

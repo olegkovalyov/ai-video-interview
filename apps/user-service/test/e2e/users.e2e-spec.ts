@@ -471,11 +471,14 @@ describe('Users API (E2E)', () => {
       expect(mockStorageService.uploadFile).toHaveBeenCalled();
     });
 
+    // Skipped: needs real JPEG fixture; FileTypeValidator (NestJS 11) rejects
+    // fake buffer at pipe with 400 before UserNotFoundException can be thrown.
     it.skip('should return 404 for non-existent user', async () => {
       const nonExistentId = uuidv4();
 
       await request(app.getHttpServer())
         .post(`/users/${nonExistentId}/avatar`)
+        .set('x-internal-token', 'test-token')
         .attach('file', Buffer.from('fake-image-data'), 'avatar.jpg')
         .expect(404);
     });

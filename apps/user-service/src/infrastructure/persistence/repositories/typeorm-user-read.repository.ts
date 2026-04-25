@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type SelectQueryBuilder } from 'typeorm';
 import {
   IUserReadRepository,
   PaginatedResult,
@@ -65,43 +65,40 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
     limit: number,
     filters?: UserListFilters,
   ): Promise<PaginatedResult<UserReadModel>> {
-    const queryBuilder = this.repository.createQueryBuilder('user');
+    const queryBuilder = this.applyUserFilters(
+      this.repository.createQueryBuilder('user'),
+      filters,
+    )
+      .skip((page - 1) * limit)
+      .take(limit);
 
-    // Apply filters
+    const [entities, total] = await queryBuilder.getManyAndCount();
+    return {
+      data: entities.map((entity) => this.toReadModel(entity)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  private applyUserFilters(
+    query: SelectQueryBuilder<UserEntity>,
+    filters?: UserListFilters,
+  ): SelectQueryBuilder<UserEntity> {
     if (filters?.search) {
-      queryBuilder.andWhere(
+      query.andWhere(
         '(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search)',
         { search: `%${filters.search}%` },
       );
     }
-
     if (filters?.status) {
-      queryBuilder.andWhere('user.status = :status', {
-        status: filters.status,
-      });
+      query.andWhere('user.status = :status', { status: filters.status });
     }
-
     if (filters?.role) {
-      queryBuilder.andWhere('user.role = :role', { role: filters.role });
+      query.andWhere('user.role = :role', { role: filters.role });
     }
-
-    // Pagination
-    const skip = (page - 1) * limit;
-    queryBuilder.skip(skip).take(limit);
-
-    // Execute query
-    const [entities, total] = await queryBuilder.getManyAndCount();
-
-    const users = entities.map((entity) => this.toReadModel(entity));
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      data: users,
-      total,
-      page,
-      limit,
-      totalPages,
-    };
+    return query;
   }
 
   async getSummary(id: string): Promise<UserSummaryReadModel | null> {
@@ -122,22 +119,10 @@ export class TypeOrmUserReadRepository implements IUserReadRepository {
   }
 
   async count(filters?: UserListFilters): Promise<number> {
-    const queryBuilder = this.repository.createQueryBuilder('user');
-
-    if (filters?.search) {
-      queryBuilder.andWhere(
-        '(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search)',
-        { search: `%${filters.search}%` },
-      );
-    }
-
-    if (filters?.status) {
-      queryBuilder.andWhere('user.status = :status', {
-        status: filters.status,
-      });
-    }
-
-    return queryBuilder.getCount();
+    return this.applyUserFilters(
+      this.repository.createQueryBuilder('user'),
+      filters,
+    ).getCount();
   }
 
   async countByStatus(): Promise<Record<string, number>> {

@@ -10,13 +10,13 @@ describe('Skill Entity', () => {
 
   describe('Factory Method - create', () => {
     it('should create skill with all fields', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       expect(skill.id).toBe(validId);
       expect(skill.name).toBe(validName);
@@ -29,37 +29,37 @@ describe('Skill Entity', () => {
     });
 
     it('should create without category (null)', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        null,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: null,
+        description: validDescription,
+      });
 
       expect(skill.categoryId).toBeNull();
     });
 
     it('should create without description (null)', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        null,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: null,
+      });
 
       expect(skill.description).toBeNull();
     });
 
     it('should trim name and slug', () => {
-      const skill = Skill.create(
-        validId,
-        '  React  ',
-        '  react  ',
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: '  React  ',
+        slug: '  react  ',
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       expect(skill.name).toBe('React');
       expect(skill.slug).toBe('react');
@@ -67,48 +67,60 @@ describe('Skill Entity', () => {
 
     it('should throw error for empty name', () => {
       expect(() =>
-        Skill.create(validId, '', validSlug, validCategoryId, validDescription),
+        Skill.create({
+          id: validId,
+          name: '',
+          slug: validSlug,
+          categoryId: validCategoryId,
+          description: validDescription,
+        }),
       ).toThrow(DomainException);
       expect(() =>
-        Skill.create(
-          validId,
-          '   ',
-          validSlug,
-          validCategoryId,
-          validDescription,
-        ),
+        Skill.create({
+          id: validId,
+          name: '   ',
+          slug: validSlug,
+          categoryId: validCategoryId,
+          description: validDescription,
+        }),
       ).toThrow('Skill name cannot be empty');
     });
 
     it('should throw error for name exceeding max length', () => {
       const longName = 'a'.repeat(101);
       expect(() =>
-        Skill.create(
-          validId,
-          longName,
-          validSlug,
-          validCategoryId,
-          validDescription,
-        ),
+        Skill.create({
+          id: validId,
+          name: longName,
+          slug: validSlug,
+          categoryId: validCategoryId,
+          description: validDescription,
+        }),
       ).toThrow('Skill name is too long (max 100 characters)');
     });
 
     it('should throw error for empty slug', () => {
       expect(() =>
-        Skill.create(validId, validName, '', validCategoryId, validDescription),
+        Skill.create({
+          id: validId,
+          name: validName,
+          slug: '',
+          categoryId: validCategoryId,
+          description: validDescription,
+        }),
       ).toThrow('Skill slug cannot be empty');
     });
   });
 
   describe('Business Logic - update', () => {
     it('should update all fields', () => {
-      const skill = Skill.create(
-        validId,
-        'Old Name',
-        validSlug,
-        validCategoryId,
-        'Old description',
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: 'Old Name',
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: 'Old description',
+      });
 
       skill.update('New Name', 'New description', 'new-category-id');
 
@@ -118,13 +130,13 @@ describe('Skill Entity', () => {
     });
 
     it('should trim fields when updating', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       skill.update(
         '  Updated Name  ',
@@ -137,26 +149,26 @@ describe('Skill Entity', () => {
     });
 
     it('should allow setting category to null', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       skill.update(validName, validDescription, null);
       expect(skill.categoryId).toBeNull();
     });
 
     it('should throw error for empty name', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       expect(() => skill.update('', validDescription, validCategoryId)).toThrow(
         'Skill name cannot be empty',
@@ -164,13 +176,13 @@ describe('Skill Entity', () => {
     });
 
     it('should throw error for name exceeding max length', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       expect(() =>
         skill.update('a'.repeat(101), validDescription, validCategoryId),
@@ -180,13 +192,13 @@ describe('Skill Entity', () => {
 
   describe('Business Logic - activate/deactivate', () => {
     it('should activate skill', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       // Deactivate first
       skill.deactivate();
@@ -198,13 +210,13 @@ describe('Skill Entity', () => {
     });
 
     it('should not change state if already active', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       const oldUpdatedAt = skill.updatedAt;
       skill.activate(); // Already active
@@ -212,26 +224,26 @@ describe('Skill Entity', () => {
     });
 
     it('should deactivate skill', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       skill.deactivate();
       expect(skill.isActive).toBe(false);
     });
 
     it('should not change state if already inactive', () => {
-      const skill = Skill.create(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-      );
+      const skill = Skill.create({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+      });
 
       skill.deactivate();
       const oldUpdatedAt = skill.updatedAt;
@@ -246,16 +258,16 @@ describe('Skill Entity', () => {
       const createdAt = new Date('2024-01-01');
       const updatedAt = new Date('2024-01-02');
 
-      const skill = Skill.reconstitute(
-        validId,
-        validName,
-        validSlug,
-        validCategoryId,
-        validDescription,
-        false, // inactive
+      const skill = Skill.reconstitute({
+        id: validId,
+        name: validName,
+        slug: validSlug,
+        categoryId: validCategoryId,
+        description: validDescription,
+        isActive: false, // inactive
         createdAt,
         updatedAt,
-      );
+      });
 
       expect(skill.id).toBe(validId);
       expect(skill.name).toBe(validName);

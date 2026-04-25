@@ -15,11 +15,7 @@ import {
   FileTypeValidator,
   HttpCode,
   HttpStatus,
-  BadRequestException,
-  NotFoundException,
-  ConflictException,
   InternalServerErrorException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -59,14 +55,9 @@ import { UserStatsResponseDto } from '../../../application/dto/responses/user-st
 import { UserPermissionsSuccessResponseDto } from '../dto/user-permissions.response.dto';
 import { CompanyListResponseDto } from '../dto/companies.response.dto';
 
-// Guards & Exceptions
+// Guards & Decorators
 import { InternalServiceGuard } from '../guards/internal-service.guard';
 import { Public } from '../decorators/public.decorator';
-import {
-  UserAlreadyExistsException,
-  UserNotFoundException,
-} from '../../../domain/exceptions/user.exceptions';
-import { DomainException } from '../../../domain/exceptions/domain.exception';
 
 // Error Schemas
 import {
@@ -78,8 +69,6 @@ import {
   ForbiddenErrorSchema,
   ValidationErrorSchema,
 } from '../schemas/error.schemas';
-
-import { errorMessage } from '../utils/error-message.util';
 
 /**
  * Users Controller V2
@@ -235,19 +224,8 @@ export class UsersController {
     description: 'Internal server error',
   })
   async getUser(@Param('userId') userId: string): Promise<UserResponseDto> {
-    try {
-      const user = await this.queryBus.execute(new GetUserQuery(userId));
-      return UserResponseDto.fromDomain(user);
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-      throw error;
-    }
+    const user = await this.queryBus.execute(new GetUserQuery(userId));
+    return UserResponseDto.fromDomain(user);
   }
 
   /**
@@ -279,21 +257,10 @@ export class UsersController {
   async getUserByExternalAuth(
     @Param('externalAuthId') externalAuthId: string,
   ): Promise<UserResponseDto> {
-    try {
-      const user = await this.queryBus.execute(
-        new GetUserByExternalAuthIdQuery(externalAuthId),
-      );
-      return UserResponseDto.fromDomain(user);
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-      throw error;
-    }
+    const user = await this.queryBus.execute(
+      new GetUserByExternalAuthIdQuery(externalAuthId),
+    );
+    return UserResponseDto.fromDomain(user);
   }
 
   // ============================================
@@ -330,48 +297,29 @@ export class UsersController {
     description: 'Internal server error',
   })
   async createUser(@Body() dto: CreateUserInternalDto) {
-    try {
-      // Execute command (creates the user)
-      await this.commandBus.execute(
-        new CreateUserCommand(
-          dto.userId,
-          dto.externalAuthId,
-          dto.email,
-          dto.firstName,
-          dto.lastName,
-        ),
-      );
+    await this.commandBus.execute(
+      new CreateUserCommand({
+        userId: dto.userId,
+        externalAuthId: dto.externalAuthId,
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+      }),
+    );
 
-      // Query created user (returns Read Model)
-      const user = await this.queryBus.execute(new GetUserQuery(dto.userId));
+    const user = await this.queryBus.execute(new GetUserQuery(dto.userId));
 
-      return {
-        success: true,
-        data: {
-          userId: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          status: user.status,
-          createdAt: user.createdAt,
-        },
-      };
-    } catch (error) {
-      if (error instanceof UserAlreadyExistsException) {
-        throw new ConflictException({
-          success: false,
-          error: 'User already exists',
-          code: 'USER_ALREADY_EXISTS',
-          details: errorMessage(error),
-        });
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: 'Failed to create user',
-        details: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: {
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        status: user.status,
+        createdAt: user.createdAt,
+      },
+    };
   }
 
   /**
@@ -410,46 +358,20 @@ export class UsersController {
     @Param('userId') userId: string,
     @Body() dto: UpdateUserInternalDto,
   ): Promise<UserResponseDto> {
-    try {
-      // Execute command (updates the user)
-      await this.commandBus.execute(
-        new UpdateUserCommand(
-          userId,
-          dto.firstName,
-          dto.lastName,
-          dto.bio,
-          dto.phone,
-          dto.timezone,
-          dto.language,
-        ),
-      );
+    await this.commandBus.execute(
+      new UpdateUserCommand({
+        userId,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        bio: dto.bio,
+        phone: dto.phone,
+        timezone: dto.timezone,
+        language: dto.language,
+      }),
+    );
 
-      // Query updated user (returns Read Model)
-      const user = await this.queryBus.execute(new GetUserQuery(userId));
-      return UserResponseDto.fromDomain(user);
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
-      if (error instanceof DomainException) {
-        throw new BadRequestException({
-          success: false,
-          error: errorMessage(error),
-          code: 'VALIDATION_ERROR',
-        });
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: 'Failed to update user',
-        details: errorMessage(error),
-      });
-    }
+    const user = await this.queryBus.execute(new GetUserQuery(userId));
+    return UserResponseDto.fromDomain(user);
   }
 
   /**
@@ -475,28 +397,12 @@ export class UsersController {
     description: 'Internal server error',
   })
   async deleteUser(@Param('userId') userId: string) {
-    try {
-      await this.commandBus.execute(new DeleteUserCommand(userId, 'system'));
+    await this.commandBus.execute(new DeleteUserCommand(userId, 'system'));
 
-      return {
-        success: true,
-        message: 'User deleted successfully',
-      };
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: 'Failed to delete user',
-        details: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      message: 'User deleted successfully',
+    };
   }
 
   // ============================================
@@ -561,38 +467,18 @@ export class UsersController {
     )
     file: Express.Multer.File,
   ): Promise<{ avatarUrl: string }> {
-    try {
-      // Execute command (uploads avatar)
-      const command = new UploadAvatarCommand(userId, file);
-      await this.commandBus.execute(command);
+    await this.commandBus.execute(new UploadAvatarCommand(userId, file));
 
-      // Query updated user (returns Read Model)
-      const user = await this.queryBus.execute(new GetUserQuery(userId));
-
-      if (!user.avatarUrl) {
-        throw new InternalServerErrorException({
-          success: false,
-          error: 'Avatar upload succeeded but avatarUrl is missing',
-          code: 'AVATAR_URL_MISSING',
-        });
-      }
-
-      return { avatarUrl: user.avatarUrl };
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
+    const user = await this.queryBus.execute(new GetUserQuery(userId));
+    if (!user.avatarUrl) {
       throw new InternalServerErrorException({
         success: false,
-        error: 'Failed to upload avatar',
-        details: errorMessage(error),
+        error: 'Avatar upload succeeded but avatarUrl is missing',
+        code: 'AVATAR_URL_MISSING',
       });
     }
+
+    return { avatarUrl: user.avatarUrl };
   }
 
   /**
@@ -628,38 +514,14 @@ export class UsersController {
     @Param('userId') userId: string,
     @Body() dto: SelectRoleDto,
   ): Promise<{ message: string; role: string }> {
-    try {
-      await this.commandBus.execute(
-        new SelectRoleCommand(userId, dto.role as 'candidate' | 'hr' | 'admin'),
-      );
+    await this.commandBus.execute(
+      new SelectRoleCommand(userId, dto.role as 'candidate' | 'hr' | 'admin'),
+    );
 
-      return {
-        message: `Role ${dto.role} assigned successfully`,
-        role: dto.role,
-      };
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
-      if (error instanceof DomainException) {
-        throw new BadRequestException({
-          success: false,
-          error: errorMessage(error),
-          code: 'VALIDATION_ERROR',
-        });
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: 'Failed to assign role',
-        details: errorMessage(error),
-      });
-    }
+    return {
+      message: `Role ${dto.role} assigned successfully`,
+      role: dto.role,
+    };
   }
 
   /**
@@ -688,28 +550,14 @@ export class UsersController {
     description: 'User not found',
   })
   async getUserPermissions(@Param('userId') userId: string) {
-    try {
-      const query = new GetUserPermissionsQuery(userId);
-      const result = await this.queryBus.execute(query);
+    const result = await this.queryBus.execute(
+      new GetUserPermissionsQuery(userId),
+    );
 
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: errorMessage(error),
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Get(':userId/companies')
@@ -738,28 +586,14 @@ export class UsersController {
     @Query('currentUserId') currentUserId?: string,
     @Query('isAdmin') isAdmin?: boolean,
   ) {
-    try {
-      const query = new ListUserCompaniesQuery(userId, currentUserId, isAdmin);
-      const result = await this.queryBus.execute(query);
+    const result = await this.queryBus.execute(
+      new ListUserCompaniesQuery(userId, currentUserId, isAdmin),
+    );
 
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (errorMessage(error).includes('permission')) {
-        throw new ForbiddenException({
-          success: false,
-          error: errorMessage(error),
-          code: 'FORBIDDEN',
-        });
-      }
-
-      throw new BadRequestException({
-        success: false,
-        error: errorMessage(error),
-      });
-    }
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Delete(':userId/avatar')
@@ -782,33 +616,7 @@ export class UsersController {
     description: 'Internal server error',
   })
   async deleteAvatar(@Param('userId') userId: string): Promise<void> {
-    try {
-      // Delete avatar by setting avatarUrl to undefined
-      await this.commandBus.execute(
-        new UpdateUserCommand(
-          userId,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-        ),
-      );
-    } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        throw new NotFoundException({
-          success: false,
-          error: 'User not found',
-          code: 'USER_NOT_FOUND',
-        });
-      }
-
-      throw new InternalServerErrorException({
-        success: false,
-        error: 'Failed to delete avatar',
-        details: errorMessage(error),
-      });
-    }
+    // Delete avatar by setting avatarUrl to undefined.
+    await this.commandBus.execute(new UpdateUserCommand({ userId }));
   }
 }

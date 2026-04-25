@@ -3,11 +3,23 @@ import { Job } from 'bullmq';
 import { Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { KafkaService, KAFKA_TOPICS, injectTraceContext } from '@repo/shared';
+import { v4 as uuid } from 'uuid';
+import {
+  KafkaService,
+  KAFKA_TOPICS,
+  injectTraceContext,
+  withRestoredTrace,
+} from '@repo/shared';
 import { OutboxEntity } from '../../persistence/entities/outbox.entity';
 import { LoggerService } from '../../logger/logger.service';
+import {
+  requestContextStore,
+  type RequestContext,
+} from '../../http/interceptors/request-context.store';
 import { OUTBOX_STATUS, BULL_QUEUE, OUTBOX_CONFIG } from '../../constants';
 import { errorMessage } from '../../http/utils/error-message.util';
+
+const TRACER_NAME = 'user-service.outbox';
 
 /**
  * OUTBOX Publisher Processor (BullMQ Worker)
@@ -33,78 +45,137 @@ export class OutboxPublisherProcessor extends WorkerHost {
   async process(job: Job<{ eventId: string }>): Promise<void> {
     const { eventId } = job.data;
 
-    // 1. Fetch from outbox table
     const outbox = await this.outboxRepository.findOne({
       where: { eventId, status: OUTBOX_STATUS.PENDING },
     });
-
     if (!outbox) {
       this.logger.debug(
         `Outbox event ${eventId} already published or not found`,
-        {
-          category: 'outbox',
-          action: 'skip',
-          eventId,
-        },
+        { category: 'outbox', action: 'skip', eventId },
       );
       return;
     }
 
-    // 2. Mark as publishing
+    await this.runInRestoredContext(outbox, () => this.publishOutbox(outbox));
+  }
+
+  /**
+   * Re-establish the originating request's trace + correlation context so
+   * the publish span links to the producing HTTP/Kafka span in Jaeger and
+   * every log line in this scope carries the same correlationId / userId
+   * as the upstream request.
+   */
+  private async runInRestoredContext(
+    outbox: OutboxEntity,
+    fn: () => Promise<void>,
+  ): Promise<void> {
+    const ctx: RequestContext = {
+      correlationId: outbox.correlationId ?? uuid(),
+      traceId: outbox.traceId ?? undefined,
+      userId: outbox.userId ?? undefined,
+      source: 'bullmq',
+    };
+    await withRestoredTrace(
+      {
+        tracerName: TRACER_NAME,
+        operationName: `outbox.publish ${outbox.eventType}`,
+        traceId: outbox.traceId,
+        parentSpanId: outbox.parentSpanId,
+        attributes: {
+          'messaging.system': 'kafka',
+          'messaging.destination': KAFKA_TOPICS.USER_EVENTS,
+          'event.id': outbox.eventId,
+          'event.type': outbox.eventType,
+          'aggregate.id': outbox.aggregateId,
+        },
+      },
+      async () => {
+        await requestContextStore.run(ctx, fn);
+      },
+    );
+  }
+
+  private async publishOutbox(outbox: OutboxEntity): Promise<void> {
     outbox.status = OUTBOX_STATUS.PUBLISHING;
     await this.outboxRepository.save(outbox);
 
     try {
-      // 3. Publish to user-events topic with trace context
-      await this.kafkaService.publishEvent(
-        KAFKA_TOPICS.USER_EVENTS,
-        outbox.payload,
-        injectTraceContext(),
-      );
-
-      // 4. Mark as published
-      outbox.status = OUTBOX_STATUS.PUBLISHED;
-      outbox.publishedAt = new Date();
-      await this.outboxRepository.save(outbox);
-
-      this.logger.debug(
-        `Outbox event published: ${eventId} (${outbox.eventType})`,
-        {
-          category: 'outbox',
-          action: 'published',
-          eventId,
-          eventType: outbox.eventType,
-        },
-      );
+      await this.publishAndMarkSent(outbox);
     } catch (error) {
-      // 5. Handle failure
-      const message = errorMessage(error);
-      outbox.status = OUTBOX_STATUS.FAILED;
-      outbox.errorMessage = message;
-      outbox.retryCount += 1;
-      await this.outboxRepository.save(outbox);
+      const shouldRetry = await this.handlePublishFailure(outbox, error);
+      if (shouldRetry) throw error;
+    }
+  }
 
-      this.logger.error(
-        `Failed to publish outbox event ${eventId}: ${message}`,
-        {
-          category: 'outbox',
-          action: 'publish_failed',
-          eventId,
-          retryCount: outbox.retryCount,
-          error: message,
-        },
-      );
+  private async publishAndMarkSent(outbox: OutboxEntity): Promise<void> {
+    await this.kafkaService.publishEvent(
+      KAFKA_TOPICS.USER_EVENTS,
+      outbox.payload,
+      injectTraceContext(),
+    );
+    outbox.status = OUTBOX_STATUS.PUBLISHED;
+    outbox.publishedAt = new Date();
+    await this.outboxRepository.save(outbox);
 
-      // Re-throw if haven't exceeded retry limit
-      if (outbox.retryCount < OUTBOX_CONFIG.RETRY_ATTEMPTS) {
-        throw error;
-      }
+    this.logger.debug(
+      `Outbox event published: ${outbox.eventId} (${outbox.eventType})`,
+      {
+        category: 'outbox',
+        action: 'published',
+        eventId: outbox.eventId,
+        eventType: outbox.eventType,
+      },
+    );
+  }
 
-      this.logger.error(`Max retries reached for outbox event ${eventId}`, {
+  /**
+   * Persist failure metadata and decide whether the caller should re-throw.
+   * Re-throwing causes BullMQ to retry under its exponential-backoff policy.
+   * Returning `false` once we hit RETRY_ATTEMPTS preserves the legacy
+   * "max retries → swallow" behaviour from before this refactor.
+   */
+  private async handlePublishFailure(
+    outbox: OutboxEntity,
+    error: unknown,
+  ): Promise<boolean> {
+    const message = errorMessage(error);
+    await this.recordFailure(outbox, message);
+    if (outbox.retryCount >= OUTBOX_CONFIG.RETRY_ATTEMPTS) {
+      this.logMaxRetriesReached(outbox);
+      return false;
+    }
+    return true;
+  }
+
+  private async recordFailure(
+    outbox: OutboxEntity,
+    message: string,
+  ): Promise<void> {
+    outbox.status = OUTBOX_STATUS.FAILED;
+    outbox.errorMessage = message;
+    outbox.retryCount += 1;
+    await this.outboxRepository.save(outbox);
+
+    this.logger.error(
+      `Failed to publish outbox event ${outbox.eventId}: ${message}`,
+      {
+        category: 'outbox',
+        action: 'publish_failed',
+        eventId: outbox.eventId,
+        retryCount: outbox.retryCount,
+        error: message,
+      },
+    );
+  }
+
+  private logMaxRetriesReached(outbox: OutboxEntity): void {
+    this.logger.error(
+      `Max retries reached for outbox event ${outbox.eventId}`,
+      {
         category: 'outbox',
         action: 'max_retries',
-        eventId,
-      });
-    }
+        eventId: outbox.eventId,
+      },
+    );
   }
 }

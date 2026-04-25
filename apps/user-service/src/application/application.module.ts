@@ -56,6 +56,29 @@ import { GetCandidateSkillsHandler } from './queries/candidate';
 import { SearchCandidatesBySkillsHandler } from './queries/candidate';
 import { GetCandidateProfileHandler } from './queries/candidate';
 
+// Application Services (use cases extracted from handlers for reuse + thin handlers)
+import { UserCreationService } from './services/user-creation.service';
+import { UserUpdateService } from './services/user-update.service';
+import { CompanyCreationService } from './services/company-creation.service';
+import { CompanyUpdateService } from './services/company-update.service';
+import { CompanyDeletionService } from './services/company-deletion.service';
+import { RoleSelectionService } from './services/role-selection.service';
+import { SkillCreationService } from './services/skill-creation.service';
+import { CandidateSkillAdditionService } from './services/candidate-skill-addition.service';
+import { CandidateSkillUpdateService } from './services/candidate-skill-update.service';
+
+const ApplicationServices = [
+  UserCreationService,
+  UserUpdateService,
+  CompanyCreationService,
+  CompanyUpdateService,
+  CompanyDeletionService,
+  RoleSelectionService,
+  SkillCreationService,
+  CandidateSkillAdditionService,
+  CandidateSkillUpdateService,
+];
+
 const CommandHandlers = [
   // User Commands
   CreateUserHandler,
@@ -122,6 +145,7 @@ const QueryHandlers = [
   providers: [
     ...CommandHandlers,
     ...QueryHandlers,
+    ...ApplicationServices,
     // Domain Events use internal EventBus (NestJS)
     // Integration Events published directly from Command Handlers via OutboxService
   ],

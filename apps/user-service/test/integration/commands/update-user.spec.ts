@@ -44,11 +44,11 @@ describe('UpdateUserCommand Integration', () => {
         lastName: 'Doe',
       });
 
-      const command = new UpdateUserCommand(
+      const command = new UpdateUserCommand({
         userId,
-        'Jane', // New firstName
-        'Smith', // New lastName
-      );
+        firstName: 'Jane', // New firstName
+        lastName: 'Smith', // New lastName
+      });
 
       // Act
       const result = await commandBus.execute(command);
@@ -75,12 +75,10 @@ describe('UpdateUserCommand Integration', () => {
         lastName: 'User',
       });
 
-      const command = new UpdateUserCommand(
+      const command = new UpdateUserCommand({
         userId,
-        undefined,
-        undefined,
-        'Experienced software engineer with 10+ years', // bio
-      );
+        bio: 'Experienced software engineer with 10+ years', // bio
+      });
 
       // Act
       await commandBus.execute(command);
@@ -101,14 +99,11 @@ describe('UpdateUserCommand Integration', () => {
         lastName: 'User',
       });
 
-      const command = new UpdateUserCommand(
+      const command = new UpdateUserCommand({
         userId,
-        undefined,
-        undefined,
-        undefined,
-        '+1234567890', // phone
-        'Europe/Kiev', // timezone
-      );
+        phone: '+1234567890', // phone
+        timezone: 'Europe/Kiev', // timezone
+      });
 
       // Act
       await commandBus.execute(command);
@@ -130,15 +125,10 @@ describe('UpdateUserCommand Integration', () => {
         lastName: 'User',
       });
 
-      const command = new UpdateUserCommand(
+      const command = new UpdateUserCommand({
         userId,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'uk', // language
-      );
+        language: 'uk',
+      });
 
       // Act
       await commandBus.execute(command);
@@ -161,12 +151,17 @@ describe('UpdateUserCommand Integration', () => {
 
       // Set initial bio
       await commandBus.execute(
-        new UpdateUserCommand(userId, undefined, undefined, 'Original bio'),
+        new UpdateUserCommand({
+          userId,
+          firstName: undefined,
+          lastName: undefined,
+          bio: 'Original bio',
+        }),
       );
 
       // Act - Update only firstName, keep lastName and bio
       await commandBus.execute(
-        new UpdateUserCommand(userId, 'Updated', undefined),
+        new UpdateUserCommand({ userId, firstName: 'Updated' }),
       );
 
       // Assert
@@ -197,7 +192,7 @@ describe('UpdateUserCommand Integration', () => {
 
       // Act
       await commandBus.execute(
-        new UpdateUserCommand(userId, 'Updated', undefined),
+        new UpdateUserCommand({ userId, firstName: 'Updated' }),
       );
 
       // Assert
@@ -219,7 +214,11 @@ describe('UpdateUserCommand Integration', () => {
       // Act & Assert
       await expect(
         commandBus.execute(
-          new UpdateUserCommand(nonExistentUserId, 'New', 'Name'),
+          new UpdateUserCommand({
+            userId: nonExistentUserId,
+            firstName: 'New',
+            lastName: 'Name',
+          }),
         ),
       ).rejects.toThrow();
     });
@@ -234,7 +233,7 @@ describe('UpdateUserCommand Integration', () => {
 
       // Act & Assert
       await expect(
-        commandBus.execute(new UpdateUserCommand(userId, '', undefined)),
+        commandBus.execute(new UpdateUserCommand({ userId, firstName: '' })),
       ).rejects.toThrow();
     });
 
@@ -248,7 +247,9 @@ describe('UpdateUserCommand Integration', () => {
 
       // Act & Assert
       await expect(
-        commandBus.execute(new UpdateUserCommand(userId, undefined, '')),
+        commandBus.execute(
+          new UpdateUserCommand({ userId, firstName: undefined, lastName: '' }),
+        ),
       ).rejects.toThrow();
     });
   });
